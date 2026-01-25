@@ -11,7 +11,7 @@ interface AuthContextType {
     login: () => void;
     logout: () => void;
     isAuthenticated: boolean;
-    isSupervisor: boolean;
+    switchUser: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +30,9 @@ function AuthStateProvider({ children }: { children: React.ReactNode }) {
 
     const login = () => signIn();
     const logout = () => signOut({ callbackUrl: "/login" });
+    const switchUser = (role: UserRole) => {
+        alert("Switch User functionality is not available in production authentication mode.");
+    };
 
     // Mock compatibility helpers
     const isSupervisor = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
@@ -39,6 +42,7 @@ function AuthStateProvider({ children }: { children: React.ReactNode }) {
             user: user || null,
             login,
             logout,
+            switchUser,
             isAuthenticated: status === 'authenticated',
             isSupervisor
         }}>
