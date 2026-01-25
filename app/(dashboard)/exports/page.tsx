@@ -317,28 +317,28 @@ export default function ExportsPage() {
                         title="Importa Asset"
                         desc="Carica nuovi macchinari o aggiorna esistenti."
                         onTemplate={() => downloadTemplate('assets')}
-                        onUpload={(e) => handleFileUpload(e, 'assets')}
+                        onUpload={(e: any) => handleFileUpload(e, 'assets')}
                         loading={importing === 'assets'}
                     />
                     <ImportCard
                         title="Importa Interventi"
                         desc="Carica storico interventi manutentivi."
                         onTemplate={() => downloadTemplate('wo')}
-                        onUpload={(e) => handleFileUpload(e, 'wo')}
+                        onUpload={(e: any) => handleFileUpload(e, 'wo')}
                         loading={importing === 'wo'}
                     />
                     <ImportCard
                         title="Importa Magazzino"
                         desc="Carica articoli e giacenze iniziali."
                         onTemplate={() => downloadTemplate('inventory')}
-                        onUpload={(e) => handleFileUpload(e, 'inventory')}
+                        onUpload={(e: any) => handleFileUpload(e, 'inventory')}
                         loading={importing === 'inventory'}
                     />
                     <ImportCard
                         title="Importa Viti & Cilindri"
                         desc="Carica database componenti specifici."
                         onTemplate={() => downloadTemplate('screws')}
-                        onUpload={(e) => handleFileUpload(e, 'screws')}
+                        onUpload={(e: any) => handleFileUpload(e, 'screws')}
                         loading={importing === 'screws'}
                     />
                 </div>

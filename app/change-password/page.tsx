@@ -65,7 +65,7 @@ export default function ChangePasswordPage() {
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div className="space-y-4 rounded-md shadow-sm">
                         <div className="relative">
-                            <label htmlFor="new-password" class="sr-only">Nuova Password</label>
+                            <label htmlFor="new-password" className="sr-only">Nuova Password</label>
                             <Input
                                 id="new-password"
                                 name="new-password"
