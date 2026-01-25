@@ -11,6 +11,7 @@ interface AuthContextType {
     login: () => void;
     logout: () => void;
     isAuthenticated: boolean;
+    isSupervisor: boolean;
     switchUser: (role: UserRole) => void;
 }
 
