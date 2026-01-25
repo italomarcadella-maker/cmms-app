@@ -6,9 +6,6 @@ echo 1. Rimuovo DEFINITIVAMENTE la cartella 'dist' (causa errore __dirname)...
 if exist "dist" rmdir /s /q "dist"
 "C:\Program Files\Git\cmd\git.exe" rm -r --cached dist 2>nul
 
-echo.
-echo 2. Rimuovo DEFINITIVAMENTE il middleware (causa errore 500)...
-if exist "middleware.ts" del "middleware.ts"
 
 echo.
 echo 3. Aggiungo TUTTO il resto...
