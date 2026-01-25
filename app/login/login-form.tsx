@@ -28,7 +28,7 @@ export default function LoginForm() {
                                 id="email"
                                 type="email"
                                 name="email"
-                                placeholder="admin@cmms.it"
+                                placeholder="nome@azienda.it"
                                 required
                             />
                             <AtSign className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900 dark:peer-focus:text-gray-300" />
@@ -70,11 +70,7 @@ export default function LoginForm() {
                 </div>
 
                 {/* Helper text for demo */}
-                <div className="mt-4 text-xs text-muted-foreground p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-800">
-                    <p className="font-semibold mb-1">Credenziali Demo:</p>
-                    <p>Admin: admin@cmms.it / admin</p>
-                    <p>Tech: user@cmms.it / user</p>
-                </div>
+                {/* Helper text removed for production */}
             </div>
         </form>
     );
