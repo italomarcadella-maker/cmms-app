@@ -1,3 +1,0 @@
-module.exports=[39592,a=>{"use strict";var b=a.i(95796),c=a.i(44445);a.s([],92722),a.i(92722),a.s(["000cf763cc819353533261f8db7fb92ead321c22de",()=>c.getTechnicians,"002d4fe88978c385bab6ef1f578ec185dea84c09f6",()=>c.getDashboardStats,"006c6df661305aaa14e18892a3c23978ed56f57eb2",()=>c.getWorkOrders,"007ca825b3d92045a85e45f2a490a858cc0d7fb2e5",()=>c.getAssets,"00e54d46a942833fc7a232b2f7057117657c899283",()=>b.$$RSC_SERVER_ACTION_0,"40d426bd11fadd4d5e8068c34e64a81c361934c2c1",()=>c.createWorkOrder,"601ba44e6bbc3f9d6b5e7305680f6ac65b73c088e4",()=>c.assignWorkOrder,"60d3e716e08ab84193c3658a4a36c47b06f106dc42",()=>c.updateWorkOrderStatus],39592)}];
-
-//# sourceMappingURL=_next-internal_server_app_%28dashboard%29_work-orders_%5Bid%5D_page_actions_f786783f.js.map

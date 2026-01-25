@@ -1,3 +1,0 @@
-module.exports=[54799,(a,b,c)=>{b.exports=a.x("crypto",()=>require("crypto"))},63021,(a,b,c)=>{b.exports=a.x("@prisma/client-2c3a283f134fdcb6",()=>require("@prisma/client-2c3a283f134fdcb6"))},73672,a=>{"use strict";var b=a.i(14085);a.s([],23437),a.i(23437),a.s(["60c72b5dcaca93087df91b7b3add85dcb039267e8c",()=>b.authenticate],73672)}];
-
-//# sourceMappingURL=%5Broot-of-the-server%5D__fff1c3fa._.js.map
