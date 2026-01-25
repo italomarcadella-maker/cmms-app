@@ -60,3 +60,24 @@ export async function generateAIResponse(query: string): Promise<Message> {
         isRead: false
     };
 }
+
+
+export interface AIInsight {
+    id: string;
+    type: 'CRITICAL' | 'WARNING' | 'INFO';
+    assetName: string;
+    prediction: string;
+    action: string;
+    confidence: number;
+}
+
+export class MockAIService {
+    static async getInsights(): Promise<AIInsight[]> {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return [
+            { id: '1', type: 'CRITICAL', assetName: 'Pressa Idraulica P-101', prediction: 'Alta probabilità di guasto pompa olio entro 48h', action: 'Controllare livelli e filtri olio', confidence: 94 },
+            { id: '2', type: 'WARNING', assetName: 'Nastro Trasportatore CV-02', prediction: 'Vibrazioni anomale rilevate', action: 'Ispezionare cuscinetti', confidence: 87 },
+            { id: '3', type: 'INFO', assetName: 'Sistema HVAC U-05', prediction: 'Efficienza energetica in calo', action: 'Pulire filtri', confidence: 76 }
+        ];
+    }
+}
