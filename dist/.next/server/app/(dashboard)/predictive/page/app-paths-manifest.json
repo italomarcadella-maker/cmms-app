@@ -1,0 +1,3 @@
+{
+  "/(dashboard)/predictive/page": "app/(dashboard)/predictive/page.js"
+}

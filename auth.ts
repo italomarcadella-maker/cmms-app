@@ -1,0 +1,59 @@
+import NextAuth from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
+import { authConfig } from './auth.config';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
+import { PrismaAdapter } from "@auth/prisma-adapter"
+
+export const { auth, signIn, signOut, handlers } = NextAuth({
+    ...authConfig,
+    adapter: PrismaAdapter(prisma),
+    session: { strategy: "jwt" },
+    providers: [
+        Credentials({
+            async authorize(credentials) {
+                const parsedCredentials = z
+                    .object({ email: z.string().email(), password: z.string().min(3) })
+                    .safeParse(credentials);
+
+                if (parsedCredentials.success) {
+                    const { email, password } = parsedCredentials.data;
+                    const user = await prisma.user.findUnique({ where: { email } });
+
+                    if (!user || !user.password) return null;
+
+                    const passwordsMatch = await bcrypt.compare(password, user.password);
+
+                    if (passwordsMatch) return user;
+                }
+                console.log('Invalid credentials');
+                return null;
+            },
+        }),
+    ],
+    callbacks: {
+        async session({ session, token }) {
+            if (token.sub && session.user) {
+                (session.user as any).id = token.sub;
+            }
+            if (token.role && session.user) {
+                (session.user as any).role = token.role;
+            }
+            if (session.user) {
+                (session.user as any).mustChangePassword = token.mustChangePassword;
+            }
+            return session;
+        },
+        async jwt({ token }) {
+            if (token.sub) {
+                const user = await prisma.user.findUnique({ where: { id: token.sub } });
+                if (user) {
+                    token.role = (user as any).role;
+                    token.mustChangePassword = (user as any).mustChangePassword;
+                }
+            }
+            return token;
+        }
+    }
+});

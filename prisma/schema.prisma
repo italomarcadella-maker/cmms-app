@@ -1,0 +1,209 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("USER") // ADMIN, SUPERVISOR, USER
+  mustChangePassword Boolean @default(false)
+  accounts      Account[]
+  sessions      Session[]
+  notifications Notification[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Asset {
+  id              String   @id @default(cuid())
+  name            String
+  model           String
+  serialNumber    String   @unique
+  vendor          String?
+  plant           String?
+  department      String?
+  location        String
+  purchaseDate    DateTime
+  status          String   @default("OPERATIONAL")
+  healthScore     Int      @default(100)
+  lastMaintenance DateTime?
+  
+  images          AssetImage[]
+  documents       AssetDocument[]
+  workOrders      WorkOrder[]
+  schedules       PreventiveSchedule[]
+}
+
+model AssetDocument {
+  id      String @id @default(cuid())
+  name    String
+  url     String
+  type    String
+  date    DateTime?
+  asset   Asset  @relation(fields: [assetId], references: [id])
+  assetId String
+}
+
+model AssetImage {
+  id      String @id @default(cuid())
+  url     String
+  asset   Asset  @relation(fields: [assetId], references: [id])
+  assetId String
+}
+
+model WorkOrder {
+  id                   String   @id @default(cuid())
+  title                String
+  description          String
+  priority             String
+  category             String
+  status               String   @default("OPEN")
+  assignedTo           String?  // Legacy or Display Name
+  assignedTechnicianId String?
+  
+  dueDate              DateTime
+  createdAt            DateTime @default(now())
+  
+  asset                Asset    @relation(fields: [assetId], references: [id])
+  assetId              String
+  
+  checklist            ChecklistItem[]
+  partsUsed            WorkOrderPart[]
+  laborLogs            LaborLog[]
+}
+
+model ChecklistItem {
+  id          String    @id @default(cuid())
+  label       String
+  completed   Boolean   @default(false)
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  workOrderId String
+}
+
+model WorkOrderPart {
+  id          String    @id @default(cuid())
+  partId      String
+  partName    String
+  quantity    Int
+  unitCost    Float
+  dateAdded   DateTime
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  workOrderId String
+}
+
+model LaborLog {
+  id             String    @id @default(cuid())
+  technicianId   String
+  technicianName String
+  hours          Float
+  date           DateTime
+  workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  workOrderId    String
+}
+
+model Technician {
+  id         String @id @default(cuid())
+  name       String
+  specialty  String
+  hourlyRate Float
+}
+
+model MaintenanceActivity {
+  id       String  @id @default(cuid())
+  label    String
+  category String?
+}
+
+model PreventiveSchedule {
+  id            String   @id @default(cuid())
+  taskTitle     String
+  description   String
+  frequencyDays Int
+  lastRunDate   DateTime?
+  nextDueDate   DateTime
+  assignedToId  String?
+  
+  asset         Asset    @relation(fields: [assetId], references: [id])
+  assetId       String
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   // e.g. "Nuova Assegnazione"
+  message   String   // e.g. "Ti è stato assegnato l'ordine #123"
+  read      Boolean  @default(false)
+  link      String?  // e.g. "/work-orders/123"
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Meter {
+  id               String   @id @default(cuid())
+  name             String
+  type             String   // ELEC, WATER, GAS
+  unit             String   // kWh, m3
+  serialNumber     String?
+  location         String?
+  installationDate DateTime?
+  
+  readings         MeterReading[]
+}
+
+model MeterReading {
+  id         String   @id @default(cuid())
+  meterId    String
+  date       DateTime
+  value      Float
+  
+  // AI / Analysis Fields
+  isAnomaly  Boolean  @default(false)
+  aiAnalysis String?  // Explanation of the anomaly
+  
+  createdAt  DateTime @default(now())
+  
+  meter      Meter    @relation(fields: [meterId], references: [id], onDelete: Cascade)
+}

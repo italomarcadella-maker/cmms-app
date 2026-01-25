@@ -1,0 +1,58 @@
+LISTA SOFTWARE E REQUISITI PER CMMS
+
+Per utilizzare e sviluppare correttamente questo programma CMMS, sono necessari i seguenti software:
+
+1. Node.js (Fondamentale)
+   - Runtime JavaScript necessario per eseguire il server.
+   - Versione consigliata: v20.0.0 o superiore (LTS).
+   - Download: https://nodejs.org/
+
+2. npm (Node Package Manager)
+   - Gestore dei pacchetti, viene installato automaticamente insieme a Node.js.
+   - Serve per installare le librerie con il comando `npm install`.
+
+3. Database (SQLite)
+   - Il database è integrato nel progetto (file `dev.db`).
+   - NON richiede installazioni separate di server database (come MySQL o PostgreSQL) per l'uso locale.
+   - Per visualizzare i dati da interfaccia grafica si può usare il comando: `npx prisma studio`.
+
+4. Editor di Codice (Per sviluppatori)
+   - Visual Studio Code (Consigliato)
+   - Download: https://code.visualstudio.com/
+   - Estensioni raccomandate: 
+     - Tailwind CSS IntelliSense
+     - Prisma
+     - ESLint
+
+5. Browser Web
+   - Un browser moderno per accedere all'applicazione (Chrome, Edge, Firefox, Safari).
+
+COME AVVIARE IL PROGRAMMA
+Metodo Semplice (Windows):
+1. Fare doppio clic sul file `avvia_programma.bat` presente sul desktop o nella cartella del progetto.
+   - Questo script installerà automaticamente le dipendenze (se mancano) e avvierà il server.
+
+Metodo Manuale:
+1. Aprire il terminale nella cartella del progetto.
+2. Eseguire `npm install` (solo la prima volta o se si aggiungono librerie).
+3. Eseguire `npm run dev` per avviare il server.
+4. Aprire il browser all'indirizzo `http://localhost:3000`.
+
+CREDENZIALI DI ACCESSO (DEFAULT)
+Il sistema viene inizializzato con i seguenti utenti:
+
+- AMMINISTRATORE (Accesso completo, Gestione Utenti, Ruoli)
+  Email: admin@cmms.it
+  Password: admin
+
+- SUPERVISORE (Gestione Ordini, Asset, Tecnici)
+  Email: supervisor@cmms.it
+  Password: user
+
+- UTENTE (Visualizzazione, Richieste Base)
+  Email: user@cmms.it
+  Password: user
+
+NOTE DI SICUREZZA
+- Nuovi Utenti: Gli utenti creati dall'amministratore dovranno obbligatoriamente cambiare la password al primo accesso.
+- Logout: È possibile uscire dalla sessione cliccando sull'icona di uscita in alto a destra nella Dashboard.
