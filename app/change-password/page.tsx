@@ -79,7 +79,7 @@ export default function ChangePasswordPage() {
                             <Key className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                         </div>
                         <div className="relative">
-                            <label htmlFor="confirm-password" class="sr-only">Conferma Password</label>
+                            <label htmlFor="confirm-password" className="sr-only">Conferma Password</label>
                             <Input
                                 id="confirm-password"
                                 name="confirm-password"
