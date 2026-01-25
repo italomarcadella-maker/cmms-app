@@ -61,7 +61,6 @@ export async function generateAIResponse(query: string): Promise<Message> {
     };
 }
 
-
 export interface AIInsight {
     id: string;
     type: 'CRITICAL' | 'WARNING' | 'INFO';
@@ -73,11 +72,34 @@ export interface AIInsight {
 
 export class MockAIService {
     static async getInsights(): Promise<AIInsight[]> {
+        // Simulate delay
         await new Promise(resolve => setTimeout(resolve, 1000));
+
         return [
-            { id: '1', type: 'CRITICAL', assetName: 'Pressa Idraulica P-101', prediction: 'Alta probabilit‡ di guasto pompa olio entro 48h', action: 'Controllare livelli e filtri olio', confidence: 94 },
-            { id: '2', type: 'WARNING', assetName: 'Nastro Trasportatore CV-02', prediction: 'Vibrazioni anomale rilevate', action: 'Ispezionare cuscinetti', confidence: 87 },
-            { id: '3', type: 'INFO', assetName: 'Sistema HVAC U-05', prediction: 'Efficienza energetica in calo', action: 'Pulire filtri', confidence: 76 }
+            {
+                id: '1',
+                type: 'CRITICAL',
+                assetName: 'Pressa Idraulica P-101',
+                prediction: 'Alta probabilit√† di guasto pompa olio entro 48h',
+                action: 'Controllare livelli e filtri olio',
+                confidence: 94
+            },
+            {
+                id: '2',
+                type: 'WARNING',
+                assetName: 'Nastro Trasportatore CV-02',
+                prediction: 'Vibrazioni anomale rilevate su motore principale',
+                action: 'Ispezionare cuscinetti motore',
+                confidence: 87
+            },
+            {
+                id: '3',
+                type: 'INFO',
+                assetName: 'Sistema HVAC U-05',
+                prediction: 'Efficienza energetica in calo del 12%',
+                action: 'Programmare pulizia filtri',
+                confidence: 76
+            }
         ];
     }
 }
