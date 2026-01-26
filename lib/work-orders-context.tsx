@@ -31,13 +31,8 @@ export function WorkOrdersProvider({
             // Map DB result to Frontend Type
             const mapped = data.map(wo => ({
                 ...wo,
-                dueDate: wo.dueDate.toISOString(),
-                createdAt: wo.createdAt.toISOString(),
+                // Dates are already strings from server action
                 assetName: (wo as any).asset?.name || 'Unknown',
-                // Checklist/parts/labor might need fetching if not included in getWorkOrders default
-                checklist: [],
-                partsUsed: [],
-                laborLogs: []
             }));
             setWorkOrders(mapped as WorkOrder[]);
         };
