@@ -2,6 +2,8 @@
 
 import { Save, User, Globe, AlertTriangle, Download, Trash2, Moon, Sun } from "lucide-react";
 import { useState, useEffect } from "react";
+import { resetDatabase } from "@/lib/actions";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
     const [theme, setTheme] = useState("light");
@@ -25,10 +27,22 @@ export default function SettingsPage() {
         document.body.removeChild(a);
     };
 
-    const handleReset = () => {
-        if (confirm("Sei sicuro di voler cancellare TUTTI i dati? Questa azione è irreversibile.")) {
-            localStorage.clear();
-            window.location.reload();
+    const router = useRouter();
+    const handleReset = async () => {
+        if (confirm("Sei sicuro di voler cancellare TUTTI i dati? Questa azione è irreversibile e cancellerà Ordini, Asset, Tecnici e Utenti non-admin.")) {
+            // localStorage.clear(); // We keep local storage clear just in case legacy stuff is there
+            try {
+                const result = await resetDatabase();
+                if (result.success) {
+                    alert(result.message);
+                    router.refresh();
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Errore durante il reset.");
+            }
         }
     };
 
@@ -132,7 +146,7 @@ export default function SettingsPage() {
                         </button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-3 text-center">
-                        Il reset cancellerà tutti i dati salvati nel browser. Assicurati di aver fatto un backup prima.
+                        Il reset pulirà il database mantenendo solo gli utenti amministratori.
                     </p>
                 </div>
             </div>

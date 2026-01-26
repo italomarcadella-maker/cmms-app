@@ -1,4 +1,4 @@
-import { getUsers } from '@/app/lib/actions';
+import { getUsers } from '@/lib/actions';
 import { UserList } from '@/components/users/user-list';
 import { AddUserDialog } from '@/components/users/add-user-dialog';
 import { notFound } from 'next/navigation';

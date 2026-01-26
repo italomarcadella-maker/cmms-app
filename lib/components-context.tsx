@@ -100,89 +100,93 @@ export function ComponentsProvider({ children }: { children: React.ReactNode }) 
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        const saved = localStorage.getItem('components-db');
-        if (saved) {
-            try {
-                setComponents(JSON.parse(saved));
-            } catch (e) {
-                setComponents(MOCK_COMPONENTS);
-            }
-        } else {
-            setComponents(MOCK_COMPONENTS);
-        }
-        setIsLoaded(true);
+        refreshComponents();
     }, []);
 
-    useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem('components-db', JSON.stringify(components));
-        }
-    }, [components, isLoaded]);
+    const refreshComponents = async () => {
+        const { getComponents } = await import('@/lib/actions');
+        // Type assertion needed as DB result might miss exact TS match or we need to map
+        // ComponentItem has measurements, DB include measurements.
+        // We might need to map dates if they are Date objects in DB but string in interface.
+        const data = await getComponents();
 
-    const addComponent = (item: Omit<ComponentItem, "id">) => {
-        const newItem = { ...item, id: `C-${Date.now()}` };
-        setComponents(prev => [...prev, newItem]);
-    };
-
-    const updateComponent = (id: string, updates: Partial<ComponentItem>) => {
-        setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-    };
-
-    const addMeasurement = (id: string, measurement: Measurement) => {
-        setComponents(prev => prev.map(c => {
-            if (c.id !== id) return c;
-
-            // Calculate Status based on Nominal Diameter
-            const nominal = c.nominalDiameter || 0;
-            const current = measurement.value1;
-            const diff = nominal - current; // Wear is positive (e.g. 50 - 49.5 = 0.5)
-
-            let newStatus: ComponentStatus = 'OPTIMAL';
-
-            if (nominal > 0) {
-                if (c.type === 'BARREL') {
-                    // BARREL Logic
-                    if (diff < 0.7) {
-                        newStatus = 'OPTIMAL';
-                    } else if (diff >= 0.7 && diff <= 0.8) {
-                        newStatus = 'TO_ORDER';
-                    } else if (diff > 0.8) {
-                        newStatus = 'CRITICAL'; // Should be Scrapped
-                    }
-                } else {
-                    // SCREW Logic
-                    if (diff < 0.4) {
-                        newStatus = 'OPTIMAL';
-                    } else if (diff >= 0.4 && diff < 0.5) {
-                        newStatus = 'WARNING';
-                    } else if (diff >= 0.5 && diff <= 0.6) {
-                        newStatus = 'NEEDS_NITRIDING';
-                    } else if (diff > 0.6 && diff <= 1.0) {
-                        newStatus = 'NEEDS_REGENERATION';
-                    } else if (diff > 1.0) {
-                        newStatus = 'CRITICAL'; // Should be Scrapped
-                    }
-                }
-            } else {
-                // Fallback if no nominal set
-                if (measurement.value1 < 49.0 || measurement.value1 > 51.0) newStatus = 'CRITICAL';
-                else newStatus = 'OPTIMAL';
-            }
-
-            return {
-                ...c,
-                measurements: [...c.measurements, measurement],
-                status: newStatus
-            };
+        const mapped = data.map(d => ({
+            ...d,
+            type: d.type as ComponentType,
+            usageType: d.usageType as UsageType,
+            warehouse: d.warehouse as WarehouseType,
+            status: d.status as ComponentStatus,
+            purchaseDate: d.purchaseDate.toISOString(), // ComponentItem expects string usually? Interface says string.
+            measurements: d.measurements.map((m: any) => ({
+                date: m.date.toISOString(),
+                value1: m.value1,
+                value2: m.value2,
+                operator: m.operator
+            })),
+            lifecycle: d.lifecycle as ComponentLifecycle // JSON object
         }));
+
+        setComponents(mapped as ComponentItem[]);
+        setIsLoaded(true);
     };
 
-    const assignComponent = (componentId: string, assetId: string | undefined) => {
-        setComponents(prev => prev.map(c => c.id === componentId ? { ...c, assignedAssetId: assetId } : c));
+    const addComponent = async (item: Omit<ComponentItem, "id">) => {
+        const { addComponent } = await import('@/lib/actions');
+        // prepare data for DB
+        const dbData = {
+            ...item,
+            purchaseDate: new Date(item.purchaseDate), // DB wants Date
+            // measurements are not typically added via addComponent, or we ignore them initially
+            measurements: undefined
+        };
+        const result = await addComponent(dbData);
+        if (result.success) {
+            refreshComponents(); // simpler to refresh than map especially with complex types
+        } else {
+            alert(result.message);
+        }
     };
 
-    const moveWarehouse = (id: string, warehouse: WarehouseType, location: string) => {
-        setComponents(prev => prev.map(c => c.id === id ? { ...c, warehouse, location } : c));
+    const updateComponent = async (id: string, updates: Partial<ComponentItem>) => {
+        const { updateComponent } = await import('@/lib/actions');
+        // Map updates if needed (Date strings to Date objects)
+        const dbUpdates: any = { ...updates };
+        if (updates.purchaseDate) dbUpdates.purchaseDate = new Date(updates.purchaseDate);
+
+        const result = await updateComponent(id, dbUpdates);
+        if (result.success) {
+            refreshComponents();
+        } else {
+            alert(result.message);
+        }
+    };
+
+    const addMeasurement = async (id: string, measurement: Measurement) => {
+        const { addMeasurement } = await import('@/lib/actions');
+        const result = await addMeasurement(id, measurement);
+
+        if (result.success) {
+            // We can optimistically update or refresh. 
+            // Since status logic WAS client side, we should probably keep it client side for immediate feedback 
+            // OR move it to server. 
+            // Ideally we move it to server action `addMeasurement`.
+            // For now, let's refresh to get the standard behavior.
+            refreshComponents();
+        } else {
+            alert(result.message);
+        }
+    };
+
+    const assignComponent = async (componentId: string, assetId: string | undefined) => {
+        const { updateComponent } = await import('@/lib/actions');
+        const result = await updateComponent(componentId, { assignedAssetId: assetId || null }); // Prisma needs null not undefined usually
+        if (result.success) refreshComponents();
+    };
+
+    const moveWarehouse = async (id: string, warehouse: WarehouseType, location: string) => {
+        const { updateComponent } = await import('@/lib/actions');
+        const result = await updateComponent(id, { warehouse, location });
+        if (result.success) refreshComponents();
     };
 
     return (

@@ -2,14 +2,27 @@
 
 import { usePM } from "@/lib/pm-context";
 import { useAssets } from "@/lib/assets-context";
-import { format, differenceInDays } from "date-fns";
-import { Calendar, CheckCircle2, AlertTriangle, Plus, Box, RefreshCw } from "lucide-react";
+import { useWorkOrders } from "@/lib/work-orders-context"; // Import WorkOrders
+import { format, differenceInDays, parseISO } from "date-fns";
+import { Calendar, CheckCircle2, AlertTriangle, Plus, Box, RefreshCw, Trash2, StopCircle, PlayCircle, Wrench } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation"; // Added router
 
 import { useState } from "react";
 
 export default function PMSchedulePage() {
-    const { schedules, generateDueWorkOrders } = usePM();
+    const { schedules, generateDueWorkOrders, deleteSchedule } = usePM();
+    const { workOrders } = useWorkOrders(); // Get active WOs
     const { assets } = useAssets();
+    const { user } = useAuth();
+    const router = useRouter(); // For navigation
+
+    // Filter Active Work Orders (Not closed/canceled/pending_approval)
+    // Actually, maybe show ALL active ones including PENDING_APPROVAL? Or just Approved?
+    // Let's show OPEN, IN_PROGRESS
+    const activeWOs = workOrders.filter(wo => wo.status === 'OPEN' || wo.status === 'IN_PROGRESS');
+
+    const isAdmin = user?.role === 'ADMIN';
     const [generatedCount, setGeneratedCount] = useState<number | null>(null);
 
     const handleGenerate = () => {
@@ -18,21 +31,63 @@ export default function PMSchedulePage() {
         setTimeout(() => setGeneratedCount(null), 3000);
     };
 
-    const getStatusColor = (dueDate: string) => {
+    const getStatusColor = (dueDate: string, isWO: boolean = false) => {
+        if (!dueDate) return { bg: "bg-gray-100", text: "text-gray-700", label: "No Date" };
         const days = differenceInDays(new Date(dueDate), new Date());
+
         if (days < 0) return { bg: "bg-red-100", text: "text-red-700", label: "Scaduto" };
-        if (days <= 7) return { bg: "bg-amber-100", text: "text-amber-700", label: "In Scadenza" };
+        if (days <= 2) return { bg: "bg-amber-100", text: "text-amber-700", label: "Urgente" };
+
+        if (isWO) return { bg: "bg-blue-100", text: "text-blue-700", label: "Attivo" };
         return { bg: "bg-emerald-100", text: "text-emerald-700", label: "Pianificato" };
     };
+
+    // Unified List Type
+    type UnifiedItem = {
+        type: 'PM' | 'WO',
+        id: string,
+        title: string,
+        assetName: string,
+        description: string,
+        date: string, // Next Due or Due Date
+        status: string; // for badge logic
+        original: any
+    };
+
+    const unifiedList: UnifiedItem[] = [
+        ...activeWOs.map(wo => ({
+            type: 'WO' as const,
+            id: wo.id,
+            title: wo.title,
+            assetName: wo.assetName,
+            description: wo.description,
+            date: wo.dueDate,
+            status: wo.status,
+            original: wo
+        })),
+        ...schedules.map(sch => {
+            const asset = assets.find(a => a.id === sch.assetId);
+            return {
+                type: 'PM' as const,
+                id: sch.id,
+                title: sch.taskTitle,
+                assetName: asset?.name || sch.assetName,
+                description: sch.description,
+                date: sch.nextDueDate,
+                status: 'SCHEDULED',
+                original: sch
+            };
+        })
+    ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-                        Manutenzione Preventiva
+                        Calendario Attività
                     </h1>
-                    <p className="text-muted-foreground mt-1">Gestisci le schedulazioni ricorrenti e genera ordini di lavoro.</p>
+                    <p className="text-muted-foreground mt-1">Vista unificata: Schedulazioni Preventive e Ordini di Lavoro Attivi.</p>
                 </div>
                 <button
                     onClick={handleGenerate}
@@ -50,52 +105,81 @@ export default function PMSchedulePage() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {schedules.map(schedule => {
-                    const status = getStatusColor(schedule.nextDueDate);
-                    const asset = assets.find(a => a.id === schedule.assetId);
+                {unifiedList.map(item => {
+                    const statusInfo = getStatusColor(item.date, item.type === 'WO');
 
                     return (
-                        <div key={schedule.id} className="rounded-xl border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex justify-between items-start mb-4">
+                        <div
+                            key={`${item.type}-${item.id}`}
+                            className={`rounded-xl border p-6 shadow-sm hover:shadow-md transition-all group relative ${item.type === 'WO' ? 'bg-blue-50/30 border-blue-100' : 'bg-card'}`}
+                            onClick={() => item.type === 'WO' && router.push(`/work-orders/${item.id}`)}
+                            style={{ cursor: item.type === 'WO' ? 'pointer' : 'default' }}
+                        >
+                            {/* Type Badge */}
+                            <div className={`absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${item.type === 'WO' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                {item.type === 'WO' ? 'ORDINE ATTIVO' : 'PREVENTIVA'}
+                            </div>
+
+                            <div className="flex justify-between items-start mb-4 pr-16"> {/* pr-16 for badge space */}
                                 <div>
-                                    <h3 className="font-semibold text-lg line-clamp-1">{schedule.taskTitle}</h3>
+                                    <h3 className={`font-semibold text-lg line-clamp-1 ${item.type === 'WO' ? 'text-blue-900' : ''}`}>{item.title}</h3>
                                     <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                                         <Box className="h-3 w-3" />
-                                        <span>{asset?.name || schedule.assetName}</span>
+                                        <span>{item.assetName}</span>
                                     </div>
-                                </div>
-                                <div className={`px-2 py-1 rounded text-xs font-semibold ${status.bg} ${status.text}`}>
-                                    {status.label}
                                 </div>
                             </div>
 
                             <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
-                                {schedule.description}
+                                {item.description}
                             </p>
 
                             <div className="space-y-2 pt-4 border-t text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Frequenza:</span>
-                                    <span className="font-medium">Ogni {schedule.frequencyDays} giorni</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Ultima Esecuzione:</span>
-                                    <span>{new Date(schedule.lastRunDate).toLocaleDateString()}</span>
+                                    <span className="text-muted-foreground">Stato:</span>
+                                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${statusInfo.bg} ${statusInfo.text}`}>
+                                        {statusInfo.label}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-muted-foreground flex items-center gap-1">
-                                        <Calendar className="h-3 w-3" /> Scadenza:
+                                        <Calendar className="h-3 w-3" /> Data Target:
                                     </span>
-                                    <span className={`font-mono font-medium ${status.text}`}>
-                                        {new Date(schedule.nextDueDate).toLocaleDateString()}
+                                    <span className={`font-mono font-medium ${statusInfo.text}`}>
+                                        {new Date(item.date).toLocaleDateString()}
                                     </span>
                                 </div>
+
+                                {/* Action for PM only */}
+                                {item.type === 'PM' && isAdmin && (
+                                    <div className="flex justify-end mt-2 pt-2">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm("Sei sicuro di voler eliminare questa schedulazione?")) {
+                                                    deleteSchedule(item.id);
+                                                }
+                                            }}
+                                            className="text-muted-foreground hover:text-red-600 transition-colors p-1 flex items-center gap-1 text-xs"
+                                        >
+                                            <Trash2 className="h-3 w-3" /> Elimina
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Hint for WO */}
+                                {item.type === 'WO' && (
+                                    <div className="flex justify-end mt-2 pt-2 text-blue-600 text-xs font-medium group-hover:underline">
+                                        Vedi Dettagli →
+                                    </div>
+                                )}
                             </div>
                         </div>
                     );
                 })}
 
-                {schedules.length === 0 && (
+                {unifiedList.length === 0 && (
+
                     <div className="col-span-full py-12 text-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
                         <Calendar className="h-10 w-10 mx-auto mb-3 opacity-20" />
                         <p>Nessuna schedulazione definita.</p>

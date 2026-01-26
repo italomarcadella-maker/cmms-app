@@ -38,6 +38,12 @@ export const authConfig = {
                     return Response.redirect(new URL('/', nextUrl));
                 }
 
+                // REDIRECT RULE: 'USER' role should always go to /requests/new instead of Dashboard
+                const userRole = (auth.user as any).role;
+                if (userRole === 'USER' && nextUrl.pathname === '/') {
+                    return Response.redirect(new URL('/requests/new', nextUrl));
+                }
+
                 return true;
             }
 

@@ -5,7 +5,7 @@ import { WorkOrderKanban } from "@/components/work-orders/wo-kanban";
 import { WOAssignDialog } from "@/components/work-orders/wo-assign-dialog";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useWorkOrders } from "@/lib/work-orders-context";
 import { WorkOrder } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
@@ -64,13 +64,29 @@ const WOStatusBadge = ({ status }: { status: string }) => {
 
 export default function WorkOrdersPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { workOrders } = useWorkOrders();
     const { user } = useAuth();
+
+    // Determine initial tab from URL or default to ACTIVE
+    const tabParam = searchParams.get('tab');
+    const initialTab = tabParam === 'requests' ? 'REQUESTS' :
+        tabParam === 'history' ? 'HISTORY' : 'ACTIVE';
+
     const [filter, setFilter] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
-    const [technicianFilter, setTechnicianFilter] = useState("ALL"); // New Technician Filter
+    const [technicianFilter, setTechnicianFilter] = useState("ALL");
     const [onlyMyTasks, setOnlyMyTasks] = useState(false);
     const [view, setView] = useState<'LIST' | 'BOARD'>('LIST');
+    const [activeTab, setActiveTab] = useState<'ACTIVE' | 'REQUESTS' | 'HISTORY'>(initialTab);
+
+    // Sync state if URL changes (optional but good for history navigation)
+    // useEffect(() => {
+    //    if (tabParam === 'requests') setActiveTab('REQUESTS');
+    // }, [tabParam]);
+
+    // ... rest of the component
+
 
     const [assigningWo, setAssigningWo] = useState<{ id: string, techId?: string } | null>(null);
     const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
@@ -88,6 +104,11 @@ export default function WorkOrdersPage() {
 
     // Filter logic
     const filteredWOs = workOrders.filter(wo => {
+        // Tab Filter
+        if (activeTab === 'REQUESTS' && wo.status !== 'PENDING_APPROVAL') return false;
+        if (activeTab === 'HISTORY' && wo.status !== 'CLOSED' && wo.status !== 'CANCELED') return false;
+        if (activeTab === 'ACTIVE' && (wo.status === 'PENDING_APPROVAL' || wo.status === 'CLOSED' || wo.status === 'CANCELED')) return false;
+
         const matchesFilter = wo.title.toLowerCase().includes(filter.toLowerCase()) ||
             wo.description.toLowerCase().includes(filter.toLowerCase()) ||
             wo.assetName?.toLowerCase().includes(filter.toLowerCase()) ||
@@ -137,6 +158,44 @@ export default function WorkOrdersPage() {
                     className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
                 >
                     <Plus className="h-4 w-4" /> Nuovo Ordine
+                </button>
+            </div>
+
+
+            {/* Tabs */}
+            <div className="flex space-x-1 rounded-xl bg-muted p-1">
+                <button
+                    onClick={() => setActiveTab('ACTIVE')}
+                    className={cn(
+                        "w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2",
+                        activeTab === 'ACTIVE'
+                            ? "bg-background text-foreground shadow"
+                            : "text-muted-foreground hover:bg-white/[0.12] hover:text-white"
+                    )}
+                >
+                    Attivi
+                </button>
+                <button
+                    onClick={() => setActiveTab('REQUESTS')}
+                    className={cn(
+                        "w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2",
+                        activeTab === 'REQUESTS'
+                            ? "bg-background text-foreground shadow"
+                            : "text-muted-foreground hover:bg-white/[0.12] hover:text-white"
+                    )}
+                >
+                    Richieste {workOrders.filter(w => w.status === 'PENDING_APPROVAL').length > 0 && <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">{workOrders.filter(w => w.status === 'PENDING_APPROVAL').length}</span>}
+                </button>
+                <button
+                    onClick={() => setActiveTab('HISTORY')}
+                    className={cn(
+                        "w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2",
+                        activeTab === 'HISTORY'
+                            ? "bg-background text-foreground shadow"
+                            : "text-muted-foreground hover:bg-white/[0.12] hover:text-white"
+                    )}
+                >
+                    Storico
                 </button>
             </div>
 

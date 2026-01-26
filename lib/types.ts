@@ -26,7 +26,7 @@ export interface Asset {
 }
 
 export type WorkOrderPriority = 'HIGH' | 'MEDIUM' | 'LOW';
-export type WorkOrderStatus = 'OPEN' | 'IN_PROGRESS' | 'PENDING_APPROVAL' | 'COMPLETED' | 'ON_HOLD';
+export type WorkOrderStatus = 'PENDING_APPROVAL' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'PENDING_REVIEW' | 'CLOSED' | 'ON_HOLD' | 'CANCELED';
 export type WorkOrderCategory = 'MECHANICAL' | 'ELECTRICAL' | 'HYDRAULIC' | 'PNEUMATIC' | 'OTHER';
 
 export interface ChecklistItem {
@@ -63,9 +63,14 @@ export interface WorkOrder {
         hours: number;
         date: string;
     }[];
+    requesterId?: string;
+    validatedById?: string;
+    type?: 'FAULT' | 'ROUTINE' | 'REQUEST';
+    requestImage?: string;
+    completionImage?: string;
 }
 
-export type UserRole = 'ADMIN' | 'SUPERVISOR' | 'USER';
+export type UserRole = 'ADMIN' | 'SUPERVISOR' | 'MAINTAINER' | 'USER';
 
 export interface User {
     id: string;
@@ -73,6 +78,9 @@ export interface User {
     email: string;
     role: UserRole;
     avatar?: string;
+    isActive: boolean;
+    lastLogin?: string;
+    department?: string;
 }
 
 export interface Technician {
@@ -104,7 +112,7 @@ export interface SparePart {
     id: string;
     name: string;
     category: string;
-    warehouse: string; // New field requested
+    // warehouse: string; // Removed as not in DB
     quantity: number;
     minQuantity: number;
     location: string;

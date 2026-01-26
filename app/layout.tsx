@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { ComponentsProvider } from "@/lib/components-context";
 import { ChatProvider } from "@/lib/chat-context";
 import { ChatWidget } from "@/components/chat/chat-widget";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
             <ChatProvider>
               {children}
               <ChatWidget />
+              <Toaster />
             </ChatProvider>
           </ComponentsProvider>
         </AuthProvider>

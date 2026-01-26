@@ -25,7 +25,18 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
                     const passwordsMatch = await bcrypt.compare(password, user.password);
 
-                    if (passwordsMatch) return user;
+                    if (passwordsMatch) {
+                        // Check if user is active
+                        if (user.isActive === false) return null;
+
+                        // Update last login
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: { lastLogin: new Date() }
+                        });
+
+                        return user;
+                    }
                 }
                 console.log('Invalid credentials');
                 return null;

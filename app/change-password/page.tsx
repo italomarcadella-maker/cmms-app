@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Key, Loader2, AlertCircle } from 'lucide-react';
-import { updateFirstLoginPassword } from '@/app/lib/actions';
+import { updateFirstLoginPassword } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function ChangePasswordPage() {
     const [password, setPassword] = useState('');
@@ -35,15 +36,18 @@ export default function ChangePasswordPage() {
         try {
             const result = await updateFirstLoginPassword(password);
             if (result.success) {
-                setSuccess('Password aggiornata! Reindirizzamento...');
+                toast.success(result.message || 'Password aggiornata! Reindirizzamento...');
+                setSuccess('Password aggiornata! Reindirizzamento...'); // Keep showing inline success too or remove? Let's keep inline for redundant clarity but toast is nicer.
                 setTimeout(() => {
                     router.push('/');
                     router.refresh();
                 }, 2000);
             } else {
+                toast.error(result.message || 'Errore durante l\'aggiornamento.');
                 setError(result.message || 'Errore durante l\'aggiornamento.');
             }
         } catch (err) {
+            toast.error('Si è verificato un errore.');
             setError('Si è verificato un errore.');
         } finally {
             setLoading(false);

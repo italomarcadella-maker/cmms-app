@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { authenticate } from '@/app/lib/actions';
+import { authenticate } from '@/lib/actions';
 import { AtSign, Key, Loader2, AlertCircle } from 'lucide-react';
 
 export default function LoginForm() {

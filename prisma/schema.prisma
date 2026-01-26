@@ -14,11 +14,18 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
-  role          String    @default("USER") // ADMIN, SUPERVISOR, USER
+  role          String    @default("USER") // ADMIN, SUPERVISOR, MAINTAINER, USER
   mustChangePassword Boolean @default(false)
+  isActive      Boolean   @default(true)
+  lastLogin     DateTime?
+  department    String?
   accounts      Account[]
   sessions      Session[]
   notifications Notification[]
+  
+  // Workflow Relations
+  requestedWorkOrders WorkOrder[] @relation("RequestedBy")
+  validatedWorkOrders WorkOrder[] @relation("ValidatedBy")
 }
 
 model Account {
@@ -65,6 +72,7 @@ model Asset {
   plant           String?
   department      String?
   location        String
+  line            String?
   purchaseDate    DateTime
   status          String   @default("OPERATIONAL")
   healthScore     Int      @default(100)
@@ -102,8 +110,19 @@ model WorkOrder {
   status               String   @default("OPEN")
   assignedTo           String?  // Legacy or Display Name
   assignedTechnicianId String?
+
+  // Workflow Fields
+  requesterId          String?
+  requester            User?    @relation("RequestedBy", fields: [requesterId], references: [id])
   
-  dueDate              DateTime
+  validatedById        String?
+  validator            User?    @relation("ValidatedBy", fields: [validatedById], references: [id])
+
+  type                 String   @default("FAULT") // FAULT, ROUTINE, REQUEST
+  requestImage         String?
+  completionImage      String?
+  
+  dueDate              DateTime?
   createdAt            DateTime @default(now())
   
   asset                Asset    @relation(fields: [assetId], references: [id])
@@ -206,4 +225,62 @@ model MeterReading {
   createdAt  DateTime @default(now())
   
   meter      Meter    @relation(fields: [meterId], references: [id], onDelete: Cascade)
+}
+
+model SparePart {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?
+  description String?
+  quantity    Int
+  minQuantity Int      @default(0)
+  location    String?
+  unitCost    Float    @default(0)
+  lastUpdated DateTime @default(now())
+}
+
+model Component {
+  id              String   @id @default(cuid())
+  code            String
+  type            String   // SCREW, BARREL
+  model           String
+  nominalDiameter Float?
+  manufacturer    String
+  usageType       String   // SOTTOSTRATO, COPERTURA, JOLLY
+  warehouse       String   // RETINATO, MAGLIATO
+  location        String
+  status          String   // OPTIMAL, WARNING, CRITICAL, etc.
+  purchaseDate    DateTime
+  
+  referenceDrawing String?
+  drawingUrl       String?
+  isScrapped       Boolean @default(false)
+  hoursUsed        Float   @default(0)
+  
+  // Storing simple lifecycle dates as JSON for flexibility or could be separate fields
+  lifecycle       Json?    
+  
+  measurements     ComponentMeasurement[]
+  assignedAssetId  String?
+}
+
+model ComponentMeasurement {
+  id          String   @id @default(cuid())
+  componentId String
+  date        DateTime
+  value1      Float
+  value2      Float?
+  operator    String
+  
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sender    String
+  role      String   // USER, TECHNICIAN, SUPERVISOR, SYSTEM
+  content   String
+  timestamp DateTime @default(now())
+  isRead    Boolean  @default(false)
+  isSystem  Boolean  @default(false)
 }

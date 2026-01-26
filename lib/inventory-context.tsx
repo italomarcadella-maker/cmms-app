@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { SparePart } from "@/lib/types";
+import { toast } from "sonner"; // Added for alerts
 
 interface InventoryContextType {
     parts: SparePart[];
@@ -17,40 +18,65 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        const savedParts = localStorage.getItem('inventory');
-        if (savedParts) {
-            try {
-                setParts(JSON.parse(savedParts));
-            } catch (e) {
-                console.error("Failed to parse inventory", e);
-            }
-        }
-        setIsLoaded(true);
+        refreshParts();
     }, []);
 
-    useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem('inventory', JSON.stringify(parts));
+    const refreshParts = async () => {
+        const { getSpareParts } = await import('@/lib/actions');
+        const data = await getSpareParts();
+        setParts(data);
+        setIsLoaded(true);
+    }
+
+    const addPart = async (partData: Omit<SparePart, "id" | "lastUpdated">) => {
+        const { addSparePart } = await import('@/lib/actions');
+        const result = await addSparePart(partData);
+        if (result.success && result.data) {
+            setParts(prev => [...prev, result.data as SparePart]);
+            toast.success("Ricambio aggiunto con successo");
+        } else {
+            toast.error(result.message);
         }
-    }, [parts, isLoaded]);
-
-    const addPart = (partData: Omit<SparePart, "id" | "lastUpdated">) => {
-        const newPart: SparePart = {
-            ...partData,
-            id: `PART-${Math.floor(Math.random() * 10000)}`,
-            lastUpdated: new Date().toISOString()
-        };
-        setParts(prev => [...prev, newPart]);
     };
 
-    const updateQuantity = (id: string, newQuantity: number) => {
-        setParts(prev => prev.map(p =>
-            p.id === id ? { ...p, quantity: newQuantity, lastUpdated: new Date().toISOString() } : p
-        ));
+    const updateQuantity = async (id: string, newQuantity: number) => {
+        const { updateSparePartQuantity } = await import('@/lib/actions');
+        const result = await updateSparePartQuantity(id, newQuantity);
+
+        if (result.success && result.data) {
+            const updatedPart = result.data as SparePart;
+            setParts(prev => prev.map(p =>
+                p.id === id ? updatedPart : p
+            ));
+
+            // Smart Low Stock Alert
+            if (updatedPart.quantity <= updatedPart.minQuantity) {
+                toast.warning(`Attenzione: Scorta in esaurimento per ${updatedPart.name}! (${updatedPart.quantity} rimanenti)`, {
+                    duration: 5000,
+                    action: {
+                        label: "Ordina",
+                        onClick: () => console.log("Order triggered") // Placeholder for ordering flow
+                    }
+                });
+            } else {
+                toast.success("Quantità aggiornata");
+            }
+
+        } else {
+            toast.error(result.message);
+        }
     };
 
-    const removePart = (id: string) => {
-        setParts(prev => prev.filter(p => p.id !== id));
+    const removePart = async (id: string) => {
+        const { deleteSparePart } = await import('@/lib/actions');
+        const result = await deleteSparePart(id);
+
+        if (result.success) {
+            setParts(prev => prev.filter(p => p.id !== id));
+            toast.success("Ricambio rimosso");
+        } else {
+            toast.error(result.message);
+        }
     };
 
     return (
