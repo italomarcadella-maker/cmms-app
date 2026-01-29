@@ -157,21 +157,6 @@ export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
                                 ))}
                             </SelectContent>
                         </Select>
-                        {pendingRequests.length > 0 && (
-                            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800 space-y-2 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex items-center gap-2 font-semibold">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <span>Attenzione: Ci sono già richieste aperte per questo asset</span>
-                                </div>
-                                <ul className="list-disc list-inside space-y-1 text-xs opacity-90">
-                                    {pendingRequests.map(req => (
-                                        <li key={req.id}>
-                                            <span className="font-medium">{req.title}</span> - {req.status} ({new Date(req.createdAt).toLocaleDateString()})
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
                         {checkingDuplicates && (
                             <div className="text-xs text-muted-foreground animate-pulse flex items-center gap-1">
                                 <Loader2 className="h-3 w-3 animate-spin" /> Controllo segnalazioni aperte...

@@ -692,7 +692,7 @@ export async function approveRequest(id: string, technicianId: string, priority:
         await prisma.workOrder.update({
             where: { id },
             data: {
-                status: 'APPROVED', // APPROVED
+                status: 'ASSIGNED', // Changed from APPROVED to ASSIGNED to match Kanban
                 type: 'FAULT', // Convert request to standard fault
                 priority: priority,
                 assignedTechnicianId: technicianId,
@@ -787,9 +787,25 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
 
 export async function updateWorkOrderStatus(id: string, status: string) {
     try {
-        await prisma.workOrder.update({ where: { id }, data: { status } });
+        // Automatically promote REQUEST to FAULT if moving out of pending
+        const wo = await prisma.workOrder.findUnique({ where: { id } });
+        let typeUpdate = {};
+
+        if (wo?.type === 'REQUEST' && status !== 'PENDING_APPROVAL' && status !== 'CANCELED') {
+            typeUpdate = { type: 'FAULT' };
+        }
+
+        await prisma.workOrder.update({
+            where: { id },
+            data: {
+                status,
+                ...typeUpdate
+            }
+        });
+
         revalidatePath('/maintenance');
         revalidatePath('/work-orders');
+        revalidatePath('/requests');
         return { success: true };
     } catch (error) {
         return { success: false };
