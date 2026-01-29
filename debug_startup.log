@@ -1,0 +1,14 @@
+▲ Next.js 16.1.1 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.182.161:3001
+- Environments: .env
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Ready in 3.6s
+○ Compiling /calendar ...
+prisma:query SELECT "public"."WorkOrder"."id", "public"."WorkOrder"."title", "public"."WorkOrder"."description", "public"."WorkOrder"."priority", "public"."WorkOrder"."category", "public"."WorkOrder"."status", "public"."WorkOrder"."assignedTo", "public"."WorkOrder"."assignedTechnicianId", "public"."WorkOrder"."requesterId", "public"."WorkOrder"."validatedById", "public"."WorkOrder"."type", "public"."WorkOrder"."requestImage", "public"."WorkOrder"."completionImage", "public"."WorkOrder"."dueDate", "public"."WorkOrder"."createdAt", "public"."WorkOrder"."assetId", "public"."WorkOrder"."originScheduleId" FROM "public"."WorkOrder" WHERE 1=1 ORDER BY "public"."WorkOrder"."createdAt" DESC OFFSET $1
+prisma:query SELECT "public"."Asset"."id", "public"."Asset"."name", "public"."Asset"."model", "public"."Asset"."serialNumber", "public"."Asset"."vendor", "public"."Asset"."plant", "public"."Asset"."department", "public"."Asset"."location", "public"."Asset"."line", "public"."Asset"."purchaseDate", "public"."Asset"."status", "public"."Asset"."healthScore", "public"."Asset"."lastMaintenance" FROM "public"."Asset" WHERE "public"."Asset"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."Asset"."id", "public"."Asset"."name", "public"."Asset"."model", "public"."Asset"."serialNumber", "public"."Asset"."vendor", "public"."Asset"."plant", "public"."Asset"."department", "public"."Asset"."location", "public"."Asset"."line", "public"."Asset"."purchaseDate", "public"."Asset"."status", "public"."Asset"."healthScore", "public"."Asset"."lastMaintenance" FROM "public"."Asset" WHERE 1=1 ORDER BY "public"."Asset"."name" ASC OFFSET $1
+prisma:query SELECT "public"."User"."id", "public"."User"."name", "public"."User"."email", "public"."User"."emailVerified", "public"."User"."image", "public"."User"."password", "public"."User"."role", "public"."User"."mustChangePassword", "public"."User"."isActive", "public"."User"."lastLogin", "public"."User"."department" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[?25h

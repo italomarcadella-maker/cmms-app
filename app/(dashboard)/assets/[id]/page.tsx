@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAssets } from "@/lib/assets-context";
 import { useWorkOrders } from "@/lib/work-orders-context"; // Assuming this path for work orders context
 import { AssetStatusBadge } from "@/components/assets/asset-status-badge"; // Assuming this path for AssetStatusBadge
@@ -7,13 +8,12 @@ import { WOStatusBadge } from "@/components/work-orders/wo-status-badge"; // Ass
 import { ArrowLeft, QrCode, FileText, AlertCircle, Activity } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-
 import QRCode from "react-qr-code";
 
 export default function AssetDetailsPage() {
     const params = useParams();
     const { assets, updateAsset } = useAssets();
-    const { workOrders } = useWorkOrders(); // Assuming useWorkOrders hook is available
+    const { workOrders } = useWorkOrders(); // Keeping context for history fallbacks
 
     const asset = assets.find(a => a.id === params.id) || assets.find(a => a.id === decodeURIComponent(params.id as string));
 
@@ -27,11 +27,21 @@ export default function AssetDetailsPage() {
         )
     }
 
+    const [activeWOs, setActiveWOs] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (asset?.id) {
+            import("@/lib/actions").then(({ getActiveWorkOrdersForAsset }) => {
+                getActiveWorkOrdersForAsset(asset.id).then(setActiveWOs);
+            });
+        }
+    }, [asset?.id]);
+
     const assetWorkOrders = workOrders.filter(wo => wo.assetId === asset.id);
     const assetUrl = typeof window !== 'undefined' ? `${window.location.origin}/assets/${asset.id}` : '';
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-500 pb-10">
             <div className="flex items-center gap-4">
                 <Link href="/assets" className="p-2 rounded-full hover:bg-muted text-muted-foreground">
                     <ArrowLeft className="h-5 w-5" />
@@ -74,22 +84,50 @@ export default function AssetDetailsPage() {
                         </div>
                     </div>
 
-                    {/* Work Order History */}
-                    <div className="rounded-xl border bg-card p-6 shadow-sm">
-                        <h3 className="font-semibold text-lg mb-4">Storico Ordini di Lavoro</h3>
-                        {assetWorkOrders.length === 0 ? (
-                            <p className="text-muted-foreground italic">Nessun ordine di lavoro trovato per questo asset.</p>
+                    {/* Active Work Orders (Fresh Data) */}
+                    <div className="rounded-xl border bg-card p-6 shadow-sm border-l-4 border-l-blue-500">
+                        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                            <Activity className="h-5 w-5 text-blue-500" />
+                            Ordini e Richieste Attive
+                        </h3>
+                        {activeWOs.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-6 text-center">
+                                <p className="text-muted-foreground italic text-sm">Nessun lavoro in corso al momento.</p>
+                                <p className="text-xs text-muted-foreground/60">Tutto procede regolarmente.</p>
+                            </div>
                         ) : (
                             <div className="space-y-3">
-                                {assetWorkOrders.map(wo => (
-                                    <div key={wo.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
+                                {activeWOs.map(wo => (
+                                    <Link href={`/work-orders/${wo.id}`} key={wo.id} className="flex items-center justify-between p-3 rounded-lg border bg-blue-50/50 hover:bg-blue-50 transition-colors">
                                         <div>
-                                            <div className="font-medium">{wo.title}</div>
-                                            <div className="text-xs text-muted-foreground">{new Date(wo.createdAt).toLocaleDateString()}</div>
+                                            <div className="font-medium text-blue-900">{wo.title}</div>
+                                            <div className="text-xs text-blue-700/80">{new Date(wo.createdAt).toLocaleDateString()} • {wo.id}</div>
                                         </div>
                                         <WOStatusBadge status={wo.status} />
-                                    </div>
+                                    </Link>
                                 ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Closed History (From Context/Props) */}
+                    <div className="rounded-xl border bg-card p-6 shadow-sm">
+                        <h3 className="font-semibold text-lg mb-4">Storico Interventi Chiusi</h3>
+                        {assetWorkOrders.filter(wo => ['CLOSED', 'COMPLETED', 'CANCELED'].includes(wo.status)).length === 0 ? (
+                            <p className="text-muted-foreground italic text-sm">Nessun storico disponibile.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {assetWorkOrders
+                                    .filter(wo => ['CLOSED', 'COMPLETED', 'CANCELED'].includes(wo.status))
+                                    .map(wo => (
+                                        <div key={wo.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/20 opacity-80">
+                                            <div>
+                                                <div className="font-medium">{wo.title}</div>
+                                                <div className="text-xs text-muted-foreground">{new Date(wo.createdAt).toLocaleDateString()}</div>
+                                            </div>
+                                            <WOStatusBadge status={wo.status} />
+                                        </div>
+                                    ))}
                             </div>
                         )}
                     </div>
@@ -202,6 +240,32 @@ export default function AssetDetailsPage() {
                                 <div className="text-sm">{asset.purchaseDate}</div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Footer / Legend */}
+                    <div className="rounded-xl border bg-muted/30 p-4 shadow-sm text-xs space-y-2">
+                        <h4 className="font-semibold text-muted-foreground">Legenda & Info</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                <span>Operativo</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                                <span>In Attenzione</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                                <span>In Fermo</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                                <span>Lavoro Attivo</span>
+                            </div>
+                        </div>
+                        <p className="text-muted-foreground mt-2 border-t pt-2">
+                            Contattare il supervisore per modifiche ai dati sensibili.
+                        </p>
                     </div>
 
                 </div>

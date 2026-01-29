@@ -8,7 +8,8 @@ interface WorkOrdersContextType {
     workOrders: WorkOrder[];
     addWorkOrder: (workOrder: WorkOrder) => Promise<void>;
     updateWorkOrderStatus: (id: string, status: WorkOrder["status"]) => Promise<void>;
-    updateWorkOrder: (id: string, updates: Partial<WorkOrder>) => void;
+    updateWorkOrder: (id: string, updates: Partial<WorkOrder>) => Promise<void>;
+    deleteWorkOrder: (id: string) => Promise<void>;
 }
 
 const WorkOrdersContext = createContext<WorkOrdersContextType | undefined>(undefined);
@@ -53,15 +54,25 @@ export function WorkOrdersProvider({
             if (!res.success) {
                 throw new Error(res.message);
             }
-            // Ideally replace optimistic ID with real DB ID if different, but for now strict consistency:
-            // reload or just trust optimistic if we match IDs.
-            // Since we let DB gen ID, we should really update the local state with the returned real data.
-            // But doing so might jump the UI.
         } catch (err) {
             console.error("Failed to create work order", err);
             // Revert on failure
             setWorkOrders((prev) => prev.filter(w => w.id !== workOrder.id));
             alert("Errore salvataggio ordine: " + err);
+        }
+    };
+
+    const deleteWorkOrder = async (id: string) => {
+        const { deleteWorkOrder } = await import('@/lib/actions');
+        try {
+            const res = await deleteWorkOrder(id);
+            if (res.success) {
+                setWorkOrders(prev => prev.filter(wo => wo.id !== id));
+            } else {
+                alert(res.message);
+            }
+        } catch (err) {
+            alert("Errore eliminazione");
         }
     };
 
@@ -74,13 +85,19 @@ export function WorkOrdersProvider({
         }
     };
 
-    const updateWorkOrder = (id: string, updates: Partial<WorkOrder>) => {
+    const updateWorkOrder = async (id: string, updates: Partial<WorkOrder>) => {
         setWorkOrders((prev) => prev.map(wo => wo.id === id ? { ...wo, ...updates } : wo));
-        // TODO: Implement updateWorkOrder server action if needed for other fields
+
+        try {
+            const { updateWorkOrderDetails } = await import('@/lib/actions');
+            await updateWorkOrderDetails(id, updates);
+        } catch (err) {
+            console.error("Failed to persist WO update", err);
+        }
     };
 
     return (
-        <WorkOrdersContext.Provider value={{ workOrders, addWorkOrder, updateWorkOrderStatus, updateWorkOrder }}>
+        <WorkOrdersContext.Provider value={{ workOrders, addWorkOrder, updateWorkOrderStatus, updateWorkOrder, deleteWorkOrder }}>
             {children}
         </WorkOrdersContext.Provider>
     );

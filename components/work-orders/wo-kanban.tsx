@@ -10,11 +10,12 @@ import { cn } from "@/lib/utils";
 import { WOAssignDialog } from "./wo-assign-dialog";
 
 const COLUMNS: { id: WorkOrderStatus; label: string }[] = [
-    { id: 'OPEN', label: 'Da Fare' },
+    { id: 'PENDING_APPROVAL', label: 'Richiesta' },
+    { id: 'APPROVED', label: 'Approvato' },
+    { id: 'ASSIGNED', label: 'Assegnato' },
     { id: 'IN_PROGRESS', label: 'In Corso' },
-    { id: 'PENDING_APPROVAL', label: 'Da Approvare' },
-    { id: 'ON_HOLD', label: 'In Attesa' },
-    { id: 'COMPLETED', label: 'Completati' },
+    { id: 'COMPLETED', label: 'Eseguito' },
+    { id: 'CLOSED', label: 'Validato' },
 ];
 
 export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {

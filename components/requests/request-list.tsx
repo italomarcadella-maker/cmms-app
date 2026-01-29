@@ -8,14 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Clock, CheckCircle, AlertCircle, Archive } from "lucide-react";
 
-export function RequestList() {
+interface RequestListProps {
+    requests?: any[];
+}
+
+export function RequestList({ requests }: RequestListProps) {
     const router = useRouter();
     const { user } = useAuth();
     const { workOrders } = useWorkOrders();
 
-    // Filter requests for current user (or all if admin, but this view is primarily for the requester)
-    // Actually, distinct view for "My Requests" vs "Incoming"
-    const myRequests = workOrders.filter(wo => wo.requesterId === user?.id && wo.type === 'REQUEST');
+    // Use passed requests or filter from context if not provided (backward compatibility)
+    const myRequests = requests || workOrders.filter(wo => wo.requesterId === user?.id && wo.type === 'REQUEST');
 
     // Sort by Date Desc
     const sortedRequests = [...myRequests].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

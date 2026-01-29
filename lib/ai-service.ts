@@ -1,105 +1,91 @@
-import { Message } from "./chat-context";
+"use server";
 
-interface KnowledgeEntry {
-    keywords: string[];
-    response: string;
-    source: string;
+import { prisma } from "@/lib/prisma";
+
+// Simple heuristic engine to simulate "AI" understanding of the database
+// In a real scenario, this would call an LLM (OpenAI/Gemini) with function calling.
+// Here we use regex-based intent classification for the MVP.
+
+interface AIResponse {
+    sender: string;
+    content: string;
+    actions?: any[];
 }
 
-// Emulated Knowledge Base
-const KNOWLEDGE_BASE: KnowledgeEntry[] = [
-    {
-        keywords: ["vibrazione", "vibrating", "vibra", "rumore", "scuote"],
-        response: "Dall'analisi dello storico e dei manuali tecnici, vibrazioni eccessive sono spesso causate da **disallineamento dell'asse** o **cuscinetti usurati**. \n\n**Azione Consigliata:**\n1. Controllare l'allineamento dell'albero motore.\n2. Verificare lo stato del cuscinetto SKF-6204 (cod. part: SPARE-003).\n3. Serrare i bulloni di ancoraggio alla base.",
-        source: "Manuale Manutenzione Sez. 4.2 - Risoluzione Guasti Meccanici"
-    },
-    {
-        keywords: ["temperatura", "surriscaldamento", "caldo", "hot", "overheating", "504"],
-        response: "L'errore di temperatura o surriscaldamento indica solitamente un'ostruzione nel circuito di raffreddamento o un guasto al sensore.\n\n**Azione Consigliata:**\n1. Pulire i filtri della ventola di aspirazione.\n2. Verificare che il flusso d'aria non sia ostruito.\n3. Controllare la lettura tramite termometro IR esterno per escludere guasti al sensore.",
-        source: "Storico Interventi: Caso #WO-2023-88R"
-    },
-    {
-        keywords: ["pressione", "pressure", "leak", "perdita", "olio"],
-        response: "Perdite di pressione sono critiche. Il sistema suggerisce di ispezionare immediatamente le guarnizioni O-ring del circuito idraulico principale.\n\n**Safety Alert:** Assicurarsi di depressurizzare il sistema prima di qualsiasi intervento.",
-        source: "Protocollo Sicurezza & Manuale Idraulico Rev. 3"
-    },
-    {
-        keywords: ["elettrico", "corrente", "niente corrente", "spento", "power"],
-        response: "Problema elettrico rilevato. Controllare prima di tutto l'interruttore differenziale nel quadro Q-01. Se scattato, verificare isolamento motore prima del riarmo.",
-        source: "Schema Elettrico Gen-2024"
-    },
-    {
-        keywords: ["login", "password", "accesso"],
-        response: "Per problemi di accesso, contattare l'amministratore IT o provare il reset della password dal portale aziendale. Io sono un assistente tecnico per macchinari, non per account! 🤖",
-        source: "Policy Aziendale IT"
+export async function generateAIResponse(query: string): Promise<AIResponse> {
+    const q = query.toLowerCase();
+
+    // Intent: Count Open Work Orders
+    if (q.includes("quanti") && (q.includes("ordini") || q.includes("interventi")) && (q.includes("aperti") || q.includes("da fare"))) {
+        const count = await prisma.workOrder.count({
+            where: { status: { in: ['OPEN', 'IN_PROGRESS'] } }
+        });
+        return {
+            sender: "AI Copilot",
+            content: `Attualmente ci sono **${count}** interventi aperti o in corso. Vuoi vederli?`,
+        };
     }
-];
 
-const DEFAULT_RESPONSE = "Sto analizzando la richiesta... Non ho trovato corrispondenze esatte nel database tecnico attuale. Consiglierei di aprire un Work Order per un'ispezione visiva approfondita o consultare il manuale cartaceo cap. 12 'Guasti Generici'.";
+    // Intent: Show High Priority
+    if ((q.includes("urgenti") || q.includes("priorità alta")) && (q.includes("mostra") || q.includes("quali"))) {
+        const highPriority = await prisma.workOrder.findMany({
+            where: { priority: 'HIGH', status: { not: 'CLOSED' } },
+            take: 3,
+            select: { title: true, id: true }
+        });
 
-export async function generateAIResponse(query: string): Promise<Message> {
-    // Simulate thinking delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+        if (highPriority.length === 0) {
+            return { sender: "AI Copilot", content: "Non ci sono interventi urgenti attivi al momento. Ottimo lavoro! 🎉" };
+        }
 
-    const lowerQuery = query.toLowerCase();
+        const list = highPriority.map(w => `- ${w.title} (${w.id})`).join("\n");
+        return {
+            sender: "AI Copilot",
+            content: `Ho trovato questi interventi urgenti:\n${list}\n\nVai alla sezione Interventi per gestirli.`
+        };
+    }
 
-    const match = KNOWLEDGE_BASE.find(entry =>
-        entry.keywords.some(k => lowerQuery.includes(k))
-    );
+    // Intent: Broken Assets
+    if (q.includes("asset") && (q.includes("ritti") || q.includes("guasti") || q.includes("fermi") || q.includes("offline"))) {
+        const broken = await prisma.asset.findMany({
+            where: { status: 'OFFLINE' },
+            take: 5
+        });
 
-    const content = match
-        ? `${match.response}\n\n*Fonte: ${match.source}*`
-        : DEFAULT_RESPONSE;
+        if (broken.length === 0) {
+            return { sender: "AI Copilot", content: "Tutti gli asset sembrano operativi! ✅" };
+        }
 
+        const list = broken.map(a => `- ${a.name} (${a.location})`).join("\n");
+        return {
+            sender: "AI Copilot",
+            content: `Attenzione, risultano fermi i seguenti asset:\n${list}`
+        };
+    }
+
+    // Intent: Generate Daily Suggestions
+    if (q.includes("consigli") || q.includes("suggerimenti") || q.includes("cosa fare oggi") || q.includes("daily")) {
+        // Dynamic import to avoid circular dependency issues if any
+        const { generateDailySuggestions } = await import("@/lib/actions");
+        const result = await generateDailySuggestions();
+
+        return {
+            sender: "AI Copilot",
+            content: result.message
+        };
+    }
+
+    // Intent: Help
+    if (q.includes("aiuto") || q.includes("ciao") || q.includes("cosa sai fare")) {
+        return {
+            sender: "AI Copilot",
+            content: "Ciao! Sono il tuo assistente virtuale. Posso aiutarti con:\n- *'Dammi dei consigli'* (Genera suggerimenti automatici)\n- Conteggio ordini aperti\n- Lista interventi urgenti\n- Stato degli asset\n\nProva a chiedermi: 'Cosa fare oggi?'"
+        };
+    }
+
+    // Fallback
     return {
-        id: `AI-${Date.now()}`,
         sender: "AI Copilot",
-        role: "SYSTEM", // We'll map this to a special AI role/style
-        content: content,
-        timestamp: new Date().toISOString(),
-        isRead: false
+        content: "Mi dispiace, non ho capito la richiesta. Prova a chiedermi lo stato degli ordini o degli asset."
     };
-}
-
-export interface AIInsight {
-    id: string;
-    type: 'CRITICAL' | 'WARNING' | 'INFO';
-    assetName: string;
-    prediction: string;
-    action: string;
-    confidence: number;
-}
-
-export class MockAIService {
-    static async getInsights(): Promise<AIInsight[]> {
-        // Simulate delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        return [
-            {
-                id: '1',
-                type: 'CRITICAL',
-                assetName: 'Pressa Idraulica P-101',
-                prediction: 'Alta probabilità di guasto pompa olio entro 48h',
-                action: 'Controllare livelli e filtri olio',
-                confidence: 94
-            },
-            {
-                id: '2',
-                type: 'WARNING',
-                assetName: 'Nastro Trasportatore CV-02',
-                prediction: 'Vibrazioni anomale rilevate su motore principale',
-                action: 'Ispezionare cuscinetti motore',
-                confidence: 87
-            },
-            {
-                id: '3',
-                type: 'INFO',
-                assetName: 'Sistema HVAC U-05',
-                prediction: 'Efficienza energetica in calo del 12%',
-                action: 'Programmare pulizia filtri',
-                confidence: 76
-            }
-        ];
-    }
 }

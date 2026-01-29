@@ -319,11 +319,46 @@ export async function getPreventiveSchedules() {
         return schedules.map(s => ({
             ...s,
             assetName: s.asset.name,
+            activities: s.activities ? JSON.parse(s.activities) : [],
             lastRunDate: s.lastRunDate ? s.lastRunDate.toISOString() : null,
             nextDueDate: s.nextDueDate.toISOString()
         }));
     } catch (error) {
         return [];
+    }
+}
+
+export async function createPreventiveSchedule(data: {
+    title: string;
+    description: string;
+    assetId: string;
+    frequency: string;
+    frequencyDays: number;
+    activities: any[];
+    firstDate: Date;
+}) {
+    const session = await auth();
+    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+        return { success: false, message: 'Non autorizzato' };
+    }
+
+    try {
+        await prisma.preventiveSchedule.create({
+            data: {
+                taskTitle: data.title,
+                description: data.description,
+                assetId: data.assetId,
+                frequency: data.frequency,
+                frequencyDays: data.frequencyDays,
+                activities: JSON.stringify(data.activities),
+                nextDueDate: new Date(data.firstDate),
+            }
+        });
+        revalidatePath('/maintenance/schedule');
+        return { success: true, message: 'Schedulazione creata con successo' };
+    } catch (error) {
+        console.error("Create Sched Error:", error);
+        return { success: false, message: 'Errore creazione schedulazione' };
     }
 }
 
@@ -336,6 +371,23 @@ export async function deletePreventiveSchedule(id: string) {
         return { success: true, message: 'Schedulazione eliminata con successo' };
     } catch (error) {
         return { success: false, message: 'Errore eliminazione' };
+    }
+}
+
+export async function updatePreventiveSchedule(id: string, nextDueDate: Date) {
+    const session = await auth();
+    if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
+
+    try {
+        await prisma.preventiveSchedule.update({
+            where: { id },
+            data: { nextDueDate }
+        });
+        revalidatePath('/maintenance/schedule');
+        revalidatePath('/maintenance');
+        return { success: true, message: 'Data aggiornata' };
+    } catch (error) {
+        return { success: false, message: 'Errore aggiornamento data' };
     }
 }
 
@@ -527,7 +579,7 @@ export async function getWorkOrders() {
     try {
         const wos = await prisma.workOrder.findMany({
             orderBy: { createdAt: 'desc' },
-            include: { asset: true }
+            include: { asset: true, timers: true }
         });
 
         return wos.map((wo: any) => ({
@@ -542,7 +594,12 @@ export async function getWorkOrders() {
                 ...l,
                 date: l.date ? l.date.toISOString() : new Date().toISOString()
             })) || [],
-            checklist: wo.checklist || []
+            checklist: wo.checklist || [],
+            timers: wo.timers?.map((t: any) => ({
+                ...t,
+                startTime: t.startTime.toISOString(),
+                endTime: t.endTime ? t.endTime.toISOString() : null
+            })) || []
         }));
     } catch (error) {
         console.error('Failed to get WOs:', error);
@@ -550,9 +607,45 @@ export async function getWorkOrders() {
     }
 }
 
+export async function getActiveWorkOrdersForAsset(assetId: string) {
+    try {
+        const activeWOs = await prisma.workOrder.findMany({
+            where: {
+                assetId: assetId,
+                status: {
+                    notIn: ['COMPLETED', 'CLOSED', 'CANCELED']
+                }
+            },
+            select: {
+                id: true,
+                title: true,
+                status: true,
+                createdAt: true,
+                description: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        // Map dates
+        return activeWOs.map(wo => ({
+            ...wo,
+            createdAt: wo.createdAt.toISOString()
+        }));
+    } catch (error) {
+        console.error("Failed to get active WOs:", error);
+        return [];
+    }
+}
+
 export async function createWorkOrder(data: any) {
     try {
         const { id, checklist, partsUsed, laborLogs, assetName, createdAt, ...rest } = data;
+
+        // Validate Asset
+        if (!rest.assetId) {
+            console.error("Missing assetId in createWorkOrder payload:", data);
+            return { success: false, message: "Asset ID mancante." };
+        }
 
         // Handle optional dates
         const dueDate = rest.dueDate ? new Date(rest.dueDate) : null;
@@ -564,7 +657,7 @@ export async function createWorkOrder(data: any) {
                 requesterId: rest.requesterId || null,
                 validatedById: rest.validatedById || null,
                 type: rest.type || 'FAULT',
-                status: rest.status || 'OPEN',
+                status: rest.status || 'PENDING_APPROVAL',
                 checklist: checklist && checklist.length > 0 ? {
                     create: checklist.map((c: any) => ({
                         label: c.label,
@@ -579,7 +672,10 @@ export async function createWorkOrder(data: any) {
         revalidatePath('/requests'); // Revalidate requests too
         return { success: true, message: 'Ordine creato', data: newWO };
     } catch (error) {
-        console.error("WO Create Error", error);
+        console.error("WO Create Error Detailed:", error);
+        if (error instanceof Error) {
+            console.error("Stack:", error.stack);
+        }
         return { success: false, message: `Errore creazione ordine: ${(error as any).message}` };
     }
 }
@@ -596,7 +692,7 @@ export async function approveRequest(id: string, technicianId: string, priority:
         await prisma.workOrder.update({
             where: { id },
             data: {
-                status: 'OPEN',
+                status: 'APPROVED', // APPROVED
                 type: 'FAULT', // Convert request to standard fault
                 priority: priority,
                 assignedTechnicianId: technicianId,
@@ -606,12 +702,16 @@ export async function approveRequest(id: string, technicianId: string, priority:
 
         // Notify Technician (if notification system exists and tech is user)
         const techUser = await prisma.user.findFirst({ where: { name: tech?.name } });
-        if (techUser) {
+
+        // Fetch WO detail for notification context
+        const assignedWO = await prisma.workOrder.findUnique({ where: { id } });
+
+        if (techUser && assignedWO) {
             await prisma.notification.create({
                 data: {
                     userId: techUser.id,
-                    title: "Nuovo Incarico",
-                    message: `È stata approvata e assegnata una nuova richiesta.`,
+                    title: "Nuovo Incarico: " + assignedWO.title,
+                    message: `È stata approvata una nuova richiesta.\nDescrizione: ${assignedWO.description.substring(0, 100)}${assignedWO.description.length > 100 ? '...' : ''}`,
                     link: `/work-orders/${id}`
                 }
             });
@@ -625,6 +725,7 @@ export async function approveRequest(id: string, technicianId: string, priority:
     }
 }
 
+
 export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT', feedback?: string) {
     const session = await auth();
     if (!session?.user || (session.user as any).role === 'USER') {
@@ -633,14 +734,37 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
 
     try {
         if (decision === 'APPROVE') {
-            await prisma.workOrder.update({
+            const wo = await prisma.workOrder.update({
                 where: { id },
                 data: {
                     status: 'CLOSED',
                     validatedById: session.user.id
-                }
+                },
+                include: { originSchedule: true }
             });
-            // TODO: Create History Log or Archive
+
+            // Auto-Regenerate Schedule if linked
+            if (wo.originScheduleId && wo.originSchedule) {
+                const sched = wo.originSchedule;
+                let nextDate = new Date(); // Start from "Now" (completion time) or keep strict schedule?
+                // Usually strict schedule means next due = prev due + freq, but if late, we might want from completion.
+                // Let's settle on: Next Due = Today + Frequency Days (Reset clock)
+
+                // Calc days based on frequency or fallback
+                let daysToAdd = sched.frequencyDays;
+                // We could look up RECURRENCE_OPTIONS map here, but frequencyDays is stored in DB for convenience.
+
+                nextDate.setDate(nextDate.getDate() + daysToAdd);
+
+                await prisma.preventiveSchedule.update({
+                    where: { id: sched.id },
+                    data: {
+                        lastRunDate: new Date(),
+                        nextDueDate: nextDate
+                    }
+                });
+            }
+
         } else {
             await prisma.workOrder.update({
                 where: { id },
@@ -653,8 +777,10 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
 
         revalidatePath('/work-orders');
         revalidatePath(`/work-orders/${id}`);
+        revalidatePath('/maintenance/schedule'); // Update schedule list
         return { success: true, message: decision === 'APPROVE' ? 'Ordine validato e chiuso' : 'Ordine respinto al tecnico' };
     } catch (error) {
+        console.error("Review Error:", error);
         return { success: false, message: 'Errore revisione' };
     }
 }
@@ -680,6 +806,179 @@ export async function deleteWorkOrder(id: string) {
         return { success: true };
     } catch (error) {
         return { success: false, message: "Failed to delete work order" };
+    }
+}
+
+export async function updateWorkOrderDetails(id: string, updates: any) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        const { dueDate, ...rest } = updates;
+        const data: any = { ...rest };
+
+        if (dueDate) {
+            data.dueDate = new Date(dueDate);
+        }
+
+        const updated = await prisma.workOrder.update({
+            where: { id },
+            data
+        });
+
+        revalidatePath('/work-orders');
+        revalidatePath('/maintenance');
+        revalidatePath(`/work-orders/${id}`);
+        return { success: true, message: 'Ordine aggiornato', data: updated };
+    } catch (error) {
+        console.error("Update WO Error:", error);
+        return { success: false, message: 'Errore aggiornamento' };
+    }
+}
+
+// --- Time Tracking ---
+
+export async function startWorkSession(workOrderId: string) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        // Close any running session for this user just in case
+        await prisma.workOrderTimer.updateMany({
+            where: { workOrderId, userId: session.user.id, endTime: null },
+            data: { endTime: new Date() } // Should calc duration here too if we want precision, but usually we just close. 
+            // Better to stop cleanly.
+        });
+
+        await prisma.workOrderTimer.create({
+            data: {
+                workOrderId,
+                userId: session.user.id,
+                startTime: new Date()
+            }
+        });
+
+        await prisma.workOrder.update({
+            where: { id: workOrderId },
+            data: { status: 'IN_PROGRESS' }
+        });
+
+        revalidatePath(`/work-orders/${workOrderId}`);
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: 'Errore avvio timer' };
+    }
+}
+
+export async function pauseWorkSession(workOrderId: string, note?: string) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        const activeTimer = await prisma.workOrderTimer.findFirst({
+            where: { workOrderId, userId: session.user.id, endTime: null }
+        });
+
+        if (activeTimer) {
+            const end = new Date();
+            const start = new Date(activeTimer.startTime);
+            const durationArr = (end.getTime() - start.getTime()) / 1000 / 60; // minutes
+
+            await prisma.workOrderTimer.update({
+                where: { id: activeTimer.id },
+                data: {
+                    endTime: end,
+                    duration: Math.round(durationArr),
+                    note
+                }
+            });
+        }
+
+        await prisma.workOrder.update({
+            where: { id: workOrderId },
+            data: { status: 'ON_HOLD' }
+        });
+
+        revalidatePath(`/work-orders/${workOrderId}`);
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: 'Errore pausa timer' };
+    }
+}
+
+export async function stopWorkSession(workOrderId: string) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        const activeTimer = await prisma.workOrderTimer.findFirst({
+            where: { workOrderId, userId: session.user.id, endTime: null }
+        });
+
+        if (activeTimer) {
+            const end = new Date();
+            const start = new Date(activeTimer.startTime);
+            const durationArr = (end.getTime() - start.getTime()) / 1000 / 60;
+
+            await prisma.workOrderTimer.update({
+                where: { id: activeTimer.id },
+                data: {
+                    endTime: end,
+                    duration: Math.round(durationArr)
+                }
+            });
+        }
+        revalidatePath(`/work-orders/${workOrderId}`);
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: 'Errore stop timer' };
+    }
+}
+
+export async function completeWorkOrder(workOrderId: string) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        // 1. Verify Checklist
+        const wo = await prisma.workOrder.findUnique({
+            where: { id: workOrderId },
+            include: { checklist: true }
+        });
+
+        if (!wo) return { success: false, message: 'Ordine non trovato' };
+
+        const pendingItems = wo.checklist.filter(i => !i.completed);
+        if (pendingItems.length > 0) {
+            return { success: false, message: `Checklist incompleta: ${pendingItems.length} voci rimanenti.` };
+        }
+
+        // 2. Stop any active timer
+        await stopWorkSession(workOrderId);
+
+        // 3. Update Status
+        await prisma.workOrder.update({
+            where: { id: workOrderId },
+            data: { status: 'COMPLETED' }
+        });
+
+        // 4. Notify Requester
+        if (wo.requesterId) {
+            await prisma.notification.create({
+                data: {
+                    userId: wo.requesterId,
+                    title: "Ordine Completato",
+                    message: `Il lavoro #${wo.id} è stato completato. In attesa di validazione.`,
+                    link: `/work-orders/${workOrderId}`
+                }
+            });
+        }
+
+        revalidatePath(`/work-orders/${workOrderId}`);
+        revalidatePath(`/work-orders`);
+        return { success: true, message: 'Ordine completato' };
+    } catch (error) {
+        return { success: false, message: 'Errore completamento' };
     }
 }
 
@@ -761,6 +1060,120 @@ export async function markNotificationAsRead(id: string) {
 }
 
 // --- Energy ---
+
+// --- AI Suggestions ---
+
+export async function generateDailySuggestions() {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // 1. Check if we already generated suggestions today (limit spam)
+        const existing = await prisma.workOrder.count({
+            where: {
+                category: 'AI_SUGGESTION',
+                createdAt: { gte: today }
+            }
+        });
+
+        if (existing >= 5) {
+            return { success: false, message: "Ho già fornito i consigli per oggi! Torna domani. o elimina quelli attuali." };
+        }
+
+        let suggestionsCreated = 0;
+        const limit = 5 - existing;
+
+        // 2. Check Low Stock Inventory
+        if (suggestionsCreated < limit) {
+            const lowStock = await prisma.sparePart.findMany({
+                where: {
+                    quantity: { lte: prisma.sparePart.fields.minQuantity }
+                },
+                take: limit - suggestionsCreated
+            });
+
+            for (const part of lowStock) {
+                // Check if active request already exists for this
+                const pending = await prisma.workOrder.findFirst({
+                    where: {
+                        title: { contains: part.name },
+                        status: { in: ['OPEN', 'PENDING_APPROVAL'] }
+                    }
+                });
+
+                if (!pending) {
+                    // Pick a random asset just to satisfy relation (or create a 'General' asset dummy if needed, but for now we pick the first one or fail)
+                    // Better: Use a specific Asset if possible, or undefined. 
+                    // Wait, Schema requires Asset relation? Yes. assetId is non-nullable.
+                    // We need a 'General' asset or just pick the first one. Let's find a 'General' asset or create one.
+                    let generalAsset = await prisma.asset.findFirst({ where: { name: 'General Facility' } });
+                    if (!generalAsset) {
+                        generalAsset = await prisma.asset.findFirst({}); // Fallback to any
+                    }
+
+                    if (generalAsset) {
+                        await prisma.workOrder.create({
+                            data: {
+                                title: `Riordino Urgente: ${part.name}`,
+                                description: `Scorta bassa (${part.quantity}). Minimo richiesto: ${part.minQuantity}. Consigliato ordine immediato.`,
+                                priority: 'medium',
+                                category: 'AI_SUGGESTION',
+                                type: 'REQUEST',
+                                status: 'PENDING_APPROVAL',
+                                assetId: generalAsset.id,
+                                requesterId: null, // System
+                            }
+                        });
+                        suggestionsCreated++;
+                    }
+                }
+            }
+        }
+
+        // 3. Check Low Health Assets
+        if (suggestionsCreated < limit) {
+            const sickAssets = await prisma.asset.findMany({
+                where: { healthScore: { lt: 70 } },
+                take: limit - suggestionsCreated
+            });
+
+            for (const asset of sickAssets) {
+                const pending = await prisma.workOrder.findFirst({
+                    where: { assetId: asset.id, status: { in: ['OPEN', 'PENDING_APPROVAL'] } }
+                });
+
+                if (!pending) {
+                    await prisma.workOrder.create({
+                        data: {
+                            title: `Controllo Salute: ${asset.name}`,
+                            description: `L'indice di salute è sceso a ${asset.healthScore}%. Ispezione consigliata.`,
+                            priority: 'low',
+                            category: 'AI_SUGGESTION',
+                            type: 'REQUEST',
+                            status: 'PENDING_APPROVAL',
+                            assetId: asset.id
+                        }
+                    });
+                    suggestionsCreated++;
+                }
+            }
+        }
+
+        revalidatePath('/work-orders');
+        revalidatePath('/requests');
+
+        if (suggestionsCreated === 0) {
+            return { success: true, message: "Tutto tranquillo! Nessun nuovo suggerimento necessario oggi." };
+        }
+
+        return { success: true, message: `Ho generato ${suggestionsCreated} nuovi suggerimenti basati sui dati attuali.` };
+
+    } catch (error) {
+        console.error("AI Gen Error:", error);
+        return { success: false, message: "Errore nella generazione consigli." };
+    }
+}
+
 
 export async function getMeters() {
     return await prisma.meter.findMany({ orderBy: { name: 'asc' } });
@@ -872,4 +1285,69 @@ export async function getAllMeterReadings() {
         unit: r.meter.unit,
         date: r.date.toISOString().split('T')[0]
     }));
+}
+
+export async function addWorkOrderPart(workOrderId: string, partId: string, quantity: number) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        const part = await prisma.sparePart.findUnique({ where: { id: partId } });
+        if (!part) return { success: false, message: 'Ricambio non trovato' };
+
+        if (part.quantity < quantity) {
+            return { success: false, message: `Quantità insufficiente in magazzino (Disponibile: ${part.quantity})` };
+        }
+
+        // Decrement stock
+        await prisma.sparePart.update({
+            where: { id: partId },
+            data: { quantity: part.quantity - quantity, lastUpdated: new Date() }
+        });
+
+        // Add to WO
+        await prisma.workOrderPart.create({
+            data: {
+                workOrderId,
+                partId,
+                partName: part.name,
+                quantity,
+                unitCost: part.unitCost || 0,
+                dateAdded: new Date()
+            }
+        });
+
+        revalidatePath(`/work-orders/${workOrderId}`);
+        return { success: true, message: 'Ricambio aggiunto all\'ordine' };
+    } catch (error) {
+        console.error(error);
+        return { success: false, message: 'Errore durante l\'aggiunta del ricambio' };
+    }
+}
+
+export async function removeWorkOrderPart(id: string) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        const woPart = await prisma.workOrderPart.findUnique({ where: { id } });
+        if (!woPart) return { success: false, message: 'Parte non trovata' };
+
+        // Restore stock
+        const originalPart = await prisma.sparePart.findFirst({ where: { id: woPart.partId } });
+
+        if (originalPart) {
+            await prisma.sparePart.update({
+                where: { id: originalPart.id },
+                data: { quantity: originalPart.quantity + woPart.quantity, lastUpdated: new Date() }
+            });
+        }
+
+        await prisma.workOrderPart.delete({ where: { id } });
+
+        revalidatePath(`/work-orders/${woPart.workOrderId}`);
+        return { success: true, message: 'Ricambio rimosso e giacenza ripristinata' };
+    } catch (error) {
+        return { success: false, message: 'Errore rimozione ricambio' };
+    }
 }

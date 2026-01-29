@@ -10,16 +10,16 @@ import { useRouter } from "next/navigation"; // Added router
 
 import { useState } from "react";
 
+import { CreateScheduleDialog } from "@/components/maintenance/create-schedule-dialog";
+import { Button } from "@/components/ui/button";
+
 export default function PMSchedulePage() {
-    const { schedules, generateDueWorkOrders, deleteSchedule } = usePM();
-    const { workOrders } = useWorkOrders(); // Get active WOs
+    const { schedules, generateDueWorkOrders, deleteSchedule } = usePM(); // pm-context might need refresh logic eventually
+    const { workOrders } = useWorkOrders();
     const { assets } = useAssets();
     const { user } = useAuth();
-    const router = useRouter(); // For navigation
+    const router = useRouter();
 
-    // Filter Active Work Orders (Not closed/canceled/pending_approval)
-    // Actually, maybe show ALL active ones including PENDING_APPROVAL? Or just Approved?
-    // Let's show OPEN, IN_PROGRESS
     const activeWOs = workOrders.filter(wo => wo.status === 'OPEN' || wo.status === 'IN_PROGRESS');
 
     const isAdmin = user?.role === 'ADMIN';
@@ -49,8 +49,9 @@ export default function PMSchedulePage() {
         title: string,
         assetName: string,
         description: string,
-        date: string, // Next Due or Due Date
-        status: string; // for badge logic
+        date: string,
+        status: string;
+        frequency?: string;
         original: any
     };
 
@@ -61,7 +62,7 @@ export default function PMSchedulePage() {
             title: wo.title,
             assetName: wo.assetName,
             description: wo.description,
-            date: wo.dueDate,
+            date: wo.dueDate || '',
             status: wo.status,
             original: wo
         })),
@@ -75,6 +76,7 @@ export default function PMSchedulePage() {
                 description: sch.description,
                 date: sch.nextDueDate,
                 status: 'SCHEDULED',
+                frequency: sch.frequency,
                 original: sch
             };
         })
@@ -89,12 +91,17 @@ export default function PMSchedulePage() {
                     </h1>
                     <p className="text-muted-foreground mt-1">Vista unificata: Schedulazioni Preventive e Ordini di Lavoro Attivi.</p>
                 </div>
-                <button
-                    onClick={handleGenerate}
-                    className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow-sm hover:shadow-md transition-all flex items-center gap-2"
-                >
-                    <RefreshCw className="h-4 w-4" /> Genera Task Scaduti
-                </button>
+                <div className="flex gap-2">
+                    {/* Keep generate button for manual triggering */}
+                    <Button
+                        onClick={handleGenerate}
+                        variant="secondary" // User said they are different. Let's keep one secondary one primary but ensure same component structure.
+                        className="gap-2"
+                    >
+                        <RefreshCw className="h-4 w-4" /> Check Scadenze
+                    </Button>
+                    {isAdmin && <CreateScheduleDialog />}
+                </div>
             </div>
 
             {generatedCount !== null && (
@@ -117,7 +124,7 @@ export default function PMSchedulePage() {
                         >
                             {/* Type Badge */}
                             <div className={`absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${item.type === 'WO' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                {item.type === 'WO' ? 'ORDINE ATTIVO' : 'PREVENTIVA'}
+                                {item.type === 'WO' ? 'ORDINE ATTIVO' : (item.frequency || 'PREVENTIVA')}
                             </div>
 
                             <div className="flex justify-between items-start mb-4 pr-16"> {/* pr-16 for badge space */}
@@ -167,10 +174,26 @@ export default function PMSchedulePage() {
                                     </div>
                                 )}
 
-                                {/* Hint for WO */}
                                 {item.type === 'WO' && (
-                                    <div className="flex justify-end mt-2 pt-2 text-blue-600 text-xs font-medium group-hover:underline">
-                                        Vedi Dettagli →
+                                    <div className="flex justify-end mt-2 pt-2 gap-2">
+                                        {isAdmin && (
+                                            <button
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm("Sei sicuro di voler eliminare questo ordine di lavoro?")) {
+                                                        const { deleteWorkOrder } = await import('@/lib/actions');
+                                                        await deleteWorkOrder(item.id);
+                                                    }
+                                                }}
+                                                className="text-muted-foreground hover:text-red-600 transition-colors p-1 flex items-center gap-1 text-xs"
+                                                title="Elimina Ordine"
+                                            >
+                                                <Trash2 className="h-3 w-3" /> Elimina
+                                            </button>
+                                        )}
+                                        <div className="text-blue-600 text-xs font-medium group-hover:underline flex items-center ml-auto">
+                                            Vedi Dettagli →
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -183,6 +206,7 @@ export default function PMSchedulePage() {
                     <div className="col-span-full py-12 text-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
                         <Calendar className="h-10 w-10 mx-auto mb-3 opacity-20" />
                         <p>Nessuna schedulazione definita.</p>
+                        {isAdmin && <div className="mt-4"><CreateScheduleDialog /></div>}
                     </div>
                 )}
             </div>

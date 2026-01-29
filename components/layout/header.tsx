@@ -1,8 +1,10 @@
 import { auth, signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { NotificationCenter } from "@/components/layout/notification-center";
 
-import { NotificationBell } from "@/components/notifications/notification-bell";
+
+import { CommandMenu } from "@/components/command-menu";
 
 export async function Header() {
     const session = await auth();
@@ -10,19 +12,31 @@ export async function Header() {
     return (
         <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
             <div className="flex flex-1 items-center justify-between">
-                <h1 className="text-lg font-semibold md:text-xl">Dashboard</h1>
                 <div className="flex items-center gap-4">
-                    <NotificationBell />
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        {session?.user?.name || session?.user?.email || 'Utente'}
+                    <h1 className="text-lg font-semibold md:text-xl">Dashboard</h1>
+                    <CommandMenu />
+                </div>
+
+                <div className="flex items-center gap-3">
+
+
+                    <div className="h-6 w-px bg-muted mx-1" />
+
+                    <NotificationCenter />
+
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground ml-2">
+                        <span className="hidden sm:inline-block">
+                            {session?.user?.name || 'Utente'}
+                        </span>
                     </div>
+
                     <form
                         action={async () => {
                             "use server";
                             await signOut({ redirectTo: '/login' });
                         }}
                     >
-                        <Button variant="ghost" size="icon" title="Logout">
+                        <Button variant="ghost" size="icon" title="Logout" className="text-muted-foreground hover:text-red-600">
                             <LogOut className="h-4 w-4" />
                             <span className="sr-only">Logout</span>
                         </Button>

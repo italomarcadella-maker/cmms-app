@@ -14,24 +14,28 @@ import {
     Wrench,
     Box,
     AlertTriangle,
-    Banknote
+    Banknote,
+    Trash2
 } from "lucide-react";
 import Link from "next/link";
 import { WOAssignDialog } from "@/components/work-orders/wo-assign-dialog";
 import { WOApproveDialog } from "@/components/work-orders/wo-approve-dialog";
-import { updateWorkOrderStatus, reviewWorkOrder } from "@/lib/actions";
+import { updateWorkOrderStatus, reviewWorkOrder, addWorkOrderPart, removeWorkOrderPart } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { WOPriorityBadge } from "@/components/work-orders/wo-priority-badge";
 import { WOStatusBadge } from "@/components/work-orders/wo-status-badge";
 import { WorkOrderChecklist } from "@/components/work-orders/wo-checklist";
+import { StatusStepper } from "@/components/work-orders/status-stepper";
+import { PrintButton, PrintableWO } from "@/components/work-orders/wo-printable";
+import { TimerControls } from "@/components/work-orders/timer-controls";
 
 export default function WorkOrderDetailPage() {
     const params = useParams();
     const router = useRouter(); // Use App Router
     const { user } = useAuth();
     const { workOrders, updateWorkOrder } = useWorkOrders();
-    const { parts, updateQuantity } = useInventory();
+    const { parts } = useInventory(); // Removed updateQuantity
     const { technicians } = useReference();
 
     const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
@@ -68,7 +72,7 @@ export default function WorkOrderDetailPage() {
     // In a real app, we might store the snapshot of rate at logging time.
     // For now, we'll look up live.
     const laborCost = (wo.laborLogs || []).reduce((sum, log) => {
-        const tech = technicians.find(t => t.id === log.technicianId);
+        const tech = technicians?.find(t => t.id === log.technicianId);
         // Debug
         // console.log("Log:", log, "Tech:", tech, "Rate:", tech?.hourlyRate);
         const rate = tech?.hourlyRate || 0;
@@ -77,40 +81,66 @@ export default function WorkOrderDetailPage() {
 
     const totalCost = partsCost + laborCost;
 
-    const handleAddPart = (e: React.FormEvent) => {
-        e.preventDefault();
-        const part = parts.find(p => p.id === selectedPartId);
-        if (!part) return;
+    // Safety checks for context
+    if (!parts) console.warn("Inventory context missing or empty");
+    if (!technicians) console.warn("Reference context missing or empty");
 
-        if (part.quantity < partQty) {
-            alert("Insufficient quantity in inventory!");
+    const handleAddPart = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const part = parts?.find(p => p.id === selectedPartId);
+        if (!part) {
+            alert("Errore: Articolo non trovato o inventario non caricato.");
             return;
         }
 
-        // 1. Update Inventory
-        updateQuantity(part.id, part.quantity - partQty);
+        if (part.quantity < partQty) {
+            alert("Quantità insufficiente in magazzino!");
+            return;
+        }
 
-        // 2. Update Work Order
-        const newPartUsage = {
-            partId: part.id,
-            partName: part.name,
-            quantity: partQty,
-            unitCost: part.unitCost || 0,
-            dateAdded: new Date().toISOString()
-        };
+        try {
+            const result = await addWorkOrderPart(wo.id, part.id, partQty);
+            if (result.success) {
+                // Reset UI
+                setIsAddingPart(false);
+                setSelectedPartId("");
+                setPartQty(1);
 
-        const currentParts = wo.partsUsed || [];
-        updateWorkOrder(wo.id, { partsUsed: [...currentParts, newPartUsage] });
+                // Force data refresh
+                // Since updateWorkOrder only updates local, and we mutated server, we should probably fetchWOs again 
+                // but context does that on mount. 
+                // Simplest is router.refresh() which re-runs server components, but this is a Client Component.
+                // However router.refresh() triggers re-fetching of server data passed to client components.
+                // But our data comes from Context initialized by `actions`.
+                // Actually context loads on mount.
+                // We might need to manually trigger reload in context or just reload page.
+                window.location.reload(); // Quickest consistent way for now, slightly jarring but safe.
+            } else {
+                alert("Errore: " + result.message);
+            }
+        } catch (error) {
+            alert("Si è verificato un errore.");
+        }
+    };
 
-        // Reset UI
-        setIsAddingPart(false);
-        setSelectedPartId("");
-        setPartQty(1);
+    const handleRemovePart = async (partLinkId: string) => {
+        if (!confirm("Rimuovere ricambio e ripristinare la giacenza?")) return;
+
+        try {
+            const result = await removeWorkOrderPart(partLinkId);
+            if (result.success) {
+                window.location.reload();
+            } else {
+                alert("Errore: " + result.message);
+            }
+        } catch (error) {
+            alert("Errore di sistema.");
+        }
     };
 
     const handleAddLabor = (e: React.FormEvent) => {
         e.preventDefault();
-        const tech = technicians.find(t => t.id === selectedTechId);
+        const tech = technicians?.find(t => t.id === selectedTechId);
         if (!tech) return;
 
         const newLog = {
@@ -145,6 +175,15 @@ export default function WorkOrderDetailPage() {
                         <span>Creato il {new Date(wo.createdAt).toLocaleDateString()}</span>
                     </div>
                 </div>
+                <div className="ml-auto hidden sm:block">
+                    <PrintButton contentRef={{ current: typeof document !== 'undefined' ? document.getElementById('printable-content') as HTMLDivElement : null }} />
+                </div>
+            </div>
+
+            <StatusStepper status={wo.status} />
+
+            <div className="hidden sm:block">
+                <PrintableWO wo={wo} hidden />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -234,26 +273,14 @@ export default function WorkOrderDetailPage() {
                                 </div>
                             ))}
 
-                            {/* EXECUTION STEP */}
-                            {(wo.status === 'OPEN' || wo.status === 'IN_PROGRESS') && (
-                                <button
-                                    onClick={async () => {
-                                        if (!confirm("Confermi di aver completato tutte le attività?")) return;
-                                        await updateWorkOrderStatus(wo.id, 'PENDING_REVIEW'); // Use action or context
-                                        // Context update might be faster for UI default
-                                        updateWorkOrder(wo.id, { status: 'PENDING_REVIEW' });
-                                        router.refresh();
-                                    }}
-                                    className="w-full text-left px-4 py-3 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-3 shadow-sm"
-                                >
-                                    <div className="p-1.5 bg-blue-200/50 rounded-full">
-                                        <Wrench className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                        <span className="block font-semibold">Segna come Completato</span>
-                                        <span className="text-xs opacity-80">Invia per validazione finale</span>
-                                    </div>
-                                </button>
+                            <TimerControls workOrder={wo} currentUserId={user?.id || ''} />
+
+                            {/* Actions Workflow - Validation Step */}
+                            {wo.status === 'CLOSED' && (
+                                <div className="p-4 bg-gray-50 rounded-lg border flex items-center justify-center gap-2 text-gray-600 font-medium">
+                                    <CheckCircle2 className="h-5 w-5 text-gray-400" />
+                                    Ordine Chiuso e Archiviato
+                                </div>
                             )}
 
                             {/* VALIDATION STEP */}
@@ -383,12 +410,21 @@ export default function WorkOrderDetailPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    {wo.partsUsed.map((p, idx) => (
-                                        <div key={idx} className="flex items-center justify-between text-sm p-2 bg-muted/20 rounded-md">
-                                            <span className="font-medium truncate max-w-[120px]">{p.partName}</span>
+                                    {wo.partsUsed.map((p: any, idx) => (
+                                        <div key={idx} className="flex items-center justify-between text-sm p-2 bg-muted/20 rounded-md group">
+                                            <span className="font-medium truncate max-w-[120px]" title={p.partName}>{p.partName}</span>
                                             <div className="flex items-center gap-3 text-muted-foreground">
                                                 <span>x{p.quantity}</span>
                                                 <span>€{(p.unitCost * p.quantity).toFixed(2)}</span>
+                                                {canManage && (
+                                                    <button
+                                                        onClick={() => handleRemovePart(p.id)} // Assuming p.id is the WorkOrderPart ID
+                                                        className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                                        title="Rimuovi"
+                                                    >
+                                                        <Trash2 className="h-3 w-3" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

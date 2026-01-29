@@ -131,6 +131,10 @@ model WorkOrder {
   checklist            ChecklistItem[]
   partsUsed            WorkOrderPart[]
   laborLogs            LaborLog[]
+  timers               WorkOrderTimer[]
+
+  originSchedule       PreventiveSchedule? @relation(fields: [originScheduleId], references: [id])
+  originScheduleId     String?
 }
 
 model ChecklistItem {
@@ -179,13 +183,17 @@ model PreventiveSchedule {
   id            String   @id @default(cuid())
   taskTitle     String
   description   String
-  frequencyDays Int
+  frequency     String   @default("MONTHLY") // WEEKLY, MONTHLY, BIMONTHLY, QUARTERLY, SEMIANNUAL, ANNUAL
+  frequencyDays Int      @default(30) // Legacy / Calculated fallback
+  activities    String   @default("[]") // JSON string of checklist items
   lastRunDate   DateTime?
   nextDueDate   DateTime
   assignedToId  String?
   
   asset         Asset    @relation(fields: [assetId], references: [id])
   assetId       String
+  
+  generatedWorkOrders WorkOrder[]
 }
 
 model Notification {
@@ -273,6 +281,18 @@ model ComponentMeasurement {
   operator    String
   
   component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+}
+
+model WorkOrderTimer {
+  id          String    @id @default(cuid())
+  workOrderId String
+  userId      String    // Who started the session
+  startTime   DateTime  @default(now())
+  endTime     DateTime? // Null if currently running
+  duration    Int?      // Minutes, calculated on close
+  note        String?   // Reason for pause/stop
+
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 }
 
 model ChatMessage {

@@ -1,0 +1,16 @@
+
+> cmms@0.1.0 start
+> next start
+
+▲ Next.js 16.1.1
+- Local:         http://localhost:3000
+- Network:       http://192.168.182.161:3000
+
+✓ Starting...
+✓ Ready in 1217ms
+prisma:query SELECT "public"."User"."id", "public"."User"."name", "public"."User"."email", "public"."User"."emailVerified", "public"."User"."image", "public"."User"."password", "public"."User"."role", "public"."User"."mustChangePassword", "public"."User"."isActive", "public"."User"."lastLogin", "public"."User"."department" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."User"."id", "public"."User"."name", "public"."User"."email", "public"."User"."emailVerified", "public"."User"."image", "public"."User"."password", "public"."User"."role", "public"."User"."mustChangePassword", "public"."User"."isActive", "public"."User"."lastLogin", "public"."User"."department" FROM "public"."User" WHERE ("public"."User"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."Notification"."id", "public"."Notification"."userId", "public"."Notification"."title", "public"."Notification"."message", "public"."Notification"."read", "public"."Notification"."link", "public"."Notification"."createdAt" FROM "public"."Notification" WHERE "public"."Notification"."userId" = $1 ORDER BY "public"."Notification"."createdAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT 1
+prisma:query SELECT "public"."ChatMessage"."id", "public"."ChatMessage"."sender", "public"."ChatMessage"."role", "public"."ChatMessage"."content", "public"."ChatMessage"."timestamp", "public"."ChatMessage"."isRead", "public"."ChatMessage"."isSystem" FROM "public"."ChatMessage" WHERE 1=1 ORDER BY "public"."ChatMessage"."timestamp" ASC LIMIT $1 OFFSET $2
+prisma:query SELECT "public"."ChatMessage"."id", "public"."ChatMessage"."sender", "public"."ChatMessage"."role", "public"."ChatMessage"."content", "public"."ChatMessage"."timestamp", "public"."ChatMessage"."isRead", "public"."ChatMessage"."isSystem" FROM "public"."ChatMessage" WHERE 1=1 ORDER BY "public"."ChatMessage"."timestamp" ASC LIMIT $1 OFFSET $2

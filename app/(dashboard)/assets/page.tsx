@@ -8,6 +8,7 @@ import { AssetStatusBadge } from "@/components/assets/asset-status-badge";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
 import { AssetTree } from "@/components/assets/asset-tree";
 import { Table as TableIcon, Network } from "lucide-react";
+import { toast } from "sonner";
 
 import { useAuth } from "@/lib/auth-context";
 import { deleteAsset } from "@/lib/actions";
@@ -58,6 +59,8 @@ export default function AssetsPage() {
         setIsDialogOpen(true);
     };
 
+
+
     const handleDeleteClick = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         if (!confirm("Sei sicuro di voler eliminare questo asset? Questa azione non può essere annullata.")) return;
@@ -65,13 +68,14 @@ export default function AssetsPage() {
         try {
             const result = await deleteAsset(id);
             if (result.success) {
-                router.refresh(); // Or reload window if needed, but router refresh is better
+                toast.success("Asset eliminato con successo");
+                router.refresh();
             } else {
-                alert("Errore durante l'eliminazione: " + result.message);
+                toast.error("Errore durante l'eliminazione: " + result.message);
             }
         } catch (error) {
             console.error(error);
-            alert("Si è verificato un errore.");
+            toast.error("Si è verificato un errore imprevisto.");
         }
     };
 

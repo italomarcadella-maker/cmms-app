@@ -7,6 +7,7 @@ import { useWorkOrders } from "./work-orders-context";
 interface PMContextType {
     schedules: PreventiveSchedule[];
     addSchedule: (schedule: PreventiveSchedule) => void;
+    updateSchedule: (id: string, updates: Partial<PreventiveSchedule>) => void;
     deleteSchedule: (id: string) => void;
     generateDueWorkOrders: () => number; // Returns count of generated WOs
 }
@@ -56,6 +57,10 @@ export function PMProvider({ children }: { children: React.ReactNode }) {
         // realize that without an ADD action, new schedules won't persist.
         // But the user didn't ask for "Add".
         setSchedules(prev => [...prev, schedule]);
+    };
+
+    const updateSchedule = (id: string, updates: Partial<PreventiveSchedule>) => {
+        setSchedules(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
     };
 
     const deleteSchedule = async (id: string) => {
@@ -118,7 +123,7 @@ export function PMProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <PMContext.Provider value={{ schedules, addSchedule, deleteSchedule, generateDueWorkOrders }}>
+        <PMContext.Provider value={{ schedules, addSchedule, updateSchedule, deleteSchedule, generateDueWorkOrders }}>
             {children}
         </PMContext.Provider>
     );

@@ -7,6 +7,7 @@ import { PMProvider } from '@/lib/pm-context';
 import { InventoryProvider } from "@/lib/inventory-context";
 import { ChatProvider } from "@/lib/chat-context";
 import { ChatWidget } from "@/components/chat/chat-widget";
+
 import { getWorkOrders, getAssets } from "@/lib/actions";
 
 export default async function DashboardLayout({
@@ -33,6 +34,7 @@ export default async function DashboardLayout({
                                         </main>
                                     </div>
                                     <ChatWidget />
+
                                 </div>
                             </ChatProvider>
                         </PMProvider>

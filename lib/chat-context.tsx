@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { getChatMessages, sendChatMessage } from "@/lib/actions";
+import { generateAIResponse } from "@/lib/ai-service";
 
 export interface Message {
     id: string;
@@ -37,7 +39,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const refreshMessages = async () => {
-        const { getChatMessages } = await import('@/lib/actions');
         const data = await getChatMessages();
 
         const mapped = data.map(m => ({
@@ -76,12 +77,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         if (content.toLowerCase().startsWith("@ai")) {
             const query = content.replace(/^@ai\s*/i, "");
             try {
-                const { generateAIResponse } = await import("./ai-service");
+                // Use the static import which is safe for Server Actions
                 const aiMsg = await generateAIResponse(query);
 
-                // Save AI response to DB too if we want persistence
-                // But normally we'd save it. Assuming `generateAIResponse` just returns object.
-                // We should probably save it.
+                // Save AI response to DB
                 await sendChatMessage({
                     sender: aiMsg.sender,
                     role: "SYSTEM",
@@ -89,9 +88,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                     isSystem: true
                 });
 
-                refreshMessages(); // Fetch the AI message from DB
+                refreshMessages(); // Fetch the AI message
             } catch (error) {
                 console.error("AI Error:", error);
+
+                // Fallback error message
+                await sendChatMessage({
+                    sender: "System",
+                    role: "SYSTEM",
+                    content: "Errore nel contattare l'assistente.",
+                    isSystem: true
+                });
+                refreshMessages();
             }
         }
     };

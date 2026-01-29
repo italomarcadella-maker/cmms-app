@@ -26,8 +26,8 @@ export interface Asset {
 }
 
 export type WorkOrderPriority = 'HIGH' | 'MEDIUM' | 'LOW';
-export type WorkOrderStatus = 'PENDING_APPROVAL' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'PENDING_REVIEW' | 'CLOSED' | 'ON_HOLD' | 'CANCELED';
-export type WorkOrderCategory = 'MECHANICAL' | 'ELECTRICAL' | 'HYDRAULIC' | 'PNEUMATIC' | 'OTHER';
+export type WorkOrderStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'ASSIGNED' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CLOSED' | 'CANCELED';
+export type WorkOrderCategory = 'MECHANICAL' | 'ELECTRICAL' | 'HYDRAULIC' | 'PNEUMATIC' | 'OTHER' | 'AI_SUGGESTION';
 
 export interface ChecklistItem {
     id: string;
@@ -68,6 +68,18 @@ export interface WorkOrder {
     type?: 'FAULT' | 'ROUTINE' | 'REQUEST';
     requestImage?: string;
     completionImage?: string;
+    originScheduleId?: string;
+    timers?: WorkOrderTimer[];
+}
+
+export interface WorkOrderTimer {
+    id: string;
+    workOrderId: string;
+    userId: string;
+    startTime: string;
+    endTime: string | null;
+    duration: number | null;
+    note: string | null;
 }
 
 export type UserRole = 'ADMIN' | 'SUPERVISOR' | 'MAINTAINER' | 'USER';
@@ -102,11 +114,22 @@ export interface PreventiveSchedule {
     assetName: string;
     taskTitle: string;
     description: string;
-    frequencyDays: number;
-    lastRunDate: string; // ISO Date
-    nextDueDate: string; // ISO Date
-    assignedToId?: string; // Optional default technician
+    frequencyDays: number; // Legacy or computed
+    frequency: string; // 'WEEKLY', 'MONTHLY', etc.
+    activities: { id: string; label: string }[]; // Updated from database JSON
+    lastRunDate: string | null;
+    nextDueDate: string;
+    assignedToId?: string;
 }
+
+export const RECURRENCE_OPTIONS = [
+    { value: 'WEEKLY', label: 'Settimanale (7 gg)', days: 7 },
+    { value: 'MONTHLY', label: 'Mensile (30 gg)', days: 30 },
+    { value: 'BIMONTHLY', label: 'Bimestrale (60 gg)', days: 60 },
+    { value: 'QUARTERLY', label: 'Trimestrale (90 gg)', days: 90 },
+    { value: 'SEMIANNUAL', label: 'Semestrale (180 gg)', days: 180 },
+    { value: 'ANNUAL', label: 'Annuale (365 gg)', days: 365 },
+];
 
 export interface SparePart {
     id: string;
