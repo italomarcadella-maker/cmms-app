@@ -9,6 +9,7 @@ import { ArrowLeft, QrCode, FileText, AlertCircle, Activity } from "lucide-react
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import QRCode from "react-qr-code";
+import { AssetMaintenancePlan } from "@/components/assets/asset-maintenance-plan";
 
 export default function AssetDetailsPage() {
     const params = useParams();
@@ -108,6 +109,11 @@ export default function AssetDetailsPage() {
                                 ))}
                             </div>
                         )}
+                    </div>
+
+                    {/* Maintenance Plan (AI Enabled) */}
+                    <div className="rounded-xl border bg-card p-6 shadow-sm">
+                        <AssetMaintenancePlan assetId={asset.id} />
                     </div>
 
                     {/* Closed History (From Context/Props) */}

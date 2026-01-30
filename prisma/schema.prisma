@@ -135,6 +135,33 @@ model WorkOrder {
 
   originSchedule       PreventiveSchedule? @relation(fields: [originScheduleId], references: [id])
   originScheduleId     String?
+  
+  // EWO Fields
+  ewoFilled            Boolean @default(false)
+  ewo                  EWO?
+}
+
+model EWO {
+  id                String    @id @default(cuid())
+  workOrderId       String    @unique
+  workOrder         WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  
+  description       String?   // Description of the emergency
+  causeAnalysis     String    // Root cause (5 Whys)
+  solutionApplied   String    // Immediate fix
+  
+  preventiveActions String?   // What to do to prevent recurrence
+  
+  needsFollowUp     Boolean   @default(false)
+  followUpDetail    String?   // Details for the new request
+  
+  createdAt         DateTime  @default(now())
+  authorName        String
+}
+
+model SystemSettings {
+  id                String @id @default("settings")
+  ewoThresholdHours Float  @default(0) // 0 means disabled
 }
 
 model ChecklistItem {
@@ -303,4 +330,15 @@ model ChatMessage {
   timestamp DateTime @default(now())
   isRead    Boolean  @default(false)
   isSystem  Boolean  @default(false)
+}
+
+model MaintenanceKnowledge {
+  id           String   @id @default(cuid())
+  problemTags  String   // Keywords: "filtro, intasato, rumore"
+  solution     String   // "Sostituzione cartuccia"
+  assetCategory String? // "Idraulica", "Elettrica"
+  successCount Int      @default(1)
+  lastUpdated  DateTime @default(now())
+
+  @@index([problemTags])
 }

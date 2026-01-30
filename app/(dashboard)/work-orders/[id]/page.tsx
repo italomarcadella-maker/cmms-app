@@ -29,6 +29,7 @@ import { WorkOrderChecklist } from "@/components/work-orders/wo-checklist";
 import { StatusStepper } from "@/components/work-orders/status-stepper";
 import { PrintButton, PrintableWO } from "@/components/work-orders/wo-printable";
 import { TimerControls } from "@/components/work-orders/timer-controls";
+import { AISuggestions } from "@/components/work-orders/ai-suggestions";
 
 export default function WorkOrderDetailPage() {
     const params = useParams();
@@ -73,8 +74,6 @@ export default function WorkOrderDetailPage() {
     // For now, we'll look up live.
     const laborCost = (wo.laborLogs || []).reduce((sum, log) => {
         const tech = technicians?.find(t => t.id === log.technicianId);
-        // Debug
-        // console.log("Log:", log, "Tech:", tech, "Rate:", tech?.hourlyRate);
         const rate = tech?.hourlyRate || 0;
         return sum + (log.hours * rate);
     }, 0);
@@ -215,6 +214,11 @@ export default function WorkOrderDetailPage() {
                         <p className="text-muted-foreground leading-relaxed">
                             {wo.description}
                         </p>
+
+                        <div className="mt-4 mb-4">
+                            <AISuggestions assetId={wo.assetId} />
+                        </div>
+
                         <div className="mt-4 pt-4 border-t flex gap-6 text-sm">
                             <div>
                                 <span className="text-muted-foreground block mb-1">Asset</span>
@@ -347,6 +351,38 @@ export default function WorkOrderDetailPage() {
                                 </button>
                             )}
                         </div>
+                    </div>
+
+                    {/* EWO Compliance */}
+                    <div className="rounded-xl border bg-card p-6 shadow-sm">
+                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">Conformità EWO</h3>
+                        {wo.ewoFilled ? (
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="h-5 w-5" />
+                                    <span className="font-medium">Modulo EWO Compilato & Archiviato</span>
+                                </div>
+                                <Link
+                                    href={`/work-orders/${wo.id}/ewo`}
+                                    className="text-sm underline hover:text-emerald-900 font-medium shrink-0"
+                                >
+                                    Vedi Modello
+                                </Link>
+                            </div>
+                        ) : (
+                            <Link
+                                href={`/work-orders/${wo.id}/ewo`}
+                                className="block w-full text-left px-4 py-3 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-3 shadow-sm"
+                            >
+                                <div className="p-1.5 bg-amber-200/50 rounded-full">
+                                    <AlertTriangle className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <span className="block font-semibold">Compila Modello EWO</span>
+                                    <span className="text-xs opacity-80">Necessario per chiudere l'intervento</span>
+                                </div>
+                            </Link>
+                        )}
                     </div>
 
                     {/* Job Costing Widget */}

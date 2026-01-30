@@ -20,6 +20,7 @@ import Link from "next/link";
 import { DeadlineAlerts } from "@/components/calendar/deadline-alerts";
 import { Skeleton, MetricCardSkeleton } from "@/components/ui/skeleton";
 import { Suspense, useMemo } from "react";
+import { AIDailyBrief } from "@/components/dashboard/ai-daily-brief";
 
 // Mock Chart Component - In real app use Recharts/Tremor
 const MiniChart = ({ data, color }: { data: number[], color: string }) => {
@@ -93,6 +94,8 @@ function DashboardContent() {
           </div>
         </div>
       </div>
+
+      <AIDailyBrief />
 
       {/* Primary Metrics Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

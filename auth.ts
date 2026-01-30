@@ -46,13 +46,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     callbacks: {
         async session({ session, token }) {
             if (token.sub && session.user) {
-                (session.user as any).id = token.sub;
+                session.user.id = token.sub;
             }
             if (token.role && session.user) {
-                (session.user as any).role = token.role;
+                session.user.role = token.role;
             }
             if (session.user) {
-                (session.user as any).mustChangePassword = token.mustChangePassword;
+                session.user.mustChangePassword = token.mustChangePassword;
             }
             return session;
         },
@@ -60,8 +60,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             if (token.sub) {
                 const user = await prisma.user.findUnique({ where: { id: token.sub } });
                 if (user) {
-                    token.role = (user as any).role;
-                    token.mustChangePassword = (user as any).mustChangePassword;
+                    token.role = user.role;
+                    token.mustChangePassword = user.mustChangePassword;
                 }
             }
             return token;

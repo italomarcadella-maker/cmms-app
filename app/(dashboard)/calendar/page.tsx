@@ -104,21 +104,17 @@ export default function CalendarPage() {
                     }
                 }}
                 onEventMove={async (id, newDate) => {
-                    console.log("onEventMove Triggered", id, newDate);
                     // Check if it's a WO (assigned or unassigned)
                     const isWo = woEvents.find(e => e.id === id) || unassignedEvents.find(e => e.id === id);
 
                     if (isWo) {
-                        console.log("Moving WO", id);
                         // Update WO due date
                         await updateWorkOrder(id, { dueDate: newDate.toISOString() });
                     } else {
                         // Assume it's a PM since we checked logic
                         const isPm = pmEvents.find(e => e.id === id);
-                        console.log("Checking if PM", id, isPm);
 
                         if (isPm) {
-                            console.log("Moving PM", id, "to", newDate);
                             // Optimistic update
                             updateSchedule(id, { nextDueDate: newDate.toISOString() as any });
 

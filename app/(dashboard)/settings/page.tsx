@@ -149,6 +149,59 @@ export default function SettingsPage() {
                         Il reset pulirà il database mantenendo solo gli utenti amministratori.
                     </p>
                 </div>
+
+                {/* EWO Settings */}
+                <EWOSettingsSection />
+            </div>
+        </div>
+    );
+}
+
+function EWOSettingsSection() {
+    const [threshold, setThreshold] = useState<number>(0);
+
+    useEffect(() => {
+        // Dynamic import to avoid SSR issues if simple client fetch better
+        import("@/lib/actions").then(async (mod) => {
+            const s = await mod.getSystemSettings();
+            if (s) setThreshold(s.ewoThresholdHours);
+        });
+    }, []);
+
+    const handleSave = async () => {
+        const { updateSystemSettings } = await import("@/lib/actions");
+        const res = await updateSystemSettings(threshold);
+        alert(res.message);
+    };
+
+    return (
+        <div className="rounded-xl border bg-card p-6 shadow-sm border-indigo-200/50">
+            <div className="flex items-center gap-3 mb-6 border-b pb-4">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
+                    <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                    <h3 className="font-semibold text-lg">Configurazione EWO</h3>
+                    <p className="text-sm text-muted-foreground">Regole per la compilazione obbligatoria dell'Emergency Work Order.</p>
+                </div>
+            </div>
+
+            <div className="flex items-end gap-4">
+                <div className="space-y-2 flex-1">
+                    <label className="text-sm font-medium">Soglia Ore (0 = Disabilitato)</label>
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        value={threshold}
+                        onChange={(e) => setThreshold(Number(e.target.value))}
+                    />
+                    <p className="text-xs text-muted-foreground">Se un intervento supera questa durata, sarà richiesta la compilazione dell'EWO per chiudere l'ordine.</p>
+                </div>
+                <button onClick={handleSave} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium shadow-sm hover:bg-indigo-700 h-10 mb-0.5">
+                    Salva Configurazione
+                </button>
             </div>
         </div>
     );

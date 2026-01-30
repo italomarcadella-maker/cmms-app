@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, ChevronRight, ChevronDown, Factory, LayoutTemplate, Waypoints, Box } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -55,7 +55,7 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
     };
 
     // Auto-expand if searching
-    useMemo(() => {
+    useEffect(() => {
         if (searchTerm) {
             const allKeys = new Set<string>();
             Object.keys(groupedAssets).forEach(plant => {
@@ -77,72 +77,82 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                     placeholder="Cerca asset per nome, seriale o posizione..."
-                    className="pl-9"
+                    className="pl-9 bg-background/50 backdrop-blur-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     autoFocus
                 />
             </div>
 
-            <div className="border rounded-lg bg-card shadow-sm overflow-hidden min-h-[400px] max-h-[600px] overflow-y-auto">
+            <div className="border rounded-lg bg-card/50 shadow-sm overflow-hidden min-h-[400px] max-h-[600px] overflow-y-auto custom-scrollbar">
                 {Object.keys(groupedAssets).length === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground">
-                        Nessun asset trovato.
+                    <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-muted-foreground gap-2">
+                        <Search className="h-8 w-8 opacity-20" />
+                        <p>Nessun asset trovato</p>
                     </div>
                 ) : (
                     <div className="p-2 space-y-1">
                         {Object.keys(groupedAssets).sort().map((plant) => (
                             <div key={plant}>
                                 <div
-                                    className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded cursor-pointer font-semibold"
+                                    className="flex items-center gap-2 p-2 hover:bg-accent/50 rounded-md cursor-pointer font-semibold transition-colors group"
                                     onClick={() => toggleNode(plant)}
                                 >
-                                    {expandedNodes.has(plant) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                                    <Factory className="h-4 w-4 text-muted-foreground" />
+                                    <div className="p-1 rounded-sm bg-blue-500/10 text-blue-600 group-hover:bg-blue-500/20">
+                                        {expandedNodes.has(plant) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                    </div>
+                                    <Factory className="h-4 w-4 text-blue-500" />
                                     <span>{plant}</span>
                                 </div>
 
                                 {expandedNodes.has(plant) && (
-                                    <div className="ml-4 border-l pl-2 space-y-1 mt-1">
+                                    <div className="ml-3 pl-3 border-l-2 border-muted space-y-1 mt-1">
                                         {Object.keys(groupedAssets[plant]).sort().map((dept) => (
                                             <div key={`${plant}-${dept}`}>
                                                 <div
-                                                    className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded cursor-pointer font-medium text-sm"
+                                                    className="flex items-center gap-2 p-2 hover:bg-accent/50 rounded-md cursor-pointer font-medium text-sm transition-colors group"
                                                     onClick={() => toggleNode(`${plant}-${dept}`)}
                                                 >
-                                                    {expandedNodes.has(`${plant}-${dept}`) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                                                    <LayoutTemplate className="h-4 w-4 text-muted-foreground" />
+                                                    <div className="p-0.5 rounded-sm text-muted-foreground group-hover:text-foreground">
+                                                        {expandedNodes.has(`${plant}-${dept}`) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                                    </div>
+                                                    <LayoutTemplate className="h-4 w-4 text-orange-500" />
                                                     <span>{dept}</span>
                                                 </div>
 
                                                 {expandedNodes.has(`${plant}-${dept}`) && (
-                                                    <div className="ml-4 border-l pl-2 space-y-1 mt-1">
+                                                    <div className="ml-3 pl-3 border-l-2 border-muted space-y-1 mt-1">
                                                         {Object.keys(groupedAssets[plant][dept]).sort().map((line) => (
                                                             <div key={`${plant}-${dept}-${line}`}>
                                                                 <div
-                                                                    className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded cursor-pointer text-sm"
+                                                                    className="flex items-center gap-2 p-2 hover:bg-accent/50 rounded-md cursor-pointer text-sm transition-colors group"
                                                                     onClick={() => toggleNode(`${plant}-${dept}-${line}`)}
                                                                 >
-                                                                    {expandedNodes.has(`${plant}-${dept}-${line}`) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                                                                    <Waypoints className="h-4 w-4 text-muted-foreground" />
+                                                                    <div className="p-0.5 rounded-sm text-muted-foreground group-hover:text-foreground">
+                                                                        {expandedNodes.has(`${plant}-${dept}-${line}`) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                                                    </div>
+                                                                    <Waypoints className="h-4 w-4 text-purple-500" />
                                                                     <span>{line}</span>
                                                                 </div>
 
                                                                 {expandedNodes.has(`${plant}-${dept}-${line}`) && (
-                                                                    <div className="ml-6 grid gap-1 mt-1">
+                                                                    <div className="ml-4 grid gap-2 mt-1 mb-2 pr-2">
                                                                         {groupedAssets[plant][dept][line].map(asset => (
                                                                             <div
                                                                                 key={asset.id}
                                                                                 onClick={() => onSelect(asset)}
-                                                                                className="flex items-center justify-between p-3 rounded-md bg-background border hover:border-primary cursor-pointer hover:shadow-sm transition-all group"
+                                                                                className="flex items-center justify-between p-3 rounded-lg bg-card border hover:border-primary/50 cursor-pointer shadow-sm hover:shadow-md transition-all group/asset"
                                                                             >
                                                                                 <div className="flex items-center gap-3">
-                                                                                    <div className="p-2 bg-muted rounded-full group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                                                                    <div className="p-2 bg-muted rounded-full group-hover/asset:bg-primary/10 group-hover/asset:text-primary transition-colors">
                                                                                         <Box className="h-4 w-4" />
                                                                                     </div>
                                                                                     <div>
-                                                                                        <p className="font-medium text-sm">{asset.name}</p>
-                                                                                        <p className="text-xs text-muted-foreground">{asset.serialNumber}</p>
+                                                                                        <p className="font-medium text-sm group-hover/asset:text-primary transition-colors">{asset.name}</p>
+                                                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                                            <span className="font-mono bg-muted px-1 rounded">{asset.serialNumber}</span>
+                                                                                            {asset.vendor && <span>• {asset.vendor}</span>}
+                                                                                        </div>
                                                                                     </div>
                                                                                 </div>
                                                                                 <AssetStatusBadge status={asset.status as any} />

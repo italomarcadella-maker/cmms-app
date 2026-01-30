@@ -8,6 +8,21 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { WorkOrderStatus } from '@/lib/types';
 
+// --- Authorization Helper ---
+
+async function requireRole(role: string): Promise<{ authorized: boolean; message?: string; session?: any }> {
+    const session = await auth();
+    if (!session?.user) {
+        return { authorized: false, message: 'Non autenticato' };
+    }
+    // Strict Role Check or "At Least" logic could go here. 
+    // For now strict equality as per original code.
+    if (session.user.role !== role) {
+        return { authorized: false, message: `Non autorizzato: Richiesto ruolo ${role}` };
+    }
+    return { authorized: true, session };
+}
+
 // --- Authentication ---
 
 export async function authenticate(
@@ -30,10 +45,9 @@ export async function authenticate(
 }
 
 export async function updateUserPassword(userId: string, newPassword: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
-        return { success: false, message: 'Non autorizzato: Richiesto ruolo di Amministratore.' };
-    }
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
+
     try {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await prisma.user.update({
@@ -49,10 +63,9 @@ export async function updateUserPassword(userId: string, newPassword: string) {
 }
 
 export async function updateUserRole(userId: string, newRole: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
-        return { success: false, message: 'Non autorizzato: Richiesto ruolo di Amministratore.' };
-    }
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
+
     try {
         await prisma.user.update({
             where: { id: userId },
@@ -67,10 +80,9 @@ export async function updateUserRole(userId: string, newRole: string) {
 }
 
 export async function createUser(rawUserData: any) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
-        return { success: false, message: 'Non autorizzato: Richiesto ruolo di Amministratore.' };
-    }
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
+
     try {
         const { name, email, password, role } = rawUserData;
         if (!email || !password || !role) {
@@ -121,10 +133,8 @@ export async function updateFirstLoginPassword(newPassword: string) {
 }
 
 export async function getUsers() {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
-        throw new Error("Unauthorized");
-    }
+    const { authorized } = await requireRole('ADMIN');
+    if (!authorized) throw new Error("Unauthorized");
     try {
         const users = await prisma.user.findMany({
             select: { id: true, name: true, email: true, role: true, image: true, isActive: true, lastLogin: true, department: true }
@@ -142,10 +152,8 @@ export async function getUsers() {
 }
 
 export async function updateUserStatus(userId: string, isActive: boolean) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
-        return { success: false, message: 'Non autorizzato: Richiesto ruolo di Amministratore.' };
-    }
+    const { authorized, message, session } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
     try {
         if (session.user.id === userId && !isActive) {
             return { success: false, message: 'Non puoi disattivare il tuo stesso account.' };
@@ -162,10 +170,8 @@ export async function updateUserStatus(userId: string, isActive: boolean) {
 }
 
 export async function updateUser(userId: string, data: { name?: string; email?: string; department?: string; image?: string }) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
-        return { success: false, message: 'Non autorizzato' };
-    }
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
     try {
         await prisma.user.update({
             where: { id: userId },
@@ -184,10 +190,8 @@ export async function updateUser(userId: string, data: { name?: string; email?: 
 }
 
 export async function deleteUser(userId: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
-        return { success: false, message: 'Non autorizzato: Richiesto ruolo di Amministratore.' };
-    }
+    const { authorized, message, session } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
     try {
         if (session.user.id === userId) {
             return { success: false, message: 'Non puoi cancellare il tuo stesso account.' };
@@ -202,10 +206,8 @@ export async function deleteUser(userId: string) {
 }
 
 export async function resetDatabase() {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
-        return { success: false, message: 'Non autorizzato.' };
-    }
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
     try {
         await prisma.meterReading.deleteMany();
         await prisma.meter.deleteMany();
@@ -271,9 +273,11 @@ export async function deleteAsset(id: string) {
 }
 
 export async function importAssets(assets: any[]) {
-    // Legacy import logic, keeping as is
     let count = 0;
     let errors: string[] = [];
+    const { authorized } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message: "Unauthorized", count: 0, errors: ["Unauthorized"] };
+
     for (const asset of assets) {
         try {
             if (!asset.name || !asset.model) continue;
@@ -285,8 +289,10 @@ export async function importAssets(assets: any[]) {
                 status: asset.status || 'OPERATIONAL',
                 healthScore: parseInt(asset.healthScore) || 100,
                 purchaseDate: asset.purchaseDate ? new Date(asset.purchaseDate) : new Date(),
-                department: asset.category || 'General',
-                plant: 'Default Plant',
+                department: asset.department || asset.category || 'General',
+                plant: asset.plant || 'Default Plant',
+                line: asset.line || null,
+                vendor: asset.vendor || null,
             };
             if (asset.id) {
                 await prisma.asset.upsert({
@@ -306,6 +312,55 @@ export async function importAssets(assets: any[]) {
     return { success: true, count, errors };
 }
 
+export async function addAsset(data: any) {
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
+
+    try {
+        const assetData = {
+            name: data.name,
+            model: data.model,
+            serialNumber: data.serialNumber || `SN-${Date.now()}`,
+            location: data.location,
+            status: data.status || 'OPERATIONAL',
+            healthScore: data.healthScore || 100,
+            purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : new Date(),
+            department: data.department,
+            plant: data.plant,
+            line: data.line,
+            vendor: data.vendor,
+        };
+        const newAsset = await prisma.asset.create({ data: assetData });
+        revalidatePath('/assets');
+        return { success: true, message: 'Asset creato con successo', data: newAsset };
+    } catch (error) {
+        return { success: false, message: 'Errore creazione asset' };
+    }
+}
+
+export async function updateAsset(id: string, data: any) {
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
+
+    try {
+        // Map any string dates coming from client back to Date objects if necessary
+        // Prisma expects Date objects for DateTime fields
+        const updateData = { ...data };
+        if (updateData.purchaseDate) updateData.purchaseDate = new Date(updateData.purchaseDate);
+        if (updateData.lastMaintenance) updateData.lastMaintenance = new Date(updateData.lastMaintenance);
+
+        const updatedAsset = await prisma.asset.update({
+            where: { id },
+            data: updateData
+        });
+        revalidatePath('/assets');
+        revalidatePath(`/assets/${id}`);
+        return { success: true, message: 'Asset aggiornato', data: updatedAsset };
+    } catch (error) {
+        return { success: false, message: 'Errore aggiornamento asset' };
+    }
+}
+
 // --- Preventive Schedules ---
 
 export async function getPreventiveSchedules() {
@@ -313,6 +368,25 @@ export async function getPreventiveSchedules() {
     if (!session?.user) return [];
     try {
         const schedules = await prisma.preventiveSchedule.findMany({
+            include: { asset: { select: { name: true } } },
+            orderBy: { nextDueDate: 'asc' }
+        });
+        return schedules.map(s => ({
+            ...s,
+            assetName: s.asset.name,
+            activities: s.activities ? JSON.parse(s.activities) : [],
+            lastRunDate: s.lastRunDate ? s.lastRunDate.toISOString() : null,
+            nextDueDate: s.nextDueDate.toISOString()
+        }));
+    } catch (error) {
+        return [];
+    }
+}
+
+export async function getAssetSchedules(assetId: string) {
+    try {
+        const schedules = await prisma.preventiveSchedule.findMany({
+            where: { assetId },
             include: { asset: { select: { name: true } } },
             orderBy: { nextDueDate: 'asc' }
         });
@@ -734,14 +808,54 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
 
     try {
         if (decision === 'APPROVE') {
+            // EWO Check
+            const settings = await prisma.systemSettings.findUnique({ where: { id: 'settings' } });
+            if (settings?.ewoThresholdHours && settings.ewoThresholdHours > 0) {
+                const currentWO = await prisma.workOrder.findUnique({
+                    where: { id },
+                    include: { laborLogs: true }
+                });
+
+                if (currentWO) {
+                    const totalHours = currentWO.laborLogs.reduce((acc, log) => acc + log.hours, 0);
+                    if (totalHours > settings.ewoThresholdHours && !currentWO.ewoFilled) {
+                        return {
+                            success: false,
+                            message: `Blocco EWO: L'intervento (durata ${totalHours}h) supera la soglia di ${settings.ewoThresholdHours}h. Compilare il modulo EWO prima di chiudere.`
+                        };
+                    }
+                }
+            }
+
             const wo = await prisma.workOrder.update({
                 where: { id },
                 data: {
                     status: 'CLOSED',
                     validatedById: session.user.id
                 },
-                include: { originSchedule: true }
+                include: {
+                    originSchedule: true,
+                    ewo: true
+                }
             });
+
+            // --- SELF-LEARNING TRIGGER ---
+            try {
+                const { learnFromWorkOrder } = await import('@/lib/ai-service');
+                if (wo.ewoFilled && wo.ewo) {
+                    await learnFromWorkOrder(
+                        wo.ewo.description || wo.description,
+                        wo.ewo.solutionApplied,
+                        wo.category
+                    );
+                } else if (feedback) {
+                    // Treat feedback as solution for standard WOs
+                    await learnFromWorkOrder(wo.description, feedback, wo.category);
+                }
+            } catch (kError) {
+                console.error("Learning Trigger Failed:", kError);
+            }
+            // -----------------------------
 
             // Auto-Regenerate Schedule if linked
             if (wo.originScheduleId && wo.originSchedule) {
@@ -1365,5 +1479,118 @@ export async function removeWorkOrderPart(id: string) {
         return { success: true, message: 'Ricambio rimosso e giacenza ripristinata' };
     } catch (error) {
         return { success: false, message: 'Errore rimozione ricambio' };
+    }
+}
+
+// --- System Settings ---
+
+export async function getSystemSettings() {
+    try {
+        let settings = await prisma.systemSettings.findUnique({ where: { id: "settings" } });
+        if (!settings) {
+            settings = await prisma.systemSettings.create({
+                data: {
+                    id: "settings",
+                    ewoThresholdHours: 0
+                }
+            });
+        }
+        return settings;
+    } catch (error) {
+        return null;
+    }
+}
+
+export async function updateSystemSettings(ewoThresholdHours: number) {
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
+
+    try {
+        await prisma.systemSettings.upsert({
+            where: { id: "settings" },
+            update: { ewoThresholdHours },
+            create: {
+                id: "settings",
+                ewoThresholdHours
+            }
+        });
+        revalidatePath('/settings');
+        return { success: true, message: 'Impostazioni aggiornate' };
+    } catch (error) {
+        return { success: false, message: 'Errore salvataggio impostazioni' };
+    }
+}
+
+// --- EWO Actions ---
+
+export async function confirmEWO(workOrderId: string) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+    try {
+        await prisma.workOrder.update({
+            where: { id: workOrderId },
+            data: { ewoFilled: true }
+        });
+        revalidatePath(`/work-orders/${workOrderId}`);
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: 'Errore conferma EWO' };
+    }
+}
+
+export async function submitEWO(data: any) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        const { workOrderId, ...fields } = data;
+
+        // 1. Save EWO
+        await (prisma as any).eWO.upsert({
+            where: { workOrderId },
+            update: { ...fields, authorName: session.user.name || 'User' },
+            create: { ...fields, workOrderId, authorName: session.user.name || 'User' }
+        });
+
+        // 2. Update WO flag
+        await prisma.workOrder.update({
+            where: { id: workOrderId },
+            data: { ewoFilled: true }
+        });
+
+        // 3. Create Follow Up if needed
+        if (fields.needsFollowUp && fields.followUpDetail) {
+            const originalWO = await prisma.workOrder.findUnique({ where: { id: workOrderId } });
+            if (originalWO) {
+                await prisma.workOrder.create({
+                    data: {
+                        title: `Follow-Up EWO: ${originalWO.title.substring(0, 30)}...`,
+                        description: `[ORIGINE EWO #${workOrderId}]\n\nRichiesta: ${fields.followUpDetail}\n\nAnalisi Causa: ${fields.causeAnalysis}`,
+                        priority: 'MEDIUM',
+                        status: 'PENDING_APPROVAL',
+                        type: 'REQUEST',
+                        category: 'OTHER',
+                        assetId: originalWO.assetId,
+                        requesterId: session.user.id
+                    }
+                });
+            }
+        }
+
+        revalidatePath(`/work-orders/${workOrderId}`);
+        revalidatePath('/requests');
+        return { success: true, message: 'EWO registrato e archiviato.' };
+    } catch (e) {
+        console.error("EWO Submit Error:", e);
+        return { success: false, message: 'Errore salvataggio EWO' };
+    }
+}
+
+export async function getEWO(workOrderId: string) {
+    try {
+        return await (prisma as any).eWO.findUnique({ where: { workOrderId } });
+    } catch (e) {
+        console.error(e);
+        return null;
     }
 }
