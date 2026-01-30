@@ -89,7 +89,7 @@ function WorkOrdersContent() {
     const [activeTab, setActiveTab] = useState<'ACTIVE' | 'REQUESTS' | 'HISTORY'>(initialTab);
 
     const [assigningWo, setAssigningWo] = useState<{ id: string, techId?: string } | null>(null);
-    const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
+    const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'MAINTAINER';
 
     // Extract unique technicians for the dropdown
     const uniqueTechnicians = useMemo(() => {
@@ -254,105 +254,159 @@ function WorkOrdersContent() {
 
             {/* Content */}
             {view === 'LIST' ? (
-                <div className="rounded-xl border bg-card shadow-sm overflow-hidden min-h-[400px]">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-muted/30 text-muted-foreground font-medium border-b">
-                                <tr>
-                                    <th className="px-6 py-4">Task</th>
-                                    <th className="px-6 py-4">Asset</th>
-                                    <th className="px-6 py-4">Priorità</th>
-                                    <th className="px-6 py-4">Stato</th>
-                                    <th className="px-6 py-4">Assegnato a</th>
-                                    <th className="px-6 py-4">Scadenza</th>
-                                    {canManage && <th className="px-6 py-4 text-right">Azioni</th>}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y relative">
-                                {filteredWOs.length === 0 ? (
+                <>
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block rounded-xl border bg-card shadow-sm overflow-hidden min-h-[400px]">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-muted/30 text-muted-foreground font-medium border-b">
                                     <tr>
-                                        <td colSpan={canManage ? 7 : 6} className="px-6 py-12 text-center text-muted-foreground">
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center">
-                                                    <Search className="h-6 w-6 opacity-30" />
-                                                </div>
-                                                <p className="font-medium">Nessun ordine di lavoro trovato</p>
-                                                <p className="text-xs max-w-xs text-center opacity-70">Prova a modificare i filtri o crea un nuovo ordine di lavoro.</p>
-                                            </div>
-                                        </td>
+                                        <th className="px-6 py-4">Task</th>
+                                        <th className="px-6 py-4">Asset</th>
+                                        <th className="px-6 py-4">Priorità</th>
+                                        <th className="px-6 py-4">Stato</th>
+                                        <th className="px-6 py-4">Assegnato a</th>
+                                        <th className="px-6 py-4">Scadenza</th>
+                                        {canManage && <th className="px-6 py-4 text-right">Azioni</th>}
                                     </tr>
-                                ) : (
-                                    filteredWOs.map((wo) => (
-                                        <tr
-                                            key={wo.id}
-                                            onClick={() => router.push(`/work-orders/${wo.id}`)}
-                                            className="group hover:bg-muted/30 transition-colors cursor-pointer"
-                                        >
-                                            <td className="px-6 py-4 font-medium">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="group-hover:text-primary transition-colors text-base">{wo.title}</span>
-                                                        {wo.category === 'AI_SUGGESTION' && (
-                                                            <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
-                                                                ✨ AI
-                                                            </span>
-                                                        )}
+                                </thead>
+                                <tbody className="divide-y relative">
+                                    {filteredWOs.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={canManage ? 7 : 6} className="px-6 py-12 text-center text-muted-foreground">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center">
+                                                        <Search className="h-6 w-6 opacity-30" />
                                                     </div>
-                                                    <span className="text-[10px] font-mono text-muted-foreground opacity-70">{wo.id}</span>
+                                                    <p className="font-medium">Nessun ordine di lavoro trovato</p>
+                                                    <p className="text-xs max-w-xs text-center opacity-70">Prova a modificare i filtri o crea un nuovo ordine di lavoro.</p>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-muted-foreground">
-                                                {wo.assetName}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <WOPriorityBadge priority={wo.priority} />
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <WOStatusBadge status={wo.status} />
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div
-                                                    className={cn(
-                                                        "flex items-center gap-2 transition-colors rounded py-1 px-2 w-fit",
-                                                        canManage ? "cursor-pointer hover:bg-muted/80 border border-transparent hover:border-border" : ""
-                                                    )}
-                                                    onClick={(e) => {
-                                                        if (canManage) {
-                                                            e.stopPropagation();
-                                                            setAssigningWo({ id: wo.id, techId: wo.assignedTechnicianId });
-                                                        }
-                                                    }}
-                                                    title={canManage ? "Clicca per assegnare" : undefined}
-                                                >
-                                                    <div className={cn("h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold", (!wo.assignedTo || wo.assignedTo === 'Unassigned') ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700")}>
-                                                        {(!wo.assignedTo || wo.assignedTo === 'Unassigned') ? '?' : wo.assignedTo.substring(0, 2).toUpperCase()}
-                                                    </div>
-                                                    <span className={cn((!wo.assignedTo || wo.assignedTo === 'Unassigned') ? "text-amber-600 font-medium italic text-xs" : "text-sm")}>
-                                                        {(!wo.assignedTo || wo.assignedTo === 'Unassigned') ? 'Assegna' : wo.assignedTo}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 font-mono text-muted-foreground text-xs">
-                                                {wo.dueDate ? new Date(wo.dueDate).toLocaleDateString("it-IT") : '-'}
-                                            </td>
-                                            {canManage && (
-                                                <td className="px-6 py-4 text-right">
-                                                    <button
-                                                        onClick={(e) => handleDelete(e, wo.id)}
-                                                        className="p-2 hover:bg-red-50 text-muted-foreground hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                        title="Elimina"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
-                                                </td>
-                                            )}
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        filteredWOs.map((wo) => (
+                                            <tr
+                                                key={wo.id}
+                                                onClick={() => router.push(`/work-orders/${wo.id}`)}
+                                                className="group hover:bg-muted/30 transition-colors cursor-pointer"
+                                            >
+                                                <td className="px-6 py-4 font-medium">
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="group-hover:text-primary transition-colors text-base">{wo.title}</span>
+                                                            {wo.category === 'AI_SUGGESTION' && (
+                                                                <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+                                                                    ✨ AI
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span className="text-[10px] font-mono text-muted-foreground opacity-70">{wo.id}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-muted-foreground">
+                                                    {wo.assetName}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <WOPriorityBadge priority={wo.priority} />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <WOStatusBadge status={wo.status} />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div
+                                                        className={cn(
+                                                            "flex items-center gap-2 transition-colors rounded py-1 px-2 w-fit",
+                                                            canManage ? "cursor-pointer hover:bg-muted/80 border border-transparent hover:border-border" : ""
+                                                        )}
+                                                        onClick={(e) => {
+                                                            if (canManage) {
+                                                                e.stopPropagation();
+                                                                setAssigningWo({ id: wo.id, techId: wo.assignedTechnicianId });
+                                                            }
+                                                            // Logic for technician self-assign could go here
+                                                        }}
+                                                        title={canManage ? "Clicca per assegnare" : undefined}
+                                                    >
+                                                        <div className={cn("h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold", (!wo.assignedTo || wo.assignedTo === 'Unassigned') ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700")}>
+                                                            {(!wo.assignedTo || wo.assignedTo === 'Unassigned') ? '?' : wo.assignedTo.substring(0, 2).toUpperCase()}
+                                                        </div>
+                                                        <span className={cn((!wo.assignedTo || wo.assignedTo === 'Unassigned') ? "text-amber-600 font-medium italic text-xs" : "text-sm")}>
+                                                            {(!wo.assignedTo || wo.assignedTo === 'Unassigned') ? 'Assegna' : wo.assignedTo}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 font-mono text-muted-foreground text-xs">
+                                                    {wo.dueDate ? new Date(wo.dueDate).toLocaleDateString("it-IT") : '-'}
+                                                </td>
+                                                {canManage && (
+                                                    <td className="px-6 py-4 text-right">
+                                                        <button
+                                                            onClick={(e) => handleDelete(e, wo.id)}
+                                                            className="p-2 hover:bg-red-50 text-muted-foreground hover:text-red-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                            title="Elimina"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden space-y-4">
+                        {filteredWOs.length === 0 ? (
+                            <div className="flex flex-col items-center gap-3 p-8 border rounded-xl bg-muted/20 text-center">
+                                <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center">
+                                    <Search className="h-6 w-6 opacity-30" />
+                                </div>
+                                <p className="font-medium text-muted-foreground">Nessun ordine trovato</p>
+                            </div>
+                        ) : (
+                            filteredWOs.map((wo) => (
+                                <div
+                                    key={wo.id}
+                                    onClick={() => router.push(`/work-orders/${wo.id}`)}
+                                    className="bg-card border rounded-xl p-4 shadow-sm active:scale-[0.98] transition-all cursor-pointer"
+                                >
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold text-base line-clamp-1">{wo.title}</span>
+                                            <span className="text-xs text-muted-foreground font-mono">{wo.id.substring(0, 8)}...</span>
+                                        </div>
+                                        <WOStatusBadge status={wo.status} />
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                                        <span className="bg-muted px-2 py-0.5 rounded text-xs">{wo.assetName}</span>
+                                        <span>•</span>
+                                        <span className={cn(wo.priority === 'HIGH' ? "text-red-500 font-medium" : "")}>
+                                            Priority: {wo.priority}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-3 border-t">
+                                        <div className="flex items-center gap-2">
+                                            <div className={cn("h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold", (!wo.assignedTo || wo.assignedTo === 'Unassigned') ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700")}>
+                                                {(!wo.assignedTo || wo.assignedTo === 'Unassigned') ? '?' : wo.assignedTo.substring(0, 2).toUpperCase()}
+                                            </div>
+                                            <span className="text-xs text-muted-foreground">
+                                                {(!wo.assignedTo || wo.assignedTo === 'Unassigned') ? 'Da Assegnare' : wo.assignedTo}
+                                            </span>
+                                        </div>
+                                        <span className="text-xs text-muted-foreground">
+                                            {wo.dueDate ? new Date(wo.dueDate).toLocaleDateString("it-IT", { day: 'numeric', month: 'short' }) : ''}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </>
             ) : (
                 <WorkOrderKanban workOrders={filteredWOs} />
             )}

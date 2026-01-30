@@ -8,9 +8,10 @@ import { useAuth } from '@/lib/auth-context';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
     onNavigate?: () => void;
+    mobile?: boolean;
 }
 
-export function Sidebar({ className, onNavigate }: SidebarProps) {
+export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
     const { workOrders } = useWorkOrders();
     const { user } = useAuth();
 
@@ -19,7 +20,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     const canSeeRequests = true; // Everyone can see the count, logic might differ on what they see inside
 
     return (
-        <div className={cn("pb-12 h-full w-64 border-r bg-sidebar text-sidebar-foreground", className)}>
+        <div className={cn("pb-12 h-full bg-sidebar text-sidebar-foreground", mobile ? "w-full" : "w-64 border-r", className)}>
             <div className="space-y-4 py-4">
                 <div className="px-4 py-2">
                     <h2 className="mb-2 px-2 text-lg font-semibold tracking-tight">

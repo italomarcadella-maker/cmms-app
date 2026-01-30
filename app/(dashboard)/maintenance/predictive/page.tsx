@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, CheckCircle2, TrendingUp, Activity, Timer } from "lucide-react";
 import Link from "next/link";
+import { PredictiveRiskPie } from "@/components/dashboard/predictive-risk-pie";
 
 export default async function PredictiveMaintenancePage() {
     const assets = await getPredictiveInsights();
@@ -14,55 +15,61 @@ export default async function PredictiveMaintenancePage() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        Predictive Maintenance AI
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                        Analisi predittiva dei guasti basata su MTBF e storico interventi.
-                    </p>
+            <div className="flex flex-col md:flex-row justify-between gap-8">
+                <div className="flex-1 space-y-4">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            Predictive Maintenance AI
+                        </h1>
+                        <p className="text-muted-foreground mt-1">
+                            Analisi predittiva dei guasti basata su MTBF e storico interventi.
+                        </p>
+                    </div>
+
+                    {/* KPI Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Card className="bg-gradient-to-br from-red-50 to-white border-red-100 shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4" /> Rischio Critico
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold text-red-700">{criticalCount}</div>
+                                <p className="text-xs text-red-500 mt-1">Asset richiedono ispezione immediata</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-100 shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-amber-600 flex items-center gap-2">
+                                    <Activity className="h-4 w-4" /> Rischio Elevato
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold text-amber-700">{highCount}</div>
+                                <p className="text-xs text-amber-500 mt-1">Manutenzione consigliata a breve</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100 shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-emerald-600 flex items-center gap-2">
+                                    <CheckCircle2 className="h-4 w-4" /> Operativi
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold text-emerald-700">{safeCount}</div>
+                                <p className="text-xs text-emerald-500 mt-1">Asset stabili secondo le proiezioni</p>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
-                {/* Legend or Actions */}
-            </div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="bg-gradient-to-br from-red-50 to-white border-red-100 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4" /> Rischio Critico
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-bold text-red-700">{criticalCount}</div>
-                        <p className="text-xs text-red-500 mt-1">Asset richiedono ispezione immediata</p>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-100 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-amber-600 flex items-center gap-2">
-                            <Activity className="h-4 w-4" /> Rischio Elevato
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-bold text-amber-700">{highCount}</div>
-                        <p className="text-xs text-amber-500 mt-1">Manutenzione consigliata a breve</p>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-emerald-600 flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4" /> Operativi
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-bold text-emerald-700">{safeCount}</div>
-                        <p className="text-xs text-emerald-500 mt-1">Asset stabili secondo le proiezioni</p>
-                    </CardContent>
-                </Card>
+                {/* Chart Section */}
+                <div className="w-full md:w-[350px]">
+                    <PredictiveRiskPie data={assets} />
+                </div>
             </div>
 
             {/* Assets Grid */}
@@ -152,3 +159,4 @@ export default async function PredictiveMaintenancePage() {
         </div>
     );
 }
+

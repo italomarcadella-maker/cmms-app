@@ -39,7 +39,7 @@ export default function WorkOrderDetailPage() {
     const { parts } = useInventory(); // Removed updateQuantity
     const { technicians } = useReference();
 
-    const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
+    const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'MAINTAINER';
 
     // Parts State
     const [isAddingPart, setIsAddingPart] = useState(false);

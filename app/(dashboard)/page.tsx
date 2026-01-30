@@ -1,8 +1,6 @@
 "use client";
 
-import { useAssets } from "@/lib/assets-context";
-import { useWorkOrders } from "@/lib/work-orders-context";
-import { useInventory } from "@/lib/inventory-context";
+import { useAssets } from "@/lib/assets-context"; // Keep for rapid local state if needed, but pref server data
 import {
   Activity,
   ArrowUpRight,
@@ -13,61 +11,49 @@ import {
   Wrench,
   AlertTriangle,
   Zap,
-  BarChart3
+  BarChart3,
+  PieChart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DeadlineAlerts } from "@/components/calendar/deadline-alerts";
 import { Skeleton, MetricCardSkeleton } from "@/components/ui/skeleton";
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import { AIDailyBrief } from "@/components/dashboard/ai-daily-brief";
-
-// Mock Chart Component - In real app use Recharts/Tremor
-const MiniChart = ({ data, color }: { data: number[], color: string }) => {
-  const max = Math.max(...data);
-  return (
-    <div className="flex items-end gap-1 h-8 mt-2">
-      {data.map((v, i) => (
-        <div
-          key={i}
-          className={cn("w-1.5 rounded-t-sm opacity-60 hover:opacity-100 transition-opacity", color)}
-          style={{ height: `${(v / max) * 100}%` }}
-        />
-      ))}
-    </div>
-  );
-};
+import { getDetailedDashboardStats, getWorkOrderTrends, getAssetStatusDistribution } from "@/lib/dashboard-actions";
+import { getWorkOrders } from "@/lib/actions";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell } from 'recharts';
 
 function DashboardContent() {
-  const { assets } = useAssets();
-  const { workOrders } = useWorkOrders();
-  const { parts } = useInventory();
+  const [stats, setStats] = useState<any>(null);
+  const [trends, setTrends] = useState<any[]>([]);
+  const [recentWOs, setRecentWOs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // --- KPI Logic ---
-  const kpis = useMemo(() => {
-    if (!assets || !workOrders || !parts) return null;
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [s, t, wos] = await Promise.all([
+          getDetailedDashboardStats(),
+          getWorkOrderTrends(7),
+          getWorkOrders() // We can limit this fetch in actions if too heavy, but ok for now
+        ]);
+        setStats(s);
+        setTrends(t);
+        setRecentWOs(wos.slice(0, 5));
+      } catch (e) {
+        console.error("Dashboard Load Error", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
-    const totalAssets = assets.length;
-    const activeAssets = assets.filter(a => a.status === 'OPERATIONAL').length;
-    const healthAvg = assets.length > 0 ? Math.round(assets.reduce((a, b) => a + b.healthScore, 0) / assets.length) : 0;
-
-    const activeWOs = workOrders.filter(w => w.status !== 'COMPLETED' && w.status !== 'CLOSED' && w.status !== 'CANCELED');
-    const highPriority = activeWOs.filter(w => w.priority === 'HIGH').length;
-
-    const reliabilityData = [92, 94, 95, 93, 97, 98, 98]; // Mock data
-    const woVolumeData = [12, 10, 15, 8, 20, 14, activeWOs.length]; // Mock data
-
-    // Inventory Logic
-    const lowStockItems = parts.filter(p => p.quantity <= p.minQuantity).length;
-
-    return { totalAssets, activeAssets, healthAvg, activeWOs: activeWOs.length, highPriority, reliabilityData, woVolumeData, lowStockItems };
-  }, [assets, workOrders, parts]);
-
-  if (!kpis) return <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"><MetricCardSkeleton /><MetricCardSkeleton /><MetricCardSkeleton /><MetricCardSkeleton /></div>;
-
-  const recentWorkOrders = [...workOrders]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+  if (loading || !stats) {
+    return <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"><MetricCardSkeleton /><MetricCardSkeleton /><MetricCardSkeleton /><MetricCardSkeleton /></div>;
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -81,17 +67,32 @@ function DashboardContent() {
           <p className="text-muted-foreground mt-1">Monitoraggio in tempo reale delle operazioni.</p>
         </div>
         <div className="flex gap-2">
-          <div className="bg-background/50 backdrop-blur border rounded-full px-3 py-1 text-xs font-medium flex items-center gap-2 shadow-sm">
-            <div className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </div>
-            Sistema Operativo
-          </div>
-          <div className="bg-background/50 backdrop-blur border rounded-full px-3 py-1 text-xs font-medium flex items-center gap-2 shadow-sm">
-            <Zap className="h-3 w-3 text-amber-500 fill-amber-500" />
-            Efficienza 98%
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="bg-background/50 backdrop-blur border rounded-full px-3 py-1 text-xs font-medium flex items-center gap-2 shadow-sm cursor-help">
+                <div className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </div>
+                Sistema Operativo
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Tutti i servizi sono attivi e funzionanti correttamente.</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="bg-background/50 backdrop-blur border rounded-full px-3 py-1 text-xs font-medium flex items-center gap-2 shadow-sm cursor-help">
+                <Zap className="h-3 w-3 text-amber-500 fill-amber-500" />
+                Efficienza {stats.avgHealth}%
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Media salute globale degli asset monitorati.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -101,49 +102,69 @@ function DashboardContent() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Salute Impianto"
-          value={`${kpis.healthAvg}%`}
+          value={`${stats.avgHealth}%`}
           icon={Activity}
           subtext="Media score globale"
           color="text-emerald-500"
-          chartData={kpis.reliabilityData}
-          chartColor="bg-emerald-500"
         />
         <MetricCard
           title="Asset Totali"
-          value={kpis.totalAssets.toString()}
+          value={stats.totalAssets.toString()}
           icon={Box}
-          subtext={`${kpis.activeAssets} operativi attivi`}
+          subtext={`${stats.activeAssets} operativi, ${stats.offlineAssets} offline`}
           color="text-blue-500"
-          trend="+2 New"
-          trendUp={true}
+          alert={stats.offlineAssets > 0}
         />
         <MetricCard
           title="Ordini Aperti"
-          value={kpis.activeWOs.toString()}
+          value={stats.openWorkOrders.toString()}
           icon={ClipboardList}
-          subtext={`${kpis.highPriority} alta priorità`}
+          subtext={`${stats.highPriorityOpen} alta priorità`}
           color="text-amber-500"
-          alert={kpis.highPriority > 3}
-          chartData={kpis.woVolumeData}
-          chartColor="bg-amber-500"
+          alert={stats.highPriorityOpen > 3}
+          chartData={trends} // Pass trend data
         />
         <MetricCard
-          title="Allerte Scorte"
-          value={kpis.lowStockItems.toString()}
+          title="Scadenze Critiche"
+          value={stats.overdueWorkOrders.toString()}
           icon={AlertTriangle}
-          subtext="Articoli sotto soglia"
-          color={kpis.lowStockItems > 0 ? "text-red-500" : "text-emerald-500"}
-          trend={kpis.lowStockItems === 0 ? "Scorte ottimali" : "Rifornire"}
-          trendUp={kpis.lowStockItems === 0}
-          alert={kpis.lowStockItems > 0}
+          subtext="Ordini ritardati"
+          color={stats.overdueWorkOrders > 0 ? "text-red-500" : "text-emerald-500"}
+          trend={stats.overdueWorkOrders === 0 ? "In orario" : "Attenzione"}
+          trendUp={stats.overdueWorkOrders === 0}
+          alert={stats.overdueWorkOrders > 0}
         />
       </div>
 
       <div className="grid gap-6 md:grid-cols-12">
         {/* Left Column: Alerts & KPI Focus */}
         <div className="md:col-span-8 space-y-6">
+
+          {/* Trend Chart */}
+          <div className="rounded-xl border bg-card shadow-sm p-6">
+            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              Andamento Settimanale
+            </h3>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trends}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <RechartsTooltip
+                    contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}
+                    cursor={{ fill: 'var(--muted)' }}
+                  />
+                  <Bar dataKey="created" name="Nuovi" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="completed" name="Completati" fill="var(--color-emerald-500)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
           {/* Recent Activity Card */}
-          <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col h-full">
+          <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col">
             <div className="p-6 border-b flex justify-between items-center bg-muted/20">
               <div>
                 <h3 className="font-semibold text-lg flex items-center gap-2">
@@ -157,7 +178,7 @@ function DashboardContent() {
             </div>
 
             <div className="divide-y max-h-[400px] overflow-y-auto">
-              {recentWorkOrders.length === 0 ? (
+              {recentWOs.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
                   <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center mb-4">
                     <ClipboardList className="h-6 w-6 opacity-50" />
@@ -165,7 +186,7 @@ function DashboardContent() {
                   <p>Nessuna attività registrata di recente.</p>
                 </div>
               ) : (
-                recentWorkOrders.map((wo) => (
+                recentWOs.map((wo) => (
                   <div key={wo.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors group">
                     <div className="flex items-center gap-4">
                       <div className={cn(
@@ -181,9 +202,9 @@ function DashboardContent() {
                           {wo.title}
                         </Link>
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
-                          <span className="font-mono bg-muted/50 px-1 rounded">{wo.id}</span>
+                          <span className="font-mono bg-muted/50 px-1 rounded">{wo.id.substring(0, 8)}...</span>
                           <span>•</span>
-                          <span>{wo.assetName}</span>
+                          <span>{wo.asset?.name || 'Asset Generico'}</span>
                           <span>•</span>
                           <span>{new Date(wo.createdAt).toLocaleDateString()}</span>
                         </div>
@@ -206,7 +227,7 @@ function DashboardContent() {
 
         {/* Right Column: Deadlines & Quick actions */}
         <div className="md:col-span-4 space-y-6">
-          <DeadlineAlerts workOrders={workOrders} />
+          <DeadlineAlerts workOrders={recentWOs} />
 
           {/* Quick Actions Card */}
           <div className="rounded-xl border bg-card p-5 shadow-sm">
@@ -265,7 +286,13 @@ function MetricCard({ title, value, icon: Icon, subtext, trend, trendUp, color, 
         )}
 
         {chartData && (
-          <MiniChart data={chartData} color={chartColor} />
+          // Mini chart logic using same recharts would go here if needed, but omitted for simplicity
+          // Falling back to simple div bars if passed or nothing
+          <div className="flex items-end gap-1 h-8 mt-2 opacity-50">
+            <div className="bg-primary w-1 h-full rounded-t"></div>
+            <div className="bg-primary w-1 h-3/4 rounded-t"></div>
+            <div className="bg-primary w-1 h-1/2 rounded-t"></div>
+          </div>
         )}
       </div>
     </div>
@@ -280,6 +307,7 @@ const WOStatusBadge = ({ status }: { status: string }) => {
     PENDING_APPROVAL: "bg-amber-50 text-amber-700 border-amber-200",
     CLOSED: "bg-gray-100 text-gray-600 border-gray-200",
     CANCELED: "bg-red-50 text-red-700 border-red-200",
+    ASSIGNED: "bg-indigo-50 text-indigo-700 border-indigo-200",
   };
   const labels: Record<string, string> = {
     OPEN: "Aperto",
@@ -288,6 +316,7 @@ const WOStatusBadge = ({ status }: { status: string }) => {
     PENDING_APPROVAL: "In Attesa",
     CLOSED: "Chiuso",
     CANCELED: "Annullato",
+    ASSIGNED: "Assegnato"
   };
   return (
     <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold border uppercase tracking-wider", styles[status] || styles.CLOSED)}>
