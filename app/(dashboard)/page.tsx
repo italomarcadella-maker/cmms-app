@@ -21,27 +21,30 @@ import { DeadlineAlerts } from "@/components/calendar/deadline-alerts";
 import { Skeleton, MetricCardSkeleton } from "@/components/ui/skeleton";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { AIDailyBrief } from "@/components/dashboard/ai-daily-brief";
-import { getDetailedDashboardStats, getWorkOrderTrends, getAssetStatusDistribution } from "@/lib/dashboard-actions";
-import { getWorkOrders } from "@/lib/actions";
+import { getDetailedDashboardStats, getWorkOrderTrends, getRecentWorkOrders, getOverdueWorkOrders } from "@/lib/dashboard-actions";
+// Removed import { getWorkOrders } from "@/lib/actions";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell } from 'recharts';
 
 function DashboardContent() {
   const [stats, setStats] = useState<any>(null);
   const [trends, setTrends] = useState<any[]>([]);
   const [recentWOs, setRecentWOs] = useState<any[]>([]);
+  const [overdueWOs, setOverdueWOs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [s, t, wos] = await Promise.all([
+        const [s, t, wos, overdue] = await Promise.all([
           getDetailedDashboardStats(),
           getWorkOrderTrends(7),
-          getWorkOrders() // We can limit this fetch in actions if too heavy, but ok for now
+          getRecentWorkOrders(5),
+          getOverdueWorkOrders(10) // Fetch top overdue for alerts
         ]);
         setStats(s);
         setTrends(t);
-        setRecentWOs(wos.slice(0, 5));
+        setRecentWOs(wos);
+        setOverdueWOs(overdue);
       } catch (e) {
         console.error("Dashboard Load Error", e);
       } finally {
@@ -227,7 +230,7 @@ function DashboardContent() {
 
         {/* Right Column: Deadlines & Quick actions */}
         <div className="md:col-span-4 space-y-6">
-          <DeadlineAlerts workOrders={recentWOs} />
+          <DeadlineAlerts workOrders={overdueWOs} />
 
           {/* Quick Actions Card */}
           <div className="rounded-xl border bg-card p-5 shadow-sm">
