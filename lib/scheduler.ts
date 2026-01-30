@@ -13,6 +13,7 @@ export async function checkAndGeneratePreventiveWorkOrders() {
                     lte: today,
                 },
             },
+            take: 50, // Batch limit to prevent timeouts
             include: {
                 asset: true,
             },

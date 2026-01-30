@@ -654,6 +654,7 @@ export async function getWorkOrders() {
     try {
         const wos = await prisma.workOrder.findMany({
             orderBy: { createdAt: 'desc' },
+            take: 1000,
             include: { asset: true, timers: true }
         });
 
@@ -1547,7 +1548,7 @@ export async function submitEWO(data: any) {
         const { workOrderId, ...fields } = data;
 
         // 1. Save EWO
-        await (prisma as any).eWO.upsert({
+        await prisma.eWO.upsert({
             where: { workOrderId },
             update: { ...fields, authorName: session.user.name || 'User' },
             create: { ...fields, workOrderId, authorName: session.user.name || 'User' }
@@ -1589,7 +1590,7 @@ export async function submitEWO(data: any) {
 
 export async function getEWO(workOrderId: string) {
     try {
-        return await (prisma as any).eWO.findUnique({ where: { workOrderId } });
+        return await prisma.eWO.findUnique({ where: { workOrderId } });
     } catch (e) {
     }
 }
