@@ -22,7 +22,7 @@ export default function InventoryPage() {
     const filteredParts = parts.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.category.toLowerCase().includes(search.toLowerCase()) ||
-        p.warehouse.toLowerCase().includes(search.toLowerCase())
+        (p.warehouse || "").toLowerCase().includes(search.toLowerCase())
     );
 
     const handleAdd = (e: React.FormEvent) => {
@@ -192,19 +192,9 @@ export default function InventoryPage() {
                                         <td className="px-4 py-3 text-sm text-muted-foreground">{part.warehouse}</td>
                                         <td className="px-4 py-3">{part.location}</td>
                                         <td className="px-4 py-3 text-center">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button
-                                                    onClick={() => updateQuantity(part.id, Math.max(0, part.quantity - 1))}
-                                                    className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20 font-bold transition-colors"
-                                                >-</button>
-                                                <span className={`w-8 font-mono font-medium ${part.quantity <= part.minQuantity ? "text-destructive" : ""}`}>
-                                                    {part.quantity}
-                                                </span>
-                                                <button
-                                                    onClick={() => updateQuantity(part.id, part.quantity + 1)}
-                                                    className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20 font-bold transition-colors"
-                                                >+</button>
-                                            </div>
+                                            <span className={`font-mono font-medium text-lg ${part.quantity <= part.minQuantity ? "text-destructive" : ""}`}>
+                                                {part.quantity}
+                                            </span>
                                             {part.quantity <= part.minQuantity && (
                                                 <div className="flex items-center justify-center gap-1 text-xs text-destructive mt-1 font-medium animate-pulse">
                                                     <AlertTriangle className="h-3 w-3" /> Scorta Bassa
@@ -212,6 +202,23 @@ export default function InventoryPage() {
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right">
+                                            <button
+                                                onClick={() => {
+                                                    const qtyToAdd = prompt(`Quanti pezzi di '${part.name}' vuoi caricare?`, "1");
+                                                    if (qtyToAdd && !isNaN(Number(qtyToAdd))) {
+                                                        const qty = Number(qtyToAdd);
+                                                        if (qty <= 0) return;
+                                                        updateQuantity(part.id, part.quantity + qty);
+                                                    }
+                                                }}
+                                                className="text-emerald-600 hover:bg-emerald-50 transition-colors p-2 rounded-md mr-1"
+                                                title="Carico Manuale"
+                                            >
+                                                <div className="relative">
+                                                    <Box className="h-4 w-4" />
+                                                    <span className="absolute -bottom-1 -right-1 text-[10px] font-bold bg-white rounded-full border border-emerald-600 w-3 h-3 flex items-center justify-center">+</span>
+                                                </div>
+                                            </button>
                                             <button
                                                 onClick={() => {
                                                     const qtyToRem = prompt(`Quanti pezzi di '${part.name}' vuoi scaricare?`, "1");
