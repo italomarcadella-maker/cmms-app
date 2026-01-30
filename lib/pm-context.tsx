@@ -10,6 +10,7 @@ interface PMContextType {
     updateSchedule: (id: string, updates: Partial<PreventiveSchedule>) => void;
     deleteSchedule: (id: string) => void;
     generateDueWorkOrders: () => number; // Returns count of generated WOs
+    refreshSchedules: () => Promise<void>;
 }
 
 const PMContext = createContext<PMContextType | undefined>(undefined);
@@ -123,7 +124,7 @@ export function PMProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <PMContext.Provider value={{ schedules, addSchedule, updateSchedule, deleteSchedule, generateDueWorkOrders }}>
+        <PMContext.Provider value={{ schedules, addSchedule, updateSchedule, deleteSchedule, generateDueWorkOrders, refreshSchedules }}>
             {children}
         </PMContext.Provider>
     );

@@ -9,6 +9,7 @@ interface InventoryContextType {
     addPart: (part: Omit<SparePart, "id" | "lastUpdated">) => void;
     updateQuantity: (id: string, newQuantity: number) => void;
     removePart: (id: string) => void;
+    refreshParts: () => Promise<void>;
 }
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
@@ -80,7 +81,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <InventoryContext.Provider value={{ parts, addPart, updateQuantity, removePart }}>
+        <InventoryContext.Provider value={{ parts, addPart, updateQuantity, removePart, refreshParts }}>
             {children}
         </InventoryContext.Provider>
     );

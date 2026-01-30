@@ -14,8 +14,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { createPreventiveSchedule, getAssets, getActivities } from "@/lib/actions";
+import { usePM } from "@/lib/pm-context";
 
 export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?: () => void }) {
+    const { refreshSchedules } = usePM();
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState(1);
     const [assets, setAssets] = useState<Asset[]>([]);
@@ -42,7 +44,10 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
             getActivities()
         ]);
         setAssets(assetsData as Asset[]);
-        setActivities(activitiesData);
+        setActivities(activitiesData.map(a => ({
+            ...a,
+            category: a.category || undefined
+        })));
     };
 
     const handleFrequencyChange = (val: string) => {
@@ -83,6 +88,7 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
             toast.success("Piano di manutenzione creato");
             setOpen(false);
             resetForm();
+            refreshSchedules();
             if (onScheduleCreated) onScheduleCreated();
         } else {
             toast.error(result.message);
