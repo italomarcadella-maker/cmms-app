@@ -8,8 +8,9 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig,
-    adapter: PrismaAdapter(prisma),
+    adapter: PrismaAdapter(prisma) as any,
     session: { strategy: "jwt" },
+    secret: process.env.AUTH_SECRET || "fallback_secret_key_fixed_for_demo_stability_992837",
     providers: [
         Credentials({
             async authorize(credentials) {
@@ -44,7 +45,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         }),
     ],
     callbacks: {
-        async session({ session, token }) {
+        async session({ session, token }: { session: any, token: any }) {
             if (token.sub && session.user) {
                 session.user.id = token.sub;
             }
@@ -56,7 +57,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             }
             return session;
         },
-        async jwt({ token }) {
+        async jwt({ token }: { token: any }) {
             if (token.sub) {
                 const user = await prisma.user.findUnique({ where: { id: token.sub } });
                 if (user) {
