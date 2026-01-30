@@ -493,8 +493,14 @@ export async function getDailyInsights(): Promise<DailyInsight[]> {
                 actionUrl: '/assets'
             });
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error("Daily Insights Error", e);
+        insights.push({
+            id: 'err-gen',
+            type: 'WARNING',
+            title: 'Sistema AI momentaneamente non disponibile',
+            message: `Impossibile generare suggerimenti: ${e.message || 'Errore di connessione'}. Riprova più tardi.`
+        });
     }
 
     return insights;
