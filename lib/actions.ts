@@ -260,17 +260,7 @@ export async function getAssets() {
     }));
 }
 
-export async function deleteAsset(id: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role === 'USER') throw new Error("Unauthorized");
-    try {
-        await prisma.asset.delete({ where: { id } });
-        revalidatePath('/assets');
-        return { success: true };
-    } catch (error) {
-        return { success: false, message: "Failed to delete asset" };
-    }
-}
+
 
 export async function importAssets(assets: any[]) {
     let count = 0;
@@ -355,9 +345,34 @@ export async function updateAsset(id: string, data: any) {
         });
         revalidatePath('/assets');
         revalidatePath(`/assets/${id}`);
+        // ... existing updateAsset ...
         return { success: true, message: 'Asset aggiornato', data: updatedAsset };
     } catch (error) {
         return { success: false, message: 'Errore aggiornamento asset' };
+    }
+}
+
+export async function deleteAsset(id: string) {
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
+
+    try {
+        // Check dependencies
+        const woCount = await prisma.workOrder.count({ where: { assetId: id } });
+        if (woCount > 0) {
+            return { success: false, message: `Impossibile eliminare: L'asset ha ${woCount} ordini di lavoro associati. Archivia l'asset invece.` };
+        }
+
+        const schedCount = await prisma.preventiveSchedule.count({ where: { assetId: id } });
+        if (schedCount > 0) {
+            return { success: false, message: `Impossibile eliminare: L'asset ha ${schedCount} manutenzioni programmate.` };
+        }
+
+        await prisma.asset.delete({ where: { id } });
+        revalidatePath('/assets');
+        return { success: true, message: 'Asset eliminato con successo' };
+    } catch (error) {
+        return { success: false, message: 'Errore durante l\'eliminazione' };
     }
 }
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_cache } from 'next/cache';
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { subDays, format, startOfDay, endOfDay } from "date-fns";
@@ -22,40 +23,49 @@ export async function getDetailedDashboardStats() {
     if (!session?.user) return emptyStats;
 
     try {
-        const [
-            totalAssets,
-            activeAssets,
-            offlineAssets,
-            totalWorkOrders,
-            openWorkOrders,
-            highPriorityOpen,
-            overdueWorkOrders
-        ] = await Promise.all([
-            prisma.asset.count(),
-            prisma.asset.count({ where: { status: 'OPERATIONAL' } }),
-            prisma.asset.count({ where: { status: 'OFFLINE' } }),
-            prisma.workOrder.count(),
-            prisma.workOrder.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] } } }),
-            prisma.workOrder.count({ where: { priority: 'HIGH', status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
-            prisma.workOrder.count({ where: { dueDate: { lt: new Date() }, status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] } } })
-        ]);
+        // Cache the heavy lifting for 60 seconds
+        const getStatsCached = unstable_cache(
+            async () => {
+                const [
+                    totalAssets,
+                    activeAssets,
+                    offlineAssets,
+                    totalWorkOrders,
+                    openWorkOrders,
+                    highPriorityOpen,
+                    overdueWorkOrders
+                ] = await Promise.all([
+                    prisma.asset.count(),
+                    prisma.asset.count({ where: { status: 'OPERATIONAL' } }),
+                    prisma.asset.count({ where: { status: 'OFFLINE' } }),
+                    prisma.workOrder.count(),
+                    prisma.workOrder.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] } } }),
+                    prisma.workOrder.count({ where: { priority: 'HIGH', status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
+                    prisma.workOrder.count({ where: { dueDate: { lt: new Date() }, status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] } } })
+                ]);
 
-        // Calculate Average Health Score
-        const assets = await prisma.asset.findMany({ select: { healthScore: true } });
-        const avgHealth = assets.length > 0
-            ? Math.round(assets.reduce((sum, a) => sum + a.healthScore, 0) / assets.length)
-            : 0;
+                // Calculate Average Health Score
+                const assets = await prisma.asset.findMany({ select: { healthScore: true } });
+                const avgHealth = assets.length > 0
+                    ? Math.round(assets.reduce((sum, a) => sum + a.healthScore, 0) / assets.length)
+                    : 0;
 
-        return {
-            totalAssets,
-            activeAssets,
-            offlineAssets,
-            totalWorkOrders,
-            openWorkOrders,
-            highPriorityOpen,
-            overdueWorkOrders,
-            avgHealth
-        };
+                return {
+                    totalAssets,
+                    activeAssets,
+                    offlineAssets,
+                    totalWorkOrders,
+                    openWorkOrders,
+                    highPriorityOpen,
+                    overdueWorkOrders,
+                    avgHealth
+                };
+            },
+            ['dashboard-stats'],
+            { revalidate: 60, tags: ['dashboard'] }
+        );
+
+        return await getStatsCached();
     } catch (error) {
         console.error("Dashboard Stats Error:", error);
         return emptyStats;
