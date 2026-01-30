@@ -112,12 +112,13 @@ export async function getWorkOrderTrends(days = 7) {
         });
 
         // Group by completed date
+        // Group by completed date (Approximation using creation date as we lack completedAt)
         const completedRaw = await prisma.workOrder.groupBy({
-            by: ['updatedAt'], // Approximation for completion time if not tracked separately
+            by: ['createdAt'],
             _count: { id: true },
             where: {
                 status: 'COMPLETED',
-                updatedAt: { gte: startDate }
+                createdAt: { gte: startDate }
             }
         });
 
