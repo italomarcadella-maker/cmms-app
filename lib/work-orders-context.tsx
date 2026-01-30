@@ -10,6 +10,7 @@ interface WorkOrdersContextType {
     updateWorkOrderStatus: (id: string, status: WorkOrder["status"]) => Promise<void>;
     updateWorkOrder: (id: string, updates: Partial<WorkOrder>) => Promise<void>;
     deleteWorkOrder: (id: string) => Promise<void>;
+    refreshWorkOrders: () => Promise<void>;
 }
 
 const WorkOrdersContext = createContext<WorkOrdersContextType | undefined>(undefined);
@@ -23,21 +24,22 @@ export function WorkOrdersProvider({
 }) {
     const [workOrders, setWorkOrders] = useState<WorkOrder[]>(initialWorkOrders);
 
+    const refreshWorkOrders = async () => {
+        const { getWorkOrders } = await import('@/lib/actions');
+        const data = await getWorkOrders();
+
+        // Map DB result to Frontend Type
+        const mapped = data.map(wo => ({
+            ...wo,
+            // Dates are already strings from server action
+            assetName: (wo as any).asset?.name || 'Unknown',
+        }));
+        setWorkOrders(mapped as WorkOrder[]);
+    };
+
     // Load from Server on mount
     useEffect(() => {
-        const load = async () => {
-            const { getWorkOrders } = await import('@/lib/actions');
-            const data = await getWorkOrders();
-
-            // Map DB result to Frontend Type
-            const mapped = data.map(wo => ({
-                ...wo,
-                // Dates are already strings from server action
-                assetName: (wo as any).asset?.name || 'Unknown',
-            }));
-            setWorkOrders(mapped as WorkOrder[]);
-        };
-        load();
+        refreshWorkOrders();
     }, []);
 
     const addWorkOrder = async (workOrder: WorkOrder) => {
@@ -97,7 +99,7 @@ export function WorkOrdersProvider({
     };
 
     return (
-        <WorkOrdersContext.Provider value={{ workOrders, addWorkOrder, updateWorkOrderStatus, updateWorkOrder, deleteWorkOrder }}>
+        <WorkOrdersContext.Provider value={{ workOrders, addWorkOrder, updateWorkOrderStatus, updateWorkOrder, deleteWorkOrder, refreshWorkOrders }}>
             {children}
         </WorkOrdersContext.Provider>
     );

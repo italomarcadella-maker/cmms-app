@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { useWorkOrders } from "@/lib/work-orders-context";
 
 interface WOApproveDialogProps {
     workOrderId: string;
@@ -25,6 +26,7 @@ interface WOApproveDialogProps {
 
 export function WOApproveDialog({ workOrderId, isOpen, onClose }: WOApproveDialogProps) {
     const { technicians } = useReference();
+    const { refreshWorkOrders } = useWorkOrders();
     const [selectedTechId, setSelectedTechId] = useState<string | undefined>(undefined);
     const [priority, setPriority] = useState("MEDIUM");
     const [loading, setLoading] = useState(false);
@@ -41,6 +43,7 @@ export function WOApproveDialog({ workOrderId, isOpen, onClose }: WOApproveDialo
             const result = await approveRequest(workOrderId, selectedTechId, priority);
             if (result.success) {
                 toast.success(result.message);
+                await refreshWorkOrders();
                 onClose();
                 router.refresh(); // Refresh page data
             } else {

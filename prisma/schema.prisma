@@ -267,6 +267,7 @@ model SparePart {
   name        String
   category    String?
   description String?
+  warehouse   String? // Added to support UI
   quantity    Int
   minQuantity Int      @default(0)
   location    String?

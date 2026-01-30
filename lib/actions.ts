@@ -536,7 +536,7 @@ export async function getSpareParts() {
     }
 }
 
-export async function addSparePart(data: { name: string; quantity: number; category?: string; description?: string; location?: string; unitCost?: number; minQuantity?: number }) {
+export async function addSparePart(data: { name: string; quantity: number; category?: string; description?: string; location?: string; unitCost?: number; minQuantity?: number; warehouse?: string }) {
     try {
         const newPart = await prisma.sparePart.create({ data: { ...data, minQuantity: data.minQuantity || 0 } });
         return {
@@ -1590,7 +1590,9 @@ export async function getEWO(workOrderId: string) {
     try {
         return await (prisma as any).eWO.findUnique({ where: { workOrderId } });
     } catch (e) {
-        console.error(e);
-        return null;
     }
 }
+
+// Aliases for context compatibility
+export const updateQuantity = updateSparePartQuantity;
+export const removePart = deleteSparePart;
