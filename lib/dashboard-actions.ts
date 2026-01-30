@@ -7,7 +7,19 @@ import { it } from "date-fns/locale";
 
 export async function getDetailedDashboardStats() {
     const session = await auth();
-    if (!session?.user) return null;
+    // Default empty stats
+    const emptyStats = {
+        totalAssets: 0,
+        activeAssets: 0,
+        offlineAssets: 0,
+        totalWorkOrders: 0,
+        openWorkOrders: 0,
+        highPriorityOpen: 0,
+        overdueWorkOrders: 0,
+        avgHealth: 0
+    };
+
+    if (!session?.user) return emptyStats;
 
     try {
         const [
@@ -46,7 +58,7 @@ export async function getDetailedDashboardStats() {
         };
     } catch (error) {
         console.error("Dashboard Stats Error:", error);
-        return null;
+        return emptyStats;
     }
 }
 

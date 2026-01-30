@@ -54,9 +54,21 @@ function DashboardContent() {
     loadData();
   }, []);
 
-  if (loading || !stats) {
+  if (loading) {
     return <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"><MetricCardSkeleton /><MetricCardSkeleton /><MetricCardSkeleton /><MetricCardSkeleton /></div>;
   }
+
+  // Safety fallback if stats failed to load
+  const safeStats = stats || {
+    totalAssets: 0,
+    activeAssets: 0,
+    offlineAssets: 0,
+    totalWorkOrders: 0,
+    openWorkOrders: 0,
+    highPriorityOpen: 0,
+    overdueWorkOrders: 0,
+    avgHealth: 0
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -89,7 +101,7 @@ function DashboardContent() {
             <TooltipTrigger asChild>
               <div className="bg-background/50 backdrop-blur border rounded-full px-3 py-1 text-xs font-medium flex items-center gap-2 shadow-sm cursor-help">
                 <Zap className="h-3 w-3 text-amber-500 fill-amber-500" />
-                Efficienza {stats.avgHealth}%
+                Efficienza {safeStats.avgHealth}%
               </div>
             </TooltipTrigger>
             <TooltipContent>
@@ -105,37 +117,37 @@ function DashboardContent() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Salute Impianto"
-          value={`${stats.avgHealth}%`}
+          value={`${safeStats.avgHealth}%`}
           icon={Activity}
           subtext="Media score globale"
           color="text-emerald-500"
         />
         <MetricCard
           title="Asset Totali"
-          value={stats.totalAssets.toString()}
+          value={safeStats.totalAssets.toString()}
           icon={Box}
-          subtext={`${stats.activeAssets} operativi, ${stats.offlineAssets} offline`}
+          subtext={`${safeStats.activeAssets} operativi, ${safeStats.offlineAssets} offline`}
           color="text-blue-500"
-          alert={stats.offlineAssets > 0}
+          alert={safeStats.offlineAssets > 0}
         />
         <MetricCard
           title="Ordini Aperti"
-          value={stats.openWorkOrders.toString()}
+          value={safeStats.openWorkOrders.toString()}
           icon={ClipboardList}
-          subtext={`${stats.highPriorityOpen} alta priorità`}
+          subtext={`${safeStats.highPriorityOpen} alta priorità`}
           color="text-amber-500"
-          alert={stats.highPriorityOpen > 3}
+          alert={safeStats.highPriorityOpen > 3}
           chartData={trends} // Pass trend data
         />
         <MetricCard
           title="Scadenze Critiche"
-          value={stats.overdueWorkOrders.toString()}
+          value={safeStats.overdueWorkOrders.toString()}
           icon={AlertTriangle}
           subtext="Ordini ritardati"
-          color={stats.overdueWorkOrders > 0 ? "text-red-500" : "text-emerald-500"}
-          trend={stats.overdueWorkOrders === 0 ? "In orario" : "Attenzione"}
-          trendUp={stats.overdueWorkOrders === 0}
-          alert={stats.overdueWorkOrders > 0}
+          color={safeStats.overdueWorkOrders > 0 ? "text-red-500" : "text-emerald-500"}
+          trend={safeStats.overdueWorkOrders === 0 ? "In orario" : "Attenzione"}
+          trendUp={safeStats.overdueWorkOrders === 0}
+          alert={safeStats.overdueWorkOrders > 0}
         />
       </div>
 
