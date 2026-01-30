@@ -151,7 +151,7 @@ export interface SparePart {
     id: string;
     name: string;
     category: string;
-    // warehouse: string; // Removed as not in DB
+    warehouse?: string; // Added to support UI
     quantity: number;
     minQuantity: number;
     location: string;

@@ -548,7 +548,8 @@ export async function addSparePart(data: { name: string; quantity: number; categ
             }
         };
     } catch (error) {
-        return { success: false, message: 'Errore aggiunta ricambio' };
+        console.error("Add Spare Part Error:", error);
+        return { success: false, message: `Errore aggiunta ricambio: ${(error as any).message}` };
     }
 }
 
