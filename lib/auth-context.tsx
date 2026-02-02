@@ -1,18 +1,17 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext } from "react";
 import { User, UserRole } from "@/lib/types";
 
 import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 
-// MOCK_USERS usage removed from context but kept file clean
 interface AuthContextType {
     user: User | null;
     login: () => void;
     logout: () => void;
     isAuthenticated: boolean;
+    isLoading: boolean;
     isSupervisor: boolean;
-    switchUser: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,11 +30,8 @@ function AuthStateProvider({ children }: { children: React.ReactNode }) {
 
     const login = () => signIn();
     const logout = () => signOut({ callbackUrl: "/login" });
-    const switchUser = (role: UserRole) => {
-        alert("Switch User functionality is not available in production authentication mode.");
-    };
 
-    // Mock compatibility helpers
+    // Compatibility helpers
     const isSupervisor = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
 
     return (
@@ -43,8 +39,8 @@ function AuthStateProvider({ children }: { children: React.ReactNode }) {
             user: user || null,
             login,
             logout,
-            switchUser,
             isAuthenticated: status === 'authenticated',
+            isLoading: status === 'loading',
             isSupervisor
         }}>
             {children}

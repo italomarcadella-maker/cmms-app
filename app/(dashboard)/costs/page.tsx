@@ -7,6 +7,7 @@ import { Euro, TrendingUp, TrendingDown, Hammer, Component } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { format, subMonths, isSameMonth } from "date-fns";
 import { it } from "date-fns/locale";
+import { BackToDashboardButton } from "@/components/ui/back-button";
 
 export default function CostsPage() {
     const { workOrders } = useWorkOrders();
@@ -63,6 +64,7 @@ export default function CostsPage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            <BackToDashboardButton />
             <div>
                 <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
                     Analisi Costi

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Key, Loader2, Lock } from 'lucide-react';
-import { updateUserPassword } from '@/app/lib/actions';
+import { updateUserPassword } from '@/lib/actions';
 
 interface ChangePasswordDialogProps {
     userId: string;

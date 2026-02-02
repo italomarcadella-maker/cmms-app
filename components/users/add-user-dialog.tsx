@@ -20,7 +20,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Plus, Loader2, UserPlus } from 'lucide-react';
-import { createUser } from '@/app/lib/actions';
+import { createUser } from '@/lib/actions';
 
 export function AddUserDialog() {
     const [open, setOpen] = useState(false);

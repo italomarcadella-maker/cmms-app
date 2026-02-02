@@ -21,64 +21,58 @@ export function ReferenceProvider({ children }: { children: React.ReactNode }) {
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        const savedTechs = localStorage.getItem('technicians');
-        const savedActs = localStorage.getItem('activities');
-
-        if (savedTechs) {
-            try {
-                const parsed = JSON.parse(savedTechs);
-                // Ensure hourlyRate exists for legacy data
-                const patched = parsed.map((t: any) => ({
-                    ...t,
-                    hourlyRate: t.hourlyRate || 40
-                }));
-                setTechnicians(patched);
-            } catch (e) { setTechnicians(mockTechnicians); }
-        } else {
-            setTechnicians(mockTechnicians);
-        }
-
-        if (savedActs) {
-            try { setActivities(JSON.parse(savedActs)); } catch (e) { setActivities(mockActivities); }
-        } else {
-            setActivities(mockActivities);
-        }
-
-        setIsLoaded(true);
+        refreshData();
     }, []);
 
-    useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem('technicians', JSON.stringify(technicians));
-            localStorage.setItem('activities', JSON.stringify(activities));
+    const refreshData = async () => {
+        const { getTechnicians, getActivities } = await import('@/lib/actions');
+        const techs = await getTechnicians();
+        const acts = await getActivities();
+
+        setTechnicians(techs);
+        setActivities(acts);
+        setIsLoaded(true);
+    };
+
+    const addTechnician = async (name: string, specialty: string, hourlyRate: number) => {
+        const { addTechnician } = await import('@/lib/actions');
+        const result = await addTechnician({ name, specialty, hourlyRate });
+
+        if (result.success && result.data) {
+            setTechnicians(prev => [...prev, result.data as Technician]);
+        } else {
+            alert(result.message);
         }
-    }, [technicians, activities, isLoaded]);
-
-    const addTechnician = (name: string, specialty: string, hourlyRate: number) => {
-        const newTech: Technician = {
-            id: `T-${Math.floor(Math.random() * 10000)}`,
-            name,
-            specialty,
-            hourlyRate
-        };
-        setTechnicians(prev => [...prev, newTech]);
     };
 
-    const removeTechnician = (id: string) => {
-        setTechnicians(prev => prev.filter(t => t.id !== id));
+    const removeTechnician = async (id: string) => {
+        const { deleteTechnician } = await import('@/lib/actions');
+        const result = await deleteTechnician(id);
+        if (result.success) {
+            setTechnicians(prev => prev.filter(t => t.id !== id));
+        } else {
+            alert(result.message);
+        }
     };
 
-    const addActivity = (label: string, category?: string) => {
-        const newAct: MaintenanceActivity = {
-            id: `ACT-${Math.floor(Math.random() * 10000)}`,
-            label,
-            category
-        };
-        setActivities(prev => [...prev, newAct]);
+    const addActivity = async (label: string, category?: string) => {
+        const { addActivity } = await import('@/lib/actions');
+        const result = await addActivity({ label, category });
+        if (result.success && result.data) {
+            setActivities(prev => [...prev, result.data as MaintenanceActivity]);
+        } else {
+            alert(result.message);
+        }
     };
 
-    const removeActivity = (id: string) => {
-        setActivities(prev => prev.filter(a => a.id !== id));
+    const removeActivity = async (id: string) => {
+        const { deleteActivity } = await import('@/lib/actions');
+        const result = await deleteActivity(id);
+        if (result.success) {
+            setActivities(prev => prev.filter(a => a.id !== id));
+        } else {
+            alert(result.message);
+        }
     };
 
     return (

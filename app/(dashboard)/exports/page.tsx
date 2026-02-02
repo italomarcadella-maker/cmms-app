@@ -8,6 +8,7 @@ import { FileDown, FileSpreadsheet, History, PackageCheck, AlertCircle, Upload, 
 import { importAssets, importWorkOrders, getAllMeterReadings } from "@/lib/actions";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { BackToDashboardButton } from "@/components/ui/back-button";
 
 export default function ExportsPage() {
     const { workOrders } = useWorkOrders();
@@ -170,7 +171,7 @@ export default function ExportsPage() {
                 wo.priority,
                 wo.status,
                 wo.assignedTo || "Unassigned",
-                new Date(wo.dueDate).toLocaleDateString(),
+                wo.dueDate ? new Date(wo.dueDate).toLocaleDateString() : "N/A",
                 partsCost.toFixed(2),
                 laborCost.toFixed(2),
                 (partsCost + laborCost).toFixed(2)
@@ -241,6 +242,7 @@ export default function ExportsPage() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+            <BackToDashboardButton />
             <div>
                 <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
                     Estrazioni & Importazioni Dati

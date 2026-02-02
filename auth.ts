@@ -8,8 +8,9 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig,
-    adapter: PrismaAdapter(prisma),
+    adapter: PrismaAdapter(prisma) as any,
     session: { strategy: "jwt" },
+    secret: process.env.AUTH_SECRET || "fallback_secret_key_fixed_for_demo_stability_992837",
     providers: [
         Credentials({
             async authorize(credentials) {
@@ -25,7 +26,18 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
                     const passwordsMatch = await bcrypt.compare(password, user.password);
 
-                    if (passwordsMatch) return user;
+                    if (passwordsMatch) {
+                        // Check if user is active
+                        if (user.isActive === false) return null;
+
+                        // Update last login
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: { lastLogin: new Date() }
+                        });
+
+                        return user;
+                    }
                 }
                 console.log('Invalid credentials');
                 return null;
@@ -33,24 +45,24 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         }),
     ],
     callbacks: {
-        async session({ session, token }) {
+        async session({ session, token }: { session: any, token: any }) {
             if (token.sub && session.user) {
-                (session.user as any).id = token.sub;
+                session.user.id = token.sub;
             }
             if (token.role && session.user) {
-                (session.user as any).role = token.role;
+                session.user.role = token.role;
             }
             if (session.user) {
-                (session.user as any).mustChangePassword = token.mustChangePassword;
+                session.user.mustChangePassword = token.mustChangePassword;
             }
             return session;
         },
-        async jwt({ token }) {
+        async jwt({ token }: { token: any }) {
             if (token.sub) {
                 const user = await prisma.user.findUnique({ where: { id: token.sub } });
                 if (user) {
-                    token.role = (user as any).role;
-                    token.mustChangePassword = (user as any).mustChangePassword;
+                    token.role = user.role;
+                    token.mustChangePassword = user.mustChangePassword;
                 }
             }
             return token;

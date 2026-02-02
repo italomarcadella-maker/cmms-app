@@ -26,8 +26,8 @@ export interface Asset {
 }
 
 export type WorkOrderPriority = 'HIGH' | 'MEDIUM' | 'LOW';
-export type WorkOrderStatus = 'OPEN' | 'IN_PROGRESS' | 'PENDING_APPROVAL' | 'COMPLETED' | 'ON_HOLD';
-export type WorkOrderCategory = 'MECHANICAL' | 'ELECTRICAL' | 'HYDRAULIC' | 'PNEUMATIC' | 'OTHER';
+export type WorkOrderStatus = 'OPEN' | 'PENDING_APPROVAL' | 'APPROVED' | 'ASSIGNED' | 'IN_PROGRESS' | 'ON_HOLD' | 'PENDING_REVIEW' | 'COMPLETED' | 'CLOSED' | 'CANCELED';
+export type WorkOrderCategory = 'MECHANICAL' | 'ELECTRICAL' | 'HYDRAULIC' | 'PNEUMATIC' | 'OTHER' | 'AI_SUGGESTION';
 
 export interface ChecklistItem {
     id: string;
@@ -46,7 +46,7 @@ export interface WorkOrder {
     status: WorkOrderStatus;
     assignedTo: string; // Legacy string field, might remain for display
     assignedTechnicianId?: string; // ID linking to Technician
-    dueDate: string;
+    dueDate: string | null;
     createdAt: string;
     checklist: ChecklistItem[];
     partsUsed: {
@@ -63,9 +63,48 @@ export interface WorkOrder {
         hours: number;
         date: string;
     }[];
+    requesterId?: string;
+    validatedById?: string;
+    type?: 'FAULT' | 'ROUTINE' | 'REQUEST';
+    requestImage?: string;
+    completionImage?: string;
+    originScheduleId?: string;
+    timers?: WorkOrderTimer[];
+    ewoFilled?: boolean;
+    ewo?: EWO;
 }
 
-export type UserRole = 'ADMIN' | 'SUPERVISOR' | 'USER';
+export interface EWO {
+    id: string;
+    workOrderId: string;
+    description?: string;
+    causeAnalysis: string;
+    solutionApplied: string;
+    preventiveActions?: string;
+    needsFollowUp: boolean;
+    followUpDetail?: string;
+    createdAt: string;
+    authorName: string;
+    downtimeStart?: string | null;
+    downtimeEnd?: string | null;
+    totalDowntimeMin?: number | null;
+    productionImpact?: string | null;
+    imageBefore?: string | null;
+    imageAfter?: string | null;
+}
+
+
+export interface WorkOrderTimer {
+    id: string;
+    workOrderId: string;
+    userId: string;
+    startTime: string;
+    endTime: string | null;
+    duration: number | null;
+    note: string | null;
+}
+
+export type UserRole = 'ADMIN' | 'SUPERVISOR' | 'MAINTAINER' | 'USER';
 
 export interface User {
     id: string;
@@ -73,6 +112,9 @@ export interface User {
     email: string;
     role: UserRole;
     avatar?: string;
+    isActive: boolean;
+    lastLogin?: string;
+    department?: string;
 }
 
 export interface Technician {
@@ -94,17 +136,28 @@ export interface PreventiveSchedule {
     assetName: string;
     taskTitle: string;
     description: string;
-    frequencyDays: number;
-    lastRunDate: string; // ISO Date
-    nextDueDate: string; // ISO Date
-    assignedToId?: string; // Optional default technician
+    frequencyDays: number; // Legacy or computed
+    frequency: string; // 'WEEKLY', 'MONTHLY', etc.
+    activities: { id: string; label: string }[]; // Updated from database JSON
+    lastRunDate: string | null;
+    nextDueDate: string;
+    assignedToId?: string;
 }
+
+export const RECURRENCE_OPTIONS = [
+    { value: 'WEEKLY', label: 'Settimanale (7 gg)', days: 7 },
+    { value: 'MONTHLY', label: 'Mensile (30 gg)', days: 30 },
+    { value: 'BIMONTHLY', label: 'Bimestrale (60 gg)', days: 60 },
+    { value: 'QUARTERLY', label: 'Trimestrale (90 gg)', days: 90 },
+    { value: 'SEMIANNUAL', label: 'Semestrale (180 gg)', days: 180 },
+    { value: 'ANNUAL', label: 'Annuale (365 gg)', days: 365 },
+];
 
 export interface SparePart {
     id: string;
     name: string;
     category: string;
-    warehouse: string; // New field requested
+    warehouse?: string; // Added to support UI
     quantity: number;
     minQuantity: number;
     location: string;

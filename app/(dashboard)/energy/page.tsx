@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ReadingFormDialog } from "@/components/energy/reading-form-dialog";
 import { ConsumptionChart } from "@/components/energy/consumption-chart";
 import { ReadingsHistory } from "@/components/energy/readings-history";
+import { BackToDashboardButton } from "@/components/ui/back-button";
 
 export default async function EnergyPage() {
     const meters = await getMeters();
@@ -16,6 +17,7 @@ export default async function EnergyPage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            <BackToDashboardButton />
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">

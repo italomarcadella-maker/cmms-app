@@ -10,11 +10,12 @@ import { cn } from "@/lib/utils";
 import { WOAssignDialog } from "./wo-assign-dialog";
 
 const COLUMNS: { id: WorkOrderStatus; label: string }[] = [
-    { id: 'OPEN', label: 'Da Fare' },
+    { id: 'PENDING_APPROVAL', label: 'Richiesta' },
+    { id: 'APPROVED', label: 'Approvato' },
+    { id: 'ASSIGNED', label: 'Assegnato' },
     { id: 'IN_PROGRESS', label: 'In Corso' },
-    { id: 'PENDING_APPROVAL', label: 'Da Approvare' },
-    { id: 'ON_HOLD', label: 'In Attesa' },
-    { id: 'COMPLETED', label: 'Completati' },
+    { id: 'COMPLETED', label: 'Eseguito' },
+    { id: 'CLOSED', label: 'Validato' },
 ];
 
 export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
@@ -88,7 +89,7 @@ export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-1">
-                                                <Calendar className="h-3 w-3" /> {wo.dueDate ? wo.dueDate.slice(5) : '--/--'}
+                                                <Calendar className="h-3 w-3" /> {wo.dueDate ? new Date(wo.dueDate).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' }) : '--/--'}
                                             </div>
                                         </div>
                                     </div>

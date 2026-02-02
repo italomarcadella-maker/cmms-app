@@ -14,10 +14,14 @@ export function DeadlineAlerts({ workOrders }: { workOrders: WorkOrder[] }) {
     const upcomingDeadlines = workOrders
         .filter(wo => wo.status !== 'COMPLETED')
         .filter(wo => {
+            if (!wo.dueDate) return false;
             const due = parseISO(wo.dueDate);
             return isBefore(due, nextWeek);
         })
-        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+        .sort((a, b) => {
+            if (!a.dueDate || !b.dueDate) return 0;
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        })
         .slice(0, 3); // Top 3
 
     if (upcomingDeadlines.length === 0) return null;
@@ -30,6 +34,7 @@ export function DeadlineAlerts({ workOrders }: { workOrders: WorkOrder[] }) {
             </div>
             <div className="space-y-2">
                 {upcomingDeadlines.map(wo => {
+                    if (!wo.dueDate) return null;
                     const isOverdue = isBefore(parseISO(wo.dueDate), today);
                     return (
                         <div key={wo.id} className="flex items-center justify-between p-2 bg-white rounded border border-orange-100 text-sm">

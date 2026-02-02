@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useReference } from "@/lib/reference-context";
 import { Plus, Users, User, Trash2, Euro } from "lucide-react";
+import { BackToDashboardButton } from "@/components/ui/back-button";
 
 export default function TechniciansPage() {
     const { technicians, addTechnician, removeTechnician } = useReference();
@@ -21,6 +22,7 @@ export default function TechniciansPage() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
+            <BackToDashboardButton />
             <div className="flex items-center gap-4">
                 <div className="p-2 rounded-lg bg-primary/10 text-primary">
                     <Users className="h-6 w-6" />

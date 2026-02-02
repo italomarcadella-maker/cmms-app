@@ -8,7 +8,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { updateUserRole } from '@/app/lib/actions';
+import { updateUserRole } from '@/lib/actions';
 
 interface RoleSelectorProps {
     userId: string;
@@ -42,6 +42,7 @@ export function RoleSelector({ userId, currentRole }: RoleSelectorProps) {
             </SelectTrigger>
             <SelectContent className="bg-white">
                 <SelectItem value="USER">User</SelectItem>
+                <SelectItem value="MAINTAINER">Maintainer</SelectItem>
                 <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>
             </SelectContent>

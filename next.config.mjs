@@ -1,11 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     // output: 'standalone', // Disabled for Vercel
-    eslint: {
-        // Warning: This allows production builds to successfully complete even if
-        // your project has ESLint errors.
-        ignoreDuringBuilds: true,
-    },
     typescript: {
         // !! WARN !!
         // Dangerously allow production builds to successfully complete even if
@@ -13,6 +8,7 @@ const nextConfig = {
         // !! WARN !!
         ignoreBuildErrors: true,
     },
+    // Rimosso configurazione eslint deprecata / Removed deprecated eslint config
 };
 
 export default nextConfig;

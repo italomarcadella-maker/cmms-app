@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useReference } from "@/lib/reference-context";
 import { Plus, Trash2, ListChecks } from "lucide-react";
+import { BackToDashboardButton } from "@/components/ui/back-button";
 
 export default function ActivitiesPage() {
     const { activities, addActivity, removeActivity } = useReference();
@@ -19,6 +20,7 @@ export default function ActivitiesPage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            <BackToDashboardButton />
             <div>
                 <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
                     Attività di Manutenzione

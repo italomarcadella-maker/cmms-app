@@ -1,8 +1,9 @@
-import { getUsers } from '@/app/lib/actions';
+import { getUsers } from '@/lib/actions';
 import { UserList } from '@/components/users/user-list';
 import { AddUserDialog } from '@/components/users/add-user-dialog';
 import { notFound } from 'next/navigation';
 import { auth } from '@/auth';
+import { BackToDashboardButton } from "@/components/ui/back-button";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ export default async function UsersPage() {
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
+            <BackToDashboardButton />
             <div className="flex items-center justify-between">
                 <h1 className="font-semibold text-lg md:text-2xl">Gestione Utenti</h1>
                 <AddUserDialog />

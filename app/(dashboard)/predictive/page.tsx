@@ -27,6 +27,7 @@ import {
     Area
 } from 'recharts';
 import { cn } from "@/lib/utils";
+import { BackToDashboardButton } from "@/components/ui/back-button";
 
 export default function PredictivePage() {
     const { assets } = useAssets();
@@ -64,6 +65,7 @@ export default function PredictivePage() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+            <BackToDashboardButton />
             {/* Header Section */}
             <div>
                 <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent flex items-center gap-3">
