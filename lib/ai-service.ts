@@ -51,13 +51,18 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
 
     // Intent: Count Open Work Orders
     if (q.includes("quanti") && (q.includes("ordini") || q.includes("interventi")) && (q.includes("aperti") || q.includes("da fare"))) {
-        const count = await prisma.workOrder.count({
-            where: { status: { in: ['OPEN', 'IN_PROGRESS'] } }
-        });
-        return {
-            sender: "AI Copilot",
-            content: `Attualmente ci sono **${count}** interventi aperti o in corso. Vuoi vederli?`,
-        };
+        try {
+            const count = await prisma.workOrder.count({
+                where: { status: { in: ['OPEN', 'IN_PROGRESS'] } }
+            });
+            return {
+                sender: "AI Copilot",
+                content: `Attualmente ci sono **${count}** interventi aperti o in corso. Vuoi vederli?`,
+            };
+        } catch (e) {
+            console.error("AI DB Error:", e);
+            return { sender: "AI Copilot", content: "Non riesco a contare gli ordini in questo momento. Riprova più tardi." };
+        }
     }
 
     // Intent: Show High Priority
@@ -504,6 +509,16 @@ export async function getDailyInsights(): Promise<DailyInsight[]> {
     }
 
     return insights;
+}
+
+// Helper to safely handle DB errors without crashing the UI
+async function safeDbCall<T>(promise: Promise<T>, fallback: T): Promise<T> {
+    try {
+        return await promise;
+    } catch (e) {
+        console.error("Safe DB Call Failed:", e);
+        return fallback;
+    }
 }
 
 export async function chatWithAsset(assetId: string, message: string, history: { role: string, content: string }[] = []) {
