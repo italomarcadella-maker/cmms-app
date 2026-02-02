@@ -68,43 +68,49 @@ export default function AssetCalendarPage() {
                     {loading ? (
                         <div className="p-8 text-center text-muted-foreground">Caricamento planning...</div>
                     ) : (
-                        // Group events by Asset
-                        // We simulate a list of unique assets from the events for the rows
-                        Array.from(new Set(events.map(e => e.assetName))).map((assetName, idx) => {
-                            const assetEvents = events.filter(e => e.assetName === assetName);
-                            return (
-                                <div key={idx} className="grid grid-cols-8 divide-x hover:bg-slate-50 transition-colors">
-                                    <div className="p-4 text-sm font-medium flex items-center gap-2 bg-slate-50/30">
-                                        <Wrench className="h-3 w-3 text-muted-foreground" />
-                                        {assetName}
-                                    </div>
-                                    {days.map((day, dayIdx) => {
-                                        const daysEvents = assetEvents.filter(e => isSameDay(new Date(e.start), day));
-                                        return (
-                                            <div key={dayIdx} className="p-2 min-h-[80px] relative group">
-                                                {daysEvents.map((evt: any) => (
-                                                    <div
-                                                        key={evt.id}
-                                                        className={cn(
-                                                            "text-[10px] p-1.5 rounded mb-1 border shadow-sm cursor-pointer hover:opacity-80 transition-opacity truncate",
-                                                            getStatusColor(evt.status, evt.category)
-                                                        )}
-                                                        title={`${evt.title} - ${evt.assignee || 'Non assegnato'}`}
-                                                    >
-                                                        <div className="font-bold truncate">{evt.title}</div>
-                                                        <div className="opacity-75 truncate">{format(new Date(evt.start), "HH:mm")}</div>
-                                                    </div>
-                                                ))}
-                                                {/* Add Button on Hover */}
-                                                <button className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 flex items-center justify-center bg-slate-100/50 transition-opacity">
-                                                    <span className="text-xs text-slate-500 font-bold">+</span>
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
+                        // Group events by Line
+                        Array.from(new Set(events.map(e => e.line))).sort().map((lineName, lineIdx) => (
+                            <div key={lineIdx} className="divide-y border-b last:border-0">
+                                <div className="p-2 bg-slate-100 font-bold text-xs uppercase tracking-wider text-slate-500 sticky left-0">
+                                    {lineName || 'Nessuna Linea'}
                                 </div>
-                            );
-                        })
+                                {Array.from(new Set(events.filter(e => e.line === lineName).map(e => e.assetName))).map((assetName, idx) => {
+                                    const assetEvents = events.filter(e => e.assetName === assetName);
+                                    return (
+                                        <div key={idx} className="grid grid-cols-8 divide-x hover:bg-slate-50 transition-colors">
+                                            <div className="p-4 text-sm font-medium flex items-center gap-2 bg-slate-50/30">
+                                                <Wrench className="h-3 w-3 text-muted-foreground" />
+                                                {assetName}
+                                            </div>
+                                            {days.map((day, dayIdx) => {
+                                                const daysEvents = assetEvents.filter(e => isSameDay(new Date(e.start), day));
+                                                return (
+                                                    <div key={dayIdx} className="p-2 min-h-[80px] relative group border-r last:border-r-0">
+                                                        {daysEvents.map((evt: any) => (
+                                                            <div
+                                                                key={evt.id}
+                                                                className={cn(
+                                                                    "text-[10px] p-1.5 rounded mb-1 border shadow-sm cursor-pointer hover:opacity-80 transition-opacity truncate",
+                                                                    getStatusColor(evt.status, evt.category)
+                                                                )}
+                                                                title={`${evt.title} - ${evt.assignee || 'Non assegnato'}`}
+                                                            >
+                                                                <div className="font-bold truncate">{evt.title}</div>
+                                                                <div className="opacity-75 truncate">{format(new Date(evt.start), "HH:mm")}</div>
+                                                            </div>
+                                                        ))}
+                                                        {/* Add Button on Hover */}
+                                                        <button className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 flex items-center justify-center bg-slate-100/50 transition-opacity">
+                                                            <span className="text-xs text-slate-500 font-bold">+</span>
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ))
                     )}
                     {!loading && events.length === 0 && (
                         <div className="p-12 text-center text-muted-foreground">

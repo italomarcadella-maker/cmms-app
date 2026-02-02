@@ -87,7 +87,7 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                             <SidebarItem href="/assets" icon={Box} label="Asset & Macchinari" active={isActive('/assets')} onClick={onNavigate} />
                             <SidebarItem href="/inventory" icon={Package} label="Magazzino" active={isActive('/inventory')} onClick={onNavigate} />
                             <SidebarItem href="/screws" icon={Cylinder} label="Viti & Cilindri" active={isActive('/screws')} onClick={onNavigate} />
-                            <SidebarItem href="/calendar" icon={CalendarDays} label="Calendario" active={isActive('/calendar')} onClick={onNavigate} />
+                            <SidebarItem href="/planning/calendar" icon={CalendarDays} label="Planning & Calendario" active={isActive('/planning/calendar')} onClick={onNavigate} />
                             <SidebarItem href="/maintenance/schedule" icon={Calendar} label="Pianificazione" active={isActive('/maintenance/schedule')} onClick={onNavigate} />
                         </SidebarGroup>
                     )}

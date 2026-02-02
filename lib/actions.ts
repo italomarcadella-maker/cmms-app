@@ -1748,11 +1748,12 @@ export async function getAssetMaintenanceEvents() {
             orderBy: { dueDate: 'asc' }
         });
 
-        // Format for Timeline
         return workOrders.map(wo => ({
             id: wo.id,
             assetId: wo.assetId,
             assetName: wo.asset?.name || 'Unknown Asset',
+            // @ts-ignore
+            line: wo.asset?.line || 'Nessuna Linea',
             title: wo.title,
             start: wo.dueDate || wo.createdAt,
             // Default to 2 hours duration since we don't have estimatedDuration in DB

@@ -23,18 +23,15 @@ export async function getDetailedDashboardStats() {
     if (!session?.user) return emptyStats;
 
     try {
-        const [
-            totalAssets,
-            activeAssets,
-            offlineAssets,
-            totalWorkOrders,
-            openWorkOrders,
-            highPriorityOpen,
-            overdueWorkOrders
-        ] = await Promise.all([
+        // Batch 1: Asset Counts (high frequency)
+        const [totalAssets, activeAssets, offlineAssets] = await Promise.all([
             prisma.asset.count(),
             prisma.asset.count({ where: { status: 'OPERATIONAL' } }),
-            prisma.asset.count({ where: { status: 'OFFLINE' } }),
+            prisma.asset.count({ where: { status: 'OFFLINE' } })
+        ]);
+
+        // Batch 2: Work Order Counts (complex)
+        const [totalWorkOrders, openWorkOrders, highPriorityOpen, overdueWorkOrders] = await Promise.all([
             prisma.workOrder.count(),
             prisma.workOrder.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] } } }),
             prisma.workOrder.count({ where: { priority: 'HIGH', status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
