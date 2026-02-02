@@ -5,7 +5,7 @@ import { AuthError } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { auth } from '@/auth';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
 import { WorkOrderStatus } from '@/lib/types';
 
 // --- Authorization Helper ---
@@ -1727,47 +1727,57 @@ export async function getAdvancedKPIs() {
     }
 }
 
-export async function getAssetMaintenanceEvents() {
-    const session = await auth();
-    if (!session?.user) return [];
+export const getAssetMaintenanceEvents = unstable_cache(
+    async () => {
+        const session = await auth();
+        if (!session?.user) return [];
 
-    try {
-        // Fetch Planned and Preventive Work Orders
-        const workOrders = await prisma.workOrder.findMany({
-            where: {
-                status: { not: 'CANCELED' },
-                OR: [
-                    { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING'] } },
-                    {
-                        category: { in: ['PREVENTIVE', 'PLANNED'] },
-                        dueDate: { gte: new Date() }
+        try {
+            // Fetch Planned and Preventive Work Orders
+            const workOrders = await prisma.workOrder.findMany({
+                where: {
+                    status: { not: 'CANCELED' },
+                    // Assuming we want to show all active and future planned work
+                    OR: [
+                        { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING'] } },
+                        {
+                            category: { in: ['PREVENTIVE', 'PLANNED'] },
+                            scheduledDate: { gte: new Date() }
+                        }
+                    ]
+                },
+                include: {
+                    asset: {
+                        select: { name: true, line: true }
                     }
-                ]
-            },
-            include: { asset: true }, // Removed assignee include as relation doesn't exist
-            orderBy: { dueDate: 'asc' }
-        });
+                },
+                // Limit to recent/future? To avoid heavy load let's filter but for MVP calendar logic we might want mostly new stuff
+                // Let's filter slightly
+                orderBy: { dueDate: 'asc' }
+            });
 
-        return workOrders.map(wo => ({
-            id: wo.id,
-            assetId: wo.assetId,
-            assetName: wo.asset?.name || 'Unknown Asset',
-            // @ts-ignore
-            line: wo.asset?.line || 'Nessuna Linea',
-            title: wo.title,
-            start: wo.dueDate || wo.createdAt,
-            // Default to 2 hours duration since we don't have estimatedDuration in DB
-            end: new Date((wo.dueDate || wo.createdAt).getTime() + (120 * 60000)),
-            status: wo.status,
-            category: wo.category,
-            assignee: wo.assignedTo || 'Non assegnato'
-        }));
-
-    } catch (error) {
-        console.error("Error fetching calendar events:", error);
-        return [];
-    }
-}
+            return workOrders.map(wo => ({
+                id: wo.id,
+                assetId: wo.assetId,
+                assetName: wo.asset?.name || 'Unknown Asset',
+                // @ts-ignore
+                line: wo.asset?.line || 'Nessuna Linea',
+                title: wo.title,
+                start: wo.dueDate || wo.createdAt,
+                // Default to 2 hours duration since we don't have estimatedDuration in DB
+                end: new Date((wo.dueDate || wo.createdAt).getTime() + (120 * 60000)),
+                status: wo.status,
+                category: wo.category,
+                assignee: wo.assignedTo || 'Non assegnato'
+            }));
+        } catch (error) {
+            console.error("Calendar Events Error:", error);
+            return [];
+        }
+    },
+    ['calendar-events'],
+    { revalidate: 60, tags: ['work-orders', 'calendar'] }
+);
 
 export async function getEWO(workOrderId: string) {
     try {
