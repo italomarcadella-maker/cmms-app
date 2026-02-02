@@ -1763,9 +1763,9 @@ export const getAssetMaintenanceEvents = unstable_cache(
                 // @ts-ignore
                 line: wo.asset?.line || 'Nessuna Linea',
                 title: wo.title,
-                start: wo.dueDate || wo.createdAt,
+                start: (wo.dueDate || wo.createdAt).toISOString(),
                 // Default to 2 hours duration since we don't have estimatedDuration in DB
-                end: new Date((wo.dueDate || wo.createdAt).getTime() + (120 * 60000)),
+                end: new Date((wo.dueDate || wo.createdAt).getTime() + (120 * 60000)).toISOString(),
                 status: wo.status,
                 category: wo.category,
                 assignee: wo.assignedTo || 'Non assegnato'

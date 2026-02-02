@@ -155,7 +155,12 @@ export const getWorkOrderTrends = unstable_cache(
                 }
             });
 
-            return Object.values(trendData).sort((a, b) => a.fullDate.getTime() - b.fullDate.getTime());
+            return Object.values(trendData)
+                .sort((a, b) => a.fullDate.getTime() - b.fullDate.getTime())
+                .map(t => ({
+                    ...t,
+                    fullDate: t.fullDate.toISOString()
+                }));
         } catch (error) {
             console.error("Trend Error:", error);
             return [];
