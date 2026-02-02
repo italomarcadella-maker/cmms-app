@@ -6,32 +6,17 @@ import { auth } from "@/auth";
 import { subDays, format, startOfDay, endOfDay } from "date-fns";
 import { it } from "date-fns/locale";
 
-export const getDetailedDashboardStats = unstable_cache(
+const getDetailedDashboardStatsCached = unstable_cache(
     async () => {
-        const session = await auth();
-        // Default empty stats
-        const emptyStats = {
-            totalAssets: 0,
-            activeAssets: 0,
-            offlineAssets: 0,
-            totalWorkOrders: 0,
-            openWorkOrders: 0,
-            highPriorityOpen: 0,
-            overdueWorkOrders: 0,
-            avgHealth: 0
-        };
-
-        if (!session?.user) return emptyStats;
-
         try {
-            // Batch 1: Asset Counts (high frequency)
+            // Batch 1: Asset Counts
             const [totalAssets, activeAssets, offlineAssets] = await Promise.all([
                 prisma.asset.count(),
                 prisma.asset.count({ where: { status: 'OPERATIONAL' } }),
                 prisma.asset.count({ where: { status: 'OFFLINE' } })
             ]);
 
-            // Batch 2: Work Order Counts (complex)
+            // Batch 2: Work Order Counts
             const [totalWorkOrders, openWorkOrders, highPriorityOpen, overdueWorkOrders] = await Promise.all([
                 prisma.workOrder.count(),
                 prisma.workOrder.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] } } }),
@@ -57,12 +42,38 @@ export const getDetailedDashboardStats = unstable_cache(
             };
         } catch (error) {
             console.error("Dashboard Stats Error:", error);
-            return emptyStats;
+            return {
+                totalAssets: 0,
+                activeAssets: 0,
+                offlineAssets: 0,
+                totalWorkOrders: 0,
+                openWorkOrders: 0,
+                highPriorityOpen: 0,
+                overdueWorkOrders: 0,
+                avgHealth: 0
+            };
         }
     },
     ['dashboard-stats'],
     { revalidate: 60, tags: ['dashboard'] }
 );
+
+export async function getDetailedDashboardStats() {
+    const session = await auth();
+    if (!session?.user) {
+        return {
+            totalAssets: 0,
+            activeAssets: 0,
+            offlineAssets: 0,
+            totalWorkOrders: 0,
+            openWorkOrders: 0,
+            highPriorityOpen: 0,
+            overdueWorkOrders: 0,
+            avgHealth: 0
+        };
+    }
+    return getDetailedDashboardStatsCached();
+}
 
 export const getAssetStatusDistribution = unstable_cache(
     async () => {

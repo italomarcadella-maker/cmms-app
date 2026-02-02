@@ -1727,17 +1727,12 @@ export async function getAdvancedKPIs() {
     }
 }
 
-export const getAssetMaintenanceEvents = unstable_cache(
+const getAssetMaintenanceEventsCached = unstable_cache(
     async () => {
-        const session = await auth();
-        if (!session?.user) return [];
-
         try {
-            // Fetch Planned and Preventive Work Orders
             const workOrders = await prisma.workOrder.findMany({
                 where: {
                     status: { not: 'CANCELED' },
-                    // Assuming we want to show all active and future planned work
                     OR: [
                         { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING'] } },
                         {
@@ -1751,8 +1746,6 @@ export const getAssetMaintenanceEvents = unstable_cache(
                         select: { name: true, line: true }
                     }
                 },
-                // Limit to recent/future? To avoid heavy load let's filter but for MVP calendar logic we might want mostly new stuff
-                // Let's filter slightly
                 orderBy: { dueDate: 'asc' }
             });
 
@@ -1764,7 +1757,6 @@ export const getAssetMaintenanceEvents = unstable_cache(
                 line: wo.asset?.line || 'Nessuna Linea',
                 title: wo.title,
                 start: (wo.dueDate || wo.createdAt).toISOString(),
-                // Default to 2 hours duration since we don't have estimatedDuration in DB
                 end: new Date((wo.dueDate || wo.createdAt).getTime() + (120 * 60000)).toISOString(),
                 status: wo.status,
                 category: wo.category,
@@ -1778,6 +1770,12 @@ export const getAssetMaintenanceEvents = unstable_cache(
     ['calendar-events'],
     { revalidate: 60, tags: ['work-orders', 'calendar'] }
 );
+
+export async function getAssetMaintenanceEvents() {
+    const session = await auth();
+    if (!session?.user) return [];
+    return getAssetMaintenanceEventsCached();
+}
 
 export async function getEWO(workOrderId: string) {
     try {
