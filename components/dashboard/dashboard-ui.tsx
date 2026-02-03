@@ -99,12 +99,12 @@ export function DashboardUI({ stats, trends, recentWOs, overdueWOs, dailyInsight
                     color="text-emerald-500"
                 />
                 <MetricCard
-                    title="Asset Totali"
-                    value={safeStats.totalAssets.toString()}
-                    icon={Box}
-                    subtext={`${safeStats.activeAssets} operativi, ${safeStats.offlineAssets} offline`}
-                    color="text-blue-500"
-                    alert={safeStats.offlineAssets > 0}
+                    title="Materiali Sottoscorta"
+                    value={safeStats.lowStockCount.toString()}
+                    icon={Package}
+                    subtext="Articoli da ordinare"
+                    color={safeStats.lowStockCount > 0 ? "text-red-500" : "text-emerald-500"}
+                    alert={safeStats.lowStockCount > 0}
                 />
                 <MetricCard
                     title="Ordini Aperti"
@@ -125,14 +125,7 @@ export function DashboardUI({ stats, trends, recentWOs, overdueWOs, dailyInsight
                     trendUp={safeStats.overdueWorkOrders === 0}
                     alert={safeStats.overdueWorkOrders > 0}
                 />
-                <MetricCard
-                    title="Materiali Sottoscorta"
-                    value={safeStats.lowStockCount.toString()}
-                    icon={Package}
-                    subtext="Articoli da ordinare"
-                    color={safeStats.lowStockCount > 0 ? "text-red-500" : "text-emerald-500"}
-                    alert={safeStats.lowStockCount > 0}
-                />
+
             </div>
 
             <div className="grid gap-6 md:grid-cols-12">
