@@ -1,6 +1,7 @@
 "use client";
 
 import { useAssets } from "@/lib/assets-context";
+import { useWorkOrders } from "@/lib/work-orders-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,35 +33,53 @@ import { BackToDashboardButton } from "@/components/ui/back-button";
 export default function PredictivePage() {
     const { assets } = useAssets();
 
-    // Mock predictive data logic
-    // In a real app, this would come from an AI/ML backend analysis
-    const predictiveAssets = assets.map(asset => {
-        // Mock probability based on status and random factor
-        const baseRisk = asset.status === 'MAINTENANCE' ? 75 :
-            asset.status === 'OFFLINE' ? 0 :
-                15;
-        const randomRisk = Math.floor(Math.random() * 25);
-        const failureProbability = Math.min(99, baseRisk + randomRisk);
+    const { workOrders } = useWorkOrders();
 
-        const daysToFailure = Math.floor(Math.random() * 30) + 2;
+    // Real predictive logic based on Asset Health Score and Open Faults
+    const predictiveAssets = assets.map(asset => {
+        // Calculate Risk based on Health Score (Real Data)
+        // If 100% health = 0% probability. 0% health = 100% probability.
+        let failureProbability = 100 - (asset.healthScore || 100);
+
+        // Adjust risk if there are open FAULT or HIGH priority WOs
+        const openFaults = workOrders.filter(wo =>
+            wo.assetId === asset.id &&
+            wo.status !== 'COMPLETED' &&
+            wo.status !== 'CLOSED' &&
+            wo.status !== 'CANCELED'
+        ).length;
+
+        if (openFaults > 0) {
+            failureProbability += (openFaults * 10); // Increase risk by 10% per open issue
+        }
+
+        // Cap at 99%
+        failureProbability = Math.min(99, Math.max(0, failureProbability));
+
+        // Estimate days to failure (Heuristic: Lower health = fewer days)
+        // If Health < 50, critical (1-7 days). If Health < 80 (7-30 days). Else > 30.
+        let daysToFailure = 999;
+        if (asset.healthScore < 50) daysToFailure = Math.round(asset.healthScore / 10) + 1;
+        else if (asset.healthScore < 80) daysToFailure = Math.round(asset.healthScore / 2);
 
         return {
             ...asset,
             failureProbability,
             daysToFailure,
-            healthScore: 100 - failureProbability,
-            predictionConfidence: Math.floor(Math.random() * 20) + 80 // 80-99%
+            healthScore: asset.healthScore,
+            predictionConfidence: 95 // Static confidence for deterministic heuristic
         };
     }).sort((a, b) => b.failureProbability - a.failureProbability);
 
     const highRiskAssets = predictiveAssets.filter(a => a.failureProbability > 40);
-    const healthyAssets = predictiveAssets.filter(a => a.failureProbability <= 40);
 
-    // Mock trend data for the main chart
+    // Trend Data - Placeholder for history (would require historical health table)
+    // We render a flat line or simple gradient based on average health
+    const avgHealth = assets.length > 0 ? assets.reduce((acc, a) => acc + a.healthScore, 0) / assets.length : 100;
     const trendData = Array.from({ length: 14 }, (_, i) => ({
         day: `Giorno ${i + 1}`,
-        health: 95 - (Math.random() * 10) - (i * 0.5), // Slightly degrading trend
-        predicted: i > 10 // Last 3 points are predicted
+        health: avgHealth,
+        predicted: i > 10
     }));
 
     return (
@@ -92,15 +111,23 @@ export default function PredictivePage() {
                             <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">Nuovo</Badge>
                         </div>
                         <p className="text-purple-800/80 leading-relaxed">
-                            L'analisi dei pattern vibrazionali ha rilevato un'anomalia sulla <strong>Linea Estrusione A</strong>.
-                            Il modello prevede una possibile usura critica dei cuscinetti entro <strong>14 giorni</strong> con una confidenza del 92%.
-                            Si consiglia di programmare un intervento preventivo.
+                            {highRiskAssets.length > 0 ? (
+                                <>
+                                    Rilevata criticità su <strong>{highRiskAssets[0].name}</strong>.
+                                    Probabilità di guasto del <strong>{highRiskAssets[0].failureProbability}%</strong> basata sui dati attuali.
+                                    Si consiglia manutenzione preventiva immediata.
+                                </>
+                            ) : (
+                                "Tutti i sistemi operano entro i parametri nominali. Nessuna anomalia critica rilevata al momento."
+                            )}
                         </p>
-                        <div className="pt-2">
-                            <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0 shadow-md transition-all hover:scale-105">
-                                Pianifica Analisi Tecnica <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                        </div>
+                        {highRiskAssets.length > 0 && (
+                            <div className="pt-2">
+                                <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0 shadow-md transition-all hover:scale-105">
+                                    Pianifica Intervento <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

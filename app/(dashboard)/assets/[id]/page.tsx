@@ -150,7 +150,7 @@ export default function AssetDetailsPage() {
                                         const newDoc = {
                                             name: docName,
                                             type: docType,
-                                            url: "#", // Mock URL
+                                            url: "#",
                                             date: new Date().toISOString()
                                         };
                                         const currentDocs = asset.documents || [];

@@ -13,51 +13,79 @@ export default function CostsPage() {
     const { workOrders } = useWorkOrders();
     const { assets } = useAssets();
 
-    // Mock constants for calculation (in real app these would be in DB)
-    const HOURLY_RATE = 45; // €/hr
-    const AVG_PARTS_COST = 120; // € per intervention (mock)
+    // Configuration
+    const HOURLY_RATE = 45; // €/hr (Average)
 
-    // Calculate Costs
-    const totalLaborHours = workOrders.reduce((acc, wo) => acc + (wo.laborLogs || []).reduce((sum, log) => sum + log.hours, 0), 0);
+    // Calculate Global Costs
+    const totalLaborHours = workOrders.reduce((total, wo) => {
+        const woHours = (wo.laborLogs || []).reduce((sum, log) => sum + log.hours, 0);
+        return total + woHours;
+    }, 0);
+
     const totalLaborCost = totalLaborHours * HOURLY_RATE;
 
-    // Mock parts cost (randomly assigned to closed WOs for demo)
-    const completedWOs = workOrders.filter(wo => wo.status === 'COMPLETED');
-    const totalPartsCost = completedWOs.length * AVG_PARTS_COST;
+    const totalPartsCost = workOrders.reduce((total, wo) => {
+        const woParts = (wo.partsUsed || []).reduce((sum, part) => sum + (part.quantity * part.unitCost), 0);
+        return total + woParts;
+    }, 0);
 
     const totalMaintenanceCost = totalLaborCost + totalPartsCost;
 
     // Charts Data Preparation
 
     // 1. Costs by Asset (Top 5)
-    // Map WO -> Asset -> Cost
-    const assetCosts = assets.map(asset => {
-        const assetWOs = workOrders.filter(wo => wo.assetId === asset.id);
-        const hours = assetWOs.reduce((acc, wo) => acc + (wo.laborLogs || []).reduce((sum, log) => sum + log.hours, 0), 0);
-        const parts = assetWOs.filter(wo => wo.status === 'COMPLETED').length * AVG_PARTS_COST;
-        const total = (hours * HOURLY_RATE) + parts;
-        return {
-            name: asset.name,
-            total,
-            labor: hours * HOURLY_RATE,
-            parts
-        };
-    }).sort((a, b) => b.total - a.total).slice(0, 5);
+    // Group costs by Asset ID
+    const assetCostMap = new Map<string, { name: string; labor: number; parts: number; total: number }>();
+
+    workOrders.forEach(wo => {
+        if (!wo.assetId) return;
+
+        const current = assetCostMap.get(wo.assetId) || { name: wo.assetName || 'Unknown', labor: 0, parts: 0, total: 0 };
+
+        // Labor
+        const laborHours = (wo.laborLogs || []).reduce((sum, log) => sum + log.hours, 0);
+        const laborCost = laborHours * HOURLY_RATE;
+
+        // Parts
+        const partsCost = (wo.partsUsed || []).reduce((sum, part) => sum + (part.quantity * part.unitCost), 0);
+
+        current.labor += laborCost;
+        current.parts += partsCost;
+        current.total += (laborCost + partsCost);
+
+        assetCostMap.set(wo.assetId, current);
+    });
+
+    const assetCosts = Array.from(assetCostMap.values())
+        .map(item => ({
+            ...item,
+            labor: Math.round(item.labor),
+            parts: Math.round(item.parts),
+            total: Math.round(item.total)
+        }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
 
     // 2. Costs Trend (Last 6 Months)
     const last6Months = Array.from({ length: 6 }).map((_, i) => {
         const date = subMonths(new Date(), 5 - i);
         const monthName = format(date, "MMM", { locale: it });
 
-        // Mocking trend data slightly randomized around base values
-        // ideally filtering WOs by date
         const wosInMonth = workOrders.filter(wo => isSameMonth(new Date(wo.createdAt), date));
-        const monthHours = wosInMonth.reduce((acc, wo) => acc + (wo.laborLogs || []).reduce((sum, log) => sum + log.hours, 0), 0) + (Math.random() * 20); // add noise
-        const monthParts = wosInMonth.length * AVG_PARTS_COST + (Math.random() * 500);
+
+        const monthLaborHours = wosInMonth.reduce((acc, wo) =>
+            acc + (wo.laborLogs || []).reduce((sum, log) => sum + log.hours, 0), 0
+        );
+
+        const monthPartsCost = wosInMonth.reduce((acc, wo) =>
+            acc + (wo.partsUsed || []).reduce((sum, part) => sum + (part.quantity * part.unitCost), 0), 0
+        );
+
+        const total = (monthLaborHours * HOURLY_RATE) + monthPartsCost;
 
         return {
             name: monthName,
-            cost: Math.round((monthHours * HOURLY_RATE) + monthParts)
+            cost: Math.round(total)
         };
     });
 

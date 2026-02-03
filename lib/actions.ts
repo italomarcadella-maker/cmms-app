@@ -670,7 +670,12 @@ export async function getWorkOrders() {
         const wos = await prisma.workOrder.findMany({
             orderBy: { createdAt: 'desc' },
             take: 1000,
-            include: { asset: true, timers: true }
+            include: {
+                asset: true,
+                timers: true,
+                laborLogs: true,
+                partsUsed: true
+            }
         });
 
         return wos.map((wo: any) => ({

@@ -30,6 +30,10 @@ const getDetailedDashboardStatsCached = unstable_cache(
                 ? Math.round(assets.reduce((sum, a) => sum + a.healthScore, 0) / assets.length)
                 : 0;
 
+            // Calculate Low Stock Materials
+            const parts = await prisma.sparePart.findMany({ select: { quantity: true, minQuantity: true } });
+            const lowStockCount = parts.filter(p => p.quantity <= p.minQuantity).length;
+
             return {
                 totalAssets,
                 activeAssets,
@@ -38,7 +42,8 @@ const getDetailedDashboardStatsCached = unstable_cache(
                 openWorkOrders,
                 highPriorityOpen,
                 overdueWorkOrders,
-                avgHealth
+                avgHealth,
+                lowStockCount
             };
         } catch (error) {
             console.error("Dashboard Stats Error:", error);
@@ -50,7 +55,8 @@ const getDetailedDashboardStatsCached = unstable_cache(
                 openWorkOrders: 0,
                 highPriorityOpen: 0,
                 overdueWorkOrders: 0,
-                avgHealth: 0
+                avgHealth: 0,
+                lowStockCount: 0
             };
         }
     },
@@ -69,7 +75,8 @@ export async function getDetailedDashboardStats() {
             openWorkOrders: 0,
             highPriorityOpen: 0,
             overdueWorkOrders: 0,
-            avgHealth: 0
+            avgHealth: 0,
+            lowStockCount: 0
         };
     }
     return getDetailedDashboardStatsCached();

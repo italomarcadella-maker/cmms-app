@@ -12,7 +12,8 @@ import {
     AlertTriangle,
     Zap,
     BarChart3,
-    PieChart
+    PieChart,
+    Package
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -41,7 +42,8 @@ export function DashboardUI({ stats, trends, recentWOs, overdueWOs, dailyInsight
         openWorkOrders: 0,
         highPriorityOpen: 0,
         overdueWorkOrders: 0,
-        avgHealth: 0
+        avgHealth: 0,
+        lowStockCount: 0
     };
 
     return (
@@ -122,6 +124,14 @@ export function DashboardUI({ stats, trends, recentWOs, overdueWOs, dailyInsight
                     trend={safeStats.overdueWorkOrders === 0 ? "In orario" : "Attenzione"}
                     trendUp={safeStats.overdueWorkOrders === 0}
                     alert={safeStats.overdueWorkOrders > 0}
+                />
+                <MetricCard
+                    title="Materiali Sottoscorta"
+                    value={safeStats.lowStockCount.toString()}
+                    icon={Package}
+                    subtext="Articoli da ordinare"
+                    color={safeStats.lowStockCount > 0 ? "text-red-500" : "text-emerald-500"}
+                    alert={safeStats.lowStockCount > 0}
                 />
             </div>
 
