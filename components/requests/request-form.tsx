@@ -70,6 +70,23 @@ export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
         }
 
         try {
+            // --- AI QUALITY CHECK ---
+            // Import dynamically to avoid server/client boundary issues if needed, or just standard import
+            // Since validateDescriptionQuality is a server action (marked 'use server' at top of ai-service), we can call it.
+            const { validateDescriptionQuality } = await import("@/lib/ai-service");
+
+            const qualityCheck = await validateDescriptionQuality(formData.description);
+            if (!qualityCheck.valid) {
+                toast.warning("Attenzione: Descrizione Insufficiente", {
+                    description: qualityCheck.reason,
+                    duration: 5000,
+                    icon: <AlertTriangle className="h-5 w-5 text-amber-500" />
+                });
+                setLoading(false);
+                return; // BLOCK SUBMISSION
+            }
+            // ------------------------
+
             const selectedAsset = assets.find(a => a.id === formData.assetId);
 
             const result = await createWorkOrder({

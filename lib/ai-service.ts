@@ -571,3 +571,57 @@ export async function chatWithAsset(assetId: string, message: string, history: {
         content: `Sono l'assistente virtuale di **${asset.name}**. Conosco il suo storico e i suoi manuali. \nChiedimi: "Quali problemi ha avuto?" o "Cosa fare se fa rumore?"`
     };
 }
+// --- Quality Checks ---
+
+export async function validateDescriptionQuality(description: string): Promise<{ valid: boolean; reason?: string }> {
+    // Simulate thinking
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    const cleanDesc = description.trim();
+
+    // 1. Length Check
+    if (cleanDesc.length < 15) {
+        return {
+            valid: false,
+            reason: "Descrizione troppo breve. Inserisci almeno 15 caratteri per aiutare i tecnici."
+        };
+    }
+
+    // 2. Generic Phrases Check
+    const lowDesc = cleanDesc.toLowerCase();
+    const genericPhrases = [
+        "non va", "non funziona", "rotto", "guasto", "si è rotto", "problema", "fermo", "non parte", "bloccato", "errore"
+    ];
+
+    // If description is short (< 40 chars) and contains ONLY generic triggers or is very simple
+    if (cleanDesc.length < 40) {
+        // Check if it's just a generic phrase
+        const isGeneric = genericPhrases.some(phrase => lowDesc === phrase || lowDesc.includes(phrase) && lowDesc.length < phrase.length + 10);
+
+        if (isGeneric) {
+            return {
+                valid: false,
+                reason: "Descrizione troppo generica. Specifica *cosa* non va o *dove* è il problema (es. 'Motore non parte con errore E04')."
+            };
+        }
+
+        // Check word count
+        const words = cleanDesc.split(' ').length;
+        if (words < 4) {
+            return {
+                valid: false,
+                reason: "Descrizione poco dettagliata. Aggiungi più contesto."
+            };
+        }
+    }
+
+    // 3. Gibberish Check (Heuristic: typical repetition or weird patterns)
+    if (/([a-z])\1{4,}/i.test(cleanDesc)) { // e.g. "aaaaaa"
+        return {
+            valid: false,
+            reason: "La descrizione sembra contenere testo non valido."
+        };
+    }
+
+    return { valid: true };
+}
