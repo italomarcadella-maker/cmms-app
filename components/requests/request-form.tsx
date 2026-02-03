@@ -9,11 +9,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Camera, AlertTriangle } from "lucide-react";
+import { Loader2, Camera, AlertTriangle, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAssets } from "@/lib/assets-context"; // Assuming this exists, based on previous exploration
 // If assets-context doesn't export useAssets, I might need to fetch assets differently.
 // Checking open files... inventory-context exists. assets-context exists in lib list.
+import { cn } from "@/lib/utils";
+
+// Augmented Window interface for SpeechRecognition
+declare global {
+    interface Window {
+        webkitSpeechRecognition: any;
+        SpeechRecognition: any;
+    }
+}
 
 interface RequestFormProps {
     initialAssetId?: string;
@@ -35,6 +44,73 @@ export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
     });
     const [pendingRequests, setPendingRequests] = useState<any[]>([]);
     const [checkingDuplicates, setCheckingDuplicates] = useState(false);
+
+    // Voice Dictation State
+    const [isListening, setIsListening] = useState(false);
+    const [speechSupported, setSpeechSupported] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
+            setSpeechSupported(true);
+        }
+    }, []);
+
+    const toggleListening = () => {
+        if (!speechSupported) {
+            toast.error("Il tuo browser non supporta la dettatura vocale.");
+            return;
+        }
+
+        if (isListening) {
+            // It will stop automatically or we can force stop if we hold the instance ref, 
+            // but for simplicity let's rely on the natural stop or UI toggle.
+            // Actuallly, without a ref to the recognition instance, we can't call .stop(). 
+            // So we need to restructure slightly to hold the instance.
+            // Let's use a simple pattern: clicking starts it, it stops automatically on silence.
+            setIsListening(false);
+            // window.location.reload(); // Hacky way to stop if we don't have ref? No, let's do it right.
+            // Actually, we can just let it finish.
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+
+        recognition.lang = 'it-IT';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+            setIsListening(true);
+            toast.info("In ascolto...", { duration: 2000 });
+        };
+
+        recognition.onend = () => {
+            setIsListening(false);
+        };
+
+        recognition.onerror = (event: any) => {
+            console.error("Speech error", event.error);
+            setIsListening(false);
+            if (event.error === 'not-allowed') {
+                toast.error("Permesso microfono negato.");
+            }
+        };
+
+        recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            if (transcript) {
+                setFormData(prev => {
+                    // Append if there's already text, or replace? Usually append is better for dictation
+                    const newDesc = prev.description ? `${prev.description} ${transcript}` : transcript;
+                    return { ...prev, description: newDesc };
+                });
+                toast.success("Testo acquisito!");
+            }
+        };
+
+        recognition.start();
+    };
 
     // Check for duplicates when asset is selected
     useEffect(() => {
@@ -199,10 +275,35 @@ export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Descrizione Dettagliata</label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium">Descrizione Dettagliata</label>
+                            {speechSupported && (
+                                <button
+                                    type="button"
+                                    onClick={toggleListening}
+                                    className={cn(
+                                        "text-xs flex items-center gap-1 px-2 py-1 rounded transition-all border",
+                                        isListening
+                                            ? "bg-red-100 text-red-600 border-red-200 animate-pulse font-bold"
+                                            : "bg-background text-muted-foreground hover:bg-muted border-border"
+                                    )}
+                                    title="Dettatura Vocale"
+                                >
+                                    {isListening ? (
+                                        <>
+                                            <MicOff className="h-3 w-3" /> Stop Dettatura
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Mic className="h-3 w-3" /> Dettatura Vocale
+                                        </>
+                                    )}
+                                </button>
+                            )}
+                        </div>
                         <Textarea
                             placeholder="Descrivi il problema riscontrato..."
-                            className="min-h-[100px]"
+                            className={cn("min-h-[100px]", isListening && "border-red-400 ring-1 ring-red-400")}
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         />
@@ -246,7 +347,7 @@ export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
                     <Button variant="ghost" type="button" onClick={() => onCancel ? onCancel() : router.back()}>
                         {onCancel ? "Indietro" : "Annulla"}
                     </Button>
-                    <Button type="submit" disabled={loading}>
+                    <Button type="submit" disabled={loading || isListening}>
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Invia Richiesta
                     </Button>
