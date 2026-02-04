@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Technician, MaintenanceActivity } from "@/lib/types";
-import { mockTechnicians, mockActivities } from "@/lib/mock-data";
+
 
 interface ReferenceContextType {
     technicians: Technician[];

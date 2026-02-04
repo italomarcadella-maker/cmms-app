@@ -56,6 +56,13 @@ export function WorkOrdersProvider({
             if (!res.success) {
                 throw new Error(res.message);
             }
+
+            // CORRECT FIX: Replace optimistic WO with real one from DB (with correct ID)
+            if (res.data) {
+                const realWO = res.data;
+                setWorkOrders((prev) => prev.map(w => w.id === workOrder.id ? { ...realWO, assetName: workOrder.assetName } as any : w));
+            }
+
         } catch (err) {
             console.error("Failed to create work order", err);
             // Revert on failure

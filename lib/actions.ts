@@ -866,6 +866,7 @@ export async function createWorkOrder(data: any) {
         revalidatePath('/maintenance');
         revalidatePath('/work-orders');
         revalidatePath('/requests'); // Revalidate requests too
+        revalidatePath('/'); // Refresh Dashboard
         return { success: true, message: 'Ordine creato', data: newWO };
     } catch (error) {
         console.error("WO Create Error Detailed:", error);
@@ -1039,6 +1040,7 @@ export async function updateWorkOrderStatus(id: string, status: string) {
         revalidatePath('/maintenance');
         revalidatePath('/work-orders');
         revalidatePath('/requests');
+        revalidatePath('/'); // Refresh Dashboard
         return { success: true };
     } catch (error) {
         return { success: false };
@@ -1052,6 +1054,7 @@ export async function deleteWorkOrder(id: string) {
         await prisma.workOrder.delete({ where: { id } });
         revalidatePath('/work-orders');
         revalidatePath('/maintenance');
+        revalidatePath('/'); // Refresh Dashboard
         return { success: true };
     } catch (error) {
         return { success: false, message: "Failed to delete work order" };
@@ -1946,6 +1949,7 @@ export async function updateProductionLine(data: {
             }
         });
         revalidatePath('/planning/calendar');
+        revalidatePath('/'); // Refresh Dashboard (production status)
         return { success: true, data: line };
     } catch (error) {
         console.error("Update Line Error:", error);
