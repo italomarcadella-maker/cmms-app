@@ -2009,9 +2009,31 @@ export async function getProductionLines() {
             }
         }
 
+
         return merged.sort((a, b) => a.line.localeCompare(b.line));
     } catch (error) {
         console.error("Get Lines Error:", error);
         return [];
     }
 }
+
+export async function deleteProductionLine(line: string) {
+    const session = await auth();
+    if (!session?.user || (session.user as any).role === 'USER') {
+        return { success: false, message: 'Non autorizzato' };
+    }
+
+    try {
+        await prisma.productionLine.delete({
+            where: { line }
+        });
+
+        revalidatePath('/planning/calendar');
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        console.error("Delete Line Error:", error);
+        return { success: false, message: 'Errore eliminazione linea' };
+    }
+}
+

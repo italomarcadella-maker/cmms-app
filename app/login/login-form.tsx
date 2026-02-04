@@ -3,74 +3,64 @@
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { authenticate } from '@/lib/actions';
-import { AtSign, Key, Loader2, AlertCircle } from 'lucide-react';
+import { AtSign, Key, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function LoginForm() {
     const [errorMessage, dispatch] = useActionState(authenticate, undefined);
 
     return (
-        <form action={dispatch} className="space-y-3">
-            <div className="flex-1 rounded-lg bg-gray-50 px-6 pb-4 pt-8 shadow-sm dark:bg-zinc-900">
-                <h1 className="mb-3 text-2xl font-bold text-gray-900 dark:text-white">
-                    Accedi
-                </h1>
-                <div className="w-full">
-                    <div>
-                        <label
-                            className="mb-3 mt-5 block text-xs font-medium text-gray-900 dark:text-gray-200"
-                            htmlFor="email"
-                        >
-                            Email
+        <form action={dispatch} className="space-y-4">
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-300 uppercase tracking-wider ml-1" htmlFor="email">
+                            Email Aziendale
                         </label>
-                        <div className="relative">
+                        <div className="relative group">
                             <input
-                                className="peer block w-full rounded-md border border-gray-200 py-[9px] pl-10 text-sm outline-2 placeholder:text-gray-500 focus:ring-blue-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+                                className="peer block w-full rounded-xl border-0 bg-white/5 py-3 pl-11 text-sm text-white placeholder:text-slate-500 ring-1 ring-white/10 focus:ring-2 focus:ring-blue-500 focus:bg-white/10 transition-all outline-none"
                                 id="email"
                                 type="email"
                                 name="email"
                                 placeholder="nome@azienda.it"
                                 required
                             />
-                            <AtSign className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900 dark:peer-focus:text-gray-300" />
+                            <AtSign className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 peer-focus:text-blue-400 transition-colors" />
                         </div>
                     </div>
-                    <div className="mt-4">
-                        <label
-                            className="mb-3 mt-5 block text-xs font-medium text-gray-900 dark:text-gray-200"
-                            htmlFor="password"
-                        >
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-300 uppercase tracking-wider ml-1" htmlFor="password">
                             Password
                         </label>
-                        <div className="relative">
+                        <div className="relative group">
                             <input
-                                className="peer block w-full rounded-md border border-gray-200 py-[9px] pl-10 text-sm outline-2 placeholder:text-gray-500 focus:ring-blue-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+                                className="peer block w-full rounded-xl border-0 bg-white/5 py-3 pl-11 text-sm text-white placeholder:text-slate-500 ring-1 ring-white/10 focus:ring-2 focus:ring-blue-500 focus:bg-white/10 transition-all outline-none"
                                 id="password"
                                 type="password"
                                 name="password"
-                                placeholder="Inserisci password"
+                                placeholder="••••••••"
                                 required
                                 minLength={3}
                             />
-                            <Key className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900 dark:peer-focus:text-gray-300" />
+                            <Key className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 peer-focus:text-blue-400 transition-colors" />
                         </div>
                     </div>
                 </div>
-                <LoginButton />
-                <div
-                    className="flex h-8 items-end space-x-1"
-                    aria-live="polite"
-                    aria-atomic="true"
-                >
-                    {errorMessage && (
-                        <>
-                            <AlertCircle className="h-5 w-5 text-red-500" />
-                            <p className="text-sm text-red-500">{errorMessage}</p>
-                        </>
-                    )}
+
+                <div className="mt-8">
+                    <LoginButton />
                 </div>
 
-                {/* Helper text for demo */}
-                {/* Helper text removed for production */}
+                <div className="flex h-8 items-end space-x-1 mt-2" aria-live="polite" aria-atomic="true">
+                    {errorMessage && (
+                        <div className="flex items-center gap-2 text-red-400 bg-red-400/10 p-2 rounded-lg w-full text-xs">
+                            <AlertCircle className="h-4 w-4" />
+                            <p>{errorMessage}</p>
+                        </div>
+                    )}
+                </div>
             </div>
         </form>
     );
@@ -81,10 +71,19 @@ function LoginButton() {
 
     return (
         <button
-            className="mt-4 w-full flex items-center justify-center rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 active:bg-blue-600 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-            aria-disabled={pending}
+            className={cn(
+                "group w-full flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-500 active:scale-[0.98] shadow-lg shadow-blue-500/20",
+                pending && "cursor-not-allowed opacity-70"
+            )}
+            disabled={pending}
         >
-            {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Accedi'}
+            {pending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+                <span className="flex items-center gap-2">
+                    Accedi al Portale <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </span>
+            )}
         </button>
     );
 }

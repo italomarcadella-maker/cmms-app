@@ -278,8 +278,33 @@ export function LineSettingsDialog({ line, currentSettings, onClose, onSuccess }
                                 </div>
                             </div>
 
-                            <DialogFooter>
+
+                            <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+                                <div className="flex-1 flex justify-start">
+                                    {/* Delete button wrapper to keep layout clean */}
+                                </div>
                                 <Button type="button" variant="ghost" onClick={onClose}>Annulla</Button>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    onClick={async () => {
+                                        if (!confirm("Sei sicuro di voler eliminare questa linea dalla pianificazione?")) return;
+                                        setLoading(true);
+                                        const { deleteProductionLine } = await import("@/lib/actions");
+                                        const res = await deleteProductionLine(line);
+                                        if (res.success) {
+                                            toast.success("Linea eliminata");
+                                            onSuccess();
+                                            onClose();
+                                        } else {
+                                            toast.error(res.message);
+                                        }
+                                        setLoading(false);
+                                    }}
+                                    className="mr-auto"
+                                >
+                                    Elimina Linea
+                                </Button>
                                 <Button type="submit" disabled={loading}>
                                     {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                                     Salva Regole
@@ -349,6 +374,6 @@ export function LineSettingsDialog({ line, currentSettings, onClose, onSuccess }
                     </div>
                 )}
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 }
