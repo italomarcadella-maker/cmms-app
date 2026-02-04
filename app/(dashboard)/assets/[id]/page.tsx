@@ -11,6 +11,7 @@ import { useParams } from "next/navigation";
 import QRCode from "react-qr-code";
 import { AssetMaintenancePlan } from "@/components/assets/asset-maintenance-plan";
 import { AssetAIChat } from "@/components/assets/asset-ai-chat";
+import { TagGeneratorDialog } from "@/components/assets/tag-generator-dialog";
 
 export default function AssetDetailsPage() {
     const params = useParams();
@@ -30,6 +31,7 @@ export default function AssetDetailsPage() {
     }
 
     const [activeWOs, setActiveWOs] = useState<any[]>([]);
+    const [showTagGenerator, setShowTagGenerator] = useState(false);
 
     useEffect(() => {
         if (asset?.id) {
@@ -206,6 +208,12 @@ export default function AssetDetailsPage() {
                         <p className="text-xs text-muted-foreground max-w-[200px]">
                             Scansiona per vedere dettagli, cronologia e segnalare problemi.
                         </p>
+                        <button
+                            onClick={() => setShowTagGenerator(true)}
+                            className="w-full text-xs flex items-center justify-center gap-2 bg-slate-900 text-white py-2 rounded-md hover:bg-slate-800 transition-colors font-medium"
+                        >
+                            Stampa Etichetta
+                        </button>
                     </div>
 
                     <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
@@ -279,6 +287,14 @@ export default function AssetDetailsPage() {
             </div>
             {/* AI Chat Bot */}
             <AssetAIChat assetId={asset.id} assetName={asset.name} />
+
+            {showTagGenerator && (
+                <TagGeneratorDialog
+                    assetId={asset.id}
+                    assetName={asset.name}
+                    onClose={() => setShowTagGenerator(false)}
+                />
+            )}
         </div>
     );
 }

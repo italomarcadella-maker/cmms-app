@@ -1,91 +1,78 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useWorkOrders } from "@/lib/work-orders-context";
-import { useAuth } from "@/lib/auth-context";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Plus, Clock, CheckCircle, AlertCircle, Archive } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { RequestWizard } from "./request-wizard";
+import { WorkOrder } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { formatDistanceToNow } from "date-fns";
+import { it } from "date-fns/locale";
 
 interface RequestListProps {
-    requests?: any[];
+    requests: WorkOrder[];
 }
 
 export function RequestList({ requests }: RequestListProps) {
-    const router = useRouter();
-    const { user } = useAuth();
-    const { workOrders } = useWorkOrders();
-
-    // Use passed requests or filter from context if not provided (backward compatibility)
-    const myRequests = requests || workOrders.filter(wo => wo.requesterId === user?.id && wo.type === 'REQUEST');
-
-    // Sort by Date Desc
-    const sortedRequests = [...myRequests].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'PENDING_APPROVAL': return <Clock className="h-4 w-4 text-amber-500" />;
-            case 'OPEN':
-            case 'IN_PROGRESS': return <CheckCircle className="h-4 w-4 text-blue-500" />;
-            case 'COMPLETED': return <CheckCircle className="h-4 w-4 text-green-500" />;
-            case 'CLOSED': return <Archive className="h-4 w-4 text-gray-500" />;
-            default: return <AlertCircle className="h-4 w-4 text-gray-400" />;
-        }
-    };
-
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'PENDING_APPROVAL': return "In Attesa";
-            case 'OPEN': return "Approvato";
-            case 'IN_PROGRESS': return "In Corso";
-            case 'COMPLETED': return "Completato";
-            case 'CLOSED': return "Chiuso";
-            case 'ON_HOLD': return "Sospeso";
-            case 'CANCELED': return "Annullato";
-            default: return status;
-        }
-    };
-
-    if (sortedRequests.length === 0) {
-        return (
-            <div className="text-center py-10 border rounded-lg bg-muted/20 border-dashed">
-                <p className="text-muted-foreground mb-4">Non hai effettuato nessuna richiesta.</p>
-                <Button onClick={() => router.push('/requests/new')}>
-                    <Plus className="mr-2 h-4 w-4" /> Nuova Richiesta
-                </Button>
-            </div>
-        );
-    }
+    const [open, setOpen] = useState(false);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold">Le Mie Richieste</h2>
-                <Button size="sm" onClick={() => router.push('/requests/new')}>
-                    <Plus className="mr-2 h-4 w-4" /> Nuova
-                </Button>
+                <h2 className="text-xl font-semibold">Le Mie Richieste</h2>
+
+                <Dialog open={open} onOpenChange={setOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-shadow">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Nuova Richiesta
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto sm:max-h-[800px] p-0 border-0 bg-transparent shadow-none">
+                        <div className="bg-background rounded-xl p-6 h-full shadow-2xl border">
+                            <RequestWizard />
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
-            <div className="grid gap-4">
-                {sortedRequests.map((req) => (
-                    <Card key={req.id} className="hover:bg-muted/30 transition-colors">
-                        <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
-                            <div>
-                                <CardTitle className="text-base font-medium flex items-center gap-2">
-                                    {req.title}
-                                </CardTitle>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Asset: {req.assetName} • Data: {new Date(req.createdAt).toLocaleDateString()}
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {getStatusIcon(req.status)}
-                                <span className="text-sm font-medium">{getStatusLabel(req.status)}</span>
-                            </div>
-                        </CardHeader>
-                    </Card>
-                ))}
-            </div>
+
+            {requests.length === 0 ? (
+                <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed">
+                    <p className="text-muted-foreground">Nessuna richiesta trovata.</p>
+                </div>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {/* Simplified cards for list */}
+                    {requests.map(req => (
+                        <Card key={req.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                            <CardContent className="p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <Badge variant={req.status === 'OPEN' ? 'default' : 'secondary'}>
+                                        {req.status}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                        {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true, locale: it })}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h4 className="font-semibold line-clamp-1">{req.title}</h4>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">{req.description}</p>
+                                </div>
+                                <div className="text-xs text-muted-foreground pt-2 border-t flex items-center gap-2">
+                                    <span className="bg-muted px-2 py-0.5 rounded capitalize">{req.category?.toLowerCase() || 'other'}</span>
+                                    {req.priority && <span className="font-medium text-orange-600 dark:text-orange-400 capitalize">{req.priority}</span>}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

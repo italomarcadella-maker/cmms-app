@@ -144,8 +144,14 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
                                                                                 className="flex items-center justify-between p-3 rounded-lg bg-card border hover:border-primary/50 cursor-pointer shadow-sm hover:shadow-md transition-all group/asset"
                                                                             >
                                                                                 <div className="flex items-center gap-3">
-                                                                                    <div className="p-2 bg-muted rounded-full group-hover/asset:bg-primary/10 group-hover/asset:text-primary transition-colors">
-                                                                                        <Box className="h-4 w-4" />
+                                                                                    <div className="h-10 w-10 bg-muted rounded-md overflow-hidden flex-shrink-0 border">
+                                                                                        {asset.image && asset.image.length > 10 ? (
+                                                                                            <img src={asset.image} alt={asset.name} className="h-full w-full object-cover" />
+                                                                                        ) : (
+                                                                                            <div className="h-full w-full flex items-center justify-center group-hover/asset:bg-primary/10 group-hover/asset:text-primary transition-colors">
+                                                                                                <Box className="h-5 w-5" />
+                                                                                            </div>
+                                                                                        )}
                                                                                     </div>
                                                                                     <div>
                                                                                         <p className="font-medium text-sm group-hover/asset:text-primary transition-colors">{asset.name}</p>

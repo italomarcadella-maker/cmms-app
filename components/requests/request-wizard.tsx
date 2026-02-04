@@ -1,127 +1,131 @@
 "use client";
 
 import { useState } from "react";
-import { AssetSelector } from "@/components/assets/asset-selector";
-import { RequestForm } from "@/components/requests/request-form";
-import { useAssets } from "@/lib/assets-context";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, CheckCircle2, Circle, ArrowRight } from "lucide-react";
-import { Asset } from "@/lib/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ShieldAlert, Lightbulb, Wrench, Package, Factory, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RequestForm } from "./request-form";
+import { Button } from "@/components/ui/button";
 
-type Step = 'SELECT_ASSET' | 'FILL_FORM';
+// Categories Configuration
+const CATEGORIES = [
+    {
+        id: 'safety',
+        label: 'Sicurezza',
+        description: 'Segnala un pericolo o un problema di sicurezza.',
+        icon: ShieldAlert,
+        color: 'text-red-500',
+        virtualAssetId: 'SYS-SAFETY',
+        categoryType: 'SAFETY'
+    },
+    {
+        id: 'kaizen',
+        label: 'Quick Kaizen',
+        description: 'Proponi un miglioramento rapido.',
+        icon: Lightbulb,
+        color: 'text-yellow-500',
+        virtualAssetId: 'SYS-KAIZEN',
+        categoryType: 'KAIZEN'
+    },
+    {
+        id: 'plant',
+        label: 'Impianti',
+        description: 'Manutenzione generale stabilimento (Luce, Acqua, Aria).',
+        icon: Factory,
+        color: 'text-green-600',
+        virtualAssetId: 'SYS-PLANT',
+        categoryType: 'PLANT'
+    },
+    {
+        id: 'workshop',
+        label: 'Officina',
+        description: 'Richiesta di lavorazione meccanica.',
+        icon: Wrench,
+        color: 'text-blue-500',
+        virtualAssetId: 'SYS-WORKSHOP',
+        categoryType: 'WORKSHOP'
+    },
+    {
+        id: 'other',
+        label: 'Altro',
+        description: 'Altre richieste generiche.',
+        icon: Package,
+        color: 'text-gray-500',
+        virtualAssetId: 'SYS-OTHER',
+        categoryType: 'OTHER'
+    },
+    {
+        id: 'production',
+        label: 'Linee Produttive',
+        description: 'Guasto su un macchinario specifico.',
+        icon: Factory,
+        color: 'text-purple-500',
+        virtualAssetId: null, // Requires selection
+        categoryType: 'MAINTENANCE'
+    }
+];
 
 export function RequestWizard() {
-    const { assets } = useAssets();
-    const [step, setStep] = useState<Step>('SELECT_ASSET');
-    const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+    const [step, setStep] = useState<1 | 2>(1);
+    const [selectedCategory, setSelectedCategory] = useState<typeof CATEGORIES[0] | null>(null);
 
-    const handleAssetSelect = (asset: Asset) => {
-        setSelectedAsset(asset);
-        setStep('FILL_FORM');
+    const handleCategorySelect = (category: typeof CATEGORIES[0]) => {
+        setSelectedCategory(category);
+        setStep(2);
     };
 
     const handleBack = () => {
-        setStep('SELECT_ASSET');
-        setSelectedAsset(null);
+        setStep(1);
+        setSelectedCategory(null);
     };
 
     return (
-        <div className="space-y-8 max-w-5xl mx-auto">
-            {/* Progress Steps */}
-            <div className="flex items-center justify-center w-full mb-8">
-                <div className="flex items-center">
-                    <div className={cn("flex items-center gap-2", step === 'SELECT_ASSET' ? "text-primary font-bold" : "text-primary/70")}>
-                        <div className={cn("h-8 w-8 rounded-full flex items-center justify-center border-2 transition-all", step === 'SELECT_ASSET' ? "border-primary bg-primary text-primary-foreground" : "border-primary bg-primary text-primary-foreground")}>
-                            1
-                        </div>
-                        <span>Seleziona Asset</span>
+        <div className="max-w-4xl mx-auto p-4 transition-all">
+            {step === 1 ? (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center space-y-2 mb-8">
+                        <h1 className="text-3xl font-bold tracking-tight">Nuova Richiesta</h1>
+                        <p className="text-muted-foreground">Seleziona la tipologia di richiesta per procedere</p>
                     </div>
-                    <div className="w-16 h-[2px] bg-muted mx-4 relative overflow-hidden">
-                        <div className={cn("absolute inset-y-0 left-0 bg-primary transition-all duration-500 ease-in-out", step === 'FILL_FORM' ? "w-full" : "w-0")} />
-                    </div>
-                    <div className={cn("flex items-center gap-2 transition-colors", step === 'FILL_FORM' ? "text-primary font-bold" : "text-muted-foreground")}>
-                        <div className={cn("h-8 w-8 rounded-full flex items-center justify-center border-2 transition-all", step === 'FILL_FORM' ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30 text-muted-foreground")}>
-                            2
-                        </div>
-                        <span>Dettagli Richiesta</span>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {CATEGORIES.map((cat) => (
+                            <Card
+                                key={cat.id}
+                                className={cn(
+                                    "cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 border-2 border-transparent hover:border-primary/20",
+                                )}
+                                onClick={() => handleCategorySelect(cat)}
+                            >
+                                <CardHeader className="space-y-1">
+                                    <div className={cn("p-2 w-fit rounded-lg bg-muted mb-2", cat.color.replace('text-', 'bg-') + '/10')}>
+                                        <cat.icon className={cn("h-6 w-6", cat.color)} />
+                                    </div>
+                                    <CardTitle className="text-xl">{cat.label}</CardTitle>
+                                    <CardDescription>{cat.description}</CardDescription>
+                                </CardHeader>
+                            </Card>
+                        ))}
                     </div>
                 </div>
-            </div>
-
-            <div className="relative min-h-[500px]">
-                {step === 'SELECT_ASSET' && (
-                    <div className="animate-in fade-in slide-in-from-left-8 duration-500 ease-out fill-mode-both">
-                        <div className="mb-6 text-center">
-                            <h2 className="text-2xl font-bold mb-2">Seleziona il Macchinario</h2>
-                            <p className="text-muted-foreground">Cerca o naviga tra i reparti per trovare l'asset su cui richiedere intervento.</p>
-                        </div>
-                        <AssetSelector assets={assets} onSelect={handleAssetSelect} />
-                    </div>
-                )}
-
-                {step === 'FILL_FORM' && selectedAsset && (
-                    <div className="animate-in fade-in slide-in-from-right-8 duration-500 ease-out fill-mode-both">
-                        <Button
-                            variant="ghost"
-                            onClick={handleBack}
-                            className="mb-6 hover:bg-muted/50"
-                        >
-                            <ChevronLeft className="h-4 w-4 mr-2" />
-                            Torna alla selezione
+            ) : (
+                <div className="animate-in fade-in slide-in-from-right-8 duration-500">
+                    <div className="mb-6 flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={handleBack} className="gap-1 pl-0 text-muted-foreground hover:text-foreground">
+                            <ChevronLeft className="h-4 w-4" /> Indietro
                         </Button>
-
-                        <div className="grid md:grid-cols-[300px_1fr] gap-8 items-start">
-                            {/* Asset Summary Card */}
-                            <div className="bg-muted/30 p-6 rounded-xl border space-y-4 sticky top-4">
-                                <div>
-                                    <h3 className="font-semibold text-lg text-foreground/80 mb-1">Asset Selezionato</h3>
-                                    <div className="h-1 w-10 bg-primary rounded-full" />
-                                </div>
-
-                                <div className="space-y-3">
-                                    <div>
-                                        <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold text-[10px]">Nome Asset</p>
-                                        <p className="font-medium text-lg">{selectedAsset.name}</p>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold text-[10px]">Seriale</p>
-                                            <p className="text-sm font-mono bg-background p-1 px-2 rounded border inline-block">{selectedAsset.serialNumber}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold text-[10px]">Modello</p>
-                                            <p className="text-sm">{selectedAsset.model}</p>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold text-[10px]">Posizione</p>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                            {selectedAsset.plant && <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs px-2 py-0.5 rounded-full">{selectedAsset.plant}</span>}
-                                            {selectedAsset.department && <span className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 text-xs px-2 py-0.5 rounded-full">{selectedAsset.department}</span>}
-                                            <span className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full">{selectedAsset.location}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Form Area */}
-                            <div className="bg-card border rounded-xl shadow-sm p-6">
-                                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                                    <span className="bg-primary/10 text-primary p-1.5 rounded-lg">
-                                        <CheckCircle2 className="h-5 w-5" />
-                                    </span>
-                                    Compila Dettagli Richiesta
-                                </h2>
-                                <RequestForm
-                                    initialAssetId={selectedAsset.id}
-                                    onCancel={handleBack}
-                                />
-                            </div>
-                        </div>
+                        <span className="text-muted-foreground">/</span>
+                        <span className="font-semibold">{selectedCategory?.label}</span>
                     </div>
-                )}
-            </div>
+
+                    <RequestForm
+                        initialCategory={selectedCategory?.categoryType}
+                        initialAssetId={selectedCategory?.virtualAssetId || undefined}
+                        forceAssetSelection={selectedCategory?.id === 'production'}
+                        onCancel={handleBack}
+                    />
+                </div>
+            )}
         </div>
     );
 }

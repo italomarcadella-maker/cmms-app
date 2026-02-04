@@ -68,7 +68,7 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
     // Intent: Show High Priority
     if ((q.includes("urgenti") || q.includes("priorità alta")) && (q.includes("mostra") || q.includes("quali"))) {
         const highPriority = await prisma.workOrder.findMany({
-            where: { priority: 'HIGH', status: { not: 'CLOSED' } },
+            where: { priority: 'STOPPED', status: { not: 'CLOSED' } },
             take: 3,
             select: { title: true, id: true }
         });
@@ -428,7 +428,7 @@ export async function getDailyInsights(): Promise<DailyInsight[]> {
 
     try {
         // 1. Critical Pending WOs
-        const criticalWOs = await prisma.workOrder.count({ where: { priority: 'HIGH', status: { in: ['OPEN', 'IN_PROGRESS'] } } });
+        const criticalWOs = await prisma.workOrder.count({ where: { priority: 'STOPPED', status: { in: ['OPEN', 'IN_PROGRESS'] } } });
         if (criticalWOs > 0) {
             insights.push({
                 id: 'critical-wo',
@@ -436,7 +436,7 @@ export async function getDailyInsights(): Promise<DailyInsight[]> {
                 title: 'Interventi Critici',
                 message: `Ci sono ${criticalWOs} interventi ad alta priorità in attesa.`,
                 actionLabel: 'Visualizza',
-                actionUrl: '/work-orders?priority=HIGH'
+                actionUrl: '/work-orders?priority=STOPPED'
             });
         }
 
@@ -624,4 +624,98 @@ export async function validateDescriptionQuality(description: string): Promise<{
     }
 
     return { valid: true };
+}
+
+export async function suggestActivitiesForDowntime(lineName: string, durationHours: number) {
+    try {
+        // 1. Find Assets on this Line
+        const assets = await prisma.asset.findMany({
+            where: { line: lineName }, // Assuming 'line' field exists on Asset or mapped somehow. Actually schema says 'line' string?
+            // Wait, schema has lines? Let's check schema. Yes, Asset has `line String?`.
+            include: {
+                schedules: true,
+                workOrders: {
+                    where: { status: { in: ['OPEN', 'PENDING_APPROVAL'] } }
+                }
+            }
+        });
+
+        if (assets.length === 0) {
+            return {
+                message: `Nessun asset trovato sulla linea "${lineName}".`,
+                suggestions: []
+            };
+        }
+
+        const suggestions: any[] = [];
+
+        // Fetch Line Schedule to check if it's maintenance window or emergency
+        // We simulate a check: if duration > 12h it's likely a weekend stop (Green)
+        // If duration < 4h it might be a break.
+        const isLongStop = durationHours >= 8;
+
+        for (const asset of assets) {
+            // A. Check for "Backlog" WOs (Low Priority)
+            const backlog = asset.workOrders.filter(wo => wo.priority !== 'STOPPED');
+
+            if (backlog.length > 0) {
+                for (const wo of backlog) {
+                    suggestions.push({
+                        type: 'WO',
+                        title: wo.title,
+                        assetName: asset.name,
+                        priority: 'MEDIUM',
+                        reason: `Recupera ordine in attesa #${wo.id}`
+                    });
+                }
+            }
+
+            // B. Suggest Checks based on Stop Length
+            if (isLongStop) {
+                // Check if any PM is due in next 14 days
+                const dueSoon = asset.schedules.filter(sch => {
+                    if (!sch.nextDueDate) return false;
+                    const diffDays = Math.ceil((new Date(sch.nextDueDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                    return diffDays <= 14;
+                });
+
+                for (const pm of dueSoon) {
+                    suggestions.push({
+                        type: 'PM',
+                        title: pm.taskTitle,
+                        assetName: asset.name,
+                        priority: 'HIGH',
+                        reason: `Approfitta del fermo lungo per anticipare scadenza (${new Date(pm.nextDueDate).toLocaleDateString()})`
+                    });
+                }
+            }
+        }
+
+        // C. Generic Suggestions
+        if (isLongStop && suggestions.length < 3) {
+            suggestions.push({
+                type: 'GENERIC',
+                title: 'Pulizia e Sanificazione Area',
+                assetName: 'Linea',
+                priority: 'LOW',
+                reason: 'Standard per fermi > 8h.'
+            });
+        }
+
+        if (suggestions.length === 0) {
+            return {
+                message: "Nessuna attività urgente rilevata. La linea è in ottima salute! 🌟",
+                suggestions: []
+            };
+        }
+
+        return {
+            message: `Ho trovato ${suggestions.length} attività suggerite per questo fermo:`,
+            suggestions
+        };
+
+    } catch (error) {
+        console.error("Downtime Suggestion Error:", error);
+        return { message: "Errore durante l'analisi.", suggestions: [] };
+    }
 }

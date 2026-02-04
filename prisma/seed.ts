@@ -7,13 +7,14 @@ async function main() {
     const password = await bcrypt.hash('admin', 10);
     const userPassword = await bcrypt.hash('user', 10);
 
+    // Initial Users
     const users = [
         {
             name: 'Mario Rossi',
             email: 'admin@cmms.it',
             password: password,
             role: 'ADMIN',
-            image: '/avatars/mr.png', // Placeholder
+            image: '/avatars/mr.png',
         },
         {
             name: 'Luigi Bianchi',
@@ -22,6 +23,29 @@ async function main() {
             role: 'SUPERVISOR',
             image: '/avatars/lb.png',
         },
+        // Technicians as Users
+        {
+            name: 'Luigi Verdi',
+            email: 'tech.luigi@cmms.it',
+            password: userPassword,
+            role: 'MAINTAINER',
+            image: '/avatars/default.png',
+        },
+        {
+            name: 'Elena Bianchi',
+            email: 'tech.elena@cmms.it',
+            password: userPassword,
+            role: 'MAINTAINER',
+            image: '/avatars/default.png',
+        },
+        {
+            name: 'Giulia Neri',
+            email: 'tech.giulia@cmms.it',
+            password: userPassword,
+            role: 'MAINTAINER',
+            image: '/avatars/default.png',
+        },
+        // Standard User
         {
             name: 'Giuseppe Verdi',
             email: 'user@cmms.it',
@@ -39,16 +63,41 @@ async function main() {
         });
     }
 
-    // Create Technicians
+    // Create Technicians and Link to Users
     const technicians = [
-        { name: 'Mario Rossi', specialty: 'Hydraulics', hourlyRate: 45 },
-        { name: 'Luigi Verdi', specialty: 'Electronics', hourlyRate: 50 },
-        { name: 'Elena Bianchi', specialty: 'Robotics', hourlyRate: 60 },
-        { name: 'Giulia Neri', specialty: 'General', hourlyRate: 40 },
+        { name: 'Mario Rossi', specialty: 'Hydraulics', hourlyRate: 45, email: 'admin@cmms.it' },
+        { name: 'Luigi Verdi', specialty: 'Electronics', hourlyRate: 50, email: 'tech.luigi@cmms.it' },
+        { name: 'Elena Bianchi', specialty: 'Robotics', hourlyRate: 60, email: 'tech.elena@cmms.it' },
+        { name: 'Giulia Neri', specialty: 'General', hourlyRate: 40, email: 'tech.giulia@cmms.it' },
     ];
 
     for (const tech of technicians) {
-        await prisma.technician.create({ data: tech });
+        // Find the user
+        const user = await prisma.user.findUnique({
+            where: { email: tech.email }
+        });
+
+        if (user) {
+            // Create or Update Technician linked to User
+            // Since userId is unique, we use upsert with a dummy where or findFirst
+            // But simpler: just try create, or check if exists.
+            // Upserting by userId is not directly supported unless it's an ID.
+            // Let's check if technician exists for this user.
+            const existing = await prisma.technician.findUnique({
+                where: { userId: user.id }
+            });
+
+            if (!existing) {
+                await prisma.technician.create({
+                    data: {
+                        name: tech.name,
+                        specialty: tech.specialty,
+                        hourlyRate: tech.hourlyRate,
+                        userId: user.id
+                    }
+                });
+            }
+        }
     }
 
     // Create Assets
@@ -194,6 +243,7 @@ async function main() {
             assignedTo: 'Giulia Neri',
             dueDate: new Date('2026-01-02'),
             createdAt: new Date('2026-01-01'),
+            checklist: { create: [] }
         }
     ];
 
@@ -205,7 +255,7 @@ async function main() {
         })
     }
 
-    console.log('Seed data created.');
+    console.log('Seed data and Schema relationships enabled.');
 }
 
 main()

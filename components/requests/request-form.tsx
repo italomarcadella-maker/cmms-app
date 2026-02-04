@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Camera, AlertTriangle, Mic, MicOff } from "lucide-react";
+import { Loader2, Camera, AlertTriangle, Mic, MicOff, CheckCircle, Search, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { useAssets } from "@/lib/assets-context"; // Assuming this exists, based on previous exploration
-// If assets-context doesn't export useAssets, I might need to fetch assets differently.
-// Checking open files... inventory-context exists. assets-context exists in lib list.
+import { useAssets } from "@/lib/assets-context";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AssetSelector } from "@/components/assets/asset-selector";
 
 // Augmented Window interface for SpeechRecognition
 declare global {
@@ -26,10 +26,12 @@ declare global {
 
 interface RequestFormProps {
     initialAssetId?: string;
+    initialCategory?: string; // New Prop
+    forceAssetSelection?: boolean; // New Prop
     onCancel?: () => void;
 }
 
-export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
+export function RequestForm({ initialAssetId, initialCategory, forceAssetSelection, onCancel }: RequestFormProps) {
     const router = useRouter();
     const { user } = useAuth();
     const { assets } = useAssets();
@@ -39,11 +41,25 @@ export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
         title: "",
         description: "",
         assetId: initialAssetId || "",
-        priority: "MEDIUM",
-        // image: null // Future implementation
+        priority: "WORKING",
+        category: initialCategory || "OTHER", // Default or passed prop
+        requestImage: null as string | null // Base64 image
     });
     const [pendingRequests, setPendingRequests] = useState<any[]>([]);
     const [checkingDuplicates, setCheckingDuplicates] = useState(false);
+    const [assetDialogOpen, setAssetDialogOpen] = useState(false);
+
+    // Handle Image Upload
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({ ...prev, requestImage: reader.result as string }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     // Voice Dictation State
     const [isListening, setIsListening] = useState(false);
@@ -171,7 +187,7 @@ export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
                 type: "REQUEST",
                 status: "PENDING_APPROVAL",
                 requesterId: user?.id,
-                category: "OTHER", // Default for request
+                category: formData.category, // Use selected category
             });
 
             if (result.success) {
@@ -233,29 +249,56 @@ export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Asset / Macchinario *</label>
-                        <Select
-                            value={formData.assetId}
-                            onValueChange={(val) => setFormData({ ...formData, assetId: val })}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleziona Asset" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {assets.map((asset) => (
-                                    <SelectItem key={asset.id} value={asset.id}>
-                                        {asset.name} ({asset.serialNumber})
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {checkingDuplicates && (
-                            <div className="text-xs text-muted-foreground animate-pulse flex items-center gap-1">
-                                <Loader2 className="h-3 w-3 animate-spin" /> Controllo segnalazioni aperte...
+                    {/* Asset Selection: Show if forced OR if no asset ID provided (and not a system asset) */}
+                    {(forceAssetSelection || !formData.assetId || !formData.assetId.startsWith('SYS-')) && (
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Asset / Macchinario *</label>
+
+                            {/* NEW: Tree-based selection via Dialog */}
+                            <div className="flex gap-2">
+                                <Dialog open={assetDialogOpen} onOpenChange={setAssetDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className={cn(
+                                                "w-full justify-start text-left font-normal",
+                                                !formData.assetId && "text-muted-foreground"
+                                            )}
+                                        >
+                                            {formData.assetId ? (
+                                                assets.find(a => a.id === formData.assetId)?.name || formData.assetId
+                                            ) : (
+                                                <>
+                                                    <Search className="mr-2 h-4 w-4" />
+                                                    Sfoglia e seleziona macchinario...
+                                                </>
+                                            )}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col bg-background/95 backdrop-blur-xl">
+                                        <DialogHeader>
+                                            <DialogTitle>Seleziona Macchinario</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="flex-1 overflow-y-auto pr-2">
+                                            <AssetSelector
+                                                assets={assets}
+                                                onSelect={(asset) => {
+                                                    setFormData({ ...formData, assetId: asset.id });
+                                                    setAssetDialogOpen(false);
+                                                }}
+                                            />
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
-                        )}
-                    </div>
+
+                            {checkingDuplicates && (
+                                <div className="text-xs text-muted-foreground animate-pulse flex items-center gap-1">
+                                    <Loader2 className="h-3 w-3 animate-spin" /> Controllo segnalazioni aperte...
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Priorità Percepita</label>
@@ -267,12 +310,43 @@ export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
                                 <SelectValue placeholder="Seleziona Priorità" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="LOW">Bassa - Non Urgente</SelectItem>
-                                <SelectItem value="MEDIUM">Media - Da Pianificare</SelectItem>
-                                <SelectItem value="HIGH">Alta - Blocco Produzione</SelectItem>
+                                <SelectItem value="NOT_PRODUCTION">Non in Produzione (Meno Grave)</SelectItem>
+                                <SelectItem value="WORKING">In Lavoro (Monitorare)</SelectItem>
+                                <SelectItem value="MALFUNCTIONING">Malfunzionante (Intervento Richiesto)</SelectItem>
+                                <SelectItem value="STOPPED">Ferma (Urgentissimo)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {/* Technical Drawing Upload (Only for Workshop) */}
+                    {formData.category === 'WORKSHOP' && (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                                <Camera className="h-4 w-4" />
+                                Carica Disegno Tecnico / Foto
+                            </label>
+                            <Input
+                                type="file"
+                                accept="image/*,.pdf"
+                                onChange={handleImageChange}
+                                className="cursor-pointer"
+                            />
+                            {formData.requestImage && (
+                                <div className="mt-2 relative group w-full max-w-[200px] rounded-lg overflow-hidden border shadow-sm">
+                                    <img
+                                        src={formData.requestImage}
+                                        alt="Preview"
+                                        className="w-full h-auto object-cover max-h-[150px]"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <p className="text-white text-xs font-medium flex items-center ml-1">
+                                            <CheckCircle className="h-3 w-3 mr-1" /> Caricata
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
@@ -315,19 +389,22 @@ export function RequestForm({ initialAssetId, onCancel }: RequestFormProps) {
                                 setTimeout(() => {
                                     setLoading(false);
                                     const desc = formData.description.toLowerCase();
-                                    let suggestedPriority = "MEDIUM";
+                                    let suggestedPriority = "WORKING";
                                     let suggestionReason = "Analisi standard";
 
                                     // Heuristic Analysis
-                                    if (desc.includes("fuoco") || desc.includes("fumo") || desc.includes("pericolo") || desc.includes("fermo")) {
-                                        suggestedPriority = "HIGH";
-                                        suggestionReason = "Parole chiave critiche rilevate (Sicurezza/Fermo)";
-                                    } else if (desc.includes("rumore") || desc.includes("lento")) {
-                                        suggestedPriority = "MEDIUM";
-                                        suggestionReason = "Potenziale usura meccanica";
+                                    if (desc.includes("fuoco") || desc.includes("fumo") || desc.includes("pericolo") || desc.includes("fermo") || desc.includes("blocc")) {
+                                        suggestedPriority = "STOPPED";
+                                        suggestionReason = "Parole chiave critiche rilevate (Sicurezza/Fermo Impianto)";
+                                    } else if (desc.includes("rumore") || desc.includes("lento") || desc.includes("vibrazion")) {
+                                        suggestedPriority = "MALFUNCTIONING";
+                                        suggestionReason = "Potenziale usura o malfunzionamento che non ferma la produzione";
+                                    } else if (desc.includes("spia") || desc.includes("osservazione")) {
+                                        suggestedPriority = "WORKING";
+                                        suggestionReason = "Anomalia lieve, macchinario in lavoro";
                                     } else {
-                                        suggestedPriority = "LOW";
-                                        suggestionReason = "Nessuna criticità evidente";
+                                        suggestedPriority = "NOT_PRODUCTION";
+                                        suggestionReason = "Nessuna criticità evidente rilevata";
                                     }
 
                                     setFormData(prev => ({ ...prev, priority: suggestedPriority }));

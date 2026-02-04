@@ -56,7 +56,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
                     duration: 5000,
                     action: {
                         label: "Ordina",
-                        onClick: () => console.log("Order triggered") // Placeholder for ordering flow
+                        onClick: () => toast.info("Funzionalità Ordine non ancora implementata")
                     }
                 });
             } else {

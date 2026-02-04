@@ -20,7 +20,7 @@ const getDetailedDashboardStatsCached = unstable_cache(
             const [totalWorkOrders, openWorkOrders, highPriorityOpen, overdueWorkOrders] = await Promise.all([
                 prisma.workOrder.count(),
                 prisma.workOrder.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] } } }),
-                prisma.workOrder.count({ where: { priority: 'HIGH', status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
+                prisma.workOrder.count({ where: { priority: 'STOPPED', status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
                 prisma.workOrder.count({ where: { dueDate: { lt: new Date() }, status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] } } })
             ]);
 

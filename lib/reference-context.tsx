@@ -7,7 +7,7 @@ import { mockTechnicians, mockActivities } from "@/lib/mock-data";
 interface ReferenceContextType {
     technicians: Technician[];
     activities: MaintenanceActivity[];
-    addTechnician: (name: string, specialty: string, hourlyRate: number) => void;
+    addTechnician: (name: string, specialty: string, hourlyRate: number, email: string) => void;
     removeTechnician: (id: string) => void;
     addActivity: (label: string, category?: string) => void;
     removeActivity: (id: string) => void;
@@ -34,9 +34,9 @@ export function ReferenceProvider({ children }: { children: React.ReactNode }) {
         setIsLoaded(true);
     };
 
-    const addTechnician = async (name: string, specialty: string, hourlyRate: number) => {
+    const addTechnician = async (name: string, specialty: string, hourlyRate: number, email: string) => {
         const { addTechnician } = await import('@/lib/actions');
-        const result = await addTechnician({ name, specialty, hourlyRate });
+        const result = await addTechnician({ name, specialty, hourlyRate, email });
 
         if (result.success && result.data) {
             setTechnicians(prev => [...prev, result.data as Technician]);

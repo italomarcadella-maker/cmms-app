@@ -486,15 +486,68 @@ export async function getTechnicians() {
     try { return await prisma.technician.findMany(); } catch (error) { return []; }
 }
 
-export async function addTechnician(data: { name: string; specialty: string; hourlyRate: number }) {
+export async function getAvailableUsersForTechnician() {
+    const { authorized } = await requireRole('ADMIN');
+    if (!authorized) return [];
+    try {
+        const users = await prisma.user.findMany({
+            where: {
+                technicianProfile: null,
+                // Optional: restrict to specific roles if needed, e.g. NOT 'ADMIN' or only 'MAINTAINER'?
+                // User requirement implies any user can be upgraded to technician.
+                // But typically we might want to filter out blocked users?
+                isActive: true
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true
+            }
+        });
+        return users;
+    } catch (error) {
+        console.error("Failed to get available users:", error);
+        return [];
+    }
+}
+
+
+
+export async function addTechnician(data: { name: string; specialty: string; hourlyRate: number; email: string }) {
     const session = await auth();
     if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
+
     try {
-        const newTech = await prisma.technician.create({ data });
+        // Find User
+        const user = await prisma.user.findUnique({ where: { email: data.email } });
+        if (!user) {
+            return { success: false, message: 'Utente non trovato. Devi prima creare un account Utente con questa email.' };
+        }
+
+        // Check if user is already a technician
+        const existingTech = await prisma.technician.findUnique({ where: { userId: user.id } });
+        if (existingTech) {
+            return { success: false, message: 'Questo utente è già un tecnico.' };
+        }
+
+        const newTech = await prisma.technician.create({
+            data: {
+                name: data.name,
+                specialty: data.specialty,
+                hourlyRate: data.hourlyRate,
+                userId: user.id
+            }
+        });
+
+        // Optionally update Role to MAINTAINER if strictly needed, but let's leave it flexible or do it.
+        // if (user.role === 'USER') { await prisma.user.update({ where: {id: user.id}, data: { role: 'MAINTAINER' }})} 
+
         revalidatePath('/settings');
-        return { success: true, message: 'Tecnico aggiunto', data: newTech };
+        return { success: true, message: 'Tecnico aggiunto e collegato all\'utente.', data: newTech };
     } catch (error) {
-        return { success: false, message: 'Errore aggiunta tecnico' };
+        console.error("Add Technician Error:", error);
+        return { success: false, message: 'Errore aggiunta tecnico: ' + (error as any).message };
     }
 }
 
@@ -733,6 +786,34 @@ export async function getActiveWorkOrdersForAsset(assetId: string) {
     }
 }
 
+const VIRTUAL_ASSETS: Record<string, { name: string; type: string }> = {
+    'SYS-SAFETY': { name: 'Segnalazione Sicurezza', type: 'SAFETY' },
+    'SYS-KAIZEN': { name: 'Proposta Miglioramento', type: 'KAIZEN' },
+    'SYS-WORKSHOP': { name: 'Richiesta Officina', type: 'WORKSHOP' },
+    'SYS-PLANT': { name: 'Manutenzione Impianti', type: 'PLANT' },
+    'SYS-OTHER': { name: 'Altro / Generico', type: 'OTHER' },
+};
+
+async function ensureVirtualAsset(id: string) {
+    if (VIRTUAL_ASSETS[id]) {
+        const info = VIRTUAL_ASSETS[id];
+        await prisma.asset.upsert({
+            where: { id },
+            update: {},
+            create: {
+                id,
+                name: info.name,
+                model: 'System Virtual Asset',
+                serialNumber: id,
+                location: 'VIRTUAL',
+                status: 'OPERATIONAL',
+                purchaseDate: new Date(),
+                department: 'GENERAL'
+            }
+        });
+    }
+}
+
 export async function createWorkOrder(data: any) {
     try {
         const { id, checklist, partsUsed, laborLogs, assetName, createdAt, ...rest } = data;
@@ -742,6 +823,9 @@ export async function createWorkOrder(data: any) {
             console.error("Missing assetId in createWorkOrder payload:", data);
             return { success: false, message: "Asset ID mancante." };
         }
+
+        // Ensure Virtual Asset Exists if applicable
+        await ensureVirtualAsset(rest.assetId);
 
         // Handle optional dates
         const dueDate = rest.dueDate ? new Date(rest.dueDate) : null;
@@ -762,6 +846,22 @@ export async function createWorkOrder(data: any) {
                 } : undefined
             }
         });
+
+        // NOTIFICATION: Check if created with assignment
+        if (newWO.assignedTechnicianId) {
+            const tech = await prisma.technician.findUnique({ where: { id: newWO.assignedTechnicianId } });
+            if (tech && tech.userId) {
+                // Notifica il tecnico
+                await prisma.notification.create({
+                    data: {
+                        userId: tech.userId,
+                        title: "Nuovo Incarico",
+                        message: `Ti è stato assegnato un nuovo ordine di lavoro: ${newWO.title}`,
+                        link: `/work-orders/${newWO.id}`
+                    }
+                });
+            }
+        }
 
         revalidatePath('/maintenance');
         revalidatePath('/work-orders');
@@ -796,16 +896,13 @@ export async function approveRequest(id: string, technicianId: string, priority:
             }
         });
 
-        // Notify Technician (if notification system exists and tech is user)
-        const techUser = await prisma.user.findFirst({ where: { name: tech?.name } });
-
-        // Fetch WO detail for notification context
+        // Notify Technician Using User ID
         const assignedWO = await prisma.workOrder.findUnique({ where: { id } });
 
-        if (techUser && assignedWO) {
+        if (tech && tech.userId && assignedWO) {
             await prisma.notification.create({
                 data: {
-                    userId: techUser.id,
+                    userId: tech.userId,
                     title: "Nuovo Incarico: " + assignedWO.title,
                     message: `È stata approvata una nuova richiesta.\nDescrizione: ${assignedWO.description.substring(0, 100)}${assignedWO.description.length > 100 ? '...' : ''}`,
                     link: `/work-orders/${id}`
@@ -1146,11 +1243,10 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string)
         }
     });
 
-    const user = await prisma.user.findFirst({ where: { name: tech.name } });
-    if (user) {
+    if (tech.userId) {
         await prisma.notification.create({
             data: {
-                userId: user.id,
+                userId: tech.userId,
                 title: "Nuovo Incarico",
                 message: `Ti è stato assegnato un nuovo ordine di lavoro: ${workOrder.title}`,
                 link: `/work-orders/${workOrder.id}`
@@ -1742,7 +1838,7 @@ const getAssetMaintenanceEventsCached = unstable_cache(
                         { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING'] } },
                         {
                             category: { in: ['PREVENTIVE', 'PLANNED'] },
-                            scheduledDate: { gte: new Date() }
+                            dueDate: { gte: new Date() }
                         }
                     ]
                 },
@@ -1792,3 +1888,126 @@ export async function getEWO(workOrderId: string) {
 // Aliases for context compatibility
 export const updateQuantity = updateSparePartQuantity;
 export const removePart = deleteSparePart;
+
+// --- Production Lines (Shift Patterns) ---
+
+export async function updateProductionLine(data: {
+    line: string;
+    prodStartDay: number;
+    prodStartTime: string;
+    prodEndDay: number;
+    prodEndTime: string;
+    maintStart: string;
+    maintEnd: string;
+    maintStartDay: number;
+    maintEndDay: number;
+    maintSatStart?: string;
+    maintSatEnd?: string;
+    maintSunStart?: string;
+    maintSunEnd?: string;
+}) {
+    const session = await auth();
+    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERVISOR')) {
+        return { success: false, message: 'Non autorizzato' };
+    }
+
+    try {
+        const line = await prisma.productionLine.upsert({
+            where: { line: data.line },
+            update: {
+                prodStartDay: data.prodStartDay,
+                prodStartTime: data.prodStartTime,
+                prodEndDay: data.prodEndDay,
+                prodEndTime: data.prodEndTime,
+                maintStart: data.maintStart,
+                maintEnd: data.maintEnd,
+                maintStartDay: data.maintStartDay,
+                maintEndDay: data.maintEndDay,
+                maintSatStart: data.maintSatStart,
+                maintSatEnd: data.maintSatEnd,
+                maintSunStart: data.maintSunStart,
+                maintSunEnd: data.maintSunEnd,
+                updatedAt: new Date()
+            },
+            create: {
+                line: data.line,
+                prodStartDay: data.prodStartDay,
+                prodStartTime: data.prodStartTime,
+                prodEndDay: data.prodEndDay,
+                prodEndTime: data.prodEndTime,
+                maintStart: data.maintStart,
+                maintEnd: data.maintEnd,
+                maintStartDay: data.maintStartDay,
+                maintEndDay: data.maintEndDay,
+                maintSatStart: data.maintSatStart,
+                maintSatEnd: data.maintSatEnd,
+                maintSunStart: data.maintSunStart,
+                maintSunEnd: data.maintSunEnd
+            }
+        });
+        revalidatePath('/planning/calendar');
+        return { success: true, data: line };
+    } catch (error) {
+        console.error("Update Line Error:", error);
+        return { success: false, message: 'Errore aggiornamento linea' };
+    }
+}
+
+import { calculateLineReliability } from "./kpi-service";
+import { subDays } from "date-fns";
+
+export async function getLineStats(line: string) {
+    const session = await auth();
+    if (!session?.user) return null;
+
+    const endDate = new Date();
+    const startDate = subDays(endDate, 30); // Last 30 days default
+
+    try {
+        const stats = await calculateLineReliability(line, startDate, endDate);
+        return { success: true, data: stats };
+    } catch (error) {
+        console.error("KPI Error:", error);
+        return { success: false, message: "Errore calcolo KPI" };
+    }
+}
+
+export async function getProductionLines() {
+    try {
+        // 1. Get Configured Lines
+        const configuredLines = await prisma.productionLine.findMany();
+
+        // 2. Get All Lines from Assets
+        const assetLinesRaw = await prisma.asset.findMany({
+            where: { line: { not: null } },
+            select: { line: true },
+            distinct: ['line']
+        });
+        const assetLineNames = assetLinesRaw.map(a => a.line).filter(Boolean) as string[];
+
+        // 3. Merge
+        const merged = [...configuredLines];
+        for (const name of assetLineNames) {
+            if (!merged.find(l => l.line === name)) {
+                // Return default/placeholder for unconfigured lines found in assets
+                merged.push({
+                    line: name,
+                    prodStartDay: 1,
+                    prodStartTime: "06:00",
+                    prodEndDay: 5,
+                    prodEndTime: "22:00",
+                    maintStart: "08:00",
+                    maintEnd: "17:00",
+                    maintStartDay: 1, // Mon
+                    maintEndDay: 5,   // Fri
+                    updatedAt: new Date()
+                });
+            }
+        }
+
+        return merged.sort((a, b) => a.line.localeCompare(b.line));
+    } catch (error) {
+        console.error("Get Lines Error:", error);
+        return [];
+    }
+}

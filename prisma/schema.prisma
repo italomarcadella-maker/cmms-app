@@ -27,6 +27,7 @@ model User {
   requestedWorkOrders WorkOrder[] @relation("RequestedBy")
   validatedWorkOrders WorkOrder[] @relation("ValidatedBy")
   availability        TechnicianAvailability[]
+  technicianProfile   Technician?
 }
 
 model Account {
@@ -209,6 +210,9 @@ model Technician {
   name       String
   specialty  String
   hourlyRate Float
+  
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String @unique
 }
 
 model MaintenanceActivity {
@@ -366,4 +370,23 @@ model TechnicianAvailability {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date]) // Ensure one status per user per day
+}
+
+model ProductionLine {
+  line           String @id
+  prodStartDay   Int    @default(1) // 1=Mon
+  prodStartTime  String @default("06:00")
+  prodEndDay     Int    @default(5) // 5=Fri
+  prodEndTime    String @default("22:00")
+  maintStart     String @default("08:00")
+  maintEnd       String @default("17:00")
+  maintStartDay  Int    @default(1) // 1=Mon
+  maintEndDay    Int    @default(5) // 5=Fri
+  
+  maintSatStart  String? // Optional Saturday Shift
+  maintSatEnd    String?
+  maintSunStart  String? // Optional Sunday Shift
+  maintSunEnd    String?
+
+  updatedAt      DateTime @default(now())
 }

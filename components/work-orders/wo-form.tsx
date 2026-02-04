@@ -24,7 +24,7 @@ export function WorkOrderForm() {
     const initialAssetId = searchParams.get("assetId") || "";
     const initialTitle = searchParams.get("title") || "";
     // Note: handling description pre-fill with multi-select is complex for this demo, keeping simple for now
-    const initialPriority = searchParams.get("priority") || "LOW";
+    const initialPriority = searchParams.get("priority") || "WORKING";
 
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -61,7 +61,7 @@ export function WorkOrderForm() {
             description: desc || "Maintenance Task",
             assetId: assetId,
             assetName: selectedAsset ? selectedAsset.name : "Unknown Asset",
-            priority: formData.get("priority") as "HIGH" | "MEDIUM" | "LOW",
+            priority: formData.get("priority") as "STOPPED" | "MALFUNCTIONING" | "WORKING" | "NOT_PRODUCTION",
             status: "OPEN",
             assignedTo: selectedTech ? selectedTech.name : "Unassigned",
             assignedTechnicianId: techId,
@@ -127,9 +127,10 @@ export function WorkOrderForm() {
                     <div className="space-y-2">
                         <label htmlFor="priority" className="text-sm font-medium">Priorità</label>
                         <select required id="priority" name="priority" defaultValue={initialPriority} className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none">
-                            <option value="LOW">Bassa</option>
-                            <option value="MEDIUM">Media</option>
-                            <option value="HIGH">Alta</option>
+                            <option value="STOPPED">Ferma (Urgentissimo)</option>
+                            <option value="MALFUNCTIONING">Malfunzionante</option>
+                            <option value="WORKING">In Lavoro</option>
+                            <option value="NOT_PRODUCTION">Non in Produzione</option>
                         </select>
                     </div>
 
