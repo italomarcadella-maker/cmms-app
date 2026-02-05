@@ -81,6 +81,8 @@ model Asset {
   healthScore     Int      @default(100)
   lastMaintenance DateTime?
   
+  warrantyExpiration DateTime? // Phase 9: Cost & Warranty
+  
   images          AssetImage[]
   documents       AssetDocument[]
   workOrders      WorkOrder[]
@@ -288,6 +290,7 @@ model SparePart {
   category    String?
   description String?
   warehouse   String? // Added to support UI
+  vendor      String? // Phase 9: Supplier
   quantity    Int
   minQuantity Int      @default(0)
   location    String?
