@@ -55,27 +55,26 @@ export default async function ReportsPage() {
                         <p className="text-sm text-muted-foreground">Coming soon...</p>
                     </CardContent>
                 </Card>
-            </Card>
 
-            {/* Cost Report */}
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer group">
-                <Link href="/reports/costs">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Euro className="h-5 w-5 text-emerald-500" />
-                            Analisi Costi
-                        </CardTitle>
-                        <CardDescription>Report economico YTD e per reparto.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex justify-between items-center text-sm font-medium text-emerald-600">
-                            <span>Visualizza Dashboard</span>
-                            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                        </div>
-                    </CardContent>
-                </Link>
-            </Card>
-        </div>
-    </div >
+                {/* Cost Report */}
+                <Card className="hover:border-primary/50 transition-colors cursor-pointer group">
+                    <Link href="/reports/costs">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Euro className="h-5 w-5 text-emerald-500" />
+                                Analisi Costi
+                            </CardTitle>
+                            <CardDescription>Report economico YTD e per reparto.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex justify-between items-center text-sm font-medium text-emerald-600">
+                                <span>Visualizza Dashboard</span>
+                                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                            </div>
+                        </CardContent>
+                    </Link>
+                </Card>
+            </div>
+        </div >
     );
 }
