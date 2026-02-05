@@ -33,15 +33,15 @@ export default async function AssetHistoryReport({ params }: PageProps) {
 
     return (
         <PrintLayout
-            title={`Scheda Manutenzione Asset: ${asset.name}`}
-            subtitle={`Modello: ${asset.model} | S/N: ${asset.serialNumber} | Locazione: ${asset.location}`}
+            title={`Scheda Manutenzione Asset: ${typedAsset.name}`}
+            subtitle={`Modello: ${typedAsset.model} | S/N: ${typedAsset.serialNumber} | Locazione: ${typedAsset.location}`}
         >
             <div className="space-y-8">
                 {/* Summary Stats */}
                 <div className="grid grid-cols-4 gap-4 p-4 bg-slate-50 border rounded-lg print:border-black print:bg-white">
                     <div>
                         <p className="text-xs text-gray-500 uppercase font-bold">Stato Attuale</p>
-                        <p className="text-lg font-semibold">{asset.status}</p>
+                        <p className="text-lg font-semibold">{typedAsset.status}</p>
                     </div>
                     <div>
                         <p className="text-xs text-gray-500 uppercase font-bold">Interventi Totali</p>
@@ -73,7 +73,7 @@ export default async function AssetHistoryReport({ params }: PageProps) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {asset.workOrders.map((wo) => (
+                            {typedAsset.workOrders.map((wo: any) => (
                                 <TableRow key={wo.id}>
                                     <TableCell className="font-medium text-xs">
                                         {format(wo.createdAt, 'dd/MM/yyyy HH:mm')}

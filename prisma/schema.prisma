@@ -115,6 +115,7 @@ model WorkOrder {
   status               String   @default("OPEN")
   assignedTo           String?  // Legacy or Display Name
   assignedTechnicianId String?
+  assignedTechnician   Technician? @relation(fields: [assignedTechnicianId], references: [id])
 
   // Workflow Fields
   requesterId          String?
@@ -220,6 +221,7 @@ model Technician {
   
   user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String @unique
+  workOrders WorkOrder[]
 }
 
 model MaintenanceActivity {

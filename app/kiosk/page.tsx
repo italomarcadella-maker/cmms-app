@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AlertHexagon, Wrench, CheckCircle2, Siren, ArrowLeft } from "lucide-react";
+import { AlertTriangle, Wrench, CheckCircle2, Siren, ArrowLeft } from "lucide-react";
 import { createWorkOrder } from "@/lib/actions"; // We'll assume a wrapper or direct call
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -130,7 +130,7 @@ export default function KioskPage() {
                 className="group relative flex flex-col items-center justify-center gap-6 bg-white border-2 border-slate-200 hover:border-red-500 hover:bg-red-50 rounded-3xl p-12 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
             >
                 <div className="p-6 bg-red-100 rounded-full group-hover:bg-red-200 transition-colors">
-                    <AlertHexagon className="h-24 w-24 text-red-600" />
+                    <AlertTriangle className="h-24 w-24 text-red-600" />
                 </div>
                 <div className="text-center space-y-2">
                     <h2 className="text-3xl font-bold text-slate-800">Segnala Guasto</h2>

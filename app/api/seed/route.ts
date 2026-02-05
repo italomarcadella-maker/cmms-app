@@ -51,16 +51,44 @@ export async function GET() {
             });
         }
 
-        // Create Technicians
+        // Create Technicians linked to Users
+        // We match them by name for simplicity in this seed script
+        const createdUsers = await prisma.user.findMany();
+
+        // Map of name -> userId
+        const userMap = new Map(createdUsers.map(u => [u.name, u.id]));
+
         const technicians = [
             { name: 'Mario Rossi', specialty: 'Hydraulics', hourlyRate: 45 },
-            { name: 'Luigi Verdi', specialty: 'Electronics', hourlyRate: 50 },
-            { name: 'Elena Bianchi', specialty: 'Robotics', hourlyRate: 60 },
-            { name: 'Giulia Neri', specialty: 'General', hourlyRate: 40 },
+            { name: 'Luigi Bianchi', specialty: 'Supervisor (Tech)', hourlyRate: 55 }, // Mapped to Supervisor for demo
+            { name: 'Giuseppe Verdi', specialty: 'General', hourlyRate: 40 },
+            // Tech/Maintainer user logic: 'Tecnico Manutentore' -> 'Tech Mike'
         ];
 
-        for (const tech of technicians) {
-            await prisma.technician.create({ data: tech });
+        // Specific mapping for the 'Tecnico Manutentore' user to a technician profile
+        const techUser = createdUsers.find(u => u.email === 'tech@cmms.it');
+        if (techUser) {
+            await prisma.technician.create({
+                data: {
+                    name: techUser.name || 'Tecnico Manutentore',
+                    specialty: 'General Maintenance',
+                    hourlyRate: 35,
+                    userId: techUser.id
+                }
+            });
+        }
+
+        // Also map Mario Rossi (Admin) as a tech for testing assignments
+        const adminUser = createdUsers.find(u => u.email === 'admin@cmms.it');
+        if (adminUser) {
+            await prisma.technician.create({
+                data: {
+                    name: 'Mario Rossi',
+                    specialty: 'Master Technician',
+                    hourlyRate: 60,
+                    userId: adminUser.id
+                }
+            });
         }
 
         // Create Assets

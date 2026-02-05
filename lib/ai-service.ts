@@ -521,7 +521,7 @@ async function safeDbCall<T>(promise: Promise<T>, fallback: T): Promise<T> {
     }
 }
 
-export async function chatWithAsset(assetId: string, message: string, history: { role: string, content: string }[] = []) {
+export async function chatWithAsset(assetId: string, message: string, history: any[]): Promise<{ role: string; content: string; actions?: any[] }> {
     // 1. Fetch Asset Context
     const asset = await prisma.asset.findUnique({
         where: { id: assetId },
