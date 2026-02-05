@@ -10,6 +10,7 @@ import { useReference } from "@/lib/reference-context";
 import { WorkOrder } from "@/lib/types";
 import { CreatableSelect } from "@/components/ui/creatable-select";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { VoiceInput } from "@/components/ui/voice-input";
 
 export function WorkOrderForm() {
     const router = useRouter();
@@ -107,8 +108,23 @@ export function WorkOrderForm() {
                         onCreate={addActivity}
                         placeholder="Seleziona task..."
                     />
-                    {/* Hidden input to pass description if needed, or we just rely on state */}
-                    <input type="hidden" name="description" value={selectedActivities.map(id => activities.find(a => a.id === id)?.label).join(", ")} />
+                    <div className="space-y-2">
+                        <label htmlFor="description" className="text-sm font-medium">Descrizione / Note Aggiuntive</label>
+                        <div className="flex gap-2">
+                            <textarea
+                                id="description"
+                                name="description"
+                                className="flex min-h-[80px] w-full rounded-md border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
+                                placeholder="Dettagli aggiuntivi..."
+                            />
+                            <div className="mt-1">
+                                <VoiceInput onTranscript={(text) => {
+                                    const el = document.getElementById('description') as HTMLTextAreaElement;
+                                    if (el) el.value = (el.value ? el.value + " " : "") + text;
+                                }} />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

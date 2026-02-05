@@ -13,8 +13,11 @@ export default function LoginPage() {
 
             <div className="relative w-full max-w-md p-4 animate-in fade-in zoom-in-95 duration-500">
                 <div className="flex justify-center mb-8">
-                    <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-xl border border-white/10 shadow-2xl">
-                        <Factory className="h-10 w-10 text-white" />
+                    <div className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+                        <div className="relative bg-black p-4 rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-800 to-slate-900">
+                            <Factory className="h-10 w-10 text-blue-500" />
+                        </div>
                     </div>
                 </div>
                 <div className="text-center mb-8 space-y-2">

@@ -21,7 +21,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { DeadlineAlerts } from "@/components/calendar/deadline-alerts";
 import { MetricCardSkeleton } from "@/components/ui/skeleton";
 import { AIDailyBrief } from "@/components/dashboard/ai-daily-brief";
+import { SafetyWidget } from "@/components/dashboard/safety-widget";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell } from 'recharts';
+
+import { FactoryMap } from "@/components/dashboard/factory-map";
+import { AnalyticsCharts } from "@/components/dashboard/analytics-charts";
 
 interface DashboardUIProps {
     stats: any;
@@ -29,9 +33,13 @@ interface DashboardUIProps {
     recentWOs: any[];
     overdueWOs: any[];
     dailyInsights: any[];
+    safetyRequests?: any[];
+    technicians?: any[];
+    assets?: any[];
+    metrics?: any;
 }
 
-export function DashboardUI({ stats, trends, recentWOs, overdueWOs, dailyInsights }: DashboardUIProps) {
+export function DashboardUI({ stats, trends, recentWOs, overdueWOs, dailyInsights, safetyRequests = [], technicians = [], assets = [], metrics }: DashboardUIProps) {
 
     // Safety fallback if stats failed to load
     const safeStats = stats || {
@@ -87,7 +95,11 @@ export function DashboardUI({ stats, trends, recentWOs, overdueWOs, dailyInsight
                 </div>
             </div>
 
+            <SafetyWidget requests={safetyRequests || []} technicians={technicians || []} />
             <AIDailyBrief initialInsights={dailyInsights} />
+
+            {/* Factory Map */}
+            <FactoryMap assets={assets || []} />
 
             {/* Primary Metrics Grid */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -127,6 +139,9 @@ export function DashboardUI({ stats, trends, recentWOs, overdueWOs, dailyInsight
                 />
 
             </div>
+
+            {/* Analytics Section */}
+            {metrics && <AnalyticsCharts data={metrics} />}
 
             <div className="grid gap-6 md:grid-cols-12">
                 {/* Left Column: Alerts & KPI Focus */}

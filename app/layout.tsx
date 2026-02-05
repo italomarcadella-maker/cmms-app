@@ -29,6 +29,11 @@ export const metadata: Metadata = {
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
 };
 
+import { CommandPalette } from "@/components/layout/command-palette";
+
+import { NotificationsProvider } from "@/lib/notifications-context";
+import { SWRegister } from "@/components/pwa/sw-register";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -40,15 +45,19 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <ComponentsProvider>
-            <ChatProvider>
-              <TooltipProvider>
-                {children}
-                <ChatWidget />
-                <Toaster />
-              </TooltipProvider>
-            </ChatProvider>
-          </ComponentsProvider>
+          <NotificationsProvider>
+            <ComponentsProvider>
+              <ChatProvider>
+                <TooltipProvider>
+                  <CommandPalette />
+                  {children}
+                  <ChatWidget />
+                  <Toaster />
+                  <SWRegister />
+                </TooltipProvider>
+              </ChatProvider>
+            </ComponentsProvider>
+          </NotificationsProvider>
         </AuthProvider>
       </body>
     </html>

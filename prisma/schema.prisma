@@ -22,6 +22,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   notifications Notification[]
+  auditLogs     AuditLog[]
   
   // Workflow Relations
   requestedWorkOrders WorkOrder[] @relation("RequestedBy")
@@ -182,6 +183,10 @@ model ChecklistItem {
   completed   Boolean   @default(false)
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   workOrderId String
+  
+  // Optional: Who checked it and when
+  checkedBy   String?
+  checkedAt   DateTime?
 }
 
 model WorkOrderPart {
@@ -364,6 +369,7 @@ model TechnicianAvailability {
   userId    String
   date      DateTime
   status    String   // AVAILABLE, VACATION, SICK, TRAINING, PERMIT
+  shift     String?  // MORNING, AFTERNOON, NIGHT, DAY
   notes     String?
   createdAt DateTime @default(now())
   
@@ -390,3 +396,16 @@ model ProductionLine {
 
   updatedAt      DateTime @default(now())
 }
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String   // e.g., "CREATE_WO", "UPDATE_STOCK", "LOGIN"
+  resourceId  String?  // ID of the object affected
+  details     String?  // JSON string or text summary
+  timestamp   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+

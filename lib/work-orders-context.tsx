@@ -40,6 +40,13 @@ export function WorkOrdersProvider({
     // Load from Server on mount
     useEffect(() => {
         refreshWorkOrders();
+
+        // Real-time polling
+        const intervalId = setInterval(() => {
+            refreshWorkOrders();
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(intervalId);
     }, []);
 
     const addWorkOrder = async (workOrder: WorkOrder) => {

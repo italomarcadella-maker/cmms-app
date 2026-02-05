@@ -28,7 +28,10 @@ type Availability = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string, color: string, short: string }> = {
-    AVAILABLE: { label: "Presente", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200", short: "P" },
+    AVAILABLE: { label: "Presente (Giornaliero)", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200", short: "G" },
+    SHIFT_MORNING: { label: "Turno Mattina (06-14)", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 ring-1 ring-emerald-500/50", short: "M" },
+    SHIFT_AFTERNOON: { label: "Turno Pomeriggio (14-22)", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 ring-1 ring-emerald-500/50", short: "P" },
+    SHIFT_NIGHT: { label: "Turno Notte (22-06)", color: "bg-indigo-500/10 text-indigo-600 border-indigo-200", short: "N" },
     VACATION: { label: "Ferie", color: "bg-blue-500/10 text-blue-600 border-blue-200", short: "F" },
     SICK: { label: "Malattia", color: "bg-red-500/10 text-red-600 border-red-200", short: "M" },
     TRAINING: { label: "Formazione", color: "bg-purple-500/10 text-purple-600 border-purple-200", short: "C" },
@@ -38,7 +41,8 @@ const STATUS_CONFIG: Record<string, { label: string, color: string, short: strin
 export function TechnicianCalendar() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [technicians, setTechnicians] = useState<Technician[]>([]);
-    const [availabilityMap, setAvailabilityMap] = useState<Record<string, Record<string, string>>>({});
+    // Map stores { status, shift } object now
+    const [availabilityMap, setAvailabilityMap] = useState<Record<string, Record<string, { status: string, shift: string | null }>>>({});
     const [loading, setLoading] = useState(true);
 
     const monthStart = startOfMonth(currentDate);
@@ -57,12 +61,11 @@ export function TechnicianCalendar() {
 
             const avail = await getTechnicianAvailability(monthStart, monthEnd);
 
-            // Transform array to map: user_id -> date_string -> status
-            const map: Record<string, Record<string, string>> = {};
+            const map: Record<string, Record<string, { status: string, shift: string | null }>> = {};
             avail.forEach((record: any) => {
                 if (!map[record.userId]) map[record.userId] = {};
                 const dateKey = format(new Date(record.date), 'yyyy-MM-dd');
-                map[record.userId][dateKey] = record.status;
+                map[record.userId][dateKey] = { status: record.status, shift: record.shift || null };
             });
             setAvailabilityMap(map);
 
@@ -75,26 +78,45 @@ export function TechnicianCalendar() {
     }
 
     async function handleStatusChange(userId: string, date: Date) {
-        // Toggle logic: AVAILABLE -> VACATION -> SICK -> TRAINING -> AVAILABLE
         const dateKey = format(date, 'yyyy-MM-dd');
-        const currentStatus = availabilityMap[userId]?.[dateKey] || 'AVAILABLE';
+        const currentData = availabilityMap[userId]?.[dateKey] || { status: 'AVAILABLE', shift: null };
+
+        // Determine current composite state
+        let currentComposite = currentData.status;
+        if (currentData.status === 'AVAILABLE' && currentData.shift) {
+            currentComposite = `SHIFT_${currentData.shift}`; // e.g., SHIFT_MORNING
+        } else if (currentData.status === 'AVAILABLE' && !currentData.shift) {
+            currentComposite = 'AVAILABLE'; // Default Day
+        }
 
         let newStatus = 'AVAILABLE';
-        if (currentStatus === 'AVAILABLE') newStatus = 'VACATION';
-        else if (currentStatus === 'VACATION') newStatus = 'SICK';
-        else if (currentStatus === 'SICK') newStatus = 'TRAINING';
-        else if (currentStatus === 'TRAINING') newStatus = 'PERMIT';
-        else newStatus = 'AVAILABLE';
+        let newShift: string | null = null;
+
+        // Cycle Logic: 
+        // AVAILABLE (Day) -> MORNING -> AFTERNOON -> NIGHT -> VACATION -> SICK -> TRAINING -> PERMIT -> AVAILABLE
+        if (currentComposite === 'AVAILABLE') { newStatus = 'AVAILABLE'; newShift = 'MORNING'; }
+        else if (currentComposite === 'SHIFT_MORNING') { newStatus = 'AVAILABLE'; newShift = 'AFTERNOON'; }
+        else if (currentComposite === 'SHIFT_AFTERNOON') { newStatus = 'AVAILABLE'; newShift = 'NIGHT'; }
+        else if (currentComposite === 'SHIFT_NIGHT') { newStatus = 'VACATION'; newShift = null; }
+        else if (currentComposite === 'VACATION') { newStatus = 'SICK'; newShift = null; }
+        else if (currentComposite === 'SICK') { newStatus = 'TRAINING'; newShift = null; }
+        else if (currentComposite === 'TRAINING') { newStatus = 'PERMIT'; newShift = null; }
+        else { newStatus = 'AVAILABLE'; newShift = null; } // Loop back to Day
 
         // Optimistic update
         const newMap = { ...availabilityMap };
         if (!newMap[userId]) newMap[userId] = {};
-        newMap[userId][dateKey] = newStatus;
+        newMap[userId][dateKey] = { status: newStatus, shift: newShift };
         setAvailabilityMap(newMap);
 
         try {
-            await setTechnicianStatus(userId, date, newStatus);
-            toast.success(`Stato aggiornato: ${STATUS_CONFIG[newStatus].label}`);
+            await setTechnicianStatus(userId, date, newStatus, newShift || undefined);
+
+            // Determine label for toast
+            let labelKey = newStatus;
+            if (newStatus === 'AVAILABLE' && newShift) labelKey = `SHIFT_${newShift}`;
+
+            toast.success(`Stato aggiornato: ${STATUS_CONFIG[labelKey]?.label || labelKey}`);
         } catch (error) {
             console.error("Failed to update status", error);
             const errorMessage = error instanceof Error ? error.message : "Errore sconosciuto";
@@ -162,9 +184,23 @@ export function TechnicianCalendar() {
                                     </td>
                                     {daysInMonth.map(day => {
                                         const dateKey = format(day, 'yyyy-MM-dd');
-                                        const status = availabilityMap[tech.id]?.[dateKey] || 'AVAILABLE';
-                                        const config = STATUS_CONFIG[status];
+                                        const cellData = availabilityMap[tech.id]?.[dateKey] || { status: 'AVAILABLE', shift: null };
+
+                                        // Determine display configuration
+                                        let displayKey = cellData.status;
+                                        if (cellData.status === 'AVAILABLE' && cellData.shift) {
+                                            displayKey = `SHIFT_${cellData.shift}`;
+                                        }
+
+                                        const config = STATUS_CONFIG[displayKey] || STATUS_CONFIG['AVAILABLE'];
                                         const isWeekend = getDay(day) === 0 || getDay(day) === 6;
+
+                                        // Only show visual indicator if NOT Default Day (available, no shift) or if explicit status
+                                        // Actually, user wanted visual feedback for everything? 
+                                        // Previous code: "Presente (Vuoto)" meant default was empty.
+                                        // Let's keep Default Day as "Empty/Dot" and Shifts as "Letter bubbles".
+
+                                        const isDefaultDay = displayKey === 'AVAILABLE';
 
                                         return (
                                             <td
@@ -175,20 +211,22 @@ export function TechnicianCalendar() {
                                                 )}
                                                 onClick={() => handleStatusChange(tech.id, day)}
                                             >
-                                                {status !== 'AVAILABLE' && (
+                                                {!isDefaultDay ? (
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <div className={cn(
-                                                                "mx-auto h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold border",
+                                                                "mx-auto h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold border transform transition-transform hover:scale-110 shadow-sm",
                                                                 config.color
                                                             )}>
                                                                 {config.short}
                                                             </div>
                                                         </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>{config.label}</p>
+                                                        <TooltipContent className="z-50">
+                                                            <p className="font-semibold">{config.label}</p>
                                                         </TooltipContent>
                                                     </Tooltip>
+                                                ) : (
+                                                    <div className="mx-auto h-2 w-2 rounded-full bg-emerald-500/20" />
                                                 )}
                                             </td>
                                         );
@@ -200,13 +238,13 @@ export function TechnicianCalendar() {
                 </table>
             </div>
 
-            <div className="flex gap-4 p-4 border rounded-lg bg-card text-xs text-muted-foreground">
-                <div className="font-semibold mr-2">Legenda:</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500/50"></div> Presente (Vuoto)</div>
+            <div className="flex flex-wrap gap-4 p-4 border rounded-lg bg-card text-xs text-muted-foreground">
+                <div className="font-semibold mr-2 w-full sm:w-auto">Legenda:</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500/20"></div> Presente (Giornaliero)</div>
                 {Object.entries(STATUS_CONFIG).filter(([k]) => k !== 'AVAILABLE').map(([key, conf]) => (
                     <div key={key} className="flex items-center gap-2">
                         <div className={cn("w-5 h-5 rounded-full flex items-center justify-center border text-[10px]", conf.color)}>{conf.short}</div>
-                        {conf.label}
+                        {conf.label.split('(')[0].trim()}
                     </div>
                 ))}
             </div>

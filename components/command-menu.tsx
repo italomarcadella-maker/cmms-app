@@ -14,11 +14,27 @@ export function CommandMenu(props: CommandMenuProps) {
     const router = useRouter();
     const [open, setOpen] = React.useState(false);
     const [query, setQuery] = React.useState("");
+    const [selectedIndex, setSelectedIndex] = React.useState(0);
 
     // Quick Data Access
     const { workOrders } = useWorkOrders();
     const { assets } = useAssets();
 
+    // Filter Logic
+    const filteredWO = workOrders
+        .filter(w => w.title.toLowerCase().includes(query.toLowerCase()) || w.id.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 3);
+
+    const filteredAssets = assets
+        .filter(a => a.name.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 3);
+
+    // Reset selection when query changes
+    React.useEffect(() => {
+        setSelectedIndex(0);
+    }, [query]);
+
+    // Shortcut to open
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
             if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -35,14 +51,42 @@ export function CommandMenu(props: CommandMenuProps) {
         command();
     }, []);
 
-    // Filter Logic
-    const filteredWO = workOrders
-        .filter(w => w.title.toLowerCase().includes(query.toLowerCase()) || w.id.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 3);
+    // Flatten items for navigation index
+    const getFlattenedItems = () => {
+        if (query === "") {
+            return [
+                { action: () => router.push("/"), label: "Dashboard" },
+                { action: () => router.push("/work-orders/new"), label: "Nuovo Intervento" },
+                { action: () => router.push("/requests/new"), label: "Nuova Richiesta" },
+                { action: () => router.push("/calendar"), label: "Calendario" },
+            ];
+        }
+        const items = [];
+        if (filteredWO.length > 0) {
+            items.push(...filteredWO.map(wo => ({ action: () => router.push(`/work-orders/${wo.id}`), label: wo.title })));
+        }
+        if (filteredAssets.length > 0) {
+            items.push(...filteredAssets.map(asset => ({ action: () => router.push(`/assets/${asset.id}`), label: asset.name })));
+        }
+        return items;
+    };
 
-    const filteredAssets = assets
-        .filter(a => a.name.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 3);
+    const flattenedItems = getFlattenedItems();
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setSelectedIndex(prev => (prev + 1) % flattenedItems.length);
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setSelectedIndex(prev => (prev - 1 + flattenedItems.length) % flattenedItems.length);
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            if (flattenedItems[selectedIndex]) {
+                runCommand(flattenedItems[selectedIndex].action);
+            }
+        }
+    };
 
     return (
         <>
@@ -67,6 +111,7 @@ export function CommandMenu(props: CommandMenuProps) {
                             className="flex h-12 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
+                            onKeyDown={handleKeyDown}
                             autoFocus
                         />
                         <div className="text-xs text-muted-foreground border px-1.5 py-0.5 rounded bg-muted">ESC</div>
@@ -76,10 +121,34 @@ export function CommandMenu(props: CommandMenuProps) {
                         {query === "" && (
                             <>
                                 <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Suggeriti</div>
-                                <CommandItem onSelect={() => runCommand(() => router.push("/"))} icon={LayoutDashboard}>Dashboard</CommandItem>
-                                <CommandItem onSelect={() => runCommand(() => router.push("/work-orders/new"))} icon={FileText}>Nuovo Intervento</CommandItem>
-                                <CommandItem onSelect={() => runCommand(() => router.push("/requests/new"))} icon={FileText}>Nuova Richiesta</CommandItem>
-                                <CommandItem onSelect={() => runCommand(() => router.push("/calendar"))} icon={Calendar}>Calendario</CommandItem>
+                                <CommandItem
+                                    selected={selectedIndex === 0 && query === ""}
+                                    onSelect={() => runCommand(() => router.push("/"))}
+                                    icon={LayoutDashboard}
+                                >
+                                    Dashboard
+                                </CommandItem>
+                                <CommandItem
+                                    selected={selectedIndex === 1 && query === ""}
+                                    onSelect={() => runCommand(() => router.push("/work-orders/new"))}
+                                    icon={FileText}
+                                >
+                                    Nuovo Intervento
+                                </CommandItem>
+                                <CommandItem
+                                    selected={selectedIndex === 2 && query === ""}
+                                    onSelect={() => runCommand(() => router.push("/requests/new"))}
+                                    icon={FileText}
+                                >
+                                    Nuova Richiesta
+                                </CommandItem>
+                                <CommandItem
+                                    selected={selectedIndex === 3 && query === ""}
+                                    onSelect={() => runCommand(() => router.push("/calendar"))}
+                                    icon={Calendar}
+                                >
+                                    Calendario
+                                </CommandItem>
                             </>
                         )}
 
@@ -88,9 +157,10 @@ export function CommandMenu(props: CommandMenuProps) {
                                 {filteredWO.length > 0 && (
                                     <>
                                         <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground mt-2">Interventi</div>
-                                        {filteredWO.map(wo => (
+                                        {filteredWO.map((wo, i) => (
                                             <CommandItem
                                                 key={wo.id}
+                                                selected={selectedIndex === i}
                                                 onSelect={() => runCommand(() => router.push(`/work-orders/${wo.id}`))}
                                                 icon={FileText}
                                             >
@@ -104,9 +174,10 @@ export function CommandMenu(props: CommandMenuProps) {
                                 {filteredAssets.length > 0 && (
                                     <>
                                         <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground mt-2">Asset</div>
-                                        {filteredAssets.map(asset => (
+                                        {filteredAssets.map((asset, i) => (
                                             <CommandItem
                                                 key={asset.id}
+                                                selected={selectedIndex === (filteredWO.length + i)}
                                                 onSelect={() => runCommand(() => router.push(`/assets/${asset.id}`))}
                                                 icon={Package}
                                             >
@@ -126,7 +197,10 @@ export function CommandMenu(props: CommandMenuProps) {
                     </div>
 
                     <div className="border-t p-2 bg-muted/10 text-[10px] text-muted-foreground flex justify-between px-4">
-                        <span>Pro Tip: Usa le frecce per navigare (TODO)</span>
+                        <div className="flex gap-2">
+                            <span>↑↓ per navigare</span>
+                            <span>↵ per selezionare</span>
+                        </div>
                         <div className="flex gap-2">
                             <span>⌘K Apri</span>
                         </div>
@@ -137,11 +211,14 @@ export function CommandMenu(props: CommandMenuProps) {
     );
 }
 
-function CommandItem({ children, icon: Icon, onSelect }: { children: React.ReactNode, icon: any, onSelect: () => void }) {
+function CommandItem({ children, icon: Icon, onSelect, selected }: { children: React.ReactNode, icon: any, onSelect: () => void, selected?: boolean }) {
     return (
         <div
             onClick={onSelect}
-            className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors"
+            className={cn(
+                "flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm cursor-pointer transition-colors",
+                selected ? "bg-accent text-accent-foreground" : "hover:bg-accent hover:text-accent-foreground"
+            )}
         >
             <Icon className="h-4 w-4 text-muted-foreground" />
             {children}

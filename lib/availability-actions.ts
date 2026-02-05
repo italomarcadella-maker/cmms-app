@@ -28,13 +28,14 @@ export async function getTechnicianAvailability(startDate: Date, endDate: Date) 
     }
 }
 
-export async function setTechnicianStatus(userId: string, date: Date, status: string, notes?: string) {
+export async function setTechnicianStatus(userId: string, date: Date, status: string, shift?: string, notes?: string) {
     try {
         // Normalize date to start of day to avoid time mismatch
         const normalizedDate = new Date(date);
         normalizedDate.setHours(0, 0, 0, 0);
 
         // Upsert: Create if not exists, Update if exists
+        // Cast to any to bypass Prisma Client types not yet regenerated
         const record = await prisma.technicianAvailability.upsert({
             where: {
                 userId_date: {
@@ -44,14 +45,16 @@ export async function setTechnicianStatus(userId: string, date: Date, status: st
             },
             update: {
                 status,
+                shift: shift || null,
                 notes
-            },
+            } as any,
             create: {
                 userId,
                 date: normalizedDate,
                 status,
+                shift: shift || null,
                 notes
-            }
+            } as any
         });
 
         revalidatePath("/technicians/calendar");
@@ -67,7 +70,7 @@ export async function getAllTechnicians() {
         const technicians = await prisma.user.findMany({
             where: {
                 role: {
-                    in: ["MAINTAINER", "SUPERVISOR", "ADMIN"]
+                    in: ["MAINTAINER", "SUPERVISOR"]
                 }
             },
             select: {

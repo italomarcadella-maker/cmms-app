@@ -7,6 +7,7 @@ import { MessageSquare, X, Send, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { VoiceInput } from "@/components/ui/voice-input";
 
 export function ChatWidget() {
     const { user } = useAuth();
@@ -110,6 +111,7 @@ export function ChatWidget() {
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                         />
+                        <VoiceInput onTranscript={(text) => setInputValue(prev => prev + " " + text)} />
                         <button
                             type="submit"
                             disabled={!inputValue.trim()}

@@ -8,6 +8,7 @@ import { auth } from '@/auth';
 import { revalidatePath, unstable_cache } from 'next/cache';
 import { WorkOrderStatus } from '@/lib/types';
 
+import { logAction } from './audit';
 // --- Authorization Helper ---
 
 async function requireRole(role: string): Promise<{ authorized: boolean; message?: string; session?: any }> {
@@ -93,7 +94,7 @@ export async function createUser(rawUserData: any) {
             return { success: false, message: 'Utente già esistente con questa email.' };
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        await prisma.user.create({
+        const user = await prisma.user.create({
             data: {
                 name,
                 email,
@@ -103,7 +104,26 @@ export async function createUser(rawUserData: any) {
                 mustChangePassword: true
             }
         });
+
+        // Phase 5: Consistency - Auto-create Technician profile for Maintainers
+        if (role === 'MAINTAINER') {
+            // Check if profile already exists (unlikely on new user but safe)
+            const existingTech = await prisma.technician.findFirst({ where: { userId: user.id } });
+            if (!existingTech) {
+                await prisma.technician.create({
+                    data: {
+                        name: name || email.split('@')[0],
+                        // email key not in Technician model, removed
+                        userId: user.id,
+                        specialty: "General",
+                        hourlyRate: 0
+                    }
+                });
+            }
+        }
+
         revalidatePath('/users');
+        revalidatePath('/technicians');
         return { success: true, message: 'Utente creato con successo' };
     } catch (error) {
         console.error('Failed to create user:', error);
@@ -373,6 +393,26 @@ export async function deleteAsset(id: string) {
         return { success: true, message: 'Asset eliminato con successo' };
     } catch (error) {
         return { success: false, message: 'Errore durante l\'eliminazione' };
+    }
+}
+
+export async function rescheduleWorkOrder(id: string, newDate: Date) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        await prisma.workOrder.update({
+            where: { id },
+            data: { dueDate: newDate }
+        });
+        // Also update preventive schedule nextDueDate if applicable? 
+        // For now, just moving the specific instance.
+
+        revalidatePath('/planning/calendar');
+        return { success: true, message: 'Data aggiornata' };
+    } catch (error) {
+        console.error("Reschedule Error:", error);
+        return { success: false, message: 'Errore riprogrammazione' };
     }
 }
 
@@ -727,7 +767,8 @@ export async function getWorkOrders() {
                 asset: true,
                 timers: true,
                 laborLogs: true,
-                partsUsed: true
+                partsUsed: true,
+                checklist: { orderBy: { id: 'asc' } }
             }
         });
 
@@ -859,6 +900,29 @@ export async function createWorkOrder(data: any) {
                         message: `Ti è stato assegnato un nuovo ordine di lavoro: ${newWO.title}`,
                         link: `/work-orders/${newWO.id}`
                     }
+                });
+            }
+        }
+
+        // NOTIFICATION: Critical Safety Requests -> Notify Supervisors
+        if ((newWO.category === 'SAFETY' || newWO.assetId === 'SYS-SAFETY') &&
+            (newWO.priority === 'HIGH' || newWO.priority === 'STOPPED')) {
+
+            const supervisors = await prisma.user.findMany({
+                where: { role: 'SUPERVISOR' },
+                select: { id: true }
+            });
+
+            if (supervisors.length > 0) {
+                const notifications = supervisors.map(supervisor => ({
+                    userId: supervisor.id,
+                    title: "⚠️ SICUREZZA: Segnalazione Critica",
+                    message: `Nuova richiesta di sicurezza ad ALTA priorità: ${newWO.title}`,
+                    link: `/work-orders/${newWO.id}`
+                }));
+
+                await prisma.notification.createMany({
+                    data: notifications
                 });
             }
         }
@@ -1551,7 +1615,7 @@ export async function addWorkOrderPart(workOrderId: string, partId: string, quan
         }
 
         // Decrement stock
-        await prisma.sparePart.update({
+        const updatedPart = await prisma.sparePart.update({
             where: { id: partId },
             data: { quantity: part.quantity - quantity, lastUpdated: new Date() }
         });
@@ -1568,7 +1632,26 @@ export async function addWorkOrderPart(workOrderId: string, partId: string, quan
             }
         });
 
+        // Low Stock Alert
+        if (updatedPart.quantity <= updatedPart.minQuantity) {
+            const supervisors = await prisma.user.findMany({ where: { role: 'SUPERVISOR' } });
+            for (const sup of supervisors) {
+                await prisma.notification.create({
+                    data: {
+                        userId: sup.id,
+                        title: "⚠️ SCORTA BASSA: " + part.name,
+                        message: `Il ricambio ${part.name} ha raggiunto la soglia minima (${updatedPart.quantity} pz). Valutare riordino.`,
+                        link: "/inventory"
+                    }
+                });
+            }
+        }
+
         revalidatePath(`/work-orders/${workOrderId}`);
+
+        // Audit
+        await logAction('ADD_PART_WO', workOrderId, `Aggiunto ${quantity}x ${part.name}`);
+
         return { success: true, message: 'Ricambio aggiunto all\'ordine' };
     } catch (error) {
         console.error(error);
@@ -1600,6 +1683,30 @@ export async function removeWorkOrderPart(id: string) {
         return { success: true, message: 'Ricambio rimosso e giacenza ripristinata' };
     } catch (error) {
         return { success: false, message: 'Errore rimozione ricambio' };
+    }
+}
+
+export async function toggleChecklistItem(itemId: string, completed: boolean) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        await prisma.checklistItem.update({
+            where: { id: itemId },
+            data: {
+                completed,
+                checkedBy: session.user.name,
+                checkedAt: new Date()
+            }
+        });
+
+        // Find WO to revalidate
+        const item = await prisma.checklistItem.findUnique({ where: { id: itemId } });
+        if (item) revalidatePath(`/work-orders/${item.workOrderId}`);
+
+        return { success: true, message: 'Checklist aggiornata' };
+    } catch (e) {
+        return { success: false, message: 'Errore aggiornamento checklist' };
     }
 }
 
@@ -2004,6 +2111,10 @@ export async function getProductionLines() {
                     maintEnd: "17:00",
                     maintStartDay: 1, // Mon
                     maintEndDay: 5,   // Fri
+                    maintSatStart: null,
+                    maintSatEnd: null,
+                    maintSunStart: null,
+                    maintSunEnd: null,
                     updatedAt: new Date()
                 });
             }
@@ -2034,6 +2145,47 @@ export async function deleteProductionLine(line: string) {
     } catch (error) {
         console.error("Delete Line Error:", error);
         return { success: false, message: 'Errore eliminazione linea' };
+    }
+}
+
+export async function assignWorkOrderToSelf(workOrderId: string) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autenticato' };
+
+    try {
+        // 1. Check if user is a technician
+        const tech = await prisma.technician.findUnique({
+            where: { userId: session.user.id }
+        });
+
+        if (!tech) {
+            return { success: false, message: 'Profilo tecnico non trovato.' };
+        }
+
+        // 2. Check Work Order status
+        const wo = await prisma.workOrder.findUnique({ where: { id: workOrderId } });
+        if (!wo) return { success: false, message: 'Ordine non trovato' };
+
+        if (wo.assignedTechnicianId && wo.assignedTechnicianId !== tech.id) {
+            return { success: false, message: 'Ordine già assegnato.' };
+        }
+
+        // 3. Update WO
+        await prisma.workOrder.update({
+            where: { id: workOrderId },
+            data: {
+                assignedTechnicianId: tech.id,
+                assignedTo: tech.name,
+                status: 'ASSIGNED'
+            }
+        });
+
+        revalidatePath('/work-orders');
+        revalidatePath('/');
+        return { success: true, message: 'Ordine preso in carico' };
+    } catch (error) {
+        console.error("Self Assign Error:", error);
+        return { success: false, message: 'Errore durante la presa in carico' };
     }
 }
 

@@ -25,7 +25,7 @@ export interface Asset {
     lastMaintenance: string;
 }
 
-export type WorkOrderPriority = 'STOPPED' | 'MALFUNCTIONING' | 'WORKING' | 'NOT_PRODUCTION';
+export type WorkOrderPriority = 'STOPPED' | 'MALFUNCTIONING' | 'WORKING' | 'NOT_PRODUCTION' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type WorkOrderStatus = 'OPEN' | 'PENDING_APPROVAL' | 'APPROVED' | 'ASSIGNED' | 'IN_PROGRESS' | 'ON_HOLD' | 'PENDING_REVIEW' | 'COMPLETED' | 'CLOSED' | 'CANCELED';
 export type WorkOrderCategory = 'MECHANICAL' | 'ELECTRICAL' | 'HYDRAULIC' | 'PNEUMATIC' | 'OTHER' | 'AI_SUGGESTION';
 

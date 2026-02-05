@@ -240,9 +240,11 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
             <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Titolo Richiesta *</label>
+                        <label className="text-sm font-medium">
+                            {formData.category === 'SAFETY' ? "Richiesta/Codice Segnalazione *" : "Titolo Richiesta *"}
+                        </label>
                         <Input
-                            placeholder="Es. Perdita d'acqua linea 1"
+                            placeholder={formData.category === 'SAFETY' ? "Es. SEGNALAZIONE-2024-001" : "Es. Perdita d'acqua linea 1"}
                             value={formData.title}
                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                             required
@@ -301,7 +303,9 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                     )}
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Priorità Percepita</label>
+                        <label className="text-sm font-medium">
+                            {formData.category === 'SAFETY' ? "Priorità Segnalazione" : "Priorità Percepita"}
+                        </label>
                         <Select
                             value={formData.priority}
                             onValueChange={(val) => setFormData({ ...formData, priority: val })}
@@ -310,10 +314,20 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                                 <SelectValue placeholder="Seleziona Priorità" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="NOT_PRODUCTION">Non in Produzione (Meno Grave)</SelectItem>
-                                <SelectItem value="WORKING">In Lavoro (Monitorare)</SelectItem>
-                                <SelectItem value="MALFUNCTIONING">Malfunzionante (Intervento Richiesto)</SelectItem>
-                                <SelectItem value="STOPPED">Ferma (Urgentissimo)</SelectItem>
+                                {formData.category === 'SAFETY' ? (
+                                    <>
+                                        <SelectItem value="HIGH">Alta (Pericolo Immediato)</SelectItem>
+                                        <SelectItem value="MEDIUM">Media (Attenzione Richiesta)</SelectItem>
+                                        <SelectItem value="LOW">Bassa (Suggerimento/Osservazione)</SelectItem>
+                                    </>
+                                ) : (
+                                    <>
+                                        <SelectItem value="NOT_PRODUCTION">Non in Produzione (Meno Grave)</SelectItem>
+                                        <SelectItem value="WORKING">In Lavoro (Monitorare)</SelectItem>
+                                        <SelectItem value="MALFUNCTIONING">Malfunzionante (Intervento Richiesto)</SelectItem>
+                                        <SelectItem value="STOPPED">Ferma (Urgentissimo)</SelectItem>
+                                    </>
+                                )}
                             </SelectContent>
                         </Select>
                     </div>

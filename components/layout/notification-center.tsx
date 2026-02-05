@@ -6,53 +6,17 @@ import { cn } from "@/lib/utils";
 import { getUserNotifications, markNotificationAsRead } from "@/lib/actions";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { useNotifications } from "@/lib/notifications-context";
 
 export function NotificationCenter({ userId }: { userId?: string }) {
     const { user: authUser } = useAuth();
-    const [notifications, setNotifications] = useState<any[]>([]);
+    const { notifications, unreadCount, markAsRead } = useNotifications();
     const [isOpen, setIsOpen] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
     const menuRef = useRef<HTMLDivElement>(null);
-
-    // Use prop userId if available (SS), fallback to auth context (CS)
-    const activeUserId = userId || authUser?.id;
-
-    const loadNotifications = async () => {
-        if (!activeUserId) return;
-
-        try {
-            const data = await getUserNotifications();
-            setNotifications(data);
-            setUnreadCount(data.filter((n: any) => !n.read).length);
-        } catch (e) {
-            console.error("NotificationCenter: Fetch error", e);
-        }
-    };
-
-    useEffect(() => {
-        loadNotifications();
-        // Poll every 30s
-        const interval = setInterval(loadNotifications, 30000);
-        return () => clearInterval(interval);
-    }, [activeUserId]);
-
-    // Close on click outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
 
     const handleMarkRead = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        await markNotificationAsRead(id);
-        const updated = notifications.map(n => n.id === id ? { ...n, read: true } : n);
-        setNotifications(updated);
-        setUnreadCount(updated.filter(n => !n.read).length);
+        await markAsRead(id);
     };
 
     return (

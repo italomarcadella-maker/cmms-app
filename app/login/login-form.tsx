@@ -1,13 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { authenticate } from '@/lib/actions';
-import { AtSign, Key, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { AtSign, Key, Loader2, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function LoginForm() {
     const [errorMessage, dispatch] = useActionState(authenticate, undefined);
+    const [showPassword, setShowPassword] = useState(false);
 
     return (
         <form action={dispatch} className="space-y-4">
@@ -36,15 +38,27 @@ export default function LoginForm() {
                         </label>
                         <div className="relative group">
                             <input
-                                className="peer block w-full rounded-xl border-0 bg-white/5 py-3 pl-11 text-sm text-white placeholder:text-slate-500 ring-1 ring-white/10 focus:ring-2 focus:ring-blue-500 focus:bg-white/10 transition-all outline-none"
+                                className="peer block w-full rounded-xl border-0 bg-white/5 py-3 pl-11 pr-10 text-sm text-white placeholder:text-slate-500 ring-1 ring-white/10 focus:ring-2 focus:ring-blue-500 focus:bg-white/10 transition-all outline-none"
                                 id="password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 name="password"
                                 placeholder="••••••••"
                                 required
                                 minLength={3}
                             />
                             <Key className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 peer-focus:text-blue-400 transition-colors" />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors focus:outline-none"
+                                tabIndex={-1}
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="h-4 w-4" />
+                                ) : (
+                                    <Eye className="h-4 w-4" />
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -24,7 +24,8 @@ export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
 
     const [assigningWo, setAssigningWo] = React.useState<{ id: string, techId?: string } | null>(null);
 
-    const canAssign = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
+    const isAdminOrSupervisor = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
+    const isMaintainer = user?.role === 'MAINTAINER';
 
     const handleDragStart = (e: React.DragEvent, id: string) => {
         e.dataTransfer.setData("woId", id);
@@ -38,6 +39,27 @@ export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
         const id = e.dataTransfer.getData("woId");
         if (id) {
             updateWorkOrderStatus(id, status);
+        }
+    };
+
+    // Import dynamically or assume it's available via context/props? 
+    // Ideally we should call the server action. 
+    // But since this is a client component, we can import the server action if 'use server' is set on the file.
+    // However, importing directly might cause issues if not carefully handled in Next.js.
+    // Let's use a wrapper or just import it. available from @/lib/actions
+
+    const handleSelfAssign = async (woId: string) => {
+        if (!confirm("Vuoi prendere in carico questo ordine di lavoro?")) return;
+
+        const { assignWorkOrderToSelf } = await import("@/lib/actions");
+        const res = await assignWorkOrderToSelf(woId);
+        if (res.success) {
+            // update local state or refresh? 
+            // Context might not update automatically if it depends on polling or manual refresh.
+            // Ideally useWorkOrders should have a refresh.
+            window.location.reload(); // Simple refresh for now or trigger revalidation
+        } else {
+            alert(res.message);
         }
     };
 
@@ -78,14 +100,24 @@ export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
                                             <div
                                                 className={cn(
                                                     "flex items-center gap-1 p-1 rounded transition-colors",
-                                                    canAssign ? "hover:bg-muted cursor-pointer" : "cursor-default"
+                                                    isAdminOrSupervisor ? "hover:bg-muted cursor-pointer" : "",
+                                                    isMaintainer && (wo.status === 'PENDING_APPROVAL' || wo.assignedTo === 'Unassigned') ? "hover:bg-blue-50 cursor-pointer text-blue-600" : ""
                                                 )}
-                                                onClick={() => canAssign && setAssigningWo({ id: wo.id, techId: wo.assignedTechnicianId })}
-                                                title={canAssign ? "Cambia assegnazione" : "Solo Admin/Supervisor"}
+                                                onClick={() => {
+                                                    if (isAdminOrSupervisor) {
+                                                        setAssigningWo({ id: wo.id, techId: wo.assignedTechnicianId });
+                                                    } else if (isMaintainer && (wo.status === 'PENDING_APPROVAL' || wo.assignedTo === 'Unassigned')) {
+                                                        handleSelfAssign(wo.id);
+                                                    }
+                                                }}
+                                                title={isAdminOrSupervisor ? "Cambia assegnazione" : (isMaintainer ? "Prendi in carico" : "Solo Admin/Supervisor")}
                                             >
                                                 <User className={cn("h-3 w-3", wo.assignedTo === 'Unassigned' ? "text-amber-500" : "")} />
-                                                <span className={cn(wo.assignedTo === 'Unassigned' ? "text-amber-600 font-medium" : "")}>
-                                                    {wo.assignedTo.split(' ')[0]}
+                                                <span className={cn(
+                                                    wo.assignedTo === 'Unassigned' ? "text-amber-600 font-medium" : "",
+                                                    isMaintainer && wo.assignedTo === 'Unassigned' ? "underline decoration-blue-400 underline-offset-2" : ""
+                                                )}>
+                                                    {wo.assignedTo === 'Unassigned' && isMaintainer ? "Prendi in carico" : wo.assignedTo.split(' ')[0]}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-1">
