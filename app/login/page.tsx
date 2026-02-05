@@ -3,32 +3,36 @@ import { Factory } from 'lucide-react';
 
 export default function LoginPage() {
     return (
-        <main className="flex items-center justify-center min-h-screen bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-800 to-slate-900 overflow-hidden relative">
+        <main className="flex items-center justify-center min-h-screen bg-[#F5F5F7] overflow-hidden relative font-sans">
 
-            {/* Ambient Background Effects */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/10 blur-[100px] animate-pulse" />
-                <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
+            {/* Mac-style Abstract Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-20%] right-[-10%] w-[70vw] h-[70vw] min-w-[600px] min-h-[600px] rounded-full bg-gradient-to-br from-blue-400/20 to-purple-400/20 blur-[120px] mix-blend-multiply opacity-70 animate-pulse" style={{ animationDuration: '8s' }} />
+                <div className="absolute bottom-[-20%] left-[-10%] w-[60vw] h-[60vw] min-w-[500px] min-h-[500px] rounded-full bg-gradient-to-tr from-rose-300/20 to-orange-300/20 blur-[100px] mix-blend-multiply opacity-70 animate-pulse" style={{ animationDuration: '10s' }} />
+                <div className="absolute top-[40%] left-[30%] w-[40vw] h-[40vw] min-w-[400px] min-h-[400px] rounded-full bg-gradient-to-bl from-teal-300/20 to-blue-300/20 blur-[90px] mix-blend-multiply opacity-60 animate-pulse" style={{ animationDuration: '12s' }} />
             </div>
 
-            <div className="relative w-full max-w-md p-4 animate-in fade-in zoom-in-95 duration-500">
-                <div className="flex justify-center mb-8">
-                    <div className="relative group">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-                        <div className="relative bg-black p-4 rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-800 to-slate-900">
-                            <Factory className="h-10 w-10 text-blue-500" />
+            <div className="relative w-full max-w-[420px] p-8 md:p-12 animate-in fade-in zoom-in-95 duration-700">
+
+                {/* Glassmorphism Card */}
+                <div className="relative z-10 bg-white/60 backdrop-blur-2xl border border-white/40 shadow-2xl shadow-black/5 rounded-[2rem] p-8 md:p-10">
+
+                    <div className="flex justify-center mb-8">
+                        <div className="bg-gradient-to-tr from-blue-500 to-blue-600 p-3.5 rounded-2xl shadow-lg shadow-blue-500/20 text-white">
+                            <Factory className="h-8 w-8" />
                         </div>
                     </div>
-                </div>
-                <div className="text-center mb-8 space-y-2">
-                    <h1 className="text-3xl font-bold text-white tracking-tight">CMMS Pro</h1>
-                    <p className="text-slate-400">Gestione Manutenzione Avanzata</p>
-                </div>
 
-                <LoginForm />
+                    <div className="text-center mb-8 space-y-2">
+                        <h1 className="text-2xl font-semibold text-slate-800 tracking-tight">CMMS Pro</h1>
+                        <p className="text-slate-500 text-sm font-medium">Accedi al tuo spazio di lavoro</p>
+                    </div>
 
-                <div className="mt-8 text-center text-xs text-slate-500 hover:text-slate-400 transition-colors cursor-default">
-                    &copy; 2026 Makers • Stable Release
+                    <LoginForm />
+
+                    <div className="mt-8 text-center text-[10px] text-slate-400 uppercase tracking-widest font-medium">
+                        Secure System • v2.0
+                    </div>
                 </div>
             </div>
         </main>
