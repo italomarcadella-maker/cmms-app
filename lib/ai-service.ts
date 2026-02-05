@@ -730,35 +730,33 @@ export interface AIInsight {
     action: string;
 }
 
-export const MockAIService = {
-    getInsights: async (): Promise<AIInsight[]> => {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        return [
-            {
-                id: '1',
-                assetName: 'Pressa IDRA 2000',
-                type: 'WARNING',
-                prediction: 'Alta temperatura olio rilevata. Rischio di fermo entro 48h.',
-                confidence: 85,
-                action: 'Controllare scambiatore'
-            },
-            {
-                id: '2',
-                assetName: 'CNC Mazak #3',
-                type: 'CRITICAL',
-                prediction: 'Vibrazioni mandrino anomale. Cuscinetto in cedimento.',
-                confidence: 94,
-                action: 'Sostituzione immediata'
-            },
-            {
-                id: '3',
-                assetName: 'Carroponte B',
-                type: 'INFO',
-                prediction: 'Efficienza motore calata del 5% nell\'ultimo mese.',
-                confidence: 60,
-                action: 'Pianificare revisione'
-            }
-        ];
-    }
-};
+export async function getMockInsights(): Promise<AIInsight[]> {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return [
+        {
+            id: '1',
+            assetName: 'Pressa IDRA 2000',
+            type: 'WARNING',
+            prediction: 'Alta temperatura olio rilevata. Rischio di fermo entro 48h.',
+            confidence: 85,
+            action: 'Controllare scambiatore'
+        },
+        {
+            id: '2',
+            assetName: 'CNC Mazak #3',
+            type: 'CRITICAL',
+            prediction: 'Vibrazioni mandrino anomale. Cuscinetto in cedimento.',
+            confidence: 94,
+            action: 'Sostituzione immediata'
+        },
+        {
+            id: '3',
+            assetName: 'Carroponte B',
+            type: 'INFO',
+            prediction: 'Efficienza motore calata del 5% nell\'ultimo mese.',
+            confidence: 60,
+            action: 'Pianificare revisione'
+        }
+    ];
+}

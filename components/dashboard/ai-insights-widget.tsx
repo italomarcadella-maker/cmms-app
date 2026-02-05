@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { AIInsight, MockAIService } from '@/lib/ai-service';
+import { AIInsight, getMockInsights } from '@/lib/ai-service';
 import { Sparkles, AlertTriangle, Zap, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -10,7 +10,7 @@ export function AAInsightsWidget() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        MockAIService.getInsights().then((data) => {
+        getMockInsights().then((data) => {
             setInsights(data);
             setLoading(false);
         });
