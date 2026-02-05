@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FileText, Factory, CalendarRange, ArrowRight, Euro } from "lucide-react";
 import { getAssets } from "@/lib/actions";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ReportsPage() {
     const assets = await getAssets();
 

@@ -10,6 +10,8 @@ interface PageProps {
     params: { id: string };
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function AssetHistoryReport({ params }: PageProps) {
     const asset = await prisma.asset.findUnique({
         where: { id: params.id },
