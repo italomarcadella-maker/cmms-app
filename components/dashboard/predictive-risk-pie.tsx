@@ -13,6 +13,7 @@ interface DataPoint {
     name: string;
     value: number;
     type: string;
+    [key: string]: any; // Fix for Recharts
 }
 
 export function PredictiveRiskPie({ data }: { data: { riskLevel: string }[] }) {

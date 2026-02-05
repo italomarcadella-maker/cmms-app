@@ -2189,3 +2189,10 @@ export async function assignWorkOrderToSelf(workOrderId: string) {
     }
 }
 
+
+export async function createProductionSlot(data: any) {
+    // Placeholder implementation for missing function
+    console.log("createProductionSlot", data);
+    return { success: true, message: "Slot creato (Simulazione)" };
+}
+

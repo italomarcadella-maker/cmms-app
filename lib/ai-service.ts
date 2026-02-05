@@ -719,3 +719,46 @@ export async function suggestActivitiesForDowntime(lineName: string, durationHou
         return { message: "Errore durante l'analisi.", suggestions: [] };
     }
 }
+
+// --- Mock AI Service for Widget ---
+export interface AIInsight {
+    id: string;
+    assetName: string;
+    type: 'WARNING' | 'CRITICAL' | 'INFO';
+    prediction: string;
+    confidence: number;
+    action: string;
+}
+
+export const MockAIService = {
+    getInsights: async (): Promise<AIInsight[]> => {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return [
+            {
+                id: '1',
+                assetName: 'Pressa IDRA 2000',
+                type: 'WARNING',
+                prediction: 'Alta temperatura olio rilevata. Rischio di fermo entro 48h.',
+                confidence: 85,
+                action: 'Controllare scambiatore'
+            },
+            {
+                id: '2',
+                assetName: 'CNC Mazak #3',
+                type: 'CRITICAL',
+                prediction: 'Vibrazioni mandrino anomale. Cuscinetto in cedimento.',
+                confidence: 94,
+                action: 'Sostituzione immediata'
+            },
+            {
+                id: '3',
+                assetName: 'Carroponte B',
+                type: 'INFO',
+                prediction: 'Efficienza motore calata del 5% nell\'ultimo mese.',
+                confidence: 60,
+                action: 'Pianificare revisione'
+            }
+        ];
+    }
+};
