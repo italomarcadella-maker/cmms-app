@@ -416,6 +416,63 @@ export async function rescheduleWorkOrder(id: string, newDate: Date) {
     }
 }
 
+// --- Work Order Assignment (Scheduler) ---
+export async function assignWorkOrder(workOrderId: string, technicianId: string, date: Date) {
+    try {
+        const session = await auth();
+        if (!session?.user) return { success: false, message: "Non autorizzato" };
+
+        const normalizedDate = new Date(date);
+        normalizedDate.setHours(9, 0, 0, 0); // Default to 9 AM
+
+        await prisma.workOrder.update({
+            where: { id: workOrderId },
+            data: {
+                assignedTechnicianId: technicianId,
+                dueDate: normalizedDate,
+                status: "OPEN" // Ensure it stays open or moves to open if was different
+            }
+        });
+
+        // Log audit
+        await logAction(
+            session.user.id,
+            "ASSIGN_WO",
+            workOrderId,
+            `Assigned WO to technician ${technicianId} for date ${normalizedDate.toISOString()}`
+        );
+
+        revalidatePath("/planning/calendar");
+        return { success: true, message: "Assegnazione completata" };
+    } catch (error) {
+        console.error("Error assigning WO:", error);
+        return { success: false, message: "Errore durante l'assegnazione" };
+    }
+}
+
+export async function getUnassignedWorkOrders() {
+    try {
+        const workOrders = await prisma.workOrder.findMany({
+            where: {
+                assignedTechnicianId: null,
+                status: {
+                    in: ["OPEN", "PENDING"]
+                }
+            },
+            include: {
+                asset: true
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+        return workOrders;
+    } catch (error) {
+        console.error("Error fetching unassigned WOs:", error);
+        return [];
+    }
+}
+
 // --- Preventive Schedules ---
 
 export async function getPreventiveSchedules() {

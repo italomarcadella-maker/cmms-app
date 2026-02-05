@@ -78,7 +78,12 @@ export async function getAllTechnicians() {
                 name: true,
                 role: true,
                 image: true,
-                email: true
+                email: true,
+                technicianProfile: {
+                    select: {
+                        id: true
+                    }
+                }
             }
         });
         return technicians;
