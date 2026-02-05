@@ -21,7 +21,7 @@ export default function LoginForm() {
                         </label>
                         <div className="relative group">
                             <input
-                                className="peer block w-full rounded-xl border-0 bg-white/5 py-3 pl-11 text-sm text-white placeholder:text-slate-500 ring-1 ring-white/10 focus:ring-2 focus:ring-blue-500 focus:bg-white/10 transition-all outline-none"
+                                className="peer block w-full rounded-xl border-0 bg-slate-950/50 py-3 pl-11 text-sm text-white placeholder:text-slate-500 ring-1 ring-white/10 focus:ring-2 focus:ring-blue-500 focus:bg-slate-950/70 transition-all outline-none [&:-webkit-autofill]:shadow-[0_0_0_1000px_#020617_inset] [&:-webkit-autofill]:-webkit-text-fill-color:white"
                                 id="email"
                                 type="email"
                                 name="email"
@@ -38,7 +38,7 @@ export default function LoginForm() {
                         </label>
                         <div className="relative group">
                             <input
-                                className="peer block w-full rounded-xl border-0 bg-white/5 py-3 pl-11 pr-10 text-sm text-white placeholder:text-slate-500 ring-1 ring-white/10 focus:ring-2 focus:ring-blue-500 focus:bg-white/10 transition-all outline-none"
+                                className="peer block w-full rounded-xl border-0 bg-slate-950/50 py-3 pl-11 pr-10 text-sm text-white placeholder:text-slate-500 ring-1 ring-white/10 focus:ring-2 focus:ring-blue-500 focus:bg-slate-950/70 transition-all outline-none [&:-webkit-autofill]:shadow-[0_0_0_1000px_#020617_inset] [&:-webkit-autofill]:-webkit-text-fill-color:white"
                                 id="password"
                                 type={showPassword ? "text" : "password"}
                                 name="password"
