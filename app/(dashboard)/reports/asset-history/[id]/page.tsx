@@ -18,14 +18,14 @@ export default async function AssetHistoryReport({ params }: PageProps) {
         include: {
             workOrders: {
                 orderBy: { createdAt: 'desc' },
-                include: { assignedTechnician: true, parts: true }
+                include: { assignedTechnician: true, partsUsed: true }
             }
         }
     });
 
     if (!asset) notFound();
 
-    const totalCost = asset.workOrders.reduce((sum, wo) => {
+    const totalCost = asset.workOrders.reduce((sum: number, wo: any) => {
         // Mock cost calc if not in DB. Assuming parts cost + arbitrary labor for now?
         // Let's implement basics.
         return sum + 0;
