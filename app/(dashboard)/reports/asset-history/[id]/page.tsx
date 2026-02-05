@@ -25,6 +25,8 @@ export default async function AssetHistoryReport({ params }: PageProps) {
 
     if (!asset) notFound();
 
+    const typedAsset = asset as any; // Bypass TS inference issues with deep includes
+
     const totalCost = asset.workOrders.reduce((sum: number, wo: any) => {
         // Mock cost calc if not in DB. Assuming parts cost + arbitrary labor for now?
         // Let's implement basics.
