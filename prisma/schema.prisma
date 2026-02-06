@@ -146,6 +146,7 @@ model WorkOrder {
   
   // EWO Fields
   ewoFilled            Boolean @default(false)
+  ewo                  EWO?
   @@index([dueDate])
   @@index([status])
   @@index([assetId])
