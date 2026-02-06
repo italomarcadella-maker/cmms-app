@@ -2324,87 +2324,98 @@ export async function getAdvancedKPIs() {
     }
 }
 
-const getAssetMaintenanceEventsCached = unstable_cache(
-    async () => {
-        try {
-            // 1. Fetch Work Orders
-            const workOrders = await prisma.workOrder.findMany({
-                where: {
-                    status: { not: 'CANCELED' },
-                    OR: [
-                        { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING', 'ASSIGNED'] } },
-                        {
-                            category: { in: ['PREVENTIVE', 'PLANNED'] },
-                            dueDate: { gte: new Date() }
+const getAssetMaintenanceEventsCached = async (start: Date, end: Date) => {
+    return unstable_cache(
+        async (s: Date, e: Date) => {
+            try {
+                // 1. Fetch Work Orders in Range
+                const workOrders = await prisma.workOrder.findMany({
+                    where: {
+                        status: { not: 'CANCELED' },
+                        OR: [
+                            { dueDate: { gte: s, lte: e } },
+                            // Fallback for created in range check if needed, but primarily dueDate for calendar
+                            {
+                                dueDate: null,
+                                createdAt: { gte: s, lte: e }
+                            }
+                        ]
+                    },
+                    include: {
+                        asset: {
+                            select: { name: true, line: true }
                         }
-                    ]
-                },
-                include: {
-                    asset: {
-                        select: { name: true, line: true }
+                    },
+                    orderBy: { dueDate: 'asc' }
+                });
+
+                const woEvents = workOrders.map(wo => ({
+                    id: wo.id,
+                    ids: wo.id, // Legacy compatibility
+                    assetId: wo.assetId,
+                    assetName: wo.asset?.name || 'Unknown Asset',
+                    // @ts-ignore
+                    line: wo.asset?.line || 'Nessuna Linea',
+                    title: wo.title,
+                    start: (wo.dueDate || wo.createdAt).toISOString(),
+                    end: new Date((wo.dueDate || wo.createdAt).getTime() + (120 * 60000)).toISOString(),
+                    status: wo.status,
+                    category: wo.category,
+                    assignee: wo.assignedTo || 'Non assegnato',
+                    assignedTechnicianId: wo.assignedTechnicianId,
+                    assignedToId: wo.assignedTo, // Fallback for legacy
+                    type: 'WO'
+                }));
+
+                // 2. Fetch Preventive Schedules in Range
+                const schedules = await prisma.preventiveSchedule.findMany({
+                    where: {
+                        nextDueDate: { gte: s, lte: e }
+                    },
+                    include: {
+                        asset: {
+                            select: { name: true, line: true }
+                        }
                     }
-                },
-                orderBy: { dueDate: 'asc' }
-            });
+                });
 
-            const woEvents = workOrders.map(wo => ({
-                id: wo.id,
-                ids: wo.id, // Legacy compatibility
-                assetId: wo.assetId,
-                assetName: wo.asset?.name || 'Unknown Asset',
-                // @ts-ignore
-                line: wo.asset?.line || 'Nessuna Linea',
-                title: wo.title,
-                start: (wo.dueDate || wo.createdAt).toISOString(),
-                end: new Date((wo.dueDate || wo.createdAt).getTime() + (120 * 60000)).toISOString(),
-                status: wo.status,
-                category: wo.category,
-                assignee: wo.assignedTo || 'Non assegnato',
-                assignedTechnicianId: wo.assignedTechnicianId,
-                assignedToId: wo.assignedTo, // Fallback for legacy
-                type: 'WO'
-            }));
+                const scheduleEvents = schedules.map(sch => ({
+                    id: sch.id,
+                    ids: sch.id,
+                    assetId: sch.assetId,
+                    assetName: sch.asset?.name || 'Unknown Asset',
+                    line: sch.asset?.line || 'Nessuna Linea',
+                    title: `[Pianificata] ${sch.taskTitle}`,
+                    start: sch.nextDueDate.toISOString(),
+                    end: new Date(sch.nextDueDate.getTime() + (60 * 60000)).toISOString(), // 1 hour default
+                    status: 'SCHEDULED',
+                    category: 'PREVENTIVE',
+                    assignee: 'Sistema',
+                    type: 'PM'
+                }));
 
-            // 2. Fetch Preventive Schedules
-            const schedules = await prisma.preventiveSchedule.findMany({
-                include: {
-                    asset: {
-                        select: { name: true, line: true }
-                    }
-                }
-            });
+                // Merge
+                return [...woEvents, ...scheduleEvents];
 
-            const scheduleEvents = schedules.map(sch => ({
-                id: sch.id,
-                ids: sch.id,
-                assetId: sch.assetId,
-                assetName: sch.asset?.name || 'Unknown Asset',
-                line: sch.asset?.line || 'Nessuna Linea',
-                title: `[Pianificata] ${sch.taskTitle}`,
-                start: sch.nextDueDate.toISOString(),
-                end: new Date(sch.nextDueDate.getTime() + (60 * 60000)).toISOString(), // 1 hour default
-                status: 'SCHEDULED',
-                category: 'PREVENTIVE',
-                assignee: 'Sistema',
-                type: 'PM'
-            }));
+            } catch (error) {
+                console.error("Calendar Events Error:", error);
+                return [];
+            }
+        },
+        ['calendar-events-date-range', start.toISOString(), end.toISOString()], // Cache key dependent on dates
+        { revalidate: 60, tags: ['work-orders', 'calendar', 'schedules'] }
+    )(start, end);
+};
 
-            // Merge
-            return [...woEvents, ...scheduleEvents];
-
-        } catch (error) {
-            console.error("Calendar Events Error:", error);
-            return [];
-        }
-    },
-    ['calendar-events-v2'], // Bumped cache key
-    { revalidate: 60, tags: ['work-orders', 'calendar', 'schedules'] }
-);
-
-export async function getAssetMaintenanceEvents() {
+export async function getAssetMaintenanceEvents(start?: Date, end?: Date) {
     const session = await auth();
     if (!session?.user) return [];
-    return getAssetMaintenanceEventsCached();
+
+    // Default to surrounding window if not provided (e.g. +/- 30 days) to be safe or just this week
+    const s = start || new Date(new Date().setDate(new Date().getDate() - 30));
+    const e = end || new Date(new Date().setDate(new Date().getDate() + 30));
+
+    return getAssetMaintenanceEventsCached(s, e);
 }
 
 export async function getEWO(workOrderId: string) {

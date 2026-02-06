@@ -161,7 +161,7 @@ export default function AssetCalendarPage() {
         const end = endOfWeek(currentDate, { weekStartsOn: 1 });
 
         Promise.all([
-            getAssetMaintenanceEvents(),
+            getAssetMaintenanceEvents(start, end),
             import('@/lib/actions').then(m => m.getProductionLines()), // Lines
             getAllTechnicians(),
             getTechnicianAvailability(start, end),
