@@ -1373,13 +1373,29 @@ export async function pauseWorkSession(workOrderId: string, note?: string) {
         if (activeTimer) {
             const end = new Date();
             const start = new Date(activeTimer.startTime);
-            const durationArr = (end.getTime() - start.getTime()) / 1000 / 60; // minutes
+            const durationArr = (end.getTime() - start.getTime()) / 1000 / 60 / 60; // Hours
+
+            // Create Labor Log automatically
+            const tech = await prisma.technician.findUnique({ where: { userId: session.user.id } });
+
+            if (tech && durationArr > 0) {
+                await prisma.laborLog.create({
+                    data: {
+                        workOrderId: workOrderId,
+                        technicianId: tech.id,
+                        technicianName: tech.name,
+                        hours: parseFloat(durationArr.toFixed(2)),
+                        date: end, // Use end date for the log
+                        note: note
+                    }
+                });
+            }
 
             await prisma.workOrderTimer.update({
                 where: { id: activeTimer.id },
                 data: {
                     endTime: end,
-                    duration: Math.round(durationArr),
+                    duration: Math.round((end.getTime() - start.getTime()) / 1000 / 60), // Minutes stored in timer
                     note
                 }
             });
@@ -1387,17 +1403,18 @@ export async function pauseWorkSession(workOrderId: string, note?: string) {
 
         await prisma.workOrder.update({
             where: { id: workOrderId },
-            data: { status: 'ON_HOLD' }
+            data: { status: 'ON_HOLD' } // Pause implies Hold
         });
 
         revalidatePath(`/work-orders/${workOrderId}`);
         return { success: true };
     } catch (error) {
+        console.error("Pause Error:", error);
         return { success: false, message: 'Errore pausa timer' };
     }
 }
 
-export async function stopWorkSession(workOrderId: string) {
+export async function stopWorkSession(workOrderId: string, note?: string) {
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -1409,24 +1426,53 @@ export async function stopWorkSession(workOrderId: string) {
         if (activeTimer) {
             const end = new Date();
             const start = new Date(activeTimer.startTime);
-            const durationArr = (end.getTime() - start.getTime()) / 1000 / 60;
+            const durationMinutes = (end.getTime() - start.getTime()) / 1000 / 60;
+            const durationHours = durationMinutes / 60;
+
+            // Create Labor Log
+            const tech = await prisma.technician.findUnique({ where: { userId: session.user.id } });
+
+            if (tech && durationMinutes > 1) { // Min 1 minute to log?
+                await prisma.laborLog.create({
+                    data: {
+                        workOrderId: workOrderId,
+                        technicianId: tech.id,
+                        technicianName: tech.name,
+                        hours: parseFloat(durationHours.toFixed(2)),
+                        date: end,
+                        note: note
+                    }
+                });
+            }
 
             await prisma.workOrderTimer.update({
                 where: { id: activeTimer.id },
                 data: {
                     endTime: end,
-                    duration: Math.round(durationArr)
+                    duration: Math.round(durationMinutes),
+                    note
                 }
             });
         }
+
+        // Ensure status reflects stoppage if needed? 
+        // User asked for pure "Stop", maybe implies "Assigned" or "Open" again?
+        // Or keep current status but just stop timer?
+        // Let's set to ON_HOLD to be safe, as work stopped.
+        await prisma.workOrder.update({
+            where: { id: workOrderId },
+            data: { status: 'ON_HOLD' }
+        });
+
         revalidatePath(`/work-orders/${workOrderId}`);
         return { success: true };
     } catch (error) {
+        console.error("Stop Error:", error);
         return { success: false, message: 'Errore stop timer' };
     }
 }
 
-export async function completeWorkOrder(workOrderId: string) {
+export async function completeWorkOrder(workOrderId: string, note?: string) {
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -1445,7 +1491,9 @@ export async function completeWorkOrder(workOrderId: string) {
         }
 
         // 2. Stop any active timer
-        await stopWorkSession(workOrderId);
+        // Use user note if provided, else default
+        const stopNote = note || "Ordine Completato";
+        await stopWorkSession(workOrderId, stopNote);
 
         // 3. Update Status
         await prisma.workOrder.update({

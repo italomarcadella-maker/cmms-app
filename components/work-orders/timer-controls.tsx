@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, StopCircle, Clock } from "lucide-react";
+import { Play, Pause, StopCircle, Clock, CheckCircle } from "lucide-react";
 import { startWorkSession, pauseWorkSession, stopWorkSession, completeWorkOrder } from "@/lib/actions";
 import { WorkOrder, WorkOrderTimer } from "@/lib/types";
 import { toast } from "sonner";
@@ -22,7 +22,11 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
     const [elapsed, setElapsed] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [showPauseDialog, setShowPauseDialog] = useState(false);
+    const [showStopDialog, setShowStopDialog] = useState(false);
+    const [showCompleteDialog, setShowCompleteDialog] = useState(false);
     const [pauseNote, setPauseNote] = useState("");
+    const [stopNote, setStopNote] = useState("");
+    const [completeNote, setCompleteNote] = useState("");
 
     // Find active timer for this user
     const activeTimer = workOrder.timers?.find(t => t.userId === currentUserId && !t.endTime);
@@ -77,24 +81,40 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
     };
 
     const handleComplete = async () => {
-        if (!confirm("Sei sicuro di voler completare l'ordine? Assicurati di aver compilato la checklist.")) return;
+        // Validation handled by server, but we can double check checklist if we had it here.
+        // Opening Dialog instead of confirm
+        setShowCompleteDialog(true);
+    };
+
+    const confirmComplete = async () => {
         setIsLoading(true);
-        const res = await completeWorkOrder(workOrder.id);
+        const res = await completeWorkOrder(workOrder.id, completeNote);
         if (!res.success) toast.error(res.message);
-        else toast.success("Ordine completato!");
+        else {
+            toast.success("Ordine completato!");
+            setShowCompleteDialog(false);
+        }
+        setIsLoading(false);
+    };
+
+    const handleStop = async () => {
+        setIsLoading(true);
+        const res = await stopWorkSession(workOrder.id, stopNote);
+        if (!res.success) toast.error(res.message);
+        else {
+            toast.success("Sessione fermata e registrata");
+            setShowStopDialog(false);
+            setStopNote("");
+        }
         setIsLoading(false);
     };
 
     const isAssignedToMe = workOrder.assignedTechnicianId === currentUserId ||
         (workOrder.technicians?.some((t: any) => t.id === currentUserId) ?? false);
 
-    // Logic to determine active state
-    // If I am NOT assigned and CANNOT manage, hide it.
-    // If I am NOT assigned but CAN manage, show it (Admin override/help).
     const canInteract = isAssignedToMe || canManage;
 
     if (!canInteract && workOrder.status !== 'COMPLETED' && workOrder.status !== 'CLOSED') {
-        // Hide controls if not assigned and not a manager
         return (
             <div className="flex items-center gap-2 text-muted-foreground text-sm border p-3 rounded-lg bg-muted/20">
                 <Clock className="h-4 w-4" />
@@ -138,7 +158,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                     >
                         <Play className="h-4 w-4 mr-2" />
-                        Avvia Lavoro
+                        {workOrder.status === 'ON_HOLD' ? 'Riprendi Lavoro' : 'Avvia Lavoro'}
                     </Button>
                 ) : (
                     <Button
@@ -153,13 +173,23 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                 )}
 
                 <Button
+                    onClick={() => setShowStopDialog(true)}
+                    disabled={isLoading || !activeTimer}
+                    variant="destructive"
+                    className="flex-1"
+                >
+                    <StopCircle className="h-4 w-4 mr-2" />
+                    Stop
+                </Button>
+
+                <Button
                     onClick={handleComplete}
                     disabled={isLoading || !!activeTimer}
                     variant="outline"
                     className="flex-1 border-blue-200 hover:bg-blue-50 text-blue-700"
                 >
-                    <StopCircle className="h-4 w-4 mr-2" />
-                    Completa Ordine
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Completa
                 </Button>
             </div>
 
@@ -170,7 +200,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label>Motivo (Opzionale)</Label>
+                            <Label>Motivo Pausa (Opzionale)</Label>
                             <Textarea
                                 placeholder="Es. Fine turno, Mancanza ricambi..."
                                 value={pauseNote}
@@ -183,6 +213,76 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={showStopDialog} onOpenChange={setShowStopDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Ferma Attività (Fine Giornata)</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Note Attività Svolta (Opzionale)</Label>
+                            <Textarea
+                                placeholder="Descrivi brevemente cosa hai fatto oggi..."
+                                value={stopNote}
+                                onChange={(e) => setStopNote(e.target.value)}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Il tempo registrato verrà salvato come Manodopera e l'ordine andrà in Pausa (ON HOLD).
+                        </p>
+                        <Button onClick={handleStop} variant="destructive" className="w-full">
+                            Ferma e Salva
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Completa Ordine</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <p className="text-sm text-muted-foreground">
+                            Confermando, l'ordine verrà segnato come completato e il timer verrà fermato.
+                        </p>
+                        <div className="space-y-2">
+                            <Label>Note Finali (Opzionale)</Label>
+                            <Textarea
+                                placeholder="Note sulla risoluzione..."
+                                value={completeNote}
+                                onChange={(e) => setCompleteNote(e.target.value)}
+                            />
+                        </div>
+                        <Button onClick={confirmComplete} className="w-full bg-green-600 hover:bg-green-700">
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Conferma Completamento
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Recent Sessions List */}
+            {workOrder.laborLogs && workOrder.laborLogs.length > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sessioni Recenti</h4>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                        {workOrder.laborLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log) => (
+                            <div key={log.id} className="flex justify-between items-start text-sm p-2 bg-muted/40 rounded-md">
+                                <div>
+                                    <div className="font-medium">{new Date(log.date).toLocaleDateString()} {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                    {(log as any).note && <div className="text-xs text-muted-foreground mt-1 italic">"{(log as any).note}"</div>}
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-mono font-bold">{log.hours} h</div>
+                                    <div className="text-xs text-muted-foreground">{log.technicianName}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

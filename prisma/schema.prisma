@@ -211,6 +211,7 @@ model LaborLog {
   technicianName String
   hours          Float
   date           DateTime
+  note           String?
   workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   workOrderId    String
 }
