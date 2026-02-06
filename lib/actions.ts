@@ -417,36 +417,52 @@ export async function rescheduleWorkOrder(id: string, newDate: Date) {
 }
 
 // --- Work Order Assignment (Scheduler) ---
-export async function assignWorkOrder(workOrderId: string, technicianId: string, date: Date) {
+export async function assignWorkOrder(workOrderId: string, technicianId: string, date?: Date) {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false, message: "Non autorizzato" };
 
-        const normalizedDate = new Date(date);
-        normalizedDate.setHours(9, 0, 0, 0); // Default to 9 AM
+        const tech = await prisma.technician.findUnique({ where: { id: technicianId } });
+        if (!tech) return { success: false, message: "Tecnico non trovato" };
 
-        await prisma.workOrder.update({
+        const updateData: any = {
+            assignedTechnicianId: technicianId,
+            assignedTo: tech.name,
+            status: "OPEN"
+        };
+
+        if (date) {
+            const normalizedDate = new Date(date);
+            normalizedDate.setHours(9, 0, 0, 0);
+            updateData.dueDate = normalizedDate;
+        }
+
+        const workOrder = await prisma.workOrder.update({
             where: { id: workOrderId },
-            data: {
-                assignedTechnicianId: technicianId,
-                dueDate: normalizedDate,
-                status: "OPEN" // Ensure it stays open or moves to open if was different
-            }
+            data: updateData
         });
 
-        // Log audit
-        await logAction(
-            session.user.id,
-            "ASSIGN_WO",
-            workOrderId,
-            `Assigned WO to technician ${technicianId} for date ${normalizedDate.toISOString()}`
-        );
+        if (tech.userId) {
+            await prisma.notification.create({
+                data: {
+                    userId: tech.userId,
+                    title: "Nuovo Incarico",
+                    message: `Ti è stato assegnato un nuovo ordine di lavoro: ${workOrder.title}`,
+                    link: `/work-orders/${workOrder.id}`
+                }
+            });
+        }
+
+        if (session?.user) {
+            await logAction(session.user.id, "ASSIGN_WO", workOrderId, `Assigned to ${tech.name}` + (date ? ` on ${date}` : ""));
+        }
 
         revalidatePath("/planning/calendar");
+        revalidatePath("/work-orders");
         return { success: true, message: "Assegnazione completata" };
+
     } catch (error) {
-        console.error("Error assigning WO:", error);
-        return { success: false, message: "Errore durante l'assegnazione" };
+        console.error("Assign Error:", error);
+        return { success: false, message: "Errore assegnazione" };
     }
 }
 
@@ -1355,29 +1371,7 @@ export async function completeWorkOrder(workOrderId: string) {
     }
 }
 
-export async function assignWorkOrder(workOrderId: string, technicianId: string) {
-    const tech = await prisma.technician.findUnique({ where: { id: technicianId } });
-    if (!tech) throw new Error("Technician not found");
 
-    const workOrder = await prisma.workOrder.update({
-        where: { id: workOrderId },
-        data: {
-            assignedTechnicianId: technicianId,
-            assignedTo: tech.name
-        }
-    });
-
-    if (tech.userId) {
-        await prisma.notification.create({
-            data: {
-                userId: tech.userId,
-                title: "Nuovo Incarico",
-                message: `Ti è stato assegnato un nuovo ordine di lavoro: ${workOrder.title}`,
-                link: `/work-orders/${workOrder.id}`
-            }
-        });
-    }
-}
 
 export async function importWorkOrders(workOrders: any[]) {
     let count = 0;
