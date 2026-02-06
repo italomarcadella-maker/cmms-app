@@ -53,15 +53,15 @@ export default function ExportsPage() {
 
         switch (type) {
             case 'wo':
-                headers = "title,assetName,priority,status,category,description,dueDate,assignedTo";
+                headers = "title,assetName,priority,status,category,description,dueDate,assignedTo,type";
                 filename = "template_interventi.csv";
                 break;
             case 'inventory':
-                headers = "name,category,warehouse,quantity,minQuantity,location,cost";
+                headers = "name,category,warehouse,quantity,minQuantity,location,cost,vendor,description";
                 filename = "template_magazzino.csv";
                 break;
             case 'assets':
-                headers = "name,model,serialNumber,location,status,healthScore,category,purchaseDate";
+                headers = "name,model,serialNumber,location,status,healthScore,department,purchaseDate,vendor,plant";
                 filename = "template_asset.csv";
                 break;
             case 'screws':

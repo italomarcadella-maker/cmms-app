@@ -453,7 +453,7 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
         }
 
         if (session?.user) {
-            await logAction(session.user.id, "ASSIGN_WO", workOrderId, `Assigned to ${tech.name}` + (date ? ` on ${date}` : ""));
+            await logAction("ASSIGN_WO", workOrderId, `Assigned to ${tech.name}` + (date ? ` on ${date}` : ""));
         }
 
         revalidatePath("/planning/calendar");
@@ -812,7 +812,7 @@ export async function getChatMessages() {
     }
 }
 
-export async function sendChatMessage(data: { sender: string; role: string; content: string; isSystem?: boolean }) {
+export async function sendChatMessage(data: { sender: string; role: string; content: string; isSystem?: boolean; thoughtProcess?: string[]; imageUrl?: string }) {
     try {
         const msg = await prisma.chatMessage.create({
             data: {
@@ -820,7 +820,9 @@ export async function sendChatMessage(data: { sender: string; role: string; cont
                 role: data.role,
                 content: data.content,
                 isSystem: data.isSystem || false,
-                isRead: false
+                isRead: false,
+                thoughtProcess: data.thoughtProcess || [],
+                imageUrl: data.imageUrl
             }
         });
         return { success: true, data: msg };

@@ -356,6 +356,8 @@ model ChatMessage {
   timestamp DateTime @default(now())
   isRead    Boolean  @default(false)
   isSystem  Boolean  @default(false)
+  thoughtProcess String[] @default([])
+  imageUrl  String?
 }
 
 model MaintenanceKnowledge {

@@ -13,6 +13,8 @@ export interface Message {
     timestamp: string;
     isRead: boolean;
     isSystem?: boolean;
+    thoughtProcess?: string[];
+    imageUrl?: string;
 }
 
 interface ChatContextType {
@@ -85,7 +87,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                     sender: aiMsg.sender,
                     role: "SYSTEM",
                     content: aiMsg.content,
-                    isSystem: true
+                    isSystem: true,
+                    thoughtProcess: aiMsg.thoughtProcess
                 });
 
                 refreshMessages(); // Fetch the AI message

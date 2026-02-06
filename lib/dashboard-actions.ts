@@ -262,65 +262,93 @@ export const getMaintenanceMetrics = unstable_cache(
         try {
             const startDate = subDays(new Date(), months * 30);
 
-            // Fetch completed break-fix WOs (FAULT)
+            // Fetch completed break-fix WOs (FAULT) with related costs
             const completedFaults = await prisma.workOrder.findMany({
                 where: {
                     type: 'FAULT',
                     status: { in: ['COMPLETED', 'CLOSED'] },
                     createdAt: { gte: startDate }
                 },
-                select: { createdAt: true, id: true }
+                include: {
+                    partsUsed: true,
+                    laborLogs: {
+                        include: {
+                            technician: true
+                        }
+                    }
+                }
             });
-
-            // Since we don't have a reliable 'completedAt' or 'downtimeDuration' field yet,
-            // we will simulate MTTR based on a mock distribution or labor logs if available.
-            // For now, let's look at LaborLogs to find the last entry for each WO
 
             let totalRepairTimeHours = 0;
             let repairCount = 0;
+            let totalCost = 0;
 
-            for (const wo of completedFaults) {
-                const logs = await prisma.laborLog.findMany({
-                    where: { workOrderId: wo.id },
-                    select: { hours: true }
-                });
+            const monthlyDataMap = new Map<string, { mttrSum: number, mtbfCount: number, cost: number, count: number }>();
 
-                if (logs.length > 0) {
-                    const hours = logs.reduce((sum, log) => sum + log.hours, 0);
-                    totalRepairTimeHours += hours;
-                    repairCount++;
+            // Initialize months
+            for (let i = 5; i >= 0; i--) {
+                const d = subDays(new Date(), i * 30);
+                const monthName = format(d, 'MMM', { locale: it });
+                monthlyDataMap.set(monthName, { mttrSum: 0, mtbfCount: 0, cost: 0, count: 0 });
+            }
+
+            for (const woItem of completedFaults) {
+                const wo = woItem as any;
+                const monthName = format(wo.createdAt, 'MMM', { locale: it });
+
+                // MTTR
+                let woHours = 0;
+                if (wo.laborLogs.length > 0) {
+                    woHours = wo.laborLogs.reduce((sum: number, log: any) => sum + log.hours, 0);
                 } else {
-                    // Fallback: Assume average 4h if no logs (just for visualization)
-                    totalRepairTimeHours += 4;
-                    repairCount++;
+                    woHours = 4; // Fallback
+                }
+                totalRepairTimeHours += woHours;
+                repairCount++;
+
+                // Cost
+                const partsCost = wo.partsUsed.reduce((sum: number, part: any) => sum + (part.quantity * part.unitCost), 0);
+                const laborCost = wo.laborLogs.reduce((sum: number, log: any) => sum + (log.hours * (log.technician?.hourlyRate || 30)), 0);
+                const woCost = partsCost + laborCost;
+                totalCost += woCost;
+
+                if (monthlyDataMap.has(monthName)) {
+                    const entry = monthlyDataMap.get(monthName)!;
+                    entry.mttrSum += woHours;
+                    entry.cost += woCost;
+                    entry.count++;
+                    monthlyDataMap.set(monthName, entry);
                 }
             }
 
             const mttr = repairCount > 0 ? Math.round((totalRepairTimeHours / repairCount) * 10) / 10 : 0;
-
-            // MTBF: (Total available time - Total downtime) / Number of failures
-            // Simplified: (Days * 24h) / Count
+            // MTBF Global (Simplified)
             const totalHours = months * 30 * 24;
-            const failureCount = completedFaults.length || 1; // Avoid div by 0
+            const failureCount = completedFaults.length || 1;
             const mtbf = Math.round(totalHours / failureCount);
 
+            // Cost Stats
+            const avgCost = repairCount > 0 ? Math.round(totalCost / repairCount) : 0;
+
             // Monthly Trend Data
-            const monthlyData: any[] = [];
-            for (let i = 5; i >= 0; i--) {
-                const d = subDays(new Date(), i * 30);
-                const monthName = format(d, 'MMM');
-                // Mocking trend variation around the calculated average for visualization
-                const variation = (Math.random() * 2 - 1) * 2; // +/- 2 hours
-                monthlyData.push({
-                    name: monthName,
-                    mttr: Math.max(1, mttr + variation),
-                    mtbf: Math.max(10, mtbf + (variation * 10))
-                });
-            }
+            const monthlyData = Array.from(monthlyDataMap.entries()).map(([name, data]) => {
+                const monthMttr = data.count > 0 ? Math.round((data.mttrSum / data.count) * 10) / 10 : 0;
+                // MTBF per month: 720h / count
+                const monthMtbf = data.count > 0 ? Math.round(720 / data.count) : 720;
+
+                return {
+                    name,
+                    mttr: monthMttr || mttr, // Use global avg if no data for smooth chart
+                    mtbf: monthMtbf,
+                    cost: Math.round(data.cost)
+                };
+            });
 
             return {
                 mttr,
                 mtbf,
+                avgCost,
+                totalCost,
                 trend: monthlyData
             };
 

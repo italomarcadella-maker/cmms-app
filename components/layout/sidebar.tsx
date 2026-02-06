@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Package, ClipboardList, Settings, ListChecks, Users, Box, BarChart3, Calendar, ReceiptEuro, Cylinder, CalendarDays, BrainCircuit, FileDown, Gauge, Inbox, PlusCircle, LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, Settings, ListChecks, Users, Box, BarChart3, Calendar, ReceiptEuro, Cylinder, CalendarDays, BrainCircuit, FileDown, Gauge, Inbox, PlusCircle, LucideIcon, ScanLine } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -85,6 +85,7 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                     {(user?.role === 'MAINTAINER' || user?.role === 'SUPERVISOR' || user?.role === 'ADMIN') && (
                         <SidebarGroup title="Operativo">
                             <SidebarItem href="/assets" icon={Box} label="Asset & Macchinari" active={isActive('/assets')} onClick={onNavigate} />
+                            <SidebarItem href="/mobile/scan" icon={ScanLine} label="Scanner QR" active={isActive('/mobile/scan')} onClick={onNavigate} />
                             <SidebarItem href="/inventory" icon={Package} label="Magazzino" active={isActive('/inventory')} onClick={onNavigate} />
                             <SidebarItem href="/screws" icon={Cylinder} label="Viti & Cilindri" active={isActive('/screws')} onClick={onNavigate} />
                             <SidebarItem href="/planning/calendar" icon={CalendarDays} label="Planning & Calendario" active={isActive('/planning/calendar')} onClick={onNavigate} />

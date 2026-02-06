@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useInventory } from "@/lib/inventory-context";
 import { Plus, Box, AlertTriangle, Trash2 } from "lucide-react";
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { QRCodeDialog } from "@/components/inventory/qr-code-dialog";
 
 
 export default function InventoryPage() {
@@ -241,6 +242,9 @@ export default function InventoryPage() {
                                                     <span className="absolute -bottom-1 -right-1 text-[10px] font-bold bg-white rounded-full border border-amber-600 w-3 h-3 flex items-center justify-center">-</span>
                                                 </div>
                                             </button>
+                                            <div className="inline-block mr-1">
+                                                <QRCodeDialog part={part} />
+                                            </div>
                                             <button
                                                 onClick={() => removePart(part.id)}
                                                 className="text-muted-foreground hover:text-white hover:bg-destructive transition-colors p-2 rounded-md"
