@@ -620,6 +620,101 @@ export async function getUnassignedWorkOrders() {
     }
 }
 
+export async function getPlannerUnassignedItems() {
+    try {
+        // 1. Unassigned Work Orders
+        const workOrders = await prisma.workOrder.findMany({
+            where: {
+                assignedTechnicianId: null,
+                status: { in: ["OPEN", "PENDING", "PENDING_APPROVAL"] }
+            },
+            include: { asset: { select: { name: true } } },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const woItems = workOrders.map(wo => ({
+            id: wo.id,
+            type: 'WO',
+            title: wo.title,
+            assetName: wo.asset.name,
+            priority: wo.priority,
+            status: wo.status,
+            category: wo.category
+        }));
+
+        // 2. Upcoming Schedules (Next 14 Days)
+        const nextTwoWeeks = new Date();
+        nextTwoWeeks.setDate(nextTwoWeeks.getDate() + 14);
+
+        const schedules = await prisma.preventiveSchedule.findMany({
+            where: {
+                nextDueDate: { lte: nextTwoWeeks }
+            },
+            include: { asset: { select: { name: true } } },
+            orderBy: { nextDueDate: 'asc' }
+        });
+
+        const pmItems = schedules.map(sch => ({
+            id: sch.id,
+            type: 'PM',
+            title: sch.taskTitle,
+            assetName: sch.asset.name,
+            priority: 'MEDIUM', // Default for PM
+            status: 'SCHEDULED', // Virtual status
+            category: 'PREVENTIVE',
+            dueDate: sch.nextDueDate
+        }));
+
+        return [...woItems, ...pmItems];
+    } catch (error) {
+        console.error("Error fetching planner items:", error);
+        return [];
+    }
+}
+
+export async function createWorkOrderFromSchedule(scheduleId: string, date: Date, technicianId?: string) {
+    try {
+        const schedule = await prisma.preventiveSchedule.findUnique({
+            where: { id: scheduleId },
+            include: { asset: { select: { name: true } } }
+        });
+
+        if (!schedule) return { success: false, message: "Schedulazione non trovata" };
+
+        const newWo = await prisma.workOrder.create({
+            data: {
+                title: schedule.taskTitle,
+                description: schedule.description,
+                assetId: schedule.assetId,
+                priority: 'MEDIUM',
+                category: 'PREVENTIVE',
+                status: 'OPEN',
+                assignedTo: 'Unassigned',
+                dueDate: date,
+                checklist: schedule.activities || '[]'
+            }
+        });
+
+        // Update schedule next due date (simple increment)
+        const nextDate = new Date(schedule.nextDueDate);
+        nextDate.setDate(nextDate.getDate() + schedule.frequencyDays);
+        await prisma.preventiveSchedule.update({
+            where: { id: scheduleId },
+            data: { nextDueDate: nextDate }
+        });
+
+        if (technicianId) {
+            await assignWorkOrder(newWo.id, technicianId, date);
+        }
+
+        revalidatePath('/planning/calendar');
+        return { success: true, message: "Ordine creato da schedulazione" };
+    } catch (error) {
+        console.error("Error creating WO from Schedule:", error);
+        return { success: false, message: "Errore creazione ordine" };
+    }
+}
+
 // --- Preventive Schedules ---
 
 export async function getPreventiveSchedules() {

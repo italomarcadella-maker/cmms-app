@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAssetMaintenanceEvents, rescheduleWorkOrder, assignWorkOrder, getUnassignedWorkOrders } from "@/lib/actions";
+import { getAssetMaintenanceEvents, rescheduleWorkOrder, assignWorkOrder, getPlannerUnassignedItems, createWorkOrderFromSchedule } from "@/lib/actions";
 import { getTechnicianAvailability, getAllTechnicians } from "@/lib/availability-actions";
 import { addDays, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { it } from "date-fns/locale";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Wrench, AlertTriangle, CheckCircle2, Clock, Sparkles, Settings, Users, LayoutGrid, FileText } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Wrench, AlertTriangle, CheckCircle2, Clock, Sparkles, Settings, Users, LayoutGrid, FileText, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,11 +43,13 @@ function DraggableEvent({ event, getStatusColor }: { event: any, getStatusColor:
 }
 
 // --- Draggable Sidebar Item (Technician View) ---
-function DraggableSidebarItem({ workOrder, getStatusColor }: { workOrder: any, getStatusColor: any }) {
+function DraggableSidebarItem({ item, getStatusColor }: { item: any, getStatusColor: any }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-        id: `sidebar-${workOrder.id}`,
-        data: { workOrder, type: 'WO_SIDEBAR' }
+        id: `sidebar-${item.id}`,
+        data: { item, type: 'SIDEBAR_ITEM' }
     });
+
+    const isPM = item.type === 'PM';
 
     return (
         <div
@@ -56,17 +58,19 @@ function DraggableSidebarItem({ workOrder, getStatusColor }: { workOrder: any, g
             {...attributes}
             className={cn(
                 "p-3 rounded-lg border shadow-sm cursor-grab hover:shadow-md transition-all active:cursor-grabbing bg-white",
-                getStatusColor(workOrder.status, workOrder.category),
+                getStatusColor(item.status, item.category),
                 isDragging && "opacity-50 ring-2 ring-blue-500 z-50",
-                "flex flex-col gap-1"
+                "flex flex-col gap-1 relative overflow-hidden"
             )}
         >
-            <div className="flex justify-between items-start">
-                <span className="font-bold text-xs">#{workOrder.id.slice(-4)}</span>
-                <span className="text-[10px] uppercase font-bold opacity-70">{workOrder.priority}</span>
+            {isPM && <div className="absolute top-0 right-0 p-1 bg-blue-600 text-white rounded-bl-lg"><CalendarClock className="h-3 w-3" /></div>}
+            <div className="flex justify-between items-start pr-4">
+                <span className="font-bold text-xs">{isPM ? 'PIANIFICATO' : `#${item.id.slice(-4)}`}</span>
+                <span className="text-[10px] uppercase font-bold opacity-70">{item.priority}</span>
             </div>
-            <div className="font-medium text-xs truncate" title={workOrder.asset.name}>{workOrder.asset.name}</div>
-            <div className="text-[10px] text-muted-foreground truncate">{workOrder.title}</div>
+            <div className="font-medium text-xs truncate" title={item.assetName}>{item.assetName}</div>
+            <div className="text-[10px] text-muted-foreground truncate">{item.title}</div>
+            {isPM && <div className="text-[10px] font-mono text-blue-600 mt-1">Scad: {format(new Date(item.dueDate), 'd MMM')}</div>}
         </div>
     );
 }
@@ -143,7 +147,7 @@ export default function AssetCalendarPage() {
     // Technician View State
     const [technicians, setTechnicians] = useState<any[]>([]);
     const [techAvailability, setTechAvailability] = useState<any[]>([]);
-    const [unassignedWOs, setUnassignedWOs] = useState<any[]>([]);
+    const [unassignedItems, setUnassignedItems] = useState<any[]>([]); // Mixed WOs and PMs
 
     const [activeDragEvent, setActiveDragEvent] = useState<any | null>(null);
 
@@ -161,13 +165,13 @@ export default function AssetCalendarPage() {
             import('@/lib/actions').then(m => m.getProductionLines()), // Lines
             getAllTechnicians(),
             getTechnicianAvailability(start, end),
-            getUnassignedWorkOrders()
+            getPlannerUnassignedItems()
         ]).then(([eventsData, linesData, techsData, availabilityData, unassignedData]) => {
             setEvents(eventsData);
             setLines(linesData);
             setTechnicians(techsData);
             setTechAvailability(availabilityData);
-            setUnassignedWOs(unassignedData);
+            setUnassignedItems(unassignedData);
             setLoading(false);
         });
     };
@@ -182,8 +186,8 @@ export default function AssetCalendarPage() {
 
         if (type === 'WO_EVENT') {
             setActiveDragEvent(active.data.current.event);
-        } else if (type === 'WO_SIDEBAR') {
-            setActiveDragEvent({ ...active.data.current.workOrder, isSidebar: true });
+        } else if (type === 'SIDEBAR_ITEM') {
+            setActiveDragEvent({ ...active.data.current.item, isSidebar: true });
         }
     };
 
@@ -216,37 +220,51 @@ export default function AssetCalendarPage() {
             }
         }
 
-        // 2. Assign Technician (WO_SIDEBAR -> TECH_SLOT)
-        else if (activeType === 'WO_SIDEBAR' && overType === 'TECH_SLOT') {
+        // 2. Assign Technician (SIDEBAR_ITEM -> TECH_SLOT)
+        else if (activeType === 'SIDEBAR_ITEM' && overType === 'TECH_SLOT') {
             const [_, techId, dateStr] = overId.split('::');
-            const woId = activeId.replace('sidebar-', '');
+            const itemId = activeId.replace('sidebar-', '');
             const targetDate = new Date(dateStr);
+            const itemData = active.data.current?.item;
 
             // Optimistic remove from sidebar
-            const originalUnassigned = [...unassignedWOs];
-            setUnassignedWOs(prev => prev.filter(wo => wo.id !== woId));
+            const originalUnassigned = [...unassignedItems];
+            setUnassignedItems(prev => prev.filter(item => item.id !== itemId));
 
-            // Add optimistic event to calendar (needs shape conversion)
-            const movedWO = unassignedWOs.find(wo => wo.id === woId);
-            if (movedWO) {
-                setEvents(prev => [...prev, {
-                    id: woId,
-                    title: movedWO.title,
-                    start: targetDate,
-                    status: 'OPEN', // Assumed
-                    assetName: movedWO.asset.name,
-                    assignedToId: techId // To show in correct row
-                }]);
-            }
+            // Determine if WO or PM
+            if (itemData.type === 'PM') {
+                // It's a Schedule -> Create WO
+                toast.info("Generazione ordine in corso...");
+                const result = await createWorkOrderFromSchedule(itemId, targetDate, techId);
+                if (result.success) {
+                    toast.success("Ordine generato e assegnato");
+                    refreshData(); // Full refresh needed to get new WO ID and sync status
+                } else {
+                    toast.error(result.message);
+                    setUnassignedItems(originalUnassigned); // Revert
+                }
 
-            const result = await assignWorkOrder(woId, techId, targetDate);
-            if (result.success) {
-                toast.success("Assegnazione completata");
-                refreshData(); // Full refresh to sync state perfectly
             } else {
-                toast.error(result.message);
-                setUnassignedWOs(originalUnassigned); // Revert
-                setEvents(prev => prev.filter(ev => ev.id !== woId)); // Revert
+                // It's a WO -> Assign
+                // Add optimistic event to calendar (needs shape conversion)
+                setEvents(prev => [...prev, {
+                    id: itemId,
+                    title: itemData.title,
+                    start: targetDate,
+                    status: 'ASSIGNED',
+                    assetName: itemData.assetName,
+                    assignedTechnicianId: techId // Key for grid mapping
+                }]);
+
+                const result = await assignWorkOrder(itemId, techId, targetDate);
+                if (result.success) {
+                    toast.success("Assegnazione completata");
+                    // refreshData(); // Not strictly needed if standard WO, but good for sync
+                } else {
+                    toast.error(result.message);
+                    setUnassignedItems(originalUnassigned); // Revert
+                    setEvents(prev => prev.filter(ev => ev.id !== itemId)); // Revert
+                }
             }
         }
 
@@ -386,11 +404,11 @@ export default function AssetCalendarPage() {
                                     <span className="ml-auto bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full text-[10px]">{unassignedWOs.length}</span>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50">
-                                    {unassignedWOs.length === 0 ? (
+                                    {unassignedItems.length === 0 ? (
                                         <div className="text-center py-8 text-xs text-muted-foreground">Nessun ordine in attesa.</div>
                                     ) : (
-                                        unassignedWOs.map(wo => (
-                                            <DraggableSidebarItem key={wo.id} workOrder={wo} getStatusColor={getStatusColor} />
+                                        unassignedItems.map(item => (
+                                            <DraggableSidebarItem key={item.id} item={item} getStatusColor={getStatusColor} />
                                         ))
                                     )}
                                 </div>
