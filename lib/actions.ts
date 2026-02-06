@@ -1423,6 +1423,28 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
                 });
             }
 
+            // Notifications Cleanup: Mark any notification about this WO as read for this user
+            try {
+                const pendingNotifs = await prisma.notification.findMany({
+                    where: {
+                        userId: session.user.id,
+                        link: { contains: `/work-orders/${id}` },
+                        read: false
+                    }
+                });
+
+                if (pendingNotifs.length > 0) {
+                    await prisma.notification.updateMany({
+                        where: {
+                            id: { in: pendingNotifs.map(n => n.id) }
+                        },
+                        data: { read: true }
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to cleanup notification:", e);
+            }
+
         } else {
             await prisma.workOrder.update({
                 where: { id },
