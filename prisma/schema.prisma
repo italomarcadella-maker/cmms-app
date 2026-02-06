@@ -80,6 +80,7 @@ model Asset {
   status          String   @default("OPERATIONAL")
   healthScore     Int      @default(100)
   lastMaintenance DateTime?
+  type            String   @default("MACHINE") // MACHINE, FACILITY, SAFETY, KAIZEN, OTHER
   
   warrantyExpiration DateTime? // Phase 9: Cost & Warranty
   

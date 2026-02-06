@@ -298,6 +298,7 @@ export async function importAssets(assets: any[]) {
                 location: asset.location || 'Unknown',
                 status: asset.status || 'OPERATIONAL',
                 healthScore: parseInt(asset.healthScore) || 100,
+                type: asset.type || 'MACHINE',
                 purchaseDate: asset.purchaseDate ? new Date(asset.purchaseDate) : new Date(),
                 department: asset.department || asset.category || 'General',
                 plant: asset.plant || 'Default Plant',
@@ -334,6 +335,7 @@ export async function addAsset(data: any) {
             location: data.location,
             status: data.status || 'OPERATIONAL',
             healthScore: data.healthScore || 100,
+            type: data.type, // Ensure type is updated
             purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : new Date(),
             department: data.department,
             plant: data.plant,
@@ -553,7 +555,7 @@ export async function createPreventiveSchedule(data: {
                 frequency: data.frequency,
                 frequencyDays: data.frequencyDays,
                 activities: JSON.stringify(data.activities),
-                nextDueDate: new Date(data.firstDate),
+                nextDueDate: new Date(data.firstDate)
             }
         });
         revalidatePath('/maintenance/schedule');

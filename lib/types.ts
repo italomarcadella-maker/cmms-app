@@ -12,6 +12,7 @@ export interface Asset {
     line?: string;       // Requested by user (Linea)
     cespite?: string;    // Requested by user (Cespite)
     location: string;    // specific room/area within plant
+    type: string;        // MACHINE, FACILITY, SAFETY, etc.
     purchaseDate: string;
     status: AssetStatus;
     image?: string;

@@ -34,18 +34,29 @@ export default function AssetsPage() {
         name: "", model: "", serialNumber: "", vendor: "", plant: "Main Plant", department: "", location: "", line: "", purchaseDate: "", status: "OPERATIONAL", healthScore: 100, lastMaintenance: "", cespite: ""
     };
 
+    const [showGenerics, setShowGenerics] = useState(false);
+
     useEffect(() => {
         if (!assets) return;
         const lowercasedSearch = search.toLowerCase();
-        const filtered = assets.filter(
-            (asset) =>
+
+        const filtered = assets.filter((asset) => {
+            // 1. Text Search
+            const matchesSearch =
                 asset.name.toLowerCase().includes(lowercasedSearch) ||
                 asset.model.toLowerCase().includes(lowercasedSearch) ||
                 asset.serialNumber.toLowerCase().includes(lowercasedSearch) ||
-                asset.location.toLowerCase().includes(lowercasedSearch)
-        );
+                asset.location.toLowerCase().includes(lowercasedSearch);
+
+            // 2. Type Filter (Hide generics unless toggle is on)
+            const isGeneric = ['SAFETY', 'KAIZEN', 'OTHER'].includes(asset.type);
+            if (!showGenerics && isGeneric) return false;
+
+            return matchesSearch;
+        });
+
         setFilteredAssets(filtered);
-    }, [search, assets]);
+    }, [search, assets, showGenerics]);
 
     const handleSaveAsset = (asset: any) => {
         if (asset.id && assets.some(a => a.id === asset.id)) {
@@ -126,16 +137,30 @@ export default function AssetsPage() {
             </div>
 
 
-            {/* Search */}
-            <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <input
-                    type="text"
-                    placeholder="Cerca asset..."
-                    className="pl-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
+            {/* Search and Filter */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative flex-1 w-full sm:max-w-md">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <input
+                        type="text"
+                        placeholder="Cerca asset..."
+                        className="pl-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none border p-2 rounded-md hover:bg-muted/50 transition-colors">
+                        <input
+                            type="checkbox"
+                            checked={showGenerics}
+                            onChange={(e) => setShowGenerics(e.target.checked)}
+                            className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                        />
+                        Mostra Generici/Sicurezza
+                    </label>
+                </div>
             </div>
 
 

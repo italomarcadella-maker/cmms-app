@@ -65,6 +65,26 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid gap-4 py-4">
+                        {/* Row 0: Type */}
+                        <div className="space-y-2">
+                            <label htmlFor="type" className="text-sm font-medium">
+                                Tipo Asset
+                            </label>
+                            <select
+                                id="type"
+                                name="type"
+                                value={formData.type || 'MACHINE'}
+                                onChange={(e) => setFormData((prev: any) => ({ ...prev, type: e.target.value }))}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            >
+                                <option value="MACHINE">Macchinario / Attrezzatura</option>
+                                <option value="FACILITY">Impianto / Struttura</option>
+                                <option value="SAFETY">Sicurezza / DPI</option>
+                                <option value="KAIZEN">Quick Kaizen</option>
+                                <option value="OTHER">Altro / Generico</option>
+                            </select>
+                        </div>
+
                         {/* Row 1: Name & Model */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
