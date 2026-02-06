@@ -303,7 +303,7 @@ export default function WorkOrderDetailPage() {
                             )}
 
                             {/* VALIDATION STEP */}
-                            {wo.status === 'PENDING_REVIEW' && (canManage ? (
+                            {(wo.status === 'PENDING_REVIEW' || wo.status === 'COMPLETED') && (canManage ? (
                                 <>
                                     <button
                                         onClick={async () => {
