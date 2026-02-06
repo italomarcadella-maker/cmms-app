@@ -16,7 +16,10 @@ interface WOAssignDialogProps {
     onClose: () => void;
 }
 
+import { useRouter } from "next/navigation";
+
 export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WOAssignDialogProps) {
+    const router = useRouter();
     const { technicians } = useReference();
     const { workOrders } = useWorkOrders(); // Read-only access to list
     const wo = workOrders.find(w => w.id === workOrderId);
@@ -93,7 +96,8 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
                 // Ideally context should re-fetch or optimistically update.
                 // For now relying on Next.js Server Components Refresh via router (implicit in revalidatePath?)
                 // Client context might be stale until refresh.
-                window.location.reload(); // Simple sync for now as context logic is complex
+                // Client context might be stale until refresh.
+                router.refresh(); // Syncs server components without full reload
             } else {
                 toast.error("Errore: " + res.message);
             }

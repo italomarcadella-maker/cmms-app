@@ -18,7 +18,10 @@ const COLUMNS: { id: WorkOrderStatus; label: string }[] = [
     { id: 'CLOSED', label: 'Validato' },
 ];
 
+import { useRouter } from "next/navigation";
+
 export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
+    const router = useRouter();
     const { updateWorkOrderStatus } = useWorkOrders();
     const { user } = useAuth();
 
@@ -57,7 +60,7 @@ export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
             // update local state or refresh? 
             // Context might not update automatically if it depends on polling or manual refresh.
             // Ideally useWorkOrders should have a refresh.
-            window.location.reload(); // Simple refresh for now or trigger revalidation
+            router.refresh();
         } else {
             alert(res.message);
         }

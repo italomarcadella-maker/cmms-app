@@ -113,7 +113,8 @@ export default function WorkOrderDetailPage() {
                 // But our data comes from Context initialized by `actions`.
                 // Actually context loads on mount.
                 // We might need to manually trigger reload in context or just reload page.
-                window.location.reload(); // Quickest consistent way for now, slightly jarring but safe.
+                // We might need to manually trigger reload in context or just reload page.
+                router.refresh(); // Quickest consistent way for now, slightly jarring but safe.
             } else {
                 alert("Errore: " + result.message);
             }
@@ -128,7 +129,7 @@ export default function WorkOrderDetailPage() {
         try {
             const result = await removeWorkOrderPart(partLinkId);
             if (result.success) {
-                window.location.reload();
+                router.refresh();
             } else {
                 alert("Errore: " + result.message);
             }

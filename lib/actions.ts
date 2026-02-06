@@ -423,11 +423,29 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
     try {
         const session = await auth();
 
-        const tech = await prisma.technician.findUnique({ where: { id: technicianId } });
+        // Check if technicianId is a Technician ID or a User ID (for Supervisors)
+        let tech = await prisma.technician.findUnique({ where: { id: technicianId } });
+
+        // If not found, check if it's a User ID and create profile if needed
+        if (!tech) {
+            const user = await prisma.user.findUnique({ where: { id: technicianId } });
+            if (user && (user.role === 'SUPERVISOR' || user.role === 'MAINTAINER')) {
+                // Auto-register as Technician
+                tech = await prisma.technician.create({
+                    data: {
+                        name: user.name || 'Technician',
+                        userId: user.id,
+                        specialty: user.role === 'SUPERVISOR' ? 'Supervisor' : 'General',
+                        hourlyRate: 0
+                    }
+                });
+            }
+        }
+
         if (!tech) return { success: false, message: "Tecnico non trovato" };
 
         const updateData: any = {
-            assignedTechnicianId: technicianId,
+            assignedTechnicianId: tech.id,
             assignedTo: tech.name,
             status: "ASSIGNED" // Start treating as ASSIGNED
         };
@@ -443,13 +461,16 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
             data: updateData
         });
 
+        // Use the real Tech ID for the relation
+        const realTechId = tech.id;
+
         // Maintain Many-to-Many relation
         // Check if already assigned
         const existingRel = await prisma.workOrderTechnician.findUnique({
             where: {
                 workOrderId_technicianId: {
                     workOrderId,
-                    technicianId
+                    technicianId: realTechId
                 }
             }
         });
@@ -458,7 +479,7 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
             await prisma.workOrderTechnician.create({
                 data: {
                     workOrderId,
-                    technicianId
+                    technicianId: realTechId
                 }
             });
         }
@@ -500,27 +521,48 @@ export async function updateWorkOrderAssignments(workOrderId: string, technician
             where: { workOrderId }
         });
 
-        if (technicianIds.length > 0) {
+        // Resolve all IDs to valid Technician IDs
+        const resolvedIds: string[] = [];
+        for (const inputId of technicianIds) {
+            let tech = await prisma.technician.findUnique({ where: { id: inputId } });
+            if (!tech) {
+                // Try User ID
+                const user = await prisma.user.findUnique({ where: { id: inputId } });
+                if (user && (user.role === 'SUPERVISOR' || user.role === 'MAINTAINER')) {
+                    tech = await prisma.technician.create({
+                        data: {
+                            name: user.name || 'Technician',
+                            userId: user.id,
+                            specialty: user.role === 'SUPERVISOR' ? 'Supervisor' : 'General',
+                            hourlyRate: 0
+                        }
+                    });
+                }
+            }
+            if (tech) resolvedIds.push(tech.id);
+        }
+
+        if (resolvedIds.length > 0) {
             await prisma.workOrderTechnician.createMany({
-                data: technicianIds.map(id => ({
+                data: resolvedIds.map(id => ({
                     workOrderId,
                     technicianId: id
                 }))
             });
 
             // Update legacy fields with the FIRST technician for backward compat
-            const firstTech = await prisma.technician.findUnique({ where: { id: technicianIds[0] } });
+            const firstTech = await prisma.technician.findUnique({ where: { id: resolvedIds[0] } });
             await prisma.workOrder.update({
                 where: { id: workOrderId },
                 data: {
-                    assignedTechnicianId: technicianIds[0],
+                    assignedTechnicianId: resolvedIds[0],
                     assignedTo: firstTech?.name || 'Assigned',
                     status: 'ASSIGNED'
                 }
             });
 
             // Notify all new technicians
-            for (const techId of technicianIds) {
+            for (const techId of resolvedIds) {
                 const tech = await prisma.technician.findUnique({ where: { id: techId } });
                 if (tech && tech.userId) {
                     await prisma.notification.create({
@@ -685,7 +727,37 @@ export async function updatePreventiveSchedule(id: string, nextDueDate: Date) {
 // --- Technicians ---
 
 export async function getTechnicians() {
-    try { return await prisma.technician.findMany(); } catch (error) { return []; }
+    try {
+        // 1. Get explicitly registered technicians
+        const techs = await prisma.technician.findMany();
+
+        // 2. Get Supervisors who are technically able to work but don't have a Technician profile yet
+        // We exclude those who already have a profile by checking userId NOT IN techs.userId
+        const registeredUserIds = techs.map(t => t.userId).filter(Boolean) as string[];
+
+        const supervisors = await prisma.user.findMany({
+            where: {
+                role: 'SUPERVISOR',
+                id: { notIn: registeredUserIds },
+                isActive: true
+            },
+            select: { id: true, name: true, email: true }
+        });
+
+        // Map supervisors to resemble Technician shape
+        const supervisorTechs = supervisors.map(s => ({
+            id: s.id, // Use User ID as ID for now (handled in assignWorkOrder)
+            name: s.name || 'Supervisor',
+            specialty: 'Supervisor',
+            hourlyRate: 0,
+            userId: s.id
+        }));
+
+        return [...techs, ...supervisorTechs] as any[];
+
+    } catch (error) {
+        return [];
+    }
 }
 
 export async function getAvailableUsersForTechnician() {
@@ -2142,11 +2214,12 @@ export async function getAdvancedKPIs() {
 const getAssetMaintenanceEventsCached = unstable_cache(
     async () => {
         try {
+            // 1. Fetch Work Orders
             const workOrders = await prisma.workOrder.findMany({
                 where: {
                     status: { not: 'CANCELED' },
                     OR: [
-                        { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING'] } },
+                        { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING', 'ASSIGNED'] } },
                         {
                             category: { in: ['PREVENTIVE', 'PLANNED'] },
                             dueDate: { gte: new Date() }
@@ -2161,8 +2234,9 @@ const getAssetMaintenanceEventsCached = unstable_cache(
                 orderBy: { dueDate: 'asc' }
             });
 
-            return workOrders.map(wo => ({
+            const woEvents = workOrders.map(wo => ({
                 id: wo.id,
+                ids: wo.id, // Legacy compatibility
                 assetId: wo.assetId,
                 assetName: wo.asset?.name || 'Unknown Asset',
                 // @ts-ignore
@@ -2172,15 +2246,44 @@ const getAssetMaintenanceEventsCached = unstable_cache(
                 end: new Date((wo.dueDate || wo.createdAt).getTime() + (120 * 60000)).toISOString(),
                 status: wo.status,
                 category: wo.category,
-                assignee: wo.assignedTo || 'Non assegnato'
+                assignee: wo.assignedTo || 'Non assegnato',
+                type: 'WO'
             }));
+
+            // 2. Fetch Preventive Schedules
+            const schedules = await prisma.preventiveSchedule.findMany({
+                include: {
+                    asset: {
+                        select: { name: true, line: true }
+                    }
+                }
+            });
+
+            const scheduleEvents = schedules.map(sch => ({
+                id: sch.id,
+                ids: sch.id,
+                assetId: sch.assetId,
+                assetName: sch.asset?.name || 'Unknown Asset',
+                line: sch.asset?.line || 'Nessuna Linea',
+                title: `[Pianificata] ${sch.taskTitle}`,
+                start: sch.nextDueDate.toISOString(),
+                end: new Date(sch.nextDueDate.getTime() + (60 * 60000)).toISOString(), // 1 hour default
+                status: 'SCHEDULED',
+                category: 'PREVENTIVE',
+                assignee: 'Sistema',
+                type: 'PM'
+            }));
+
+            // Merge
+            return [...woEvents, ...scheduleEvents];
+
         } catch (error) {
             console.error("Calendar Events Error:", error);
             return [];
         }
     },
-    ['calendar-events'],
-    { revalidate: 60, tags: ['work-orders', 'calendar'] }
+    ['calendar-events-v2'], // Bumped cache key
+    { revalidate: 60, tags: ['work-orders', 'calendar', 'schedules'] }
 );
 
 export async function getAssetMaintenanceEvents() {
