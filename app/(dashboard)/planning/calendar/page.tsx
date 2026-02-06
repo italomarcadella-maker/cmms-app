@@ -451,8 +451,11 @@ export default function AssetCalendarPage() {
                                                 // Assuming it does or we need to update it. 
                                                 // Actually let's assume `events` contains what we need for now, if not I'll fix the fetcher.
 
+                                                const techProfileId = tech.technicianProfile?.id;
                                                 const techEvents = events.filter(e =>
-                                                    (e.assignedTechnicianId === tech.id || e.assignedToId === tech.id) &&
+                                                    (e.assignedTechnicianId === techProfileId ||
+                                                        e.assignedTechnicianId === tech.id ||
+                                                        e.assignedToId === tech.id) &&
                                                     isSameDay(new Date(e.start), day)
                                                 );
 
