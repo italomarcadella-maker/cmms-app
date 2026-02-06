@@ -14,9 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 interface TimerControlsProps {
     workOrder: WorkOrder;
     currentUserId: string;
+    canManage?: boolean;
 }
 
-export function TimerControls({ workOrder, currentUserId }: TimerControlsProps) {
+export function TimerControls({ workOrder, currentUserId, canManage = false }: TimerControlsProps) {
     const router = useRouter();
     const [elapsed, setElapsed] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -87,8 +88,13 @@ export function TimerControls({ workOrder, currentUserId }: TimerControlsProps) 
     const isAssignedToMe = workOrder.assignedTechnicianId === currentUserId ||
         (workOrder.technicians?.some((t: any) => t.id === currentUserId) ?? false);
 
-    if (!isAssignedToMe && workOrder.status !== 'COMPLETED' && workOrder.status !== 'CLOSED') {
-        // Optional: Hide controls if not assigned to me, or show read-only
+    // Logic to determine active state
+    // If I am NOT assigned and CANNOT manage, hide it.
+    // If I am NOT assigned but CAN manage, show it (Admin override/help).
+    const canInteract = isAssignedToMe || canManage;
+
+    if (!canInteract && workOrder.status !== 'COMPLETED' && workOrder.status !== 'CLOSED') {
+        // Hide controls if not assigned and not a manager
         return (
             <div className="flex items-center gap-2 text-muted-foreground text-sm border p-3 rounded-lg bg-muted/20">
                 <Clock className="h-4 w-4" />
@@ -148,10 +154,7 @@ export function TimerControls({ workOrder, currentUserId }: TimerControlsProps) 
 
                 <Button
                     onClick={handleComplete}
-                    disabled={isLoading || !!activeTimer} // Require stop before complete? Actually complete stops it.
-                    // Let's allow complete while running, logic handles stop.
-                    // But maybe safer to visually prompt stop.
-                    // Action `completeWorkOrder` calls `stopWorkSession`, so it's handled.
+                    disabled={isLoading || !!activeTimer}
                     variant="outline"
                     className="flex-1 border-blue-200 hover:bg-blue-50 text-blue-700"
                 >

@@ -185,6 +185,11 @@ export default function WorkOrderDetailPage() {
                 <PrintableWO wo={wo} hidden />
             </div>
 
+            {/* Timer Controls Banner */}
+            <div className="mb-6">
+                <TimerControls workOrder={wo} currentUserId={user?.id || ''} canManage={canManage} />
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Left Column: Main Info */}
@@ -287,7 +292,7 @@ export default function WorkOrderDetailPage() {
                                 </div>
                             ))}
 
-                            <TimerControls workOrder={wo} currentUserId={user?.id || ''} />
+                            {/* TimerControls removed from here */}
 
                             {/* Actions Workflow - Validation Step */}
                             {wo.status === 'CLOSED' && (
