@@ -7,23 +7,35 @@ import { useReference } from "@/lib/reference-context";
 import { useWorkOrders } from "@/lib/work-orders-context";
 import { User, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { updateWorkOrderAssignments } from "@/lib/actions"; // Direct import
+import { toast } from "sonner";
 
 interface WOAssignDialogProps {
     workOrderId: string | null;
-    currentTechnicianId?: string;
+    currentTechnicianId?: string; // Legacy support
     onClose: () => void;
 }
 
 export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WOAssignDialogProps) {
     const { technicians } = useReference();
-    const { updateWorkOrder, workOrders } = useWorkOrders();
+    const { workOrders } = useWorkOrders(); // Read-only access to list
     const wo = workOrders.find(w => w.id === workOrderId);
-    const [selectedTechId, setSelectedTechId] = useState<string | undefined>(currentTechnicianId);
+
+    // Multi-select state
+    const [selectedTechIds, setSelectedTechIds] = useState<string[]>([]);
     const [recommendedId, setRecommendedId] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        setSelectedTechId(currentTechnicianId);
-    }, [currentTechnicianId]);
+        // Initialize selection from WO data if available, else usage of legacy prop
+        if (wo && wo.technicians && wo.technicians.length > 0) {
+            setSelectedTechIds(wo.technicians.map(t => t.id));
+        } else if (currentTechnicianId) {
+            setSelectedTechIds([currentTechnicianId]);
+        } else {
+            setSelectedTechIds([]);
+        }
+    }, [workOrderId, currentTechnicianId, wo]);
 
     useEffect(() => {
         if (!wo) return;
@@ -32,10 +44,6 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
         let maxScore = -1;
 
         technicians.forEach(t => {
-            // Score based on:
-            // 1. Past experience on this specific asset (3 points per job)
-            // 2. Specialty match (5 points)
-
             const assetJobs = workOrders.filter(w =>
                 w.assignedTechnicianId === t.id &&
                 w.assetId === wo.assetId &&
@@ -56,37 +64,64 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
         setRecommendedId(bestTechId);
     }, [wo, technicians, workOrders]);
 
-    const handleSave = () => {
-        if (!workOrderId) return;
-        // Logic same as before
-        if (!selectedTechId) {
-            updateWorkOrder(workOrderId, { assignedTechnicianId: undefined, assignedTo: "Unassigned" });
-        } else {
-            const tech = technicians.find(t => t.id === selectedTechId);
-            if (tech) {
-                updateWorkOrder(workOrderId, { assignedTechnicianId: tech.id, assignedTo: tech.name });
-            }
+    const toggleSelection = (id: string | undefined) => {
+        if (!id) {
+            // "None" option clears all
+            setSelectedTechIds([]);
+            return;
         }
-        onClose();
+
+        setSelectedTechIds(prev => {
+            if (prev.includes(id)) {
+                return prev.filter(x => x !== id);
+            } else {
+                return [...prev, id];
+            }
+        });
+    };
+
+    const handleSave = async () => {
+        if (!workOrderId) return;
+        setIsSaving(true);
+
+        try {
+            // Call server action directly
+            const res = await updateWorkOrderAssignments(workOrderId, selectedTechIds);
+            if (res.success) {
+                toast.success("Assegnazioni aggiornate");
+                // We might need to refresh context? The action calls revalidatePath.
+                // Ideally context should re-fetch or optimistically update.
+                // For now relying on Next.js Server Components Refresh via router (implicit in revalidatePath?)
+                // Client context might be stale until refresh.
+                window.location.reload(); // Simple sync for now as context logic is complex
+            } else {
+                toast.error("Errore: " + res.message);
+            }
+        } catch (e) {
+            toast.error("Errore disistema");
+        } finally {
+            setIsSaving(false);
+            onClose();
+        }
     };
 
     return (
         <Dialog open={!!workOrderId} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Assegna Tecnico</DialogTitle>
+                    <DialogTitle>Assegna Tecnici</DialogTitle>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Seleziona un tecnico dall'elenco:</h4>
+                        <h4 className="font-medium text-sm">Seleziona uno o più tecnici:</h4>
                         <div className="grid gap-2 max-h-[300px] overflow-y-auto pr-2">
                             <div
                                 className={cn(
                                     "flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted",
-                                    !selectedTechId ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
+                                    selectedTechIds.length === 0 ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
                                 )}
-                                onClick={() => setSelectedTechId(undefined)}
+                                onClick={() => toggleSelection(undefined)}
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
@@ -94,20 +129,21 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
                                     </div>
                                     <span className="font-medium">Nessuno (Non assegnato)</span>
                                 </div>
-                                {!selectedTechId && <Check className="h-4 w-4 text-primary" />}
+                                {selectedTechIds.length === 0 && <Check className="h-4 w-4 text-primary" />}
                             </div>
 
                             {technicians.map((tech) => {
                                 const isRecommended = tech.id === recommendedId;
+                                const isSelected = selectedTechIds.includes(tech.id);
                                 return (
                                     <div
                                         key={tech.id}
                                         className={cn(
                                             "flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted relative",
-                                            selectedTechId === tech.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card",
-                                            isRecommended && "border-emerald-300 bg-emerald-50/50"
+                                            isSelected ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card",
+                                            isRecommended && !isSelected && "border-emerald-300 bg-emerald-50/50"
                                         )}
-                                        onClick={() => setSelectedTechId(tech.id)}
+                                        onClick={() => toggleSelection(tech.id)}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className={cn("h-8 w-8 rounded-full flex items-center justify-center text-primary font-bold text-xs",
@@ -126,7 +162,7 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
                                                 <p className="text-xs text-muted-foreground">{tech.specialty}</p>
                                             </div>
                                         </div>
-                                        {selectedTechId === tech.id && <Check className="h-4 w-4 text-primary" />}
+                                        {isSelected && <Check className="h-4 w-4 text-primary" />}
                                     </div>
                                 )
                             })}
@@ -135,8 +171,10 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>Annulla</Button>
-                    <Button onClick={handleSave}>Conferma Assegnazione</Button>
+                    <Button variant="outline" onClick={onClose} disabled={isSaving}>Annulla</Button>
+                    <Button onClick={handleSave} disabled={isSaving}>
+                        {isSaving ? "Salvataggio..." : "Conferma"}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

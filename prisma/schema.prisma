@@ -117,6 +117,7 @@ model WorkOrder {
   assignedTo           String?  // Legacy or Display Name
   assignedTechnicianId String?
   assignedTechnician   Technician? @relation(fields: [assignedTechnicianId], references: [id])
+  technicians          WorkOrderTechnician[]
 
   // Workflow Fields
   requesterId          String?
@@ -222,7 +223,20 @@ model Technician {
   
   user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String @unique
-  workOrders WorkOrder[]
+
+  assignments          WorkOrderTechnician[]
+  workOrders           WorkOrder[] // Legacy Relation kept for compatibility
+}
+
+model WorkOrderTechnician {
+  id           String    @id @default(cuid())
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  workOrderId  String
+  technician   Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  technicianId String
+  assignedAt   DateTime  @default(now())
+  
+  @@unique([workOrderId, technicianId])
 }
 
 model MaintenanceActivity {

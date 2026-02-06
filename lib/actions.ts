@@ -429,7 +429,7 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
         const updateData: any = {
             assignedTechnicianId: technicianId,
             assignedTo: tech.name,
-            status: "OPEN"
+            status: "ASSIGNED" // Start treating as ASSIGNED
         };
 
         if (date) {
@@ -442,6 +442,26 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
             where: { id: workOrderId },
             data: updateData
         });
+
+        // Maintain Many-to-Many relation
+        // Check if already assigned
+        const existingRel = await prisma.workOrderTechnician.findUnique({
+            where: {
+                workOrderId_technicianId: {
+                    workOrderId,
+                    technicianId
+                }
+            }
+        });
+
+        if (!existingRel) {
+            await prisma.workOrderTechnician.create({
+                data: {
+                    workOrderId,
+                    technicianId
+                }
+            });
+        }
 
         if (tech.userId) {
             await prisma.notification.create({
@@ -465,6 +485,73 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
     } catch (error) {
         console.error("Assign Error:", error);
         return { success: false, message: "Errore assegnazione" };
+    }
+}
+
+export async function updateWorkOrderAssignments(workOrderId: string, technicianIds: string[]) {
+    try {
+        const session = await auth();
+        // 1. Clear existing? Or just add/remove delta?
+        // Simple approach: Delete all for this WO and recreate.
+        // But we want to preserve history? Assignments table is simple linking.
+        // Let's use transaction or just clear and add.
+
+        await prisma.workOrderTechnician.deleteMany({
+            where: { workOrderId }
+        });
+
+        if (technicianIds.length > 0) {
+            await prisma.workOrderTechnician.createMany({
+                data: technicianIds.map(id => ({
+                    workOrderId,
+                    technicianId: id
+                }))
+            });
+
+            // Update legacy fields with the FIRST technician for backward compat
+            const firstTech = await prisma.technician.findUnique({ where: { id: technicianIds[0] } });
+            await prisma.workOrder.update({
+                where: { id: workOrderId },
+                data: {
+                    assignedTechnicianId: technicianIds[0],
+                    assignedTo: firstTech?.name || 'Assigned',
+                    status: 'ASSIGNED'
+                }
+            });
+
+            // Notify all new technicians
+            for (const techId of technicianIds) {
+                const tech = await prisma.technician.findUnique({ where: { id: techId } });
+                if (tech && tech.userId) {
+                    await prisma.notification.create({
+                        data: {
+                            userId: tech.userId,
+                            title: "Nuovo Incarico (Multi)",
+                            message: "Sei stato aggiunto a un ordine di lavoro.",
+                            link: `/work-orders/${workOrderId}`
+                        }
+                    });
+                }
+            }
+
+        } else {
+            // Unassigned
+            await prisma.workOrder.update({
+                where: { id: workOrderId },
+                data: {
+                    assignedTechnicianId: null,
+                    assignedTo: 'Unassigned',
+                    status: 'OPEN'
+                }
+            });
+        }
+
+        revalidatePath("/work-orders");
+        revalidatePath(`/work-orders/${workOrderId}`);
+        return { success: true, message: "Assegnazioni aggiornate" };
+    } catch (error) {
+        console.error("Multi Assign Error:", error);
+        return { success: false, message: "Errore aggiornamento assegnazioni" };
     }
 }
 
@@ -845,7 +932,8 @@ export async function getWorkOrders() {
                 timers: true,
                 laborLogs: true,
                 partsUsed: true,
-                checklist: { orderBy: { id: 'asc' } }
+                checklist: { orderBy: { id: 'asc' } },
+                technicians: { include: { technician: true } }
             }
         });
 
@@ -866,8 +954,10 @@ export async function getWorkOrders() {
                 ...t,
                 startTime: t.startTime.toISOString(),
                 endTime: t.endTime ? t.endTime.toISOString() : null
-            })) || []
+            })) || [],
+            technicians: wo.technicians ? wo.technicians.map((t: any) => ({ id: t.technician.id, name: t.technician.name })) : []
         }));
+
     } catch (error) {
         console.error('Failed to get WOs:', error);
         return [];
@@ -1035,6 +1125,14 @@ export async function approveRequest(id: string, technicianId: string, priority:
                 priority: priority,
                 assignedTechnicianId: technicianId,
                 assignedTo: tech?.name || 'Assigned'
+            }
+        });
+
+        // Add to join table
+        await prisma.workOrderTechnician.create({
+            data: {
+                workOrderId: id,
+                technicianId: technicianId
             }
         });
 

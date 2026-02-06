@@ -13,14 +13,16 @@ export function WOStatusBadge({ status, className }: StatusBadgeProps) {
             status === 'IN_PROGRESS' && "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
             status === 'COMPLETED' && "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
             status === 'ON_HOLD' && "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700",
+            status === 'ASSIGNED' && "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800",
             status === 'PENDING_APPROVAL' && "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
             className
         )}>
             {status === 'OPEN' ? 'APERTO' :
                 status === 'IN_PROGRESS' ? 'IN CORSO' :
-                    status === 'PENDING_APPROVAL' ? 'DA APPROVARE' :
-                        status === 'COMPLETED' ? 'COMPLETATO' :
-                            status === 'ON_HOLD' ? 'IN ATTESA' : 'ANNULLATO'}
+                    status === 'ASSIGNED' ? 'ASSEGNATO' :
+                        status === 'PENDING_APPROVAL' ? 'DA APPROVARE' :
+                            status === 'COMPLETED' ? 'COMPLETATO' :
+                                status === 'ON_HOLD' ? 'IN ATTESA' : 'ANNULLATO'}
         </span>
     );
 }

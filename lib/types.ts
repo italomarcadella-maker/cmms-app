@@ -47,6 +47,7 @@ export interface WorkOrder {
     status: WorkOrderStatus;
     assignedTo: string; // Legacy string field, might remain for display
     assignedTechnicianId?: string; // ID linking to Technician
+    technicians?: { id: string; name: string }[]; // New Multi-assign
     dueDate: string | null;
     createdAt: string;
     checklist: ChecklistItem[];

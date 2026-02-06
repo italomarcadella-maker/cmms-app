@@ -84,7 +84,8 @@ export function TimerControls({ workOrder, currentUserId }: TimerControlsProps) 
         setIsLoading(false);
     };
 
-    const isAssignedToMe = workOrder.assignedTechnicianId === currentUserId;
+    const isAssignedToMe = workOrder.assignedTechnicianId === currentUserId ||
+        (workOrder.technicians?.some((t: any) => t.id === currentUserId) ?? false);
 
     if (!isAssignedToMe && workOrder.status !== 'COMPLETED' && workOrder.status !== 'CLOSED') {
         // Optional: Hide controls if not assigned to me, or show read-only

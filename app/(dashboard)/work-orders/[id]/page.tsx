@@ -228,8 +228,18 @@ export default function WorkOrderDetailPage() {
                             </div>
                             <div>
                                 <span className="text-muted-foreground block mb-1">Assegnato a</span>
-                                <div className="font-medium flex items-center gap-1">
-                                    <User className="h-3 w-3" /> {wo.assignedTo}
+                                <div className="font-medium flex flex-wrap gap-1">
+                                    {wo.technicians && wo.technicians.length > 0 ? (
+                                        wo.technicians.map((t: any) => (
+                                            <span key={t.id} className="flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded-full text-xs">
+                                                <User className="h-3 w-3" /> {t.name}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <div className="flex items-center gap-1">
+                                            <User className="h-3 w-3" /> {wo.assignedTo || 'Non assegnato'}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div>
@@ -578,7 +588,17 @@ export default function WorkOrderDetailPage() {
                             <User className="h-4 w-4 text-muted-foreground" />
                             <div className="flex flex-col">
                                 <span className="text-xs text-muted-foreground">Assegnato a</span>
-                                <span className="text-sm font-medium">{wo.assignedTo}</span>
+                                <div className="text-sm font-medium flex flex-wrap gap-1">
+                                    {wo.technicians && wo.technicians.length > 0 ? (
+                                        wo.technicians.map((t: any) => (
+                                            <span key={t.id} className="after:content-[','] last:after:content-[''] mr-1">
+                                                {t.name}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <span>{wo.assignedTo || 'Non assegnato'}</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
