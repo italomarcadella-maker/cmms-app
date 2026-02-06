@@ -5,7 +5,7 @@ import { AuthError } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { auth } from '@/auth';
-import { revalidatePath, unstable_cache } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { WorkOrderStatus } from '@/lib/types';
 
 import { logAction } from './audit';
@@ -411,6 +411,7 @@ export async function rescheduleWorkOrder(id: string, newDate: Date) {
         // For now, just moving the specific instance.
 
         revalidatePath('/planning/calendar');
+        revalidateTag('calendar-events-v2');
         return { success: true, message: 'Data aggiornata' };
     } catch (error) {
         console.error("Reschedule Error:", error);
@@ -500,6 +501,7 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
         }
 
         revalidatePath("/planning/calendar");
+        revalidateTag('calendar-events-v2');
         revalidatePath("/work-orders");
         return { success: true, message: "Assegnazione completata" };
 
@@ -681,7 +683,7 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
 
         if (!schedule) return { success: false, message: "Schedulazione non trovata" };
 
-        let checklistCreate = [];
+        let checklistCreate: any[] = [];
         try {
             const activities = schedule.activities ? JSON.parse(schedule.activities) : [];
             if (Array.isArray(activities)) {
@@ -723,6 +725,7 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
         }
 
         revalidatePath('/planning/calendar');
+        revalidateTag('calendar-events-v2');
         return { success: true, message: "Ordine creato da schedulazione" };
     } catch (error) {
         console.error("Error creating WO from Schedule:", error);
@@ -2357,6 +2360,8 @@ const getAssetMaintenanceEventsCached = unstable_cache(
                 status: wo.status,
                 category: wo.category,
                 assignee: wo.assignedTo || 'Non assegnato',
+                assignedTechnicianId: wo.assignedTechnicianId,
+                assignedToId: wo.assignedTo, // Fallback for legacy
                 type: 'WO'
             }));
 
