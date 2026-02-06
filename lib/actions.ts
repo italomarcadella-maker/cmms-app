@@ -662,7 +662,7 @@ export async function getPlannerUnassignedItems() {
             priority: 'MEDIUM', // Default for PM
             status: 'SCHEDULED', // Virtual status
             category: 'PREVENTIVE',
-            dueDate: sch.nextDueDate
+            dueDate: sch.nextDueDate.toISOString()
         }));
 
         return [...woItems, ...pmItems];
@@ -681,6 +681,19 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
 
         if (!schedule) return { success: false, message: "Schedulazione non trovata" };
 
+        let checklistCreate = [];
+        try {
+            const activities = schedule.activities ? JSON.parse(schedule.activities) : [];
+            if (Array.isArray(activities)) {
+                checklistCreate = activities.map((a: any) => ({
+                    label: typeof a === 'string' ? a : a.label || "Attività",
+                    completed: false
+                }));
+            }
+        } catch (e) {
+            console.error("Error parsing schedule activities", e);
+        }
+
         const newWo = await prisma.workOrder.create({
             data: {
                 title: schedule.taskTitle,
@@ -691,7 +704,9 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
                 status: 'OPEN',
                 assignedTo: 'Unassigned',
                 dueDate: date,
-                checklist: schedule.activities || '[]'
+                checklist: {
+                    create: checklistCreate
+                }
             }
         });
 

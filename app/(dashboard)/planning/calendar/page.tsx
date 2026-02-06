@@ -5,7 +5,7 @@ import { getAssetMaintenanceEvents, rescheduleWorkOrder, assignWorkOrder, getPla
 import { getTechnicianAvailability, getAllTechnicians } from "@/lib/availability-actions";
 import { addDays, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { it } from "date-fns/locale";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Wrench, AlertTriangle, CheckCircle2, Clock, Sparkles, Settings, Users, LayoutGrid, FileText, CalendarClock } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Wrench, AlertTriangle, CheckCircle2, Clock, Sparkles, Settings, Users, LayoutGrid, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -63,14 +63,14 @@ function DraggableSidebarItem({ item, getStatusColor }: { item: any, getStatusCo
                 "flex flex-col gap-1 relative overflow-hidden"
             )}
         >
-            {isPM && <div className="absolute top-0 right-0 p-1 bg-blue-600 text-white rounded-bl-lg"><CalendarClock className="h-3 w-3" /></div>}
+            {isPM && <div className="absolute top-0 right-0 p-1 bg-blue-600 text-white rounded-bl-lg"><Clock className="h-3 w-3" /></div>}
             <div className="flex justify-between items-start pr-4">
                 <span className="font-bold text-xs">{isPM ? 'PIANIFICATO' : `#${item.id.slice(-4)}`}</span>
                 <span className="text-[10px] uppercase font-bold opacity-70">{item.priority}</span>
             </div>
             <div className="font-medium text-xs truncate" title={item.assetName}>{item.assetName}</div>
             <div className="text-[10px] text-muted-foreground truncate">{item.title}</div>
-            {isPM && <div className="text-[10px] font-mono text-blue-600 mt-1">Scad: {format(new Date(item.dueDate), 'd MMM')}</div>}
+            {isPM && item.dueDate && <div className="text-[10px] font-mono text-blue-600 mt-1">Scad: {format(new Date(item.dueDate), 'd MMM')}</div>}
         </div>
     );
 }
@@ -401,7 +401,7 @@ export default function AssetCalendarPage() {
                             <div className="w-64 flex-shrink-0 flex flex-col border rounded-xl bg-card shadow-sm overflow-hidden">
                                 <div className="p-3 border-b bg-muted/40 font-semibold text-sm flex items-center gap-2">
                                     <FileText className="h-4 w-4" /> Da Assegnare
-                                    <span className="ml-auto bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full text-[10px]">{unassignedWOs.length}</span>
+                                    <span className="ml-auto bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full text-[10px]">{unassignedItems.length}</span>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50">
                                     {unassignedItems.length === 0 ? (
