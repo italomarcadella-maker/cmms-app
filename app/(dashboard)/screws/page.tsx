@@ -10,6 +10,7 @@ import { AddComponentDialog } from "@/components/components/add-component-dialog
 import { ComponentDetailsDialog } from "@/components/components/component-details-dialog";
 import { useAssets } from "@/lib/assets-context";
 import { Pencil, Plus } from "lucide-react";
+import { EditComponentDialog } from "@/components/components/edit-component-dialog";
 import { BackToDashboardButton } from "@/components/ui/back-button";
 
 export default function ScrewsPage() {
@@ -208,6 +209,11 @@ export default function ScrewsPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-1">
+                                                <EditComponentDialog component={comp}>
+                                                    <button className="p-2 hover:bg-muted rounded-md text-blue-600 transition-colors" title="Modifica Anagrafica">
+                                                        <Pencil className="h-4 w-4" />
+                                                    </button>
+                                                </EditComponentDialog>
                                                 <MeasureDialog component={comp}>
                                                     <button className="p-2 hover:bg-muted rounded-md text-primary transition-colors" title="Aggiungi Misura">
                                                         <Ruler className="h-4 w-4" />

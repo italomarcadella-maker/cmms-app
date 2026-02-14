@@ -1768,11 +1768,55 @@ export async function getUserNotifications() {
     if (!session?.user?.email) return [];
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!user) return [];
-    return await prisma.notification.findMany({
+
+    const notifications = await prisma.notification.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: 'desc' },
-        take: 20
+        take: 50 // Increased verify limit as we might filter some out
     });
+
+    // Filter out notifications for Work Orders that are CLOSED or COMPLETED or CANCELED
+    const filteredNotifications = [];
+    
+    // Collect WO IDs to check status in batch? Or check one by one?
+    // Batch is better.
+    const woIdsToCheck = new Set<string>();
+    
+    for (const n of notifications) {
+        if (n.link && n.link.startsWith('/work-orders/')) {
+            const parts = n.link.split('/');
+            if (parts.length >= 3) {
+                woIdsToCheck.add(parts[2]);
+            }
+        }
+    }
+
+    let closedWoIds = new Set<string>();
+
+    if (woIdsToCheck.size > 0) {
+        const closedWos = await prisma.workOrder.findMany({
+            where: {
+                id: { in: Array.from(woIdsToCheck) },
+                status: { in: ['COMPLETED', 'CLOSED', 'CANCELED'] }
+            },
+            select: { id: true }
+        });
+        closedWoIds = new Set(closedWos.map(w => w.id));
+    }
+
+    for (const n of notifications) {
+        if (n.link && n.link.startsWith('/work-orders/')) {
+            const parts = n.link.split('/');
+            const woId = parts[2];
+            // If it's a WO notification, and the WO is closed, SKIP IT
+            if (closedWoIds.has(woId)) {
+                continue;
+            }
+        }
+        filteredNotifications.push(n);
+    }
+
+    return filteredNotifications.slice(0, 20); // Return top 20 valid ones
 }
 
 export async function markNotificationAsRead(id: string) {

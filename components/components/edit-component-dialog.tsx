@@ -1,40 +1,50 @@
 "use client";
 
-import { useState } from "react";
-import { useComponents, ComponentItem, UsageType, WarehouseType } from "@/lib/components-context";
-import { useAssets } from "@/lib/assets-context";
-import { Pencil, Save, X, Factory, Package } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useComponents, ComponentItem, ComponentType, UsageType, WarehouseType, ComponentStatus } from "@/lib/components-context";
+import { X, Save, Pencil } from "lucide-react";
 
 export function EditComponentDialog({ component, children }: { component: ComponentItem, children: React.ReactNode }) {
-    const { updateComponent, assignComponent, moveWarehouse } = useComponents();
-    const { assets } = useAssets();
+    const { updateComponent } = useComponents();
     const [open, setOpen] = useState(false);
 
-    // State
-    const [usageType, setUsageType] = useState<UsageType>(component.usageType || 'JOLLY');
-    const [assignmentType, setAssignmentType] = useState<'ASSET' | 'WAREHOUSE'>(component.assignedAssetId ? 'ASSET' : 'WAREHOUSE');
+    // Form State
+    const [code, setCode] = useState(component.code);
+    const [model, setModel] = useState(component.model);
+    const [type, setType] = useState<ComponentType>(component.type);
+    const [usageType, setUsageType] = useState<UsageType>(component.usageType);
+    const [manufacturer, setManufacturer] = useState(component.manufacturer);
+    const [warehouse, setWarehouse] = useState<WarehouseType>(component.warehouse);
+    const [location, setLocation] = useState(component.location);
+    const [status, setStatus] = useState<ComponentStatus>(component.status);
 
-    // Selections
-    const [selectedAssetId, setSelectedAssetId] = useState<string>(component.assignedAssetId || (assets[0]?.id || ""));
-    const [selectedWarehouse, setSelectedWarehouse] = useState<WarehouseType>(component.warehouse || 'RETINATO');
+    // Update state when component updates or dialog opens
+    useEffect(() => {
+        if (open) {
+            setCode(component.code);
+            setModel(component.model);
+            setType(component.type);
+            setUsageType(component.usageType);
+            setManufacturer(component.manufacturer);
+            setWarehouse(component.warehouse);
+            setLocation(component.location);
+            setStatus(component.status);
+        }
+    }, [open, component]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // 1. Update basic info (Tipologia)
-        updateComponent(component.id, { usageType });
-
-        // 2. Handle Assignment
-        if (assignmentType === 'ASSET') {
-            // Assign to asset (clears warehouse implicitly in logic if we wanted, but context keeps them separate usually. 
-            // We will trust assignComponent to handle the link)
-            assignComponent(component.id, selectedAssetId);
-        } else {
-            // Move to warehouse (clears asset assignment)
-            assignComponent(component.id, undefined); // Unassign from asset
-            // We also need to update the warehouse field
-            moveWarehouse(component.id, selectedWarehouse, component.location);
-        }
+        updateComponent(component.id, {
+            code,
+            model,
+            type,
+            usageType,
+            manufacturer,
+            warehouse,
+            location,
+            status
+        });
 
         setOpen(false);
     };
@@ -44,8 +54,8 @@ export function EditComponentDialog({ component, children }: { component: Compon
             <div onClick={() => setOpen(true)}>{children}</div>
 
             {open && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="w-full max-w-md bg-white rounded-xl shadow-xl border animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full max-w-lg bg-card rounded-xl shadow-xl border animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-4 border-b">
                             <h3 className="font-semibold text-lg">Modifica Componente</h3>
                             <button onClick={() => setOpen(false)} className="p-1 hover:bg-muted rounded text-muted-foreground">
@@ -53,82 +63,106 @@ export function EditComponentDialog({ component, children }: { component: Compon
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-4 space-y-6">
+                        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Codice Identificativo</label>
+                                    <input
+                                        required
+                                        className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                                        value={code}
+                                        onChange={(e) => setCode(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Costruttore</label>
+                                    <input
+                                        required
+                                        className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                                        value={manufacturer}
+                                        onChange={(e) => setManufacturer(e.target.value)}
+                                    />
+                                </div>
+                            </div>
 
-                            {/* Tipologia */}
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Tipologia Utilizzo</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {['SOTTOSTRATO', 'COPERTURA', 'JOLLY'].map((type) => (
-                                        <button
-                                            key={type}
-                                            type="button"
-                                            onClick={() => setUsageType(type as UsageType)}
-                                            className={`px-2 py-2 text-xs font-medium rounded-md border transition-all ${usageType === type
-                                                ? 'bg-primary text-primary-foreground border-primary'
-                                                : 'bg-background hover:bg-muted'
-                                                }`}
-                                        >
-                                            {type}
-                                        </button>
-                                    ))}
+                                <label className="text-sm font-medium">Modello / Descrizione</label>
+                                <input
+                                    required
+                                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                                    value={model}
+                                    onChange={(e) => setModel(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Tipo</label>
+                                    <select
+                                        className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                                        value={type}
+                                        onChange={(e) => setType(e.target.value as ComponentType)}
+                                    >
+                                        <option value="SCREW">VITE</option>
+                                        <option value="BARREL">CILINDRO</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Magazzino</label>
+                                    <select
+                                        className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                                        value={warehouse}
+                                        onChange={(e) => setWarehouse(e.target.value as WarehouseType)}
+                                    >
+                                        <option value="RETINATO">Retinato</option>
+                                        <option value="MAGLIATO">Magliato</option>
+                                    </select>
                                 </div>
                             </div>
 
-                            <div className="h-px bg-border" />
-
-                            {/* Assegnazione */}
-                            <div className="space-y-3">
-                                <label className="text-sm font-medium">Posizione / Assegnazione</label>
-
-                                <div className="flex bg-muted/50 p-1 rounded-lg">
-                                    <button
-                                        type="button"
-                                        onClick={() => setAssignmentType('WAREHOUSE')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${assignmentType === 'WAREHOUSE' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-                                            }`}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Utilizzo</label>
+                                    <select
+                                        className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                                        value={usageType}
+                                        onChange={(e) => setUsageType(e.target.value as UsageType)}
                                     >
-                                        <Package className="h-4 w-4" /> Magazzino
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setAssignmentType('ASSET')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${assignmentType === 'ASSET' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-                                            }`}
-                                    >
-                                        <Factory className="h-4 w-4" /> Asset (Macchina)
-                                    </button>
+                                        <option value="SOTTOSTRATO">Sottostrato</option>
+                                        <option value="COPERTURA">Copertura</option>
+                                        <option value="JOLLY">Jolly</option>
+                                    </select>
                                 </div>
 
-                                {assignmentType === 'WAREHOUSE' ? (
-                                    <div className="space-y-2 animate-in slide-in-from-top-1">
-                                        <label className="text-xs text-muted-foreground">Seleziona Magazzino</label>
-                                        <select
-                                            className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
-                                            value={selectedWarehouse}
-                                            onChange={(e) => setSelectedWarehouse(e.target.value as WarehouseType)}
-                                        >
-                                            <option value="RETINATO">Magazzino RETINATO</option>
-                                            <option value="MAGLIATO">Magazzino MAGLIATO</option>
-                                        </select>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2 animate-in slide-in-from-top-1">
-                                        <label className="text-xs text-muted-foreground">Seleziona Asset</label>
-                                        <select
-                                            className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
-                                            value={selectedAssetId}
-                                            onChange={(e) => setSelectedAssetId(e.target.value)}
-                                        >
-                                            {assets.map(a => (
-                                                <option key={a.id} value={a.id}>{a.name} ({a.model})</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Posizione</label>
+                                    <input
+                                        required
+                                        className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                                        value={location}
+                                        onChange={(e) => setLocation(e.target.value)}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="flex justify-end gap-2 pt-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Stato</label>
+                                <select
+                                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                                    value={status}
+                                    onChange={(e) => setStatus(e.target.value as ComponentStatus)}
+                                >
+                                    <option value="OPTIMAL">Ottimale</option>
+                                    <option value="WARNING">Attenzione</option>
+                                    <option value="NEEDS_NITRIDING">Da Nitrurare</option>
+                                    <option value="NEEDS_REGENERATION">Da Rigenerare</option>
+                                    <option value="TO_ORDER">Da Ordinare</option>
+                                    <option value="CRITICAL">Critico / Rottamare</option>
+                                </select>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-4 border-t mt-4">
                                 <button
                                     type="button"
                                     onClick={() => setOpen(false)}

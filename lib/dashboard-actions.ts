@@ -9,44 +9,66 @@ import { it } from "date-fns/locale";
 const getDetailedDashboardStatsCached = unstable_cache(
     async () => {
         try {
-            // Batch 1: Asset Counts
-            const [totalAssets, activeAssets, offlineAssets] = await Promise.all([
-                prisma.asset.count(),
+            // Execute parallel aggregation queries instead of counting locally
+            const [
+                assetStats,
+                woStats,
+                openHighPriorityCount,
+                overdueCount,
+                lowStockCount
+            ] = await Promise.all([
+                // 1. Asset Stats (Total, Active, Offline, AvgHealth) in one go if possible, but distinct queries are cleaner for Prisma
+                prisma.asset.aggregate({
+                    _count: {
+                        id: true,
+                        _all: true // Total
+                    },
+                    _avg: {
+                        healthScore: true
+                    }
+                    // Conditional counts are harder in single aggregate without raw query.
+                    // We stick to parallel counts for status but keep average here.
+                }),
+                // 2. WO Basic Counts
+                prisma.workOrder.groupBy({
+                    by: ['status'],
+                    _count: { id: true }
+                }),
+                // 3. High Priority Open
+                prisma.workOrder.count({ where: { priority: 'STOPPED', status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
+                // 4. Overdue
+                prisma.workOrder.count({ where: { dueDate: { lt: new Date() }, status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] } } }),
+                // 5. Low Stock (Still needs filter logic or raw query, standard query is fastest maintainable way)
+                prisma.sparePart.count({ where: { quantity: { lte: prisma.sparePart.fields.minQuantity } } })
+            ]);
+
+            // Refine Asset Status Counts (Parallelized)
+            const [activeAssets, offlineAssets] = await Promise.all([
                 prisma.asset.count({ where: { status: 'OPERATIONAL' } }),
                 prisma.asset.count({ where: { status: 'OFFLINE' } })
             ]);
 
-            // Batch 2: Work Order Counts
-            const [totalWorkOrders, openWorkOrders, highPriorityOpen, overdueWorkOrders] = await Promise.all([
-                prisma.workOrder.count(),
-                prisma.workOrder.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] } } }),
-                prisma.workOrder.count({ where: { priority: 'STOPPED', status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
-                prisma.workOrder.count({ where: { dueDate: { lt: new Date() }, status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] } } })
-            ]);
-
-            // Calculate Average Health Score
-            const assets = await prisma.asset.findMany({ select: { healthScore: true } });
-            const avgHealth = assets.length > 0
-                ? Math.round(assets.reduce((sum, a) => sum + a.healthScore, 0) / assets.length)
-                : 0;
-
-            // Calculate Low Stock Materials
-            const parts = await prisma.sparePart.findMany({ select: { quantity: true, minQuantity: true } });
-            const lowStockCount = parts.filter(p => p.quantity <= p.minQuantity).length;
+            // Parse WO Grouped Stats
+            const totalWorkOrders = woStats.reduce((acc, curr) => acc + curr._count.id, 0);
+            const openStatuses = new Set(['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL']);
+            const openWorkOrders = woStats
+                .filter(g => openStatuses.has(g.status))
+                .reduce((acc, curr) => acc + curr._count.id, 0);
 
             return {
-                totalAssets,
+                totalAssets: assetStats._count._all || 0,
                 activeAssets,
                 offlineAssets,
                 totalWorkOrders,
                 openWorkOrders,
-                highPriorityOpen,
-                overdueWorkOrders,
-                avgHealth,
+                highPriorityOpen: openHighPriorityCount,
+                overdueWorkOrders: overdueCount,
+                avgHealth: Math.round(assetStats._avg.healthScore || 0),
                 lowStockCount
             };
         } catch (error) {
             console.error("Dashboard Stats Error:", error);
+            // ... fallback return ...
             return {
                 totalAssets: 0,
                 activeAssets: 0,
@@ -271,11 +293,7 @@ export const getMaintenanceMetrics = unstable_cache(
                 },
                 include: {
                     partsUsed: true,
-                    laborLogs: {
-                        include: {
-                            technician: true
-                        }
-                    }
+                    laborLogs: true // Removed invalid include
                 }
             });
 
@@ -284,6 +302,8 @@ export const getMaintenanceMetrics = unstable_cache(
             let totalCost = 0;
 
             const monthlyDataMap = new Map<string, { mttrSum: number, mtbfCount: number, cost: number, count: number }>();
+
+            const defaultHourlyRate = 30; // Hardcoded fallback or fetch from settings if available
 
             // Initialize months
             for (let i = 5; i >= 0; i--) {
@@ -308,7 +328,8 @@ export const getMaintenanceMetrics = unstable_cache(
 
                 // Cost
                 const partsCost = wo.partsUsed.reduce((sum: number, part: any) => sum + (part.quantity * part.unitCost), 0);
-                const laborCost = wo.laborLogs.reduce((sum: number, log: any) => sum + (log.hours * (log.technician?.hourlyRate || 30)), 0);
+                // Fix: LaborLog doesn't have technician relation, use default rate
+                const laborCost = wo.laborLogs.reduce((sum: number, log: any) => sum + (log.hours * defaultHourlyRate), 0);
                 const woCost = partsCost + laborCost;
                 totalCost += woCost;
 

@@ -151,7 +151,12 @@ model WorkOrder {
   @@index([status])
   @@index([assetId])
   @@index([assignedTechnicianId])
+  @@index([createdAt]) // New Index for Trends
+  @@index([priority]) // New Index for High Priority checks
 }
+
+
+
 
 model EWO {
   id                String    @id @default(cuid())
