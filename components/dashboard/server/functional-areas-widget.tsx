@@ -12,28 +12,28 @@ export async function FunctionalAreasWidget() {
                 title="Linee Produttive"
                 count={status.production}
                 icon={<Factory className="h-5 w-5" />}
-                href="/assets?type=line"
+                href="/work-orders?hasLine=true"
                 color="bg-blue-500"
             />
             <AreaCard
                 title="Impianti Generali"
                 count={status.facilities}
                 icon={<Settings className="h-5 w-5" />}
-                href="/assets?type=facility"
+                href="/work-orders?assetType=FACILITY"
                 color="bg-slate-500"
             />
             <AreaCard
                 title="Officina"
                 count={status.workshop}
                 icon={<Wrench className="h-5 w-5" />}
-                href="/assets?location=officina"
+                href="/work-orders?location=officina"
                 color="bg-amber-500"
             />
             <AreaCard
                 title="Miglioramento"
                 count={status.improvement}
                 icon={<TrendingUp className="h-5 w-5" />}
-                href="/work-orders?category=improvement"
+                href="/work-orders?category=IMPROVEMENT"
                 color="bg-emerald-500"
             />
         </div>

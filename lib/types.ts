@@ -74,6 +74,7 @@ export interface WorkOrder {
     timers?: WorkOrderTimer[];
     ewoFilled?: boolean;
     ewo?: EWO;
+    asset?: Asset;
 }
 
 export interface EWO {

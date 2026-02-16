@@ -82,6 +82,12 @@ function WorkOrdersContent() {
     const initialTab = tabParam === 'requests' ? 'REQUESTS' :
         tabParam === 'history' ? 'HISTORY' : 'ACTIVE';
 
+    // Advanced Filters from URL for Dashboard Widgets
+    const categoryParam = searchParams.get('category');
+    const locationParam = searchParams.get('location');
+    const assetTypeParam = searchParams.get('assetType');
+    const hasLineParam = searchParams.get('hasLine');
+
     const [filter, setFilter] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [technicianFilter, setTechnicianFilter] = useState("ALL");
@@ -105,24 +111,44 @@ function WorkOrdersContent() {
 
     // Filter logic
     const filteredWOs = workOrders.filter(wo => {
-        // Tab Filter
+        // 1. Tab Filter
         if (activeTab === 'REQUESTS' && wo.status !== 'PENDING_APPROVAL') return false;
         if (activeTab === 'HISTORY' && (wo.status !== 'CLOSED' && wo.status !== 'CANCELED')) return false;
         if (activeTab === 'ACTIVE' && (wo.status === 'PENDING_APPROVAL' || wo.status === 'CLOSED' || wo.status === 'CANCELED')) return false;
 
+        // 2. Text Search
         const matchesFilter = wo.title.toLowerCase().includes(filter.toLowerCase()) ||
             wo.description.toLowerCase().includes(filter.toLowerCase()) ||
             wo.assetName?.toLowerCase().includes(filter.toLowerCase()) ||
             wo.assignedTo.toLowerCase().includes(filter.toLowerCase());
+
+        // 3. Status Dropdown
         const matchesStatus = statusFilter === "ALL" || wo.status === statusFilter;
 
-        // Technician Filter
+        // 4. Technician Dropdown
         const matchesTechnician = technicianFilter === "ALL" || wo.assignedTo === technicianFilter;
 
-        // My Tasks Filter (Deprecated if Technician Filter is used, but kept for "Quick access")
+        // 5. My Tasks Toggle
         const matchesMine = onlyMyTasks
             ? (user ? (wo.assignedTechnicianId === user.id || wo.assignedTo === user.name) : false)
             : true;
+
+        // 6. Advanced URL Filters (Dashboard Links)
+        // Category Mismatch
+        if (categoryParam && wo.category !== categoryParam) return false;
+
+        // Asset Location (Substring match, case insensitive)
+        if (locationParam && wo.asset?.location && !wo.asset.location.toLowerCase().includes(locationParam.toLowerCase())) {
+            // If location param is provided but asset location doesn't match
+            return false;
+        }
+        if (locationParam && !wo.asset?.location) return false; // Fail if no location on asset
+
+        // Asset Type
+        if (assetTypeParam && wo.asset?.type !== assetTypeParam) return false;
+
+        // Has Line (Production)
+        if (hasLineParam === 'true' && !wo.asset?.line) return false;
 
         return matchesFilter && matchesStatus && matchesTechnician && matchesMine;
     });
