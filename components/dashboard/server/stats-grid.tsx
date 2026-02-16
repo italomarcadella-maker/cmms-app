@@ -11,14 +11,14 @@ export async function StatsGrid() {
             <MetricCard
                 title="Salute Impianto"
                 value={`${stats.avgHealth}%`}
-                icon={Activity}
+                icon={<Activity className="h-4 w-4" />}
                 subtext="Media score globale"
                 color="text-emerald-500"
             />
             <MetricCard
                 title="Materiali Sottoscorta"
                 value={stats.lowStockCount.toString()}
-                icon={Package}
+                icon={<Package className="h-4 w-4" />}
                 subtext="Articoli da ordinare"
                 color={stats.lowStockCount > 0 ? "text-red-500" : "text-emerald-500"}
                 alert={stats.lowStockCount > 0}
@@ -26,7 +26,7 @@ export async function StatsGrid() {
             <MetricCard
                 title="Ordini Aperti"
                 value={stats.openWorkOrders.toString()}
-                icon={ClipboardList}
+                icon={<ClipboardList className="h-4 w-4" />}
                 subtext={`${stats.highPriorityOpen} alta priorità`}
                 color="text-amber-500"
                 alert={stats.highPriorityOpen > 3}
@@ -34,7 +34,7 @@ export async function StatsGrid() {
             <MetricCard
                 title="Scadenze Critiche"
                 value={stats.overdueWorkOrders.toString()}
-                icon={AlertTriangle}
+                icon={<AlertTriangle className="h-4 w-4" />}
                 subtext="Ordini ritardati"
                 color={stats.overdueWorkOrders > 0 ? "text-red-500" : "text-emerald-500"}
                 trend={stats.overdueWorkOrders === 0 ? "In orario" : "Attenzione"}

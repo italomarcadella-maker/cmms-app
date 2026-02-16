@@ -3,7 +3,19 @@
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
-export function MetricCard({ title, value, icon: Icon, subtext, trend, trendUp, color, alert, chartData, chartColor, onClick, active }: any) {
+import { isValidElement } from "react";
+
+export function MetricCard({ title, value, icon, subtext, trend, trendUp, color, alert, chartData, chartColor, onClick, active }: any) {
+    // Helper to render icon
+    const renderIcon = () => {
+        if (isValidElement(icon)) {
+            // Already an element (e.g. <Activity className="..." />), just render it
+            return icon;
+        }
+        const Icon = icon;
+        return Icon ? <Icon className="h-4 w-4" /> : null;
+    };
+
     return (
         <div
             onClick={onClick}
@@ -15,7 +27,7 @@ export function MetricCard({ title, value, icon: Icon, subtext, trend, trendUp, 
             <div className="flex justify-between items-start mb-2">
                 <h3 className="tracking-tight text-sm font-medium text-muted-foreground">{title}</h3>
                 <div className={cn("p-2 rounded-lg bg-background/80 backdrop-blur-sm", color)}>
-                    {Icon && <Icon className="h-4 w-4" />}
+                    {renderIcon()}
                 </div>
             </div>
 
