@@ -7,6 +7,8 @@ import { UpcomingSchedule } from "@/components/dashboard/server/upcoming-schedul
 import { TechnicianAvailability } from "@/components/dashboard/server/technician-availability";
 import { MetricCardSkeleton } from "@/components/ui/skeleton";
 import { AIInsightsWrapper } from "@/components/dashboard/server/ai-insights-wrapper";
+import { WeeklyTrends } from "@/components/dashboard/server/weekly-trends";
+import { AnalyticsWrapper } from "@/components/dashboard/server/analytics-wrapper";
 
 export const dynamic = 'force-dynamic';
 
@@ -48,8 +50,25 @@ export default function Home() {
 
       {/* Upcoming Schedule (Full Width) */}
       <section>
+        <h2 className="text-lg font-semibold mb-4 text-muted-foreground">Programmazione</h2>
         <Suspense fallback={<div className="h-64 bg-muted/20 animate-pulse rounded-lg" />}>
           <UpcomingSchedule />
+        </Suspense>
+      </section>
+
+      {/* Restored: Weekly Trends */}
+      <section>
+        <h2 className="text-lg font-semibold mb-4 text-muted-foreground">Andamento Settimanale</h2>
+        <Suspense fallback={<div className="h-[300px] bg-muted/20 animate-pulse rounded-lg" />}>
+          <WeeklyTrends />
+        </Suspense>
+      </section>
+
+      {/* Restored: Analytics (Costs & MTTF) */}
+      <section>
+        <h2 className="text-lg font-semibold mb-4 text-muted-foreground">Analisi & Costi</h2>
+        <Suspense fallback={<div className="h-[400px] bg-muted/20 animate-pulse rounded-lg" />}>
+          <AnalyticsWrapper />
         </Suspense>
       </section>
 
