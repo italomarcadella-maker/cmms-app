@@ -381,3 +381,152 @@ export const getMaintenanceMetrics = unstable_cache(
     ['maintenance-metrics'],
     { revalidate: 300 }
 );
+
+export async function getAreaStatus() {
+    try {
+        const [production, facilities, workshop, improvement] = await Promise.all([
+            // Production: WOs on assets with a defined line
+            prisma.workOrder.count({
+                where: {
+                    status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
+                    asset: { line: { not: null } }
+                }
+            }),
+            // Facilities: WOs on FACILITY assets
+            prisma.workOrder.count({
+                where: {
+                    status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
+                    asset: { type: 'FACILITY' }
+                }
+            }),
+            // Workshop: WOs on assets in location 'OFFICINA'
+            prisma.workOrder.count({
+                where: {
+                    status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
+                    asset: { location: { contains: 'OFFICINA', mode: 'insensitive' } }
+                }
+            }),
+            // Improvement: WOs of category IMPROVEMENT or KAIZEN assets
+            prisma.workOrder.count({
+                where: {
+                    status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
+                    OR: [
+                        { category: 'IMPROVEMENT' },
+                        { asset: { type: 'KAIZEN' } }
+                    ]
+                }
+            })
+        ]);
+
+        return { production, facilities, workshop, improvement };
+    } catch (error) {
+        console.error("Area Status Error:", error);
+        return { production: 0, facilities: 0, workshop: 0, improvement: 0 };
+    }
+}
+
+export async function getTechnicianPresence() {
+    try {
+        // 1. Get all users with role MAINTAINER
+        const maintainers = await prisma.user.findMany({
+            where: { role: 'MAINTAINER', isActive: true },
+            select: { id: true, name: true }
+        });
+
+        const totalMaintainers = maintainers.length;
+        if (totalMaintainers === 0) return { presentCount: 0, totalCount: 0, percentage: 0, absentees: [] };
+
+        // 2. Get availability for TODAY
+        const today = startOfDay(new Date());
+        const tomorrow = endOfDay(new Date());
+
+        const availability = await prisma.technicianAvailability.findMany({
+            where: {
+                date: { gte: today, lte: tomorrow }
+            },
+            include: { user: true }
+        });
+
+        // 3. Identification of absentees
+        // Statuses that count as "Absent": VACATION, SICK, PERMIT, TRAINING (maybe training is absent from floor)
+        const absentStatuses = ['VACATION', 'SICK', 'PERMIT', 'TRAINING'];
+
+        const absentRecords = availability.filter(a => absentStatuses.includes(a.status));
+        const absentees = absentRecords.map(a => ({
+            name: a.user.name || 'Tecnico',
+            reason: a.status
+        }));
+
+        const presentCount = totalMaintainers - absentees.length;
+        const percentage = Math.round((presentCount / totalMaintainers) * 100);
+
+        return {
+            presentCount,
+            totalCount: totalMaintainers,
+            percentage,
+            absentees
+        };
+
+    } catch (error) {
+        console.error("Presence Error:", error);
+        return { presentCount: 0, totalCount: 0, percentage: 0, absentees: [] };
+    }
+}
+
+export async function getUpcomingSchedule(days = 3) {
+    try {
+        const startDate = startOfDay(new Date());
+        const endDate = endOfDay(new Date(new Date().setDate(new Date().getDate() + days)));
+
+        // 1. Fetch WorkOrders due in range
+        const wos = await prisma.workOrder.findMany({
+            where: {
+                dueDate: { gte: startDate, lte: endDate },
+                status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL', 'ASSIGNED'] }
+            },
+            include: { asset: true },
+            orderBy: { dueDate: 'asc' }
+        });
+
+        // 2. Fetch Planned Schedules due in range
+        const schedules = await prisma.preventiveSchedule.findMany({
+            where: {
+                nextDueDate: { gte: startDate, lte: endDate }
+            },
+            include: { asset: true },
+            orderBy: { nextDueDate: 'asc' }
+        });
+
+        // 3. Merge and formatting
+        const combined = [
+            ...wos.map(wo => ({
+                id: wo.id,
+                title: wo.title,
+                asset: wo.asset.name,
+                date: wo.dueDate!,
+                type: 'WO' as const,
+                priority: wo.priority,
+                status: wo.status
+            })),
+            ...schedules.map(sch => ({
+                id: sch.id,
+                title: sch.taskTitle,
+                asset: sch.asset.name,
+                date: sch.nextDueDate,
+                type: 'PM' as const,
+                priority: 'PLANNED',
+                status: 'SCHEDULED'
+            }))
+        ].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        return combined.map(item => ({
+            ...item,
+            date: item.date.toISOString(), // Serialize for client
+            formattedDate: format(item.date, 'EEEE dd MMM', { locale: it })
+        }));
+
+    } catch (error) {
+        console.error("Schedule Error:", error);
+        return [];
+    }
+}

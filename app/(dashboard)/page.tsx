@@ -2,42 +2,24 @@
 import { Suspense } from "react";
 import { DashboardHeader } from "@/components/dashboard/server/dashboard-header";
 import { StatsGrid } from "@/components/dashboard/server/stats-grid";
-import { WeeklyTrends } from "@/components/dashboard/server/weekly-trends";
-import { RecentActivity } from "@/components/dashboard/server/recent-activity";
-import { OverdueAlerts } from "@/components/dashboard/server/overdue-alerts";
-import { SafetyStatus } from "@/components/dashboard/server/safety-status";
+import { FunctionalAreasWidget } from "@/components/dashboard/server/functional-areas-widget";
+import { UpcomingSchedule } from "@/components/dashboard/server/upcoming-schedule";
+import { TechnicianAvailability } from "@/components/dashboard/server/technician-availability";
+import { MetricCardSkeleton } from "@/components/ui/skeleton";
 import { AIInsightsWrapper } from "@/components/dashboard/server/ai-insights-wrapper";
-import { FactoryMapWrapper } from "@/components/dashboard/server/factory-map-wrapper";
-import { AnalyticsWrapper } from "@/components/dashboard/server/analytics-wrapper";
-import { QuickActions } from "@/components/dashboard/quick-actions";
-import { MetricCardSkeleton, Skeleton } from "@/components/ui/skeleton";
 
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
 
       {/* Header */}
       <Suspense fallback={<div className="h-20 bg-muted/20 animate-pulse rounded-lg" />}>
         <DashboardHeader />
       </Suspense>
 
-      {/* Safety & Insights */}
-      <Suspense fallback={<div className="h-32 bg-muted/20 animate-pulse rounded-lg" />}>
-        <SafetyStatus />
-      </Suspense>
-
-      <Suspense fallback={<div className="h-32 bg-muted/20 animate-pulse rounded-lg mt-4" />}>
-        <AIInsightsWrapper />
-      </Suspense>
-
-      {/* Map */}
-      <Suspense fallback={<div className="h-64 bg-muted/20 animate-pulse rounded-lg" />}>
-        <FactoryMapWrapper />
-      </Suspense>
-
-      {/* Metrics Grid */}
+      {/* Primary Metrics Grid (Kept for high-level overview) */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Suspense fallback={
           <>
@@ -51,31 +33,32 @@ export default function Home() {
         </Suspense>
       </div>
 
-      {/* Analytics */}
-      <Suspense fallback={<div className="h-64 bg-muted/20 animate-pulse rounded-lg" />}>
-        <AnalyticsWrapper />
+      {/* AI Insights (Compact) */}
+      <Suspense fallback={<div className="h-32 bg-muted/20 animate-pulse rounded-lg" />}>
+        <AIInsightsWrapper />
       </Suspense>
 
-      {/* Bottom Section */}
-      <div className="grid gap-6 md:grid-cols-12">
-        <div className="md:col-span-8 space-y-6">
-          <Suspense fallback={<div className="h-[300px] bg-muted/20 animate-pulse rounded-lg" />}>
-            <WeeklyTrends />
-          </Suspense>
+      {/* Main Functional Areas (4 Quadrants) - Replaces Map */}
+      <section>
+        <h2 className="text-lg font-semibold mb-4 text-muted-foreground">Macro Aree</h2>
+        <Suspense fallback={<div className="grid grid-cols-4 gap-4 h-32 bg-muted/20 animate-pulse rounded-lg" />}>
+          <FunctionalAreasWidget />
+        </Suspense>
+      </section>
 
-          <Suspense fallback={<div className="h-[400px] bg-muted/20 animate-pulse rounded-lg" />}>
-            <RecentActivity />
-          </Suspense>
-        </div>
+      {/* Upcoming Schedule (Full Width) */}
+      <section>
+        <Suspense fallback={<div className="h-64 bg-muted/20 animate-pulse rounded-lg" />}>
+          <UpcomingSchedule />
+        </Suspense>
+      </section>
 
-        <div className="md:col-span-4 space-y-6">
-          <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-lg" />}>
-            <OverdueAlerts />
-          </Suspense>
-
-          <QuickActions />
-        </div>
-      </div>
+      {/* Technician Presence */}
+      <section>
+        <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-lg" />}>
+          <TechnicianAvailability />
+        </Suspense>
+      </section>
 
     </div>
   );
