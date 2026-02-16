@@ -1,18 +1,18 @@
 "use client";
 
-import { LucideIcon } from "lucide-react";
+import React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface AreaCardProps {
     title: string;
     count: number;
-    icon: LucideIcon;
+    icon: React.ReactNode;
     href: string;
     color: string; // e.g. "bg-blue-500"
 }
 
-export function AreaCard({ title, count, icon: Icon, href, color }: AreaCardProps) {
+export function AreaCard({ title, count, icon, href, color }: AreaCardProps) {
     return (
         <Link
             href={href}
@@ -27,7 +27,7 @@ export function AreaCard({ title, count, icon: Icon, href, color }: AreaCardProp
                     <p className="text-xs text-muted-foreground mt-1">Richieste attive</p>
                 </div>
                 <div className={cn("p-2.5 rounded-lg text-white shadow-sm", color)}>
-                    <Icon className="h-5 w-5" />
+                    {icon}
                 </div>
             </div>
 
