@@ -2102,7 +2102,7 @@ export async function getEnergyStats() {
 
             // Heuristic: Ignore "Initial Reading" jump (from 0 to X) ONLY if it's a massive jump (likely initial set)
             // Allow small jumps from 0 (normal usage starting from 0)
-            if ((prev.value === 0 && consumption > 5000) || consumption > 100000 || consumption < 0) {
+            if ((prev.value === 0 && consumption > 5000) || consumption < 0) {
                 consumption = 0;
             }
 
