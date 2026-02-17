@@ -277,10 +277,11 @@ export default function AssetCalendarPage() {
     const days = eachDayOfInterval({ start: startDate, end: endOfWeek(startDate, { weekStartsOn: 1 }) });
 
     const getStatusColor = (status: string, category: string) => {
-        if (category === 'BREAKDOWN' || status === 'STOPPAGE') return "bg-red-100 text-red-700 border-red-200";
-        if (status === 'COMPLETED' || status === 'CLOSED') return "bg-green-100 text-green-700 border-green-200";
-        if (category === 'PREVENTIVE') return "bg-blue-100 text-blue-700 border-blue-200";
-        return "bg-amber-100 text-amber-700 border-amber-200";
+        if (category === 'BREAKDOWN' || status === 'STOPPAGE') return "bg-red-600 text-white border-red-700 shadow-sm";
+        if (status === 'COMPLETED' || status === 'CLOSED') return "bg-green-600 text-white border-green-700 shadow-sm";
+        if (category === 'PREVENTIVE') return "bg-blue-600 text-white border-blue-700 shadow-sm";
+        if (status === 'ASSIGNED') return "bg-indigo-500 text-white border-indigo-600 shadow-sm";
+        return "bg-amber-500 text-white border-amber-600 shadow-sm";
     };
 
     return (
@@ -372,7 +373,8 @@ export default function AssetCalendarPage() {
                                                             // Re-implementing simplified IsProdDay/IsMaintDay logic
                                                             const dayOfWeek = day.getDay();
                                                             const isProd = (dayOfWeek >= lineRule.prodStartDay && dayOfWeek <= lineRule.prodEndDay);
-                                                            const bgClass = isProd ? "bg-red-50/30" : "bg-green-50/30";
+                                                            // Red = Production (Busy), Green = Free (Maintenance Window)
+                                                            const bgClass = isProd ? "bg-red-100/80 border-red-100" : "bg-green-100/80 border-green-100";
 
                                                             return (
                                                                 <DroppableDay key={dayIdx} day={day} lineName={lineName}>
