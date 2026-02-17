@@ -1247,12 +1247,17 @@ export async function createWorkOrder(rawData: any) {
         // Zod Validation
         const validation = workOrderSchema.safeParse(rawData);
         if (!validation.success) {
-            return { success: false, message: "Dati non validi: " + validation.error.errors.map(e => e.message).join(", ") };
+            console.error("WO Validation Failed:", JSON.stringify(validation.error, null, 2));
+            // Safety check for map error
+            const errorMsg = validation.error.errors ? validation.error.errors.map(e => e.message).join(", ") : "Unknown Validation Error";
+            return { success: false, message: "Dati non validi: " + errorMsg };
         }
         const data = validation.data;
 
         // Ensure Virtual Asset Exists if applicable
         await ensureVirtualAsset(data.assetId);
+
+        console.log("Creating WO with data:", { ...data, checklist: data.checklist ? `Array(${data.checklist.length})` : 'undefined' });
 
         const newWO = await prisma.workOrder.create({
             data: {
@@ -1305,7 +1310,9 @@ export async function createWorkOrder(rawData: any) {
                 select: { id: true }
             });
 
-            if (supervisors.length > 0) {
+            console.log("Supervisors found:", supervisors);
+
+            if (supervisors && supervisors.length > 0) {
                 const notifications = supervisors.map(supervisor => ({
                     userId: supervisor.id,
                     title: "⚠️ SICUREZZA: Segnalazione Critica",
