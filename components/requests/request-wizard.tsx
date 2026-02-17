@@ -33,7 +33,7 @@ const CATEGORIES = [
         description: 'Manutenzione generale stabilimento (Luce, Acqua, Aria).',
         icon: Factory,
         color: 'text-green-600',
-        virtualAssetId: 'SYS-PLANT',
+        virtualAssetId: null, // Enable asset selection
         categoryType: 'OTHER'
     },
     {
@@ -121,7 +121,7 @@ export function RequestWizard() {
                     <RequestForm
                         initialCategory={selectedCategory?.categoryType}
                         initialAssetId={selectedCategory?.virtualAssetId || undefined}
-                        forceAssetSelection={selectedCategory?.id === 'production'}
+                        forceAssetSelection={selectedCategory?.id === 'production' || selectedCategory?.id === 'plant'}
                         onCancel={handleBack}
                     />
                 </div>
