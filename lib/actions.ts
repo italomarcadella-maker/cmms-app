@@ -1331,7 +1331,7 @@ export async function createWorkOrder(rawData: any) {
             }
         }
 
-        revalidateTag('dashboard-stats'); // Update Dashboard Stats
+        revalidateTag('dashboard-stats'); // Update Dashboard Stats - Fix confirmed
         revalidatePath('/maintenance');
         revalidatePath('/work-orders');
         revalidatePath('/requests'); // Revalidate requests too
