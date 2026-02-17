@@ -25,7 +25,7 @@ const CATEGORIES = [
         icon: Lightbulb,
         color: 'text-yellow-500',
         virtualAssetId: 'SYS-KAIZEN',
-        categoryType: 'KAIZEN'
+        categoryType: 'IMPROVEMENT'
     },
     {
         id: 'plant',
@@ -34,7 +34,7 @@ const CATEGORIES = [
         icon: Factory,
         color: 'text-green-600',
         virtualAssetId: 'SYS-PLANT',
-        categoryType: 'PLANT'
+        categoryType: 'OTHER'
     },
     {
         id: 'workshop',
@@ -43,7 +43,7 @@ const CATEGORIES = [
         icon: Wrench,
         color: 'text-blue-500',
         virtualAssetId: 'SYS-WORKSHOP',
-        categoryType: 'WORKSHOP'
+        categoryType: 'MECHANICAL'
     },
     {
         id: 'other',
@@ -61,7 +61,7 @@ const CATEGORIES = [
         icon: Factory,
         color: 'text-purple-500',
         virtualAssetId: null, // Requires selection
-        categoryType: 'MAINTENANCE'
+        categoryType: 'MECHANICAL'
     }
 ];
 
