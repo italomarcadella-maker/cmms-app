@@ -1,4 +1,5 @@
-"use client";
+
+import { seedEnergyData } from "@/lib/seed-actions";
 
 import { useState, useMemo } from "react";
 import { Zap, Droplets, Flame, LineChart as ChartIcon } from "lucide-react";
@@ -97,15 +98,16 @@ export function EnergyDashboard({
                         </Button>
                     </Link>
                     <ReadingFormDialog meters={meters} />
-                    <form action={async () => {
-                        "use server";
-                        const { seedEnergyData } = await import("@/lib/seed-actions");
-                        await seedEnergyData();
-                    }}>
-                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
-                            Demo Data
-                        </Button>
-                    </form>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                        onClick={async () => {
+                            await seedEnergyData();
+                        }}
+                    >
+                        Demo Data
+                    </Button>
                 </div>
             </div>
 
