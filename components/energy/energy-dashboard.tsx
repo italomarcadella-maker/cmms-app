@@ -1,4 +1,6 @@
 
+"use client";
+
 import { seedEnergyData } from "@/lib/seed-actions";
 
 import { useState, useMemo } from "react";
