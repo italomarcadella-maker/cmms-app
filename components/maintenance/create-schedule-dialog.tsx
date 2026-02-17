@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { createPreventiveSchedule, getAssets, getActivities } from "@/lib/actions";
 import { usePM } from "@/lib/pm-context";
+import { AssetSelector } from "@/components/assets/asset-selector";
+import { Search } from "lucide-react";
 
 export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?: () => void }) {
     const { refreshSchedules } = usePM();
@@ -22,6 +24,7 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
     const [step, setStep] = useState(1);
     const [assets, setAssets] = useState<Asset[]>([]);
     const [activities, setActivities] = useState<MaintenanceActivity[]>([]);
+    const [assetDialogOpen, setAssetDialogOpen] = useState(false);
 
     // Form State
     const [title, setTitle] = useState("");
@@ -127,16 +130,40 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                             </div>
                             <div className="space-y-2">
                                 <Label>Asset</Label>
-                                <Select value={assetId} onValueChange={setAssetId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleziona Macchinario" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white">
-                                        {assets.map(a => (
-                                            <SelectItem key={a.id} value={a.id}>{a.name} ({a.serialNumber})</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Dialog open={assetDialogOpen} onOpenChange={setAssetDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className={cn(
+                                                "w-full justify-start text-left font-normal",
+                                                !assetId && "text-muted-foreground"
+                                            )}
+                                        >
+                                            {assetId ? (
+                                                assets.find(a => a.id === assetId)?.name || assetId
+                                            ) : (
+                                                <>
+                                                    <Search className="mr-2 h-4 w-4" />
+                                                    Sfoglia e seleziona macchinario...
+                                                </>
+                                            )}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col bg-background/95 backdrop-blur-xl">
+                                        <DialogHeader>
+                                            <DialogTitle>Seleziona Macchinario</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="flex-1 overflow-y-auto pr-2">
+                                            <AssetSelector
+                                                assets={assets}
+                                                onSelect={(asset) => {
+                                                    setAssetId(asset.id);
+                                                    setAssetDialogOpen(false);
+                                                }}
+                                            />
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                             <div className="space-y-2">
                                 <Label>Descrizione</Label>

@@ -107,21 +107,11 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
 
                                 {expandedNodes.has(plant) && (
                                     <div className="ml-3 pl-3 border-l-2 border-muted space-y-1 mt-1">
-                                        {Object.keys(groupedAssets[plant]).sort().map((dept) => (
-                                            <div key={`${plant}-${dept}`}>
-                                                <div
-                                                    className="flex items-center gap-2 p-2 hover:bg-accent/50 rounded-md cursor-pointer font-medium text-sm transition-colors group"
-                                                    onClick={() => toggleNode(`${plant}-${dept}`)}
-                                                >
-                                                    <div className="p-0.5 rounded-sm text-muted-foreground group-hover:text-foreground">
-                                                        {expandedNodes.has(`${plant}-${dept}`) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                                                    </div>
-                                                    <LayoutTemplate className="h-4 w-4 text-orange-500" />
-                                                    <span>{dept}</span>
-                                                </div>
-
-                                                {expandedNodes.has(`${plant}-${dept}`) && (
-                                                    <div className="ml-3 pl-3 border-l-2 border-muted space-y-1 mt-1">
+                                        {Object.keys(groupedAssets[plant]).sort().map((dept) => {
+                                            // Special handling to hide "Generale" folder but show its contents
+                                            if (dept === 'Generale') {
+                                                return (
+                                                    <div key={`${plant}-Generale-Contents`} className="space-y-1 mt-1">
                                                         {Object.keys(groupedAssets[plant][dept]).sort().map((line) => (
                                                             <div key={`${plant}-${dept}-${line}`}>
                                                                 <div
@@ -169,9 +159,75 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
                                                             </div>
                                                         ))}
                                                     </div>
-                                                )}
-                                            </div>
-                                        ))}
+                                                );
+                                            }
+
+                                            return (
+                                                <div key={`${plant}-${dept}`}>
+                                                    <div
+                                                        className="flex items-center gap-2 p-2 hover:bg-accent/50 rounded-md cursor-pointer font-medium text-sm transition-colors group"
+                                                        onClick={() => toggleNode(`${plant}-${dept}`)}
+                                                    >
+                                                        <div className="p-0.5 rounded-sm text-muted-foreground group-hover:text-foreground">
+                                                            {expandedNodes.has(`${plant}-${dept}`) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                                        </div>
+                                                        <LayoutTemplate className="h-4 w-4 text-orange-500" />
+                                                        <span>{dept}</span>
+                                                    </div>
+
+                                                    {expandedNodes.has(`${plant}-${dept}`) && (
+                                                        <div className="ml-3 pl-3 border-l-2 border-muted space-y-1 mt-1">
+                                                            {Object.keys(groupedAssets[plant][dept]).sort().map((line) => (
+                                                                <div key={`${plant}-${dept}-${line}`}>
+                                                                    <div
+                                                                        className="flex items-center gap-2 p-2 hover:bg-accent/50 rounded-md cursor-pointer text-sm transition-colors group"
+                                                                        onClick={() => toggleNode(`${plant}-${dept}-${line}`)}
+                                                                    >
+                                                                        <div className="p-0.5 rounded-sm text-muted-foreground group-hover:text-foreground">
+                                                                            {expandedNodes.has(`${plant}-${dept}-${line}`) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                                                        </div>
+                                                                        <Waypoints className="h-4 w-4 text-purple-500" />
+                                                                        <span>{line}</span>
+                                                                    </div>
+
+                                                                    {expandedNodes.has(`${plant}-${dept}-${line}`) && (
+                                                                        <div className="ml-4 grid gap-2 mt-1 mb-2 pr-2">
+                                                                            {groupedAssets[plant][dept][line].map(asset => (
+                                                                                <div
+                                                                                    key={asset.id}
+                                                                                    onClick={() => onSelect(asset)}
+                                                                                    className="flex items-center justify-between p-3 rounded-lg bg-card border hover:border-primary/50 cursor-pointer shadow-sm hover:shadow-md transition-all group/asset"
+                                                                                >
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <div className="h-10 w-10 bg-muted rounded-md overflow-hidden flex-shrink-0 border">
+                                                                                            {asset.image && asset.image.length > 10 ? (
+                                                                                                <img src={asset.image} alt={asset.name} className="h-full w-full object-cover" />
+                                                                                            ) : (
+                                                                                                <div className="h-full w-full flex items-center justify-center group-hover/asset:bg-primary/10 group-hover/asset:text-primary transition-colors">
+                                                                                                    <Box className="h-5 w-5" />
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <p className="font-medium text-sm group-hover/asset:text-primary transition-colors">{asset.name}</p>
+                                                                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                                                <span className="font-mono bg-muted px-1 rounded">{asset.serialNumber}</span>
+                                                                                                {asset.vendor && <span>• {asset.vendor}</span>}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <AssetStatusBadge status={asset.status as any} />
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
