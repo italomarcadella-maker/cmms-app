@@ -1250,8 +1250,11 @@ export async function createWorkOrder(rawData: any) {
         const validation = workOrderSchema.safeParse(rawData);
         if (!validation.success) {
             console.error("WO Validation Failed:", JSON.stringify(validation.error, null, 2));
-            // Safety check for map error
-            const errorMsg = validation.error.errors ? validation.error.errors.map((e: any) => e.message).join(", ") : "Unknown Validation Error";
+            const zError = validation.error as any;
+            const issues = zError.issues || zError.errors || [];
+            const errorMsg = issues.length > 0
+                ? issues.map((e: any) => e.message).join(", ")
+                : "Unknown Validation Error";
             return { success: false, message: "Dati non validi: " + errorMsg };
         }
         const data = validation.data;
@@ -2063,6 +2066,8 @@ export async function getEnergyStats() {
         },
         orderBy: { date: 'asc' }
     });
+
+    console.log(`[getEnergyStats] Found ${readings.length} readings for ${meters.length} meters.`);
 
     const totals = {
         currentMonth: { ELEC: 0, WATER: 0, GAS: 0 },
