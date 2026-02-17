@@ -2063,7 +2063,7 @@ export async function getEnergyStats() {
         // Fetch a bit more history to ensure we have a "previous" reading for the start of the window
         const readings = await prisma.meterReading.findMany({
             where: {
-                date: { gte: subDays(new Date(), 60) }
+                date: { gte: subDays(new Date(), 365) }
             },
             include: { meter: true },
             orderBy: { date: 'asc' }
