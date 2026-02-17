@@ -16,29 +16,39 @@ import {
     Sparkles,
     ArrowRight
 } from "lucide-react";
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    AreaChart,
-    Area
-} from 'recharts';
 import { cn } from "@/lib/utils";
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { useEffect, useState } from "react";
+import { getKPISummary } from "@/lib/actions";
 
 export default function PredictivePage() {
     const { assets } = useAssets();
-
     const { workOrders } = useWorkOrders();
+    const [kpiStats, setKpiStats] = useState({
+        avgHealth: 0,
+        riskAssets: 0,
+        totalCost: 0,
+        mttrHours: 0
+    });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchStats() {
+            try {
+                const stats = await getKPISummary();
+                setKpiStats(stats);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchStats();
+    }, []);
 
     // Real predictive logic based on Asset Health Score and Open Faults
     const predictiveAssets = assets.map(asset => {
         // Calculate Risk based on Health Score (Real Data)
-        // If 100% health = 0% probability. 0% health = 100% probability.
         let failureProbability = 100 - (asset.healthScore || 100);
 
         // Adjust risk if there are open FAULT or HIGH priority WOs
@@ -57,7 +67,6 @@ export default function PredictivePage() {
         failureProbability = Math.min(99, Math.max(0, failureProbability));
 
         // Estimate days to failure (Heuristic: Lower health = fewer days)
-        // If Health < 50, critical (1-7 days). If Health < 80 (7-30 days). Else > 30.
         let daysToFailure = 999;
         if (asset.healthScore < 50) daysToFailure = Math.round(asset.healthScore / 10) + 1;
         else if (asset.healthScore < 80) daysToFailure = Math.round(asset.healthScore / 2);
@@ -67,20 +76,11 @@ export default function PredictivePage() {
             failureProbability,
             daysToFailure,
             healthScore: asset.healthScore,
-            predictionConfidence: 95 // Static confidence for deterministic heuristic
+            predictionConfidence: 95
         };
     }).sort((a, b) => b.failureProbability - a.failureProbability);
 
     const highRiskAssets = predictiveAssets.filter(a => a.failureProbability > 40);
-
-    // Trend Data - Placeholder for history (would require historical health table)
-    // We render a flat line or simple gradient based on average health
-    const avgHealth = assets.length > 0 ? assets.reduce((acc, a) => acc + a.healthScore, 0) / assets.length : 100;
-    const trendData = Array.from({ length: 14 }, (_, i) => ({
-        day: `Giorno ${i + 1}`,
-        health: avgHealth,
-        predicted: i > 10
-    }));
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
@@ -121,13 +121,6 @@ export default function PredictivePage() {
                                 "Tutti i sistemi operano entro i parametri nominali. Nessuna anomalia critica rilevata al momento."
                             )}
                         </p>
-                        {highRiskAssets.length > 0 && (
-                            <div className="pt-2">
-                                <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white border-0 shadow-md transition-all hover:scale-105">
-                                    Pianifica Intervento <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -140,9 +133,9 @@ export default function PredictivePage() {
                         <Activity className="h-4 w-4 text-emerald-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">87/100</div>
+                        <div className="text-2xl font-bold">{Math.round(kpiStats.avgHealth)}/100</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            <span className="text-emerald-500 font-medium">+2.5%</span> rispetto alla media storica
+                            Media di tutti gli asset (Live)
                         </p>
                     </CardContent>
                 </Card>
@@ -152,33 +145,35 @@ export default function PredictivePage() {
                         <AlertTriangle className="h-4 w-4 text-amber-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{highRiskAssets.length}</div>
+                        <div className="text-2xl font-bold">{kpiStats.riskAssets}</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Probabilità guasto &gt; 40%
+                            Asset con salute criticao
                         </p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Risparmio Stimato</CardTitle>
+                        <CardTitle className="text-sm font-medium">Costi Mese Corrente</CardTitle>
                         <Zap className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">€ 12.450</div>
+                        <div className="text-2xl font-bold">€ {kpiStats.totalCost.toFixed(2)}</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Grazie ad interventi preventivi questo mese
+                            Ricambi + Manodopera (Reale)
                         </p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tempo Medio Guarigione</CardTitle>
+                        <CardTitle className="text-sm font-medium">MTTR (90gg)</CardTitle>
                         <Timer className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">4.2 Giorni</div>
+                        <div className="text-2xl font-bold">
+                            {kpiStats.mttrHours > 0 ? `${kpiStats.mttrHours.toFixed(1)} Ore` : "N/D"}
+                        </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            -15% rispetto alla manutenzione reattiva
+                            Tempo medio riparazione
                         </p>
                     </CardContent>
                 </Card>
@@ -233,9 +228,6 @@ export default function PredictivePage() {
                                                     {asset.failureProbability > 20 ? <span>~ {asset.daysToFailure} giorni</span> : <span className="text-muted-foreground">-</span>}
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" size="sm" className="hidden sm:flex">
-                                                Dettagli
-                                            </Button>
                                         </div>
                                     </div>
                                 ))}
@@ -244,49 +236,13 @@ export default function PredictivePage() {
                     </Card>
                 </div>
 
-                {/* Sidebar Chart */}
+                {/* Sidebar - Removed Fake Chart */}
                 <div className="lg:col-span-1 space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Trend Salute Globale</CardTitle>
-                            <CardDescription>Andamento ultimi 14 giorni</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="h-[300px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={trendData}>
-                                        <defs>
-                                            <linearGradient id="colorHealth" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                        <XAxis dataKey="day" hide />
-                                        <YAxis domain={[0, 100]} hide />
-                                        <Tooltip />
-                                        <Area type="monotone" dataKey="health" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorHealth)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <div className="mt-4 space-y-3">
-                                <div className="flex items-center justify-between text-sm border-b pb-2">
-                                    <span className="text-muted-foreground">Oggi</span>
-                                    <span className="font-bold">Valore Reale</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm border-b pb-2">
-                                    <span className="text-muted-foreground">Domani (Previsto)</span>
-                                    <span className="font-bold text-purple-600">96% Confidenza</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
                     <Card className="bg-blue-50/50 border-blue-100">
                         <CardContent className="p-6">
                             <h4 className="font-semibold text-blue-900 mb-2">Lo sapevi?</h4>
                             <p className="text-sm text-blue-800/80">
-                                La manutenzione predittiva può ridurre i costi di manutenzione del 30% e i tempi di fermo del 45% rispetto a quella reattiva.
+                                La manutenzione predittiva basata sui dati reali riduce drasticamente gli interventi non pianificati. Monitora costantemente le anomalie per anticipare i guasti.
                             </p>
                         </CardContent>
                     </Card>

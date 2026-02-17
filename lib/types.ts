@@ -137,6 +137,7 @@ export interface PreventiveSchedule {
     id: string;
     assetId: string;
     assetName: string;
+    assetLine?: string; // For filtering
     taskTitle: string;
     description: string;
     frequencyDays: number; // Legacy or computed

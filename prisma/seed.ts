@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, AssetStatus, AssetType, WorkOrderPriority, WorkOrderCategory, WorkOrderStatus, WorkOrderType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -79,10 +79,6 @@ async function main() {
 
         if (user) {
             // Create or Update Technician linked to User
-            // Since userId is unique, we use upsert with a dummy where or findFirst
-            // But simpler: just try create, or check if exists.
-            // Upserting by userId is not directly supported unless it's an ID.
-            // Let's check if technician exists for this user.
             const existing = await prisma.technician.findUnique({
                 where: { userId: user.id }
             });
@@ -112,9 +108,10 @@ async function main() {
             department: 'Production',
             location: 'Sector 4',
             purchaseDate: new Date('2023-01-15'),
-            status: 'OPERATIONAL',
+            status: AssetStatus.OPERATIONAL,
             healthScore: 85,
             lastMaintenance: new Date('2025-12-10'),
+            type: AssetType.MACHINE
         },
         {
             id: 'AST-002',
@@ -126,9 +123,10 @@ async function main() {
             department: 'Logistics',
             location: 'Assembly Line 2',
             purchaseDate: new Date('2022-06-20'),
-            status: 'MAINTENANCE',
+            status: AssetStatus.MAINTENANCE,
             healthScore: 45,
             lastMaintenance: new Date('2025-11-05'),
+            type: AssetType.MACHINE
         },
         {
             id: 'AST-003',
@@ -140,9 +138,10 @@ async function main() {
             department: 'Assembly',
             location: 'Welding Station',
             purchaseDate: new Date('2024-03-10'),
-            status: 'OPERATIONAL',
+            status: AssetStatus.OPERATIONAL,
             healthScore: 92,
             lastMaintenance: new Date('2025-12-28'),
+            type: AssetType.MACHINE
         },
         {
             id: 'AST-004',
@@ -154,9 +153,10 @@ async function main() {
             department: 'Utilities',
             location: 'Utility Room',
             purchaseDate: new Date('2021-11-30'),
-            status: 'OFFLINE',
+            status: AssetStatus.OFFLINE,
             healthScore: 60,
             lastMaintenance: new Date('2025-10-15'),
+            type: AssetType.FACILITY
         },
         {
             id: 'AST-005',
@@ -168,9 +168,10 @@ async function main() {
             department: 'Workshop',
             location: 'Workshop',
             purchaseDate: new Date('2023-08-22'),
-            status: 'OPERATIONAL',
+            status: AssetStatus.OPERATIONAL,
             healthScore: 88,
             lastMaintenance: new Date('2025-12-01'),
+            type: AssetType.MACHINE
         }
     ];
 
@@ -189,12 +190,13 @@ async function main() {
             title: 'Hydraulic Press Maintenance',
             description: 'Quarterly fluid check and pressure valve inspection.',
             assetId: 'AST-001',
-            priority: 'HIGH',
-            category: 'HYDRAULIC',
-            status: 'OPEN',
+            priority: WorkOrderPriority.HIGH,
+            category: WorkOrderCategory.HYDRAULIC,
+            status: WorkOrderStatus.OPEN,
             assignedTo: 'Mario Rossi',
             dueDate: new Date('2026-01-05'),
             createdAt: new Date('2026-01-01'),
+            type: WorkOrderType.ROUTINE,
             checklist: {
                 create: [
                     { label: 'Check Fluid Levels', completed: false },
@@ -207,12 +209,13 @@ async function main() {
             title: 'Replace Conveyor Belt Sensor',
             description: 'Sensor #4 is giving erratic readings. Needs replacement.',
             assetId: 'AST-002',
-            priority: 'MEDIUM',
-            category: 'ELECTRICAL',
-            status: 'IN_PROGRESS',
+            priority: WorkOrderPriority.MEDIUM,
+            category: WorkOrderCategory.ELECTRICAL,
+            status: WorkOrderStatus.IN_PROGRESS,
             assignedTo: 'Luigi Verdi',
             dueDate: new Date('2026-01-03'),
             createdAt: new Date('2025-12-30'),
+            type: WorkOrderType.FAULT,
             checklist: {
                 create: [
                     { label: 'Replace Sensor', completed: true },
@@ -225,24 +228,26 @@ async function main() {
             title: 'Robotic Arm Calibration',
             description: 'Recalibrate axis 3 and 4 after drift detection.',
             assetId: 'AST-003',
-            priority: 'LOW',
-            category: 'MECHANICAL',
-            status: 'COMPLETED',
+            priority: WorkOrderPriority.LOW,
+            category: WorkOrderCategory.MECHANICAL,
+            status: WorkOrderStatus.COMPLETED,
             assignedTo: 'Elena Bianchi',
             dueDate: new Date('2025-12-28'),
             createdAt: new Date('2025-12-25'),
+            type: WorkOrderType.FAULT
         },
         {
             id: 'WO-1004',
             title: 'Hydraulic Seal Inspection',
             description: 'Routine check for leaks.',
             assetId: 'AST-003',
-            priority: 'HIGH',
-            category: 'HYDRAULIC',
-            status: 'OPEN',
+            priority: WorkOrderPriority.HIGH,
+            category: WorkOrderCategory.HYDRAULIC,
+            status: WorkOrderStatus.OPEN,
             assignedTo: 'Giulia Neri',
             dueDate: new Date('2026-01-02'),
             createdAt: new Date('2026-01-01'),
+            type: WorkOrderType.ROUTINE,
             checklist: { create: [] }
         }
     ];

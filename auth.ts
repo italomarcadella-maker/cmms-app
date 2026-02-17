@@ -10,8 +10,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig,
     adapter: PrismaAdapter(prisma) as any,
     session: { strategy: "jwt" },
-    debug: process.env.NODE_ENV === 'development' || process.env.DEBUG_AUTH === 'true', // Abilita debug se necessario
-    secret: process.env.AUTH_SECRET || "fallback_secret_key_fixed_for_demo_stability_992837",
+    // Security Hardening: Enforce AUTH_SECRET in production
+    secret: process.env.AUTH_SECRET,
+    debug: process.env.NODE_ENV === 'development',
     providers: [
         Credentials({
             async authorize(credentials) {

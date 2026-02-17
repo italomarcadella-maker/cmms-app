@@ -12,16 +12,23 @@ import { WOAssignDialog } from "@/components/work-orders/wo-assign-dialog";
 import { updatePreventiveSchedule } from "@/lib/actions";
 import { toast } from "sonner";
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function CalendarPage() {
     const { workOrders, updateWorkOrder, addWorkOrder } = useWorkOrders();
     const { schedules, updateSchedule } = usePM(); // Fetch schedules
     const router = useRouter();
     const [assigningWoId, setAssigningWoId] = useState<string | null>(null);
+    const [showProductionOnly, setShowProductionOnly] = useState(false);
 
     // Transform Work Orders to Calendar Events
     const woEvents = workOrders
-        .filter(wo => wo.dueDate)
+        .filter(wo => {
+            if (!wo.dueDate) return false;
+            if (showProductionOnly && !wo.asset?.line) return false;
+            return true;
+        })
         .map(wo => ({
             id: wo.id,
             title: wo.title,
@@ -34,22 +41,31 @@ export default function CalendarPage() {
         }));
 
     // Transform Schedules to Calendar Events (Projections)
-    const pmEvents = schedules.map(sch => ({
-        id: sch.id,
-        title: `[Pianificata] ${sch.taskTitle}`,
-        date: new Date(sch.nextDueDate),
-        type: 'PM' as const,
-        status: 'SCHEDULED',
-        description: sch.description,
-        priority: 'MEDIUM', // Default
-        assignedTo: 'Unassigned'
-    }));
+    const pmEvents = schedules
+        .filter(sch => {
+            if (showProductionOnly && !sch.assetLine) return false;
+            return true;
+        })
+        .map(sch => ({
+            id: sch.id,
+            title: `[Pianificata] ${sch.taskTitle}`,
+            date: new Date(sch.nextDueDate),
+            type: 'PM' as const,
+            status: 'SCHEDULED',
+            description: sch.description,
+            priority: 'MEDIUM', // Default
+            assignedTo: 'Unassigned'
+        }));
 
     const events = [...woEvents, ...pmEvents];
 
     // Unassigned Pool
     const unassignedEvents = workOrders
-        .filter(wo => !wo.dueDate)
+        .filter(wo => {
+            if (wo.dueDate) return false;
+            if (showProductionOnly && !wo.asset?.line) return false;
+            return true;
+        })
         .map(wo => ({
             id: wo.id,
             title: wo.title,
@@ -64,11 +80,21 @@ export default function CalendarPage() {
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <BackToDashboardButton />
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-                    Calendario Manutenzione
-                </h1>
-                <p className="text-muted-foreground mt-1">Pianificazione mensile degli interventi.</p>
+            <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+                        Calendario Manutenzione
+                    </h1>
+                    <p className="text-muted-foreground mt-1">Pianificazione mensile degli interventi.</p>
+                </div>
+                <div className="flex items-center space-x-2 bg-card border rounded-lg p-2 shadow-sm">
+                    <Switch
+                        id="production-mode"
+                        checked={showProductionOnly}
+                        onCheckedChange={setShowProductionOnly}
+                    />
+                    <Label htmlFor="production-mode" className="cursor-pointer">Solo Linee Produzione</Label>
+                </div>
             </div>
 
             <CalendarView

@@ -9,6 +9,7 @@ import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { WorkOrderStatus } from '@/lib/types';
 
 import { logAction } from './audit';
+import { assetSchema, workOrderSchema } from './validations';
 // --- Authorization Helper ---
 
 async function requireRole(role: string): Promise<{ authorized: boolean; message?: string; session?: any }> {
@@ -255,30 +256,33 @@ export async function resetDatabase() {
 
 // --- Dashboard ---
 
-export async function getDashboardStats() {
-    const totalAssets = await prisma.asset.count();
-    const openWorkOrders = await prisma.workOrder.count({ where: { status: 'OPEN' } });
-    const completedWorkOrders = await prisma.workOrder.count({ where: { status: 'COMPLETED' } });
-    const lowHealthAssets = await prisma.asset.count({ where: { healthScore: { lt: 70 } } });
+export const getDashboardStats = unstable_cache(
+    async () => {
+        const totalAssets = await prisma.asset.count();
+        const openWorkOrders = await prisma.workOrder.count({ where: { status: 'OPEN' } });
+        const completedWorkOrders = await prisma.workOrder.count({ where: { status: 'COMPLETED' } });
+        const lowHealthAssets = await prisma.asset.count({ where: { healthScore: { lt: 70 } } });
 
-    return { totalAssets, openWorkOrders, completedWorkOrders, lowHealthAssets };
-}
+        return { totalAssets, openWorkOrders, completedWorkOrders, lowHealthAssets };
+    },
+    ['dashboard-stats'],
+    { tags: ['dashboard-stats'], revalidate: 300 }
+);
 
 // --- Assets ---
 
-export async function getAssets() {
-    const assets = await prisma.asset.findMany({ orderBy: { name: 'asc' } });
-    // Keep raw dates or map them? Dashboard layout logic implies raw mapping might be handled there?
-    // original lib/actions mapped them. Let's keep strict mapping if original used it, 
-    // BUT my `work-order-context` might expect raw.
-    // assets-context expects Asset[] which usually has string for dates. 
-    // Let's safe map.
-    return assets.map((asset: any) => ({
-        ...asset,
-        purchaseDate: asset.purchaseDate ? asset.purchaseDate.toISOString().split('T')[0] : '',
-        lastMaintenance: asset.lastMaintenance ? asset.lastMaintenance.toISOString().split('T')[0] : null,
-    }));
-}
+export const getAssets = unstable_cache(
+    async () => {
+        const assets = await prisma.asset.findMany({ orderBy: { name: 'asc' } });
+        return assets.map((asset: any) => ({
+            ...asset,
+            purchaseDate: asset.purchaseDate ? asset.purchaseDate.toISOString().split('T')[0] : '',
+            lastMaintenance: asset.lastMaintenance ? asset.lastMaintenance.toISOString().split('T')[0] : null,
+        }));
+    },
+    ['all-assets'],
+    { tags: ['assets'], revalidate: 3600 }
+);
 
 
 
@@ -323,51 +327,70 @@ export async function importAssets(assets: any[]) {
     return { success: true, count, errors };
 }
 
-export async function addAsset(data: any) {
+export async function addAsset(rawData: any) {
     const { authorized, message } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
 
     try {
+        const validation = assetSchema.safeParse(rawData);
+
+        if (!validation.success) {
+            let errorMsg = "";
+            if (validation.error.issues && Array.isArray(validation.error.issues)) {
+                errorMsg = validation.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(", ");
+            } else {
+                errorMsg = "Errore di validazione sconosciuto";
+            }
+            return { success: false, message: "Dati non validi: " + errorMsg };
+        }
+        const data = validation.data;
+
         const assetData = {
             name: data.name,
             model: data.model,
-            serialNumber: data.serialNumber || `SN-${Date.now()}`,
+            serialNumber: data.serialNumber, // Already validated as string
             location: data.location,
-            status: data.status || 'OPERATIONAL',
-            healthScore: data.healthScore || 100,
-            type: data.type, // Ensure type is updated
-            purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : new Date(),
+            status: data.status,
+            healthScore: data.healthScore,
+            type: data.type,
+            purchaseDate: data.purchaseDate,
             department: data.department,
             plant: data.plant,
             line: data.line,
+            cespite: data.cespite, // Updated
             vendor: data.vendor,
         };
         const newAsset = await prisma.asset.create({ data: assetData });
+        await logAction('CREATE_ASSET', newAsset.id, `Created asset ${newAsset.name}`);
+        revalidateTag('dashboard-stats');
+        revalidateTag('assets'); // Invalidate asset list cache
         revalidatePath('/assets');
         return { success: true, message: 'Asset creato con successo', data: newAsset };
     } catch (error) {
-        return { success: false, message: 'Errore creazione asset' };
+        return { success: false, message: 'Errore creazione asset: ' + (error as any).message };
     }
 }
 
-export async function updateAsset(id: string, data: any) {
+export async function updateAsset(id: string, rawData: any) {
     const { authorized, message } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
 
     try {
-        // Map any string dates coming from client back to Date objects if necessary
-        // Prisma expects Date objects for DateTime fields
-        const updateData = { ...data };
-        if (updateData.purchaseDate) updateData.purchaseDate = new Date(updateData.purchaseDate);
-        if (updateData.lastMaintenance) updateData.lastMaintenance = new Date(updateData.lastMaintenance);
+        const validation = assetSchema.partial().safeParse(rawData);
+        if (!validation.success) {
+            return { success: false, message: "Dati non validi: " + validation.error.errors.map(e => e.message).join(", ") };
+        }
+        const data = validation.data;
 
         const updatedAsset = await prisma.asset.update({
             where: { id },
-            data: updateData
+            data: data
         });
+        await logAction('UPDATE_ASSET', id, 'Updated asset details');
+        revalidateTag('dashboard-stats');
+        revalidateTag('assets');
         revalidatePath('/assets');
         revalidatePath(`/assets/${id}`);
-        // ... existing updateAsset ...
         return { success: true, message: 'Asset aggiornato', data: updatedAsset };
     } catch (error) {
         return { success: false, message: 'Errore aggiornamento asset' };
@@ -391,6 +414,9 @@ export async function deleteAsset(id: string) {
         }
 
         await prisma.asset.delete({ where: { id } });
+        await logAction('DELETE_ASSET', id, 'Deleted asset');
+        revalidateTag('dashboard-stats');
+        revalidateTag('assets');
         revalidatePath('/assets');
         return { success: true, message: 'Asset eliminato con successo' };
     } catch (error) {
@@ -500,6 +526,7 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
             await logAction("ASSIGN_WO", workOrderId, `Assigned to ${tech.name}` + (date ? ` on ${date}` : ""));
         }
 
+        revalidateTag('dashboard-stats');
         revalidatePath("/planning/calendar");
         revalidateTag('calendar-events-v2');
         revalidatePath("/work-orders");
@@ -724,6 +751,7 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
             await assignWorkOrder(newWo.id, technicianId, date);
         }
 
+        revalidateTag('dashboard-stats');
         revalidatePath('/planning/calendar');
         revalidateTag('calendar-events-v2');
         return { success: true, message: "Ordine creato da schedulazione" };
@@ -740,12 +768,13 @@ export async function getPreventiveSchedules() {
     if (!session?.user) return [];
     try {
         const schedules = await prisma.preventiveSchedule.findMany({
-            include: { asset: { select: { name: true } } },
+            include: { asset: { select: { name: true, line: true } } },
             orderBy: { nextDueDate: 'asc' }
         });
         return schedules.map(s => ({
             ...s,
             assetName: s.asset.name,
+            assetLine: s.asset.line,
             activities: s.activities ? JSON.parse(s.activities) : [],
             lastRunDate: s.lastRunDate ? s.lastRunDate.toISOString() : null,
             nextDueDate: s.nextDueDate.toISOString()
@@ -759,12 +788,13 @@ export async function getAssetSchedules(assetId: string) {
     try {
         const schedules = await prisma.preventiveSchedule.findMany({
             where: { assetId },
-            include: { asset: { select: { name: true } } },
+            include: { asset: { select: { name: true, line: true } } },
             orderBy: { nextDueDate: 'asc' }
         });
         return schedules.map(s => ({
             ...s,
             assetName: s.asset.name,
+            assetLine: s.asset.line,
             activities: s.activities ? JSON.parse(s.activities) : [],
             lastRunDate: s.lastRunDate ? s.lastRunDate.toISOString() : null,
             nextDueDate: s.nextDueDate.toISOString()
@@ -1207,38 +1237,48 @@ async function ensureVirtualAsset(id: string) {
     }
 }
 
-export async function createWorkOrder(data: any) {
-    try {
-        const { id, checklist, partsUsed, laborLogs, assetName, createdAt, ...rest } = data;
+export async function createWorkOrder(rawData: any) {
+    const session = await auth();
+    if (!session?.user) {
+        return { success: false, message: "Non autorizzato. Effettua il login." };
+    }
 
-        // Validate Asset
-        if (!rest.assetId) {
-            console.error("Missing assetId in createWorkOrder payload:", data);
-            return { success: false, message: "Asset ID mancante." };
+    try {
+        // Zod Validation
+        const validation = workOrderSchema.safeParse(rawData);
+        if (!validation.success) {
+            return { success: false, message: "Dati non validi: " + validation.error.errors.map(e => e.message).join(", ") };
         }
+        const data = validation.data;
 
         // Ensure Virtual Asset Exists if applicable
-        await ensureVirtualAsset(rest.assetId);
-
-        // Handle optional dates
-        const dueDate = rest.dueDate ? new Date(rest.dueDate) : null;
+        await ensureVirtualAsset(data.assetId);
 
         const newWO = await prisma.workOrder.create({
             data: {
-                ...rest,
-                dueDate,
-                requesterId: rest.requesterId || null,
-                validatedById: rest.validatedById || null,
-                type: rest.type || 'FAULT',
-                status: rest.status || 'PENDING_APPROVAL',
-                checklist: checklist && checklist.length > 0 ? {
-                    create: checklist.map((c: any) => ({
+                title: data.title,
+                description: data.description,
+                assetId: data.assetId,
+                priority: data.priority,
+                category: data.category,
+                status: data.status,
+                type: data.type,
+                dueDate: data.dueDate,
+
+                requesterId: data.requesterId || session.user.id, // Fallback to current user
+                validatedById: data.validatedById,
+                assignedTechnicianId: data.assignedTechnicianId,
+
+                checklist: data.checklist && data.checklist.length > 0 ? {
+                    create: data.checklist.map((c: any) => ({
                         label: c.label,
                         completed: c.completed
                     }))
                 } : undefined
             }
         });
+
+        await logAction('CREATE_WO', newWO.id, `Created Work Order: ${newWO.title}`);
 
         // NOTIFICATION: Check if created with assignment
         if (newWO.assignedTechnicianId) {
@@ -1279,16 +1319,15 @@ export async function createWorkOrder(data: any) {
             }
         }
 
+        revalidateTag('dashboard-stats'); // Update Dashboard Stats
         revalidatePath('/maintenance');
         revalidatePath('/work-orders');
         revalidatePath('/requests'); // Revalidate requests too
         revalidatePath('/'); // Refresh Dashboard
         return { success: true, message: 'Ordine creato', data: newWO };
+
     } catch (error) {
         console.error("WO Create Error Detailed:", error);
-        if (error instanceof Error) {
-            console.error("Stack:", error.stack);
-        }
         return { success: false, message: `Errore creazione ordine: ${(error as any).message}` };
     }
 }
@@ -1383,6 +1422,8 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
                 }
             });
 
+            await logAction('REVIEW_WO', id, 'Approved and Closed');
+
             // --- SELF-LEARNING TRIGGER ---
             try {
                 const { learnFromWorkOrder } = await import('@/lib/ai-service');
@@ -1453,6 +1494,7 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
                     // Add feedback to comments/chat? For now just status.
                 }
             });
+            await logAction('REVIEW_WO', id, 'Rejected and Sent Back');
         }
 
         revalidatePath('/work-orders');
@@ -1466,6 +1508,9 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
 }
 
 export async function updateWorkOrderStatus(id: string, status: string) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
     try {
         // Automatically promote REQUEST to FAULT if moving out of pending
         const wo = await prisma.workOrder.findUnique({ where: { id } });
@@ -1483,6 +1528,8 @@ export async function updateWorkOrderStatus(id: string, status: string) {
             }
         });
 
+        await logAction('UPDATE_WO_STATUS', id, `Status changed to ${status}`);
+
         revalidatePath('/maintenance');
         revalidatePath('/work-orders');
         revalidatePath('/requests');
@@ -1495,9 +1542,10 @@ export async function updateWorkOrderStatus(id: string, status: string) {
 
 export async function deleteWorkOrder(id: string) {
     const session = await auth();
-    if (!session?.user || (session.user as any).role === 'USER') throw new Error("Unauthorized");
+    if (!session?.user || (session.user as any).role === 'USER') return { success: false, message: "Non autorizzato" };
     try {
         await prisma.workOrder.delete({ where: { id } });
+        await logAction('DELETE_WO', id, 'Deleted Work Order');
         revalidatePath('/work-orders');
         revalidatePath('/maintenance');
         revalidatePath('/'); // Refresh Dashboard
@@ -1515,6 +1563,9 @@ export async function updateWorkOrderDetails(id: string, updates: any) {
         const { dueDate, ...rest } = updates;
         const data: any = { ...rest };
 
+        // Basic Zod check if full object was passed, but usually updates are partial.
+        // For now, keep it flexible but safe via Auth.
+
         if (dueDate) {
             data.dueDate = new Date(dueDate);
         }
@@ -1523,6 +1574,8 @@ export async function updateWorkOrderDetails(id: string, updates: any) {
             where: { id },
             data
         });
+
+        await logAction('UPDATE_WO_DETAILS', id, 'Updated details');
 
         revalidatePath('/work-orders');
         revalidatePath('/maintenance');
@@ -1777,11 +1830,11 @@ export async function getUserNotifications() {
 
     // Filter out notifications for Work Orders that are CLOSED or COMPLETED or CANCELED
     const filteredNotifications = [];
-    
+
     // Collect WO IDs to check status in batch? Or check one by one?
     // Batch is better.
     const woIdsToCheck = new Set<string>();
-    
+
     for (const n of notifications) {
         if (n.link && n.link.startsWith('/work-orders/')) {
             const parts = n.link.split('/');
@@ -1977,6 +2030,121 @@ export async function getMeterReadings(meterId: string) {
         ...r,
         date: r.date.toISOString().split('T')[0]
     }));
+}
+
+export async function getEnergyStats() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfTrend = new Date();
+    startOfTrend.setDate(startOfTrend.getDate() - 30);
+
+    // Fetch all meters
+    const meters = await prisma.meter.findMany();
+
+    // Fetch readings for all meters, enough history to calculate deltas
+    // We fetch a bit more than 30 days to ensure we have a "previous" reading for the start of the window
+    const readings = await prisma.meterReading.findMany({
+        where: {
+            date: { gte: new Date(new Date().setDate(new Date().getDate() - 60)) }
+        },
+        include: {
+            meter: true
+        },
+        orderBy: { date: 'asc' }
+    });
+
+    const totals = {
+        ELEC: 0,
+        WATER: 0,
+        GAS: 0
+    };
+
+    const dailyTrends = new Map<string, { date: string, elec: number, water: number, gas: number }>();
+    const meterHistory: Record<string, Array<{ date: string, value: number, consumption: number }>> = {};
+
+    // Initialize daily trends for last 30 days
+    for (let d = 0; d <= 30; d++) {
+        const date = new Date(startOfTrend);
+        date.setDate(date.getDate() + d);
+        const key = date.toISOString().split('T')[0];
+        dailyTrends.set(key, { date: key, elec: 0, water: 0, gas: 0 });
+    }
+
+    // Initialize meter history arrays
+    meters.forEach(m => meterHistory[m.id] = []);
+
+    // Process each meter individually to calculate deltas
+    for (const meter of meters) {
+        const meterReadings = readings.filter(r => r.meterId === meter.id).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        for (let i = 1; i < meterReadings.length; i++) {
+            const current = meterReadings[i];
+            const prev = meterReadings[i - 1];
+
+            // Calculate consumption (Delta)
+            let consumption = current.value - prev.value;
+            if (consumption < 0) consumption = 0; // Handle resets or errors safely
+
+            const dateKey = current.date.toISOString().split('T')[0];
+
+            // Add to Meter History (Raw Points)
+            if (current.date >= startOfTrend) {
+                if (meterHistory[meter.id]) {
+                    meterHistory[meter.id].push({
+                        date: dateKey,
+                        value: current.value,
+                        consumption: parseFloat(consumption.toFixed(2))
+                    });
+                }
+            }
+
+            // Distribute consumption across the days between previous reading and current reading
+            const diffTime = Math.abs(current.date.getTime() - prev.date.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            // Avoid division by zero, though unlikely with distinct timestamps
+            const validDays = diffDays > 0 ? diffDays : 1;
+            const dailyConsumption = consumption / validDays;
+
+            // Loop through each day from prev.date + 1 to current.date
+            for (let d = 0; d < validDays; d++) {
+                const targetDate = new Date(prev.date);
+                targetDate.setDate(targetDate.getDate() + d + 1); // Start from day after previous reading
+
+                // If this target date is in the future relative to current reading, break (safety, shouldn't happen)
+                if (targetDate > current.date) break;
+
+                const targetDateKey = targetDate.toISOString().split('T')[0];
+
+                // Add to Monthly Totals if target date is in current month
+                if (targetDate >= startOfMonth && targetDate <= now) {
+                    if (totals[meter.type as keyof typeof totals] !== undefined) {
+                        totals[meter.type as keyof typeof totals] += dailyConsumption;
+                    }
+                }
+
+                // Add to Trends if target date is in trend window
+                // Check if targetDate is within the tracked trend range (startOfTrend to now)
+                // Note: dailyTrends is initialized for 30 days from startOfTrend. 
+                // We should only check if we have an entry for this key.
+                const entry = dailyTrends.get(targetDateKey);
+                if (entry) {
+                    if (meter.type === 'ELEC') entry.elec += dailyConsumption;
+                    if (meter.type === 'WATER') entry.water += dailyConsumption;
+                    if (meter.type === 'GAS') entry.gas += dailyConsumption;
+                }
+            }
+        }
+    }
+
+    const trends = Array.from(dailyTrends.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return {
+        currentMonth: totals,
+        trends,
+        meterHistory,
+        meters
+    };
 }
 
 export async function addMeterReading(data: { meterId: string, value: number, date: string }) {
@@ -2686,9 +2854,101 @@ export async function assignWorkOrderToSelf(workOrderId: string) {
 }
 
 
+
 export async function createProductionSlot(data: any) {
     // Placeholder implementation for missing function
     console.log("createProductionSlot", data);
     return { success: true, message: "Slot creato (Simulazione)" };
+}
+
+export async function getKPISummary() {
+    try {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        // 1. Calculate Asset Health Score (Avg)
+        const assets = await prisma.asset.findMany({ select: { healthScore: true } });
+        const avgHealth = assets.length > 0
+            ? assets.reduce((acc, a) => acc + (a.healthScore || 0), 0) / assets.length
+            : 0;
+
+        // 2. Risk Assets Count (Health <= 40)
+        const riskAssets = await prisma.asset.count({
+            where: { healthScore: { lte: 40 } }
+        });
+
+        // 3. Real Maintenance Costs (Current Month)
+        // Part Costs
+        const parts = await prisma.workOrderPart.findMany({
+            where: { dateAdded: { gte: startOfMonth } }
+        });
+        const totalPartsCost = parts.reduce((acc, p) => acc + (p.unitCost * p.quantity), 0);
+
+        // Labor Costs
+        const labor = await prisma.laborLog.findMany({
+            where: { date: { gte: startOfMonth } }
+        });
+
+        // Efficiency: Fetch unique technician rates
+        const technicianIds = Array.from(new Set(labor.map(l => l.technicianId)));
+        let techRateMap = new Map<string, number>();
+
+        if (technicianIds.length > 0) {
+            const technicians = await prisma.technician.findMany({
+                where: { id: { in: technicianIds } }
+            });
+            techRateMap = new Map(technicians.map(t => [t.id, t.hourlyRate]));
+        }
+
+        const totalLaborCost = labor.reduce((acc, l) => {
+            const rate = techRateMap.get(l.technicianId) || 0;
+            return acc + (l.hours * rate);
+        }, 0);
+
+        const totalCost = totalPartsCost + totalLaborCost;
+
+        // 4. MTTR (Mean Time To Repair) - Last 90 Days
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+        // Use WorkOrderTimer to calculate actual repair time recorded
+        const workOrderTimers = await prisma.workOrderTimer.findMany({
+            where: {
+                endTime: { not: null },
+                workOrder: {
+                    type: 'FAULT'
+                },
+                startTime: { gte: ninetyDaysAgo }
+            }
+        });
+
+        let totalRepairTimeMinutes = 0;
+        let count = 0;
+
+        for (const timer of workOrderTimers) {
+            if (timer.duration) {
+                totalRepairTimeMinutes += timer.duration;
+                count++;
+            }
+        }
+
+        const mttrHours = count > 0 ? (totalRepairTimeMinutes / count / 60) : 0;
+
+        return {
+            avgHealth,
+            riskAssets,
+            totalCost,
+            mttrHours
+        };
+
+    } catch (e) {
+        console.error("KPI Error:", e);
+        return {
+            avgHealth: 0,
+            riskAssets: 0,
+            totalCost: 0,
+            mttrHours: 0
+        };
+    }
 }
 

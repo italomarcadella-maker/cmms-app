@@ -34,13 +34,17 @@ export function AssetForm() {
             location: formData.get("location") as string,
             purchaseDate: new Date().toISOString(),
             status: 'OPERATIONAL',
+            type: 'MACHINE', // Default type
             healthScore: 100,
             lastMaintenance: new Date().toISOString(),
         };
 
-        addAsset(newAsset);
+        const success = await addAsset(newAsset);
         setLoading(false);
-        router.push("/assets");
+
+        if (success) {
+            router.push("/assets");
+        }
     }
 
     return (

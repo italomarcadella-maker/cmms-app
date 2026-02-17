@@ -65,7 +65,7 @@ export function WorkOrderForm() {
             priority: formData.get("priority") as "STOPPED" | "MALFUNCTIONING" | "WORKING" | "NOT_PRODUCTION",
             status: "OPEN",
             assignedTo: selectedTech ? selectedTech.name : "Unassigned",
-            assignedTechnicianId: techId,
+            assignedTechnicianId: techId || undefined,
             dueDate: formData.get("dueDate") as string,
             createdAt: new Date().toISOString().split('T')[0],
             checklist: checklist,

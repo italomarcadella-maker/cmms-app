@@ -7,6 +7,75 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// --- ENUMS ---
+
+enum UserRole {
+  ADMIN
+  SUPERVISOR
+  MAINTAINER
+  USER
+}
+
+enum AssetStatus {
+  OPERATIONAL
+  MAINTENANCE
+  OFFLINE
+  DECOMMISSIONED
+  STORAGE
+}
+
+enum AssetType {
+  MACHINE
+  FACILITY
+  SAFETY
+  KAIZEN
+  OTHER
+}
+
+enum WorkOrderPriority {
+  STOPPED
+  MALFUNCTIONING
+  WORKING
+  NOT_PRODUCTION
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum WorkOrderCategory {
+  MECHANICAL
+  ELECTRICAL
+  HYDRAULIC
+  PNEUMATIC
+  SOFTWARE
+  CIVIL
+  OTHER
+  SAFETY
+  IMPROVEMENT
+  AI_SUGGESTION
+}
+
+enum WorkOrderStatus {
+  OPEN
+  PENDING_APPROVAL
+  APPROVED
+  ASSIGNED
+  IN_PROGRESS
+  ON_HOLD
+  PENDING_REVIEW
+  COMPLETED
+  CLOSED
+  CANCELED
+}
+
+enum WorkOrderType {
+  FAULT
+  ROUTINE
+  REQUEST
+}
+
+// --- MODELS ---
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -14,7 +83,7 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
-  role          String    @default("USER") // ADMIN, SUPERVISOR, MAINTAINER, USER
+  role          String    @default("USER") // Keep as String for NextAuth simplicity or migrate to Enum? Let's keep String for now to avoid Auth issues, focusing on Domain Data.
   mustChangePassword Boolean @default(false)
   isActive      Boolean   @default(true)
   lastLogin     DateTime?
@@ -76,18 +145,23 @@ model Asset {
   department      String?
   location        String
   line            String?
+  cespite         String?
   purchaseDate    DateTime
-  status          String   @default("OPERATIONAL")
+  status          AssetStatus   @default(OPERATIONAL)
   healthScore     Int      @default(100)
   lastMaintenance DateTime?
-  type            String   @default("MACHINE") // MACHINE, FACILITY, SAFETY, KAIZEN, OTHER
+  type            AssetType   @default(MACHINE)
   
-  warrantyExpiration DateTime? // Phase 9: Cost & Warranty
+  warrantyExpiration DateTime?
   
   images          AssetImage[]
   documents       AssetDocument[]
   workOrders      WorkOrder[]
   schedules       PreventiveSchedule[]
+
+  @@index([healthScore])
+  @@index([status])
+  @@index([name])
 }
 
 model AssetDocument {
@@ -111,10 +185,10 @@ model WorkOrder {
   id                   String   @id @default(cuid())
   title                String
   description          String
-  priority             String
-  category             String
-  status               String   @default("OPEN")
-  assignedTo           String?  // Legacy or Display Name
+  priority             WorkOrderPriority
+  category             WorkOrderCategory
+  status               WorkOrderStatus   @default(OPEN)
+  assignedTo           String?
   assignedTechnicianId String?
   assignedTechnician   Technician? @relation(fields: [assignedTechnicianId], references: [id])
   technicians          WorkOrderTechnician[]
@@ -126,7 +200,7 @@ model WorkOrder {
   validatedById        String?
   validator            User?    @relation("ValidatedBy", fields: [validatedById], references: [id])
 
-  type                 String   @default("FAULT") // FAULT, ROUTINE, REQUEST
+  type                 WorkOrderType   @default(FAULT)
   requestImage         String?
   completionImage      String?
   
@@ -135,6 +209,7 @@ model WorkOrder {
   
   asset                Asset    @relation(fields: [assetId], references: [id])
   assetId              String
+
   
   checklist            ChecklistItem[]
   partsUsed            WorkOrderPart[]
