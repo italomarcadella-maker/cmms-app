@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SlotCreationDialog } from "@/components/planning/slot-creation-dialog";
 import { AISuggestionDialog } from "@/components/planning/ai-suggestion-dialog";
 import { LineSettingsDialog } from "@/components/planning/line-settings-dialog";
+import { MultiSelect } from "@/components/ui/multi-select";
+
 
 // DnD Kit Imports
 import { DndContext, DragOverlay, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
@@ -154,6 +156,10 @@ export default function AssetCalendarPage() {
     // Dialogs
     const [suggestionSlot, setSuggestionSlot] = useState<any | null>(null);
     const [editingLine, setEditingLine] = useState<string | null>(null);
+
+    // Line Filter State
+    const [selectedLines, setSelectedLines] = useState<string[]>([]);
+
 
     const refreshData = () => {
         setLoading(true);
@@ -325,6 +331,18 @@ export default function AssetCalendarPage() {
                     </div>
                 </div>
 
+                <div className="flex justify-between items-center bg-muted/20 p-2 rounded-lg mb-4">
+                    <div className="flex items-center gap-2 w-full max-w-md">
+                        <MultiSelect
+                            label="Filtra Linee"
+                            options={lines.map(l => ({ id: l.line, label: l.line }))}
+                            value={selectedLines}
+                            onChange={setSelectedLines}
+                            placeholder="Seleziona linee..."
+                        />
+                    </div>
+                </div>
+
                 <Tabs defaultValue="technicians" className="w-full">
                     <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
                         <TabsTrigger value="assets" className="gap-2"><LayoutGrid className="w-4 h-4" /> Vista Asset</TabsTrigger>
@@ -353,7 +371,12 @@ export default function AssetCalendarPage() {
                                     (() => {
                                         const eventLines = Array.from(new Set(events.map(e => e.line).filter(Boolean)));
                                         const settingLines = lines.map(l => l.line);
-                                        const allLines = Array.from(new Set([...eventLines, ...settingLines])).sort();
+                                        let allLines = Array.from(new Set([...eventLines, ...settingLines])).sort();
+
+                                        // Apply Filter
+                                        if (selectedLines.length > 0) {
+                                            allLines = allLines.filter(line => selectedLines.includes(line));
+                                        }
 
                                         return allLines.map((lineName, lineIdx) => {
                                             const lineRule = lines.find(l => l.line === lineName) || { prodStartDay: 1, prodEndDay: 5, line: lineName };
