@@ -392,11 +392,15 @@ export async function getAreaStatus() {
                     asset: { line: { not: null } }
                 }
             }),
-            // Facilities: WOs on FACILITY assets
+            // Facilities: WOs on FACILITY assets or SYS-PLANT
             prisma.workOrder.count({
                 where: {
                     status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
-                    asset: { type: 'FACILITY' }
+                    OR: [
+                        { asset: { type: 'FACILITY' } },
+                        { assetId: 'SYS-PLANT' },
+                        { category: 'OTHER' } // 'Impianti' in wizard uses OTHER category
+                    ]
                 }
             }),
             // Workshop: WOs on assets in location 'OFFICINA'
@@ -416,7 +420,8 @@ export async function getAreaStatus() {
                     status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
                     OR: [
                         { category: 'IMPROVEMENT' },
-                        { asset: { type: 'KAIZEN' } }
+                        { asset: { type: 'KAIZEN' } },
+                        { assetId: 'SYS-KAIZEN' }
                     ]
                 }
             })
