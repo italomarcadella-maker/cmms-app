@@ -1,6 +1,7 @@
 'use server';
 
 import { signIn } from '@/auth';
+import { addDays, format, subDays, startOfDay } from 'date-fns';
 import { AuthError } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
@@ -2044,140 +2045,144 @@ export async function getMeterReadings(meterId: string) {
     }));
 }
 
+
+
 export async function getEnergyStats() {
-    const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of prev month
+    try {
+        const now = new Date();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const startOfTrend = new Date();
-    startOfTrend.setDate(startOfTrend.getDate() - 30);
+        const startOfTrend = subDays(new Date(), 30);
 
-    // Fetch all meters
-    const meters = await prisma.meter.findMany();
+        // Fetch all meters
+        const meters = await prisma.meter.findMany();
 
-    // Fetch readings for all meters, enough history to calculate deltas
-    const readings = await prisma.meterReading.findMany({
-        where: {
-            date: { gte: new Date(new Date().setDate(new Date().getDate() - 60)) }
-        },
-        include: {
-            meter: true
-        },
-        orderBy: { date: 'asc' }
-    });
+        // Fetch readings
+        // Fetch a bit more history to ensure we have a "previous" reading for the start of the window
+        const readings = await prisma.meterReading.findMany({
+            where: {
+                date: { gte: subDays(new Date(), 60) }
+            },
+            include: { meter: true },
+            orderBy: { date: 'asc' }
+        });
 
-    console.log(`[getEnergyStats] Found ${readings.length} readings for ${meters.length} meters.`);
+        const totals = {
+            currentMonth: { ELEC: 0, WATER: 0, GAS: 0 },
+            lastMonth: { ELEC: 0, WATER: 0, GAS: 0 }
+        };
 
-    const totals = {
-        currentMonth: { ELEC: 0, WATER: 0, GAS: 0 },
-        lastMonth: { ELEC: 0, WATER: 0, GAS: 0 }
-    };
+        const dailyTrends = new Map<string, { date: string, elec: number, water: number, gas: number }>();
+        const meterDailyTrends = new Map<string, Map<string, number>>();
 
-    const dailyTrends = new Map<string, { date: string, elec: number, water: number, gas: number }>();
-    // meterDailyTrends: Map<meterId, Map<dateString, consumption>>
-    const meterDailyTrends = new Map<string, Map<string, number>>();
+        // Initialize daily trends for last 30 days using date-fns for safety
+        for (let d = 0; d <= 30; d++) {
+            const date = addDays(startOfTrend, d);
+            const key = format(date, 'yyyy-MM-dd');
+            dailyTrends.set(key, { date: key, elec: 0, water: 0, gas: 0 });
+        }
 
-    // Initialize daily trends for last 30 days
-    for (let d = 0; d <= 30; d++) {
-        const date = new Date(startOfTrend);
-        date.setDate(date.getDate() + d);
-        const key = date.toISOString().split('T')[0];
-        dailyTrends.set(key, { date: key, elec: 0, water: 0, gas: 0 });
-    }
+        // Initialize meter specific maps
+        meters.forEach(m => meterDailyTrends.set(m.id, new Map()));
 
-    // Initialize meter daily map
-    meters.forEach(m => meterDailyTrends.set(m.id, new Map()));
+        // Process readings
+        for (const meter of meters) {
+            const meterReadings = readings
+                .filter(r => r.meterId === meter.id)
+                .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    // Process each meter individually to calculate deltas
-    for (const meter of meters) {
-        const meterReadings = readings.filter(r => r.meterId === meter.id).sort((a, b) => a.date.getTime() - b.date.getTime());
+            for (let i = 1; i < meterReadings.length; i++) {
+                const current = meterReadings[i];
+                const prev = meterReadings[i - 1];
 
-        for (let i = 1; i < meterReadings.length; i++) {
-            const current = meterReadings[i];
-            const prev = meterReadings[i - 1];
+                let consumption = current.value - prev.value;
 
-            // Calculate consumption (Delta)
-            let consumption = current.value - prev.value;
-
-            // Heuristic: Ignore "Initial Reading" jump (from 0 to X) ONLY if it's a massive jump (likely initial set)
-            // Allow small jumps from 0 (normal usage starting from 0)
-            if ((prev.value === 0 && consumption > 5000) || consumption < 0) {
-                consumption = 0;
-            }
-
-            // Distribute consumption across the days between previous reading and current reading
-            const diffTime = Math.abs(current.date.getTime() - prev.date.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            const validDays = diffDays > 0 ? diffDays : 1;
-            const dailyConsumption = consumption / validDays;
-
-            // Loop through each day covered by this reading
-            for (let d = 0; d < validDays; d++) {
-                const targetDate = new Date(prev.date);
-                targetDate.setDate(targetDate.getDate() + d + 1); // Start from day after previous reading
-
-                if (targetDate > current.date) break;
-
-                const targetDateKey = targetDate.toISOString().split('T')[0];
-
-                // 1. Add to Monthly Totals
-                if (targetDate >= currentMonthStart && targetDate <= now) {
-                    if (totals.currentMonth[meter.type as keyof typeof totals.currentMonth] !== undefined) {
-                        totals.currentMonth[meter.type as keyof typeof totals.currentMonth] += dailyConsumption;
-                    }
-                } else if (targetDate >= lastMonthStart && targetDate <= lastMonthEnd) {
-                    if (totals.lastMonth[meter.type as keyof typeof totals.lastMonth] !== undefined) {
-                        totals.lastMonth[meter.type as keyof typeof totals.lastMonth] += dailyConsumption;
-                    }
+                // Simple anomaly filter
+                if ((prev.value === 0 && consumption > 5000) || consumption < 0) {
+                    consumption = 0;
                 }
 
-                // 2. Add to Meter Specific Daily Trend (for detailed chart)
-                // We track this for the trend window (startOfTrend to now)
-                // But generally we might want it for the whole fetched period? 
-                // Let's stick to trend window for charts to keep it clean.
-                if (targetDate >= startOfTrend) {
-                    const mTrend = meterDailyTrends.get(meter.id);
-                    if (mTrend) {
-                        const existing = mTrend.get(targetDateKey) || 0;
-                        mTrend.set(targetDateKey, existing + dailyConsumption);
-                    }
-                }
+                // Days diff
+                const diffTime = Math.abs(current.date.getTime() - prev.date.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const validDays = diffDays > 0 ? diffDays : 1;
+                const dailyConsumption = consumption / validDays;
 
-                // 3. Add to Aggregate Trends
-                const entry = dailyTrends.get(targetDateKey);
-                if (entry) {
-                    if (meter.type === 'ELEC') entry.elec += dailyConsumption;
-                    if (meter.type === 'WATER') entry.water += dailyConsumption;
-                    if (meter.type === 'GAS') entry.gas += dailyConsumption;
+                // Distribute
+                for (let d = 0; d < validDays; d++) {
+                    const targetDate = addDays(prev.date, d + 1);
+
+                    if (targetDate > current.date) break;
+
+                    const targetDateKey = format(targetDate, 'yyyy-MM-dd');
+
+                    // 1. Monthly Totals
+                    if (targetDate >= currentMonthStart && targetDate <= now) {
+                        if (totals.currentMonth[meter.type as keyof typeof totals.currentMonth] !== undefined) {
+                            totals.currentMonth[meter.type as keyof typeof totals.currentMonth] += dailyConsumption;
+                        }
+                    } else if (targetDate >= lastMonthStart && targetDate <= lastMonthEnd) {
+                        if (totals.lastMonth[meter.type as keyof typeof totals.lastMonth] !== undefined) {
+                            totals.lastMonth[meter.type as keyof typeof totals.lastMonth] += dailyConsumption;
+                        }
+                    }
+
+                    // 2. Trends
+                    if (targetDate >= startOfTrend) {
+                        // Global Trend
+                        const entry = dailyTrends.get(targetDateKey);
+                        if (entry) {
+                            if (meter.type === 'ELEC') entry.elec += dailyConsumption;
+                            if (meter.type === 'WATER') entry.water += dailyConsumption;
+                            if (meter.type === 'GAS') entry.gas += dailyConsumption;
+                        }
+
+                        // Meter Trend
+                        const mTrend = meterDailyTrends.get(meter.id);
+                        if (mTrend) {
+                            const existing = mTrend.get(targetDateKey) || 0;
+                            mTrend.set(targetDateKey, existing + dailyConsumption);
+                        }
+                    }
                 }
             }
         }
+
+        const trends = Array.from(dailyTrends.values())
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        const trendDates = trends.map(t => t.date);
+
+        const meterHistory: Record<string, Array<{ date: string, consumption: number }>> = {};
+        meters.forEach(m => {
+            const mTrendMap = meterDailyTrends.get(m.id);
+            meterHistory[m.id] = trendDates.map(date => ({
+                date,
+                consumption: mTrendMap?.get(date) || 0
+            }));
+        });
+
+        return {
+            currentMonth: totals.currentMonth,
+            lastMonth: totals.lastMonth,
+            trends,
+            meterHistory,
+            meters
+        };
+
+    } catch (error) {
+        console.error("getEnergyStats Error:", error);
+        // Return empty structure to prevent UI crash
+        return {
+            currentMonth: { ELEC: 0, WATER: 0, GAS: 0 },
+            lastMonth: { ELEC: 0, WATER: 0, GAS: 0 },
+            trends: [],
+            meterHistory: {},
+            meters: []
+        };
     }
-
-    const trends = Array.from(dailyTrends.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    // Convert meterDailyTrends to friendly format: Record<meterId, Array<{date, consumption}>>
-    const meterHistory: Record<string, Array<{ date: string, consumption: number }>> = {};
-
-    // We want the same date range for all meters in the chart to alignment
-    const trendDates = trends.map(t => t.date);
-
-    meters.forEach(m => {
-        const mTrendMap = meterDailyTrends.get(m.id);
-        meterHistory[m.id] = trendDates.map(date => ({
-            date,
-            consumption: mTrendMap?.get(date) || 0
-        }));
-    });
-
-    return {
-        currentMonth: totals.currentMonth,
-        lastMonth: totals.lastMonth,
-        trends,
-        meterHistory,
-        meters
-    };
 }
 
 export async function addMeterReading(data: { meterId: string, value: number, date: string }) {
@@ -2762,7 +2767,7 @@ export async function updateProductionLine(data: {
 }
 
 import { calculateLineReliability } from "./kpi-service";
-import { subDays } from "date-fns";
+
 
 export async function getLineStats(line: string) {
     const session = await auth();
