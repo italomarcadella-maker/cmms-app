@@ -97,6 +97,15 @@ export function EnergyDashboard({
                         </Button>
                     </Link>
                     <ReadingFormDialog meters={meters} />
+                    <form action={async () => {
+                        "use server";
+                        const { seedEnergyData } = await import("@/lib/seed-actions");
+                        await seedEnergyData();
+                    }}>
+                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
+                            Demo Data
+                        </Button>
+                    </form>
                 </div>
             </div>
 
