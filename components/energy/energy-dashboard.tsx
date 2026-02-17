@@ -21,7 +21,12 @@ export function EnergyDashboard({
     stats,
     meters
 }: {
-    stats: { currentMonth: any, trends: any[], meterHistory?: Record<string, any[]> },
+    stats: {
+        currentMonth: { ELEC: number, WATER: number, GAS: number },
+        lastMonth: { ELEC: number, WATER: number, GAS: number },
+        trends: any[],
+        meterHistory?: Record<string, any[]>
+    },
     meters: any[]
 }) {
     const [selectedMeterId, setSelectedMeterId] = useState<string>("all");
@@ -103,7 +108,10 @@ export function EnergyDashboard({
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.currentMonth.ELEC.toFixed(1)} kWh</div>
-                        <p className="text-xs text-muted-foreground">Totale Mese Corrente</p>
+                        <p className="text-xs text-muted-foreground">
+                            {stats.currentMonth.ELEC >= stats.lastMonth.ELEC ? '+' : ''}
+                            {(stats.currentMonth.ELEC - stats.lastMonth.ELEC).toFixed(1)} kWh vs mese prec.
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -114,7 +122,10 @@ export function EnergyDashboard({
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.currentMonth.WATER.toFixed(1)} m³</div>
-                        <p className="text-xs text-muted-foreground">Totale Mese Corrente</p>
+                        <p className="text-xs text-muted-foreground">
+                            {stats.currentMonth.WATER >= stats.lastMonth.WATER ? '+' : ''}
+                            {(stats.currentMonth.WATER - stats.lastMonth.WATER).toFixed(1)} m³ vs mese prec.
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -125,7 +136,10 @@ export function EnergyDashboard({
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.currentMonth.GAS.toFixed(1)} m³</div>
-                        <p className="text-xs text-muted-foreground">Totale Mese Corrente</p>
+                        <p className="text-xs text-muted-foreground">
+                            {stats.currentMonth.GAS >= stats.lastMonth.GAS ? '+' : ''}
+                            {(stats.currentMonth.GAS - stats.lastMonth.GAS).toFixed(1)} m³ vs mese prec.
+                        </p>
                     </CardContent>
                 </Card>
             </div>

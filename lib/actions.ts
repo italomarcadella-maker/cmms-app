@@ -1244,12 +1244,14 @@ export async function createWorkOrder(rawData: any) {
     }
 
     try {
+        console.log("createWorkOrder RAW DATA:", JSON.stringify(rawData, null, 2));
+
         // Zod Validation
         const validation = workOrderSchema.safeParse(rawData);
         if (!validation.success) {
             console.error("WO Validation Failed:", JSON.stringify(validation.error, null, 2));
             // Safety check for map error
-            const errorMsg = validation.error.errors ? validation.error.errors.map(e => e.message).join(", ") : "Unknown Validation Error";
+            const errorMsg = validation.error.errors ? validation.error.errors.map((e: any) => e.message).join(", ") : "Unknown Validation Error";
             return { success: false, message: "Dati non validi: " + errorMsg };
         }
         const data = validation.data;
@@ -2041,7 +2043,10 @@ export async function getMeterReadings(meterId: string) {
 
 export async function getEnergyStats() {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of prev month
+
     const startOfTrend = new Date();
     startOfTrend.setDate(startOfTrend.getDate() - 30);
 
@@ -2049,7 +2054,6 @@ export async function getEnergyStats() {
     const meters = await prisma.meter.findMany();
 
     // Fetch readings for all meters, enough history to calculate deltas
-    // We fetch a bit more than 30 days to ensure we have a "previous" reading for the start of the window
     const readings = await prisma.meterReading.findMany({
         where: {
             date: { gte: new Date(new Date().setDate(new Date().getDate() - 60)) }
@@ -2061,13 +2065,13 @@ export async function getEnergyStats() {
     });
 
     const totals = {
-        ELEC: 0,
-        WATER: 0,
-        GAS: 0
+        currentMonth: { ELEC: 0, WATER: 0, GAS: 0 },
+        lastMonth: { ELEC: 0, WATER: 0, GAS: 0 }
     };
 
     const dailyTrends = new Map<string, { date: string, elec: number, water: number, gas: number }>();
-    const meterHistory: Record<string, Array<{ date: string, value: number, consumption: number }>> = {};
+    // meterDailyTrends: Map<meterId, Map<dateString, consumption>>
+    const meterDailyTrends = new Map<string, Map<string, number>>();
 
     // Initialize daily trends for last 30 days
     for (let d = 0; d <= 30; d++) {
@@ -2077,8 +2081,8 @@ export async function getEnergyStats() {
         dailyTrends.set(key, { date: key, elec: 0, water: 0, gas: 0 });
     }
 
-    // Initialize meter history arrays
-    meters.forEach(m => meterHistory[m.id] = []);
+    // Initialize meter daily map
+    meters.forEach(m => meterDailyTrends.set(m.id, new Map()));
 
     // Process each meter individually to calculate deltas
     for (const meter of meters) {
@@ -2090,50 +2094,47 @@ export async function getEnergyStats() {
 
             // Calculate consumption (Delta)
             let consumption = current.value - prev.value;
-            if (consumption < 0) consumption = 0; // Handle resets or errors safely
-
-            const dateKey = current.date.toISOString().split('T')[0];
-
-            // Add to Meter History (Raw Points)
-            if (current.date >= startOfTrend) {
-                if (meterHistory[meter.id]) {
-                    meterHistory[meter.id].push({
-                        date: dateKey,
-                        value: current.value,
-                        consumption: parseFloat(consumption.toFixed(2))
-                    });
-                }
-            }
+            if (consumption < 0) consumption = 0; // Handle resets
 
             // Distribute consumption across the days between previous reading and current reading
             const diffTime = Math.abs(current.date.getTime() - prev.date.getTime());
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            // Avoid division by zero, though unlikely with distinct timestamps
             const validDays = diffDays > 0 ? diffDays : 1;
             const dailyConsumption = consumption / validDays;
 
-            // Loop through each day from prev.date + 1 to current.date
+            // Loop through each day covered by this reading
             for (let d = 0; d < validDays; d++) {
                 const targetDate = new Date(prev.date);
                 targetDate.setDate(targetDate.getDate() + d + 1); // Start from day after previous reading
 
-                // If this target date is in the future relative to current reading, break (safety, shouldn't happen)
                 if (targetDate > current.date) break;
 
                 const targetDateKey = targetDate.toISOString().split('T')[0];
 
-                // Add to Monthly Totals if target date is in current month
-                if (targetDate >= startOfMonth && targetDate <= now) {
-                    if (totals[meter.type as keyof typeof totals] !== undefined) {
-                        totals[meter.type as keyof typeof totals] += dailyConsumption;
+                // 1. Add to Monthly Totals
+                if (targetDate >= currentMonthStart && targetDate <= now) {
+                    if (totals.currentMonth[meter.type as keyof typeof totals.currentMonth] !== undefined) {
+                        totals.currentMonth[meter.type as keyof typeof totals.currentMonth] += dailyConsumption;
+                    }
+                } else if (targetDate >= lastMonthStart && targetDate <= lastMonthEnd) {
+                    if (totals.lastMonth[meter.type as keyof typeof totals.lastMonth] !== undefined) {
+                        totals.lastMonth[meter.type as keyof typeof totals.lastMonth] += dailyConsumption;
                     }
                 }
 
-                // Add to Trends if target date is in trend window
-                // Check if targetDate is within the tracked trend range (startOfTrend to now)
-                // Note: dailyTrends is initialized for 30 days from startOfTrend. 
-                // We should only check if we have an entry for this key.
+                // 2. Add to Meter Specific Daily Trend (for detailed chart)
+                // We track this for the trend window (startOfTrend to now)
+                // But generally we might want it for the whole fetched period? 
+                // Let's stick to trend window for charts to keep it clean.
+                if (targetDate >= startOfTrend) {
+                    const mTrend = meterDailyTrends.get(meter.id);
+                    if (mTrend) {
+                        const existing = mTrend.get(targetDateKey) || 0;
+                        mTrend.set(targetDateKey, existing + dailyConsumption);
+                    }
+                }
+
+                // 3. Add to Aggregate Trends
                 const entry = dailyTrends.get(targetDateKey);
                 if (entry) {
                     if (meter.type === 'ELEC') entry.elec += dailyConsumption;
@@ -2146,8 +2147,23 @@ export async function getEnergyStats() {
 
     const trends = Array.from(dailyTrends.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+    // Convert meterDailyTrends to friendly format: Record<meterId, Array<{date, consumption}>>
+    const meterHistory: Record<string, Array<{ date: string, consumption: number }>> = {};
+
+    // We want the same date range for all meters in the chart to alignment
+    const trendDates = trends.map(t => t.date);
+
+    meters.forEach(m => {
+        const mTrendMap = meterDailyTrends.get(m.id);
+        meterHistory[m.id] = trendDates.map(date => ({
+            date,
+            consumption: mTrendMap?.get(date) || 0
+        }));
+    });
+
     return {
-        currentMonth: totals,
+        currentMonth: totals.currentMonth,
+        lastMonth: totals.lastMonth,
         trends,
         meterHistory,
         meters

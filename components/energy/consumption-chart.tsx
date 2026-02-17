@@ -47,10 +47,10 @@ export function ConsumptionChart({ data, mode = 'aggregate', unit = '' }: { data
                     <Line
                         type="monotone"
                         dataKey="consumption"
-                        name={`Consumo (${unit})`}
+                        name={`Consumo Giornaliero (${unit})`}
                         stroke="hsl(var(--primary))"
                         strokeWidth={2}
-                        dot={true}
+                        dot={false}
                         connectNulls
                         activeDot={{ r: 6 }}
                     />
