@@ -2099,7 +2099,12 @@ export async function getEnergyStats() {
 
             // Calculate consumption (Delta)
             let consumption = current.value - prev.value;
-            if (consumption < 0) consumption = 0; // Handle resets
+
+            // Heuristic: Ignore "Initial Reading" jump (from 0 to X) or massive resets
+            // Also ignore massive outliers (> 50,000) which usually indicate a typo or initial set
+            if (prev.value === 0 || consumption > 50000 || consumption < 0) {
+                consumption = 0;
+            }
 
             // Distribute consumption across the days between previous reading and current reading
             const diffTime = Math.abs(current.date.getTime() - prev.date.getTime());

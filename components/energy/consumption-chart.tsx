@@ -50,7 +50,7 @@ export function ConsumptionChart({ data, mode = 'aggregate', unit = '' }: { data
                         name={`Consumo Giornaliero (${unit})`}
                         stroke="hsl(var(--primary))"
                         strokeWidth={2}
-                        dot={false}
+                        dot={true}
                         connectNulls
                         activeDot={{ r: 6 }}
                     />
