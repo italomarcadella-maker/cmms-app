@@ -2100,9 +2100,9 @@ export async function getEnergyStats() {
             // Calculate consumption (Delta)
             let consumption = current.value - prev.value;
 
-            // Heuristic: Ignore "Initial Reading" jump (from 0 to X) or massive resets
-            // Also ignore massive outliers (> 50,000) which usually indicate a typo or initial set
-            if (prev.value === 0 || consumption > 50000 || consumption < 0) {
+            // Heuristic: Ignore "Initial Reading" jump (from 0 to X) ONLY if it's a massive jump (likely initial set)
+            // Allow small jumps from 0 (normal usage starting from 0)
+            if ((prev.value === 0 && consumption > 5000) || consumption > 100000 || consumption < 0) {
                 consumption = 0;
             }
 

@@ -403,7 +403,11 @@ export async function getAreaStatus() {
             prisma.workOrder.count({
                 where: {
                     status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
-                    asset: { location: { contains: 'OFFICINA', mode: 'insensitive' } }
+                    OR: [
+                        { asset: { location: { contains: 'OFFICINA', mode: 'insensitive' } } },
+                        { category: 'MECHANICAL' },
+                        { assetId: 'SYS-WORKSHOP' }
+                    ]
                 }
             }),
             // Improvement: WOs of category IMPROVEMENT or KAIZEN assets
