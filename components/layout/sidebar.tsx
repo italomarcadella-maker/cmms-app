@@ -96,6 +96,7 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                     {/* Supervision Section */}
                     {(user?.role === 'SUPERVISOR' || user?.role === 'ADMIN') && (
                         <SidebarGroup title="Supervisione">
+                            <SidebarItem href="/daily-meetings" icon={Users} label="Daily Meetings" active={isActive('/daily-meetings')} onClick={onNavigate} />
                             <SidebarItem href="/process" icon={Settings} label="Ing. di Processo" active={isActive('/process')} onClick={onNavigate} />
                             <SidebarItem href="/technicians/calendar" icon={Calendar} label="Calendario Turni" active={isActive('/technicians/calendar')} onClick={onNavigate} />
                             <SidebarItem href="/technicians" icon={Users} label="Team Tecnico" active={isActive('/technicians')} onClick={onNavigate} />
