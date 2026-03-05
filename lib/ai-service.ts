@@ -221,6 +221,110 @@ export async function getKnowledgeSuggestions(description: string): Promise<stri
     return null;
 }
 
+export interface BrainSuggestion {
+    source: 'SOP' | 'KB' | 'STORICO_WO';
+    title: string;
+    content: string;
+    relevance: number;
+}
+
+export async function generateCorporateBrainSuggestions(description: string, assetId: string): Promise<BrainSuggestion[]> {
+    // Simulate AI parsing / embedding lookup
+    await new Promise(r => setTimeout(r, 1000));
+
+    const results: BrainSuggestion[] = [];
+    const keywords = extractTags(description);
+
+    if (!description || keywords.length === 0) {
+        return [{
+            source: 'SOP',
+            title: 'Istruzioni non trovate',
+            content: 'La descrizione è troppo breve per effettuare una ricerca nel Corporate Brain.',
+            relevance: 0
+        }];
+    }
+
+    try {
+        // 1. Cercare nelle SOP dell'asset
+        const sops = await prisma.sopDocument.findMany({
+            where: { assetId, isApproved: true }
+        });
+
+        if (sops.length > 0) {
+            // Fake embedding match based on JSON content
+            const sop = sops[0];
+            results.push({
+                source: 'SOP',
+                title: `Procedura Standard: ${sop.title}`,
+                content: `È stata trovata una SOP ufficiale. Parametri attesi: ${sop.aiExtractedParameters.substring(0, 100)}...`,
+                relevance: 95
+            });
+        }
+
+        // 2. Cercare nella Knowledge Base aziendale
+        const significantTag = keywords.sort((a, b) => b.length - a.length)[0];
+        const kb = await prisma.maintenanceKnowledge.findFirst({
+            where: { problemTags: { contains: significantTag } },
+            orderBy: { successCount: 'desc' }
+        });
+
+        if (kb && kb.solution) {
+            results.push({
+                source: 'KB',
+                title: `Soluzione Esperto (Usata ${kb.successCount} volte)`,
+                content: kb.solution,
+                relevance: 85
+            });
+        }
+
+        // 3. Cercare nello Storico Work Orders chiusi simili sull'asset
+        const historyQuery = historySearchForTags(keywords);
+
+        const historyWo = await prisma.workOrder.findMany({
+            where: {
+                assetId,
+                status: 'CLOSED',
+                OR: historyQuery.length > 0 ? historyQuery : undefined
+            },
+            take: 2,
+            orderBy: { createdAt: 'desc' },
+            include: { ewo: true }
+        });
+
+        for (const wo of historyWo) {
+            let solution = "";
+            if (wo.ewo && wo.ewo.solutionApplied) {
+                solution = wo.ewo.solutionApplied;
+            } else if (wo.completionImage) {
+                solution = "Risolto (Visualizza foto completamento)";
+            } else {
+                solution = "Chiuso dai tecnici precedenti senza EWO.";
+            }
+
+            results.push({
+                source: 'STORICO_WO',
+                title: `Oridine Lavoro #${wo.id} - ${wo.title}`,
+                content: `Storico: ${solution}`,
+                relevance: 70
+            });
+        }
+
+    } catch (e) {
+        console.error("Brain search error", e);
+    }
+
+    return results.sort((a, b) => b.relevance - a.relevance);
+}
+
+// Helper to construct OR query for Prisma based on keywords
+function historySearchForTags(tags: string[]) {
+    // Take max 3 tags to avoid huge queries
+    const limitedTags = tags.slice(0, 3);
+    return limitedTags.map(tag => ({
+        description: { contains: tag }
+    }));
+}
+
 import { DailyInsight } from "./ai/types";
 
 // ... (getPredictiveInsights removed) ...

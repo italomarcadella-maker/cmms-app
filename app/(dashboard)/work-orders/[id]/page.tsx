@@ -222,7 +222,7 @@ export default function WorkOrderDetailPage() {
                         </p>
 
                         <div className="mt-4 mb-4">
-                            <AISuggestions assetId={wo.assetId} />
+                            <AISuggestions assetId={wo.assetId} description={wo.description} />
                         </div>
 
                         <div className="mt-4 pt-4 border-t flex gap-6 text-sm">

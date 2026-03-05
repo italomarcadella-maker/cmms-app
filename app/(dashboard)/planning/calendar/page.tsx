@@ -303,6 +303,26 @@ export default function AssetCalendarPage() {
                         <button
                             onClick={async () => {
                                 toast.promise(async () => {
+                                    const res = await fetch('/api/scheduler/auto-assign', { method: 'POST' });
+                                    const data = await res.json();
+                                    if (!data.success) throw new Error(data.message);
+                                    refreshData();
+                                    return data.message;
+                                }, {
+                                    loading: 'Auto-pianificazione intelligente in corso...',
+                                    success: (msg) => msg,
+                                    error: 'Errore durante l\'auto-pianificazione'
+                                });
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md text-xs font-bold flex items-center gap-2 shadow-sm transition-colors"
+                        >
+                            <Sparkles className="h-4 w-4" />
+                            <span className="hidden sm:inline">Auto-Pianifica (AI)</span>
+                        </button>
+
+                        <button
+                            onClick={async () => {
+                                toast.promise(async () => {
                                     const res = await fetch('/api/cron/preventive');
                                     const data = await res.json();
                                     if (!data.success) throw new Error(data.message);
