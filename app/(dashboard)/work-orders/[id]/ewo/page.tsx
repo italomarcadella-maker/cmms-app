@@ -1,25 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, AlertTriangle, FileText, CheckCircle2, Wand2, Printer, Wrench, Microscope, Camera, Timer, Factory, Box, Trash2 } from "lucide-react";
-import { getEWO, submitEWO, getSpareParts } from "@/lib/actions";
+import { ArrowLeft, Save, AlertTriangle, FileText, CheckCircle2, Wand2, Printer, Wrench, Microscope, Camera, Timer, Factory, Box, Trash2, Users, Settings, Package, BookOpen, Ruler, ThermometerSun, PlusCircle, MinusCircle, Calculator, CalendarPlus } from "lucide-react";
+import { getEWO, submitEWO, getSpareParts, createPreventiveFromEWO } from "@/lib/actions";
 import { generateEWOAnalysis } from "@/lib/ai-service";
 import { cn } from "@/lib/utils";
 import { BackToDashboardButton } from "@/components/ui/back-button";
 
 // --- PREDEFINED OPTIONS ---
-const COMMON_CAUSES = [
-    { id: "cura", label: "Usura / Invecchiamento", icon: "⏳" },
-    { id: "rottura", label: "Rottura Meccanica", icon: "⚙️" },
-    { id: "elettrico", label: "Guasto Elettrico", icon: "⚡" },
-    { id: "sporcizia", label: "Sporcizia / Intasamento", icon: "🧹" },
-    { id: "operatore", label: "Errore Operativo", icon: "👤" },
-    { id: "materiale", label: "Difetto Materiale", icon: "📦" },
-    { id: "software", label: "Software / Parametri", icon: "💻" },
-    { id: "idraulico", label: "Guasto Idraulico", icon: "💧" },
-    { id: "pneumatico", label: "Guasto Pneumatico", icon: "💨" },
-    { id: "altro", label: "Altro (Specifica)", icon: "📝" },
+const ISHIKAWA_CATEGORIES = [
+    { id: "machine", title: "Macchina", icon: <Settings className="h-5 w-5" />, color: "text-blue-600", bg: "bg-blue-50/50", border: "border-blue-200", defaultTags: ["Usura", "Rottura Meccanica", "Guasto Elettrico", "Guasto Pneumatico/Idraulico"] },
+    { id: "man", title: "Uomo", icon: <Users className="h-5 w-5" />, color: "text-orange-600", bg: "bg-orange-50/50", border: "border-orange-200", defaultTags: ["Errore Operativo", "Mancanza Addestramento", "Disattenzione", "Velocità eccessiva"] },
+    { id: "method", title: "Metodo", icon: <BookOpen className="h-5 w-5" />, color: "text-purple-600", bg: "bg-purple-50/50", border: "border-purple-200", defaultTags: ["Procedura Errata", "Procedura Mancante", "Set-up Errato", "Standard non chiaro"] },
+    { id: "material", title: "Materiale", icon: <Package className="h-5 w-5" />, color: "text-amber-600", bg: "bg-amber-50/50", border: "border-amber-200", defaultTags: ["Difetto di Fabbrica", "Materiale Scadente", "Specifiche Errate", "Usura Anomala"] },
+    { id: "measurement", title: "Misura", icon: <Ruler className="h-5 w-5" />, color: "text-emerald-600", bg: "bg-emerald-50/50", border: "border-emerald-200", defaultTags: ["Sensore Guasto", "Taratura Errata", "Tolleranza Errata", "Strumento Inadeguato"] },
+    { id: "environment", title: "Ambiente", icon: <ThermometerSun className="h-5 w-5" />, color: "text-cyan-600", bg: "bg-cyan-50/50", border: "border-cyan-200", defaultTags: ["Temperatura", "Umidità", "Polvere/Sporcizia", "Vibrazioni/Rumore"] }
 ];
 
 const COMMON_SOLUTIONS = [
@@ -39,7 +35,8 @@ const IMPACT_LEVELS = [
     { id: "STOPPAGE", label: "FERMO IMPIANTO TOTALE", color: "bg-red-100 text-red-800 border-red-200 animate-pulse" },
 ];
 
-export default function EWOFormPage({ params }: { params: { id: string } }) {
+export default function EWOFormPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = React.use(params);
     const [loading, setLoading] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
@@ -68,14 +65,34 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
     const [partsConsumed, setPartsConsumed] = useState<{ partId: string, name: string, quantity: number }[]>([]);
 
     // Selection State
-    const [selectedCauses, setSelectedCauses] = useState<string[]>([]);
+    // Selection State
+    const [ishikawaData, setIshikawaData] = useState<Record<string, { tags: string[], notes: string }>>({
+        machine: { tags: [], notes: "" },
+        man: { tags: [], notes: "" },
+        method: { tags: [], notes: "" },
+        material: { tags: [], notes: "" },
+        measurement: { tags: [], notes: "" },
+        environment: { tags: [], notes: "" }
+    });
+
+    // 5 Whys State
+    const [whys, setWhys] = useState<string[]>([""]);
+
+    const [legacyCauseDetails, setLegacyCauseDetails] = useState("");
     const [selectedSolutions, setSelectedSolutions] = useState<string[]>([]);
-    const [causeDetails, setCauseDetails] = useState("");
     const [solutionDetails, setSolutionDetails] = useState("");
+
+    // Cost State
+    const technicianHourlyRate = 45; // Fixed rate for MVP
+
+    // Preventive State
+    const [generatingPreventive, setGeneratingPreventive] = useState(false);
+    const [preventiveFrequency, setPreventiveFrequency] = useState("MONTHLY");
+    const [preventiveFrequencyDays, setPreventiveFrequencyDays] = useState(30);
 
     useEffect(() => {
         Promise.all([
-            getEWO(params.id),
+            getEWO(id),
             getSpareParts()
         ]).then(([data, parts]) => {
             setAvailableParts(parts);
@@ -95,10 +112,30 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
                 });
 
                 // Parse selections
-                const loadedCauses = data.causeAnalysis?.split(", ") || [];
-                const matchedCauses = COMMON_CAUSES.filter(c => loadedCauses.includes(c.label)).map(c => c.id);
-                setSelectedCauses(matchedCauses);
-                setCauseDetails(loadedCauses.filter(c => !COMMON_CAUSES.find(cc => cc.label === c)).join(", "));
+                // Parse Ishikawa or legacy cause text
+                let parsedIshikawa = false;
+                if (data.causeAnalysis && data.causeAnalysis.startsWith("{")) {
+                    try {
+                        const parsed = JSON.parse(data.causeAnalysis);
+                        if (parsed.machine || parsed.man) {
+                            // Extract whys if they exist in the root of the parsed object
+                            if (parsed.whys && Array.isArray(parsed.whys)) {
+                                setWhys(parsed.whys);
+                                delete parsed.whys; // Remove from ishikawa mapping
+                            }
+
+                            // Merge with default to ensure all keys exist
+                            setIshikawaData(prev => ({ ...prev, ...parsed }));
+                            parsedIshikawa = true;
+                        }
+                    } catch (e) {
+                        console.warn("Valid JSON but not Ishikawa format, fallback to legacy");
+                    }
+                }
+
+                if (!parsedIshikawa) {
+                    setLegacyCauseDetails(data.causeAnalysis || "");
+                }
 
                 const loadedSolutions = data.solutionApplied?.split(", ") || [];
                 const matchedSolutions = COMMON_SOLUTIONS.filter(s => loadedSolutions.includes(s.label)).map(s => s.id);
@@ -109,7 +146,7 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
             }
             setInitialLoading(false);
         });
-    }, [params.id]);
+    }, [id]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'imageBefore' | 'imageAfter') => {
         const file = e.target.files?.[0];
@@ -136,6 +173,42 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
         setPartsConsumed(prev => prev.filter((_, i) => i !== index));
     };
 
+    const toggleIshikawaTag = (category: string, tag: string) => {
+        if (isViewMode) return;
+        setIshikawaData(prev => {
+            const catData = prev[category] || { tags: [], notes: "" };
+            const newTags = catData.tags.includes(tag)
+                ? catData.tags.filter(t => t !== tag)
+                : [...catData.tags, tag];
+            return { ...prev, [category]: { ...catData, tags: newTags } };
+        });
+    };
+
+    const updateIshikawaNotes = (category: string, notes: string) => {
+        if (isViewMode) return;
+        setIshikawaData(prev => ({
+            ...prev,
+            [category]: { ...(prev[category] || { tags: [], notes: "" }), notes }
+        }));
+    };
+
+    const addWhy = () => {
+        if (isViewMode || whys.length >= 5) return;
+        setWhys([...whys, ""]);
+    };
+
+    const removeWhy = (index: number) => {
+        if (isViewMode || whys.length <= 1) return;
+        setWhys(whys.filter((_, i) => i !== index));
+    };
+
+    const updateWhy = (index: number, value: string) => {
+        if (isViewMode) return;
+        const newWhys = [...whys];
+        newWhys[index] = value;
+        setWhys(newWhys);
+    };
+
     const toggleSelection = (list: string[], setList: (l: string[]) => void, id: string) => {
         if (isViewMode) return;
         if (list.includes(id)) {
@@ -153,15 +226,38 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
         setAiLoading(true);
         try {
             const result = await generateEWOAnalysis(formData.description);
-            // Append AI result to notes, don't overwrite user selections unless empty
-            setCauseDetails(prev => (prev ? prev + "\nAI: " : "") + result.causeAnalysis);
+
+            // Try to auto-tag based on AI text
+            const aiTextLC = result.causeAnalysis.toLowerCase();
+            let tagged = false;
+
+            setIshikawaData(prev => {
+                const newData = { ...prev };
+                ISHIKAWA_CATEGORIES.forEach(cat => {
+                    cat.defaultTags.forEach(tag => {
+                        const tagLC = tag.toLowerCase();
+                        if (aiTextLC.includes(tagLC) || aiTextLC.includes(tagLC.split(' ')[0])) {
+                            if (!newData[cat.id].tags.includes(tag)) {
+                                newData[cat.id].tags = [...newData[cat.id].tags, tag];
+                                tagged = true;
+                            }
+                        }
+                    });
+                });
+                return newData;
+            });
+
+            if (tagged) {
+                setLegacyCauseDetails(prev => (prev ? prev + "\n" : "") + "--- AI TEXT ---\n" + result.causeAnalysis);
+            } else {
+                setLegacyCauseDetails(prev => (prev ? prev + "\n" : "") + "--- AI ANALYSIS ---\n" + result.causeAnalysis);
+            }
+
             setSolutionDetails(prev => (prev ? prev + "\nAI: " : "") + result.solutionApplied);
             setFormData(prev => ({
                 ...prev,
                 preventiveActions: result.preventiveActions
             }));
-            // Ideally AI would select checkboxes, but mapping text to IDs is complex without an LLM call for that specifically.
-            // We just populate the text for now.
         } catch (e) {
             console.error(e);
             alert("Errore AI.");
@@ -178,14 +274,30 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
         return diff > 0 ? Math.round(diff) : 0;
     };
 
+    const calculateTotalCost = () => {
+        const partsCost = partsConsumed.reduce((acc, p) => {
+            const partObj = availableParts.find(ap => ap.id === p.partId);
+            return acc + (p.quantity * (partObj?.unitCost || 0));
+        }, 0);
+
+        const downtimeMinutes = calculateDowntime();
+        const laborCost = (downtimeMinutes / 60) * technicianHourlyRate;
+
+        return {
+            parts: partsCost,
+            labor: laborCost,
+            total: partsCost + laborCost
+        };
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Combine selections and details into final string
-        const causes = [
-            ...COMMON_CAUSES.filter(c => selectedCauses.includes(c.id)).map(c => c.label),
-            causeDetails
-        ].filter(Boolean).join(", ");
+        // Serialize Ishikawa JSON string for db, including whys
+        const causesJSON = JSON.stringify({ ...ishikawaData, whys: whys.filter(w => w.trim() !== "") });
+        // Include legacy details if present so no data is lost
+        const finalCauseString = legacyCauseDetails ? causesJSON + "|||" + legacyCauseDetails : causesJSON;
 
         const solutions = [
             ...COMMON_SOLUTIONS.filter(s => selectedSolutions.includes(s.id)).map(s => s.label),
@@ -197,9 +309,9 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
         setLoading(true);
         try {
             const res = await submitEWO({
-                workOrderId: params.id,
+                workOrderId: id,
                 ...formData,
-                causeAnalysis: causes,
+                causeAnalysis: finalCauseString,
                 solutionApplied: solutions,
                 totalDowntimeMin: calculateDowntime(),
                 partsConsumed // Pass parts to backend
@@ -207,7 +319,7 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
 
             if (res.success) {
                 alert(res.message);
-                router.push(`/work-orders/${params.id}`);
+                router.push(`/work-orders/${id}`);
                 router.refresh();
             } else {
                 alert("Errore: " + res.message);
@@ -219,6 +331,43 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
             setLoading(false);
         }
     };
+
+    // Auto-generate preventive action
+    const handleCreatePreventive = async () => {
+        if (!formData.preventiveActions) {
+            alert("Scrivi prima l'azione preventiva da generare.");
+            return;
+        }
+
+        setGeneratingPreventive(true);
+        try {
+            // Need to lookup assetId for this WO - currently not in EWO context directly, let's fetch it or let the server handle via WO ID
+            // For MVP, we pass dummy asset if we don't have it, but wait EWO forms are nested: /work-orders/[id]/ewo
+            const woInfo = await getEWO(id); // Re-fetch to get assetId relation?
+            // Actually getEWO returns only EWO. We need the WorkOrder.
+            // A better way is server action takes workOrderId and figures it out internally if assetId isn't provided.
+
+            const res = await createPreventiveFromEWO(
+                id,
+                "auto-resolve-in-server", // We'll alter the server action to lookup WO asset
+                "Azione da EWO #" + id,
+                formData.preventiveActions,
+                preventiveFrequency,
+                preventiveFrequencyDays
+            );
+
+            if (res.success) {
+                alert("Piano preventivo creato con successo!");
+            } else {
+                alert("Errore: " + res.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Errore creazione piano preventivo.");
+        } finally {
+            setGeneratingPreventive(false);
+        }
+    }
 
     if (initialLoading) return <div className="p-8 text-center print:hidden">Caricamento modulo EWO...</div>;
 
@@ -245,7 +394,7 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
                             <AlertTriangle className="h-6 w-6 text-amber-500" />
                             EWO Evoluto
                         </h1>
-                        <p className="text-muted-foreground">Analisi Guasto, Costi e Impatto #{params.id}</p>
+                        <p className="text-muted-foreground">Analisi Guasto, Costi e Impatto #{id}</p>
                     </div>
                 </div>
                 {isViewMode && (
@@ -258,7 +407,7 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
             {/* Print Header */}
             <div className="hidden print:block mb-8 border-b pb-4">
                 <h1 className="text-3xl font-bold mb-2">EWO - Rapporto Emergenza</h1>
-                <p className="text-lg">Riferimento Ordine: #{params.id}</p>
+                <p className="text-lg">Riferimento Ordine: #{id}</p>
                 <p className="text-sm">Stampato il: {new Date().toLocaleDateString()}</p>
             </div>
 
@@ -318,11 +467,28 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
                                     />
                                 </div>
                             </div>
-                            <div className="p-4 bg-slate-50 rounded-lg flex items-center justify-between border">
-                                <span className="font-medium text-slate-600">Totale Fermo Macchina:</span>
-                                <span className="text-2xl font-bold font-mono">
-                                    {calculateDowntime()} min
-                                </span>
+
+                            {/* NEW: REALTIME COST CARD */}
+                            <div className="p-4 bg-slate-50 rounded-lg flex flex-col gap-3 border">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-medium text-slate-600 flex items-center gap-2"><Timer className="h-4 w-4" /> Fermo Macchina:</span>
+                                    <span className="text-lg font-bold font-mono">{calculateDowntime()} min</span>
+                                </div>
+                                <div className="h-px bg-slate-200" />
+                                <div className="flex flex-col gap-1 text-sm">
+                                    <div className="flex justify-between text-slate-500">
+                                        <span>Costo Ricambi:</span>
+                                        <span>€ {calculateTotalCost().parts.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-500">
+                                        <span>Costo Manodopera ({technicianHourlyRate}€/h):</span>
+                                        <span>€ {calculateTotalCost().labor.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between font-bold text-slate-800 mt-1 pt-1 border-t">
+                                        <span className="flex items-center gap-1"><Calculator className="h-4 w-4" /> Costo Evento Totale:</span>
+                                        <span className="text-red-600">€ {calculateTotalCost().total.toFixed(2)}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -384,69 +550,136 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
                     </div>
                 </div>
 
-                {/* 3. CAUSE & SOLUZIONI (Grids) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
-                        <h3 className="font-semibold text-lg flex items-center gap-2 text-amber-600">
+                {/* 3. ISHIKAWA (6M) - ROOT CAUSE ANALYSIS */}
+                <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-semibold text-lg flex items-center gap-2 text-primary">
                             <Microscope className="h-5 w-5" />
-                            Cause Identificate
+                            Analisi Cause Radice (Ishikawa)
                         </h3>
-                        <div className="grid grid-cols-2 gap-2">
-                            {COMMON_CAUSES.map(cause => (
-                                <button
-                                    key={cause.id}
-                                    type="button"
-                                    disabled={isViewMode}
-                                    onClick={() => toggleSelection(selectedCauses, setSelectedCauses, cause.id)}
-                                    className={cn(
-                                        "flex flex-col items-center justify-center p-2 rounded-lg border text-sm transition-all hover:bg-muted/50",
-                                        selectedCauses.includes(cause.id) ? "bg-amber-50 border-amber-500 text-amber-900" : "bg-background"
-                                    )}
-                                >
-                                    <span className="text-lg">{cause.icon}</span>
-                                    <span className="text-xs font-medium text-center">{cause.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                        <input
-                            disabled={isViewMode}
-                            placeholder="Dettagli cause..."
-                            className="w-full p-2 text-sm border rounded"
-                            value={causeDetails}
-                            onChange={e => setCauseDetails(e.target.value)}
-                        />
                     </div>
 
-                    <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
-                        <h3 className="font-semibold text-lg flex items-center gap-2 text-emerald-600">
-                            <Wrench className="h-5 w-5" />
-                            Intervento Eseguito
-                        </h3>
-                        <div className="grid grid-cols-2 gap-2">
-                            {COMMON_SOLUTIONS.map(sol => (
-                                <button
-                                    key={sol.id}
-                                    type="button"
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {ISHIKAWA_CATEGORIES.map(cat => (
+                            <div key={cat.id} className={cn("border rounded-lg p-4 flex flex-col gap-3", cat.bg, cat.border)}>
+                                <div className={cn("flex items-center gap-2 font-semibold", cat.color)}>
+                                    {cat.icon}
+                                    {cat.title}
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    {cat.defaultTags.map(tag => {
+                                        const isSelected = ishikawaData[cat.id]?.tags.includes(tag);
+                                        return (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                disabled={isViewMode}
+                                                onClick={() => toggleIshikawaTag(cat.id, tag)}
+                                                className={cn(
+                                                    "text-xs px-2 py-1 rounded-full border transition-colors",
+                                                    isSelected
+                                                        ? `${cat.color} border-${cat.color.split('-')[1] || 'current'}-400 bg-white shadow-sm font-medium`
+                                                        : "bg-white/50 text-slate-600 hover:bg-white border-transparent hover:border-slate-200"
+                                                )}
+                                            >
+                                                {tag}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <input
+                                    type="text"
                                     disabled={isViewMode}
-                                    onClick={() => toggleSelection(selectedSolutions, setSelectedSolutions, sol.id)}
-                                    className={cn(
-                                        "flex flex-col items-center justify-center p-2 rounded-lg border text-sm transition-all hover:bg-muted/50",
-                                        selectedSolutions.includes(sol.id) ? "bg-emerald-50 border-emerald-500 text-emerald-900" : "bg-background"
-                                    )}
-                                >
-                                    <span className="text-lg">{sol.icon}</span>
-                                    <span className="text-xs font-medium text-center">{sol.label}</span>
+                                    placeholder={`Altre cause relative a ${cat.title.toLowerCase()}...`}
+                                    className="w-full text-xs p-2 rounded-md border-white/60 bg-white/70 focus:bg-white/90 focus:ring-1 transition-all mt-auto"
+                                    value={ishikawaData[cat.id]?.notes || ""}
+                                    onChange={e => updateIshikawaNotes(cat.id, e.target.value)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+
+                    {legacyCauseDetails && (
+                        <div className="mt-4">
+                            <label className="text-sm font-medium text-slate-700 block mb-1">Note Aggiuntive / Storico Cause / AI</label>
+                            <textarea
+                                disabled={isViewMode}
+                                className="w-full p-3 text-sm border rounded-md bg-slate-50"
+                                rows={3}
+                                value={legacyCauseDetails}
+                                onChange={e => setLegacyCauseDetails(e.target.value)}
+                            />
+                        </div>
+                    )}
+
+                    {/* NEW: 5 WHYS SECTION */}
+                    <div className="mt-6 pt-4 border-t">
+                        <h4 className="font-semibold text-md text-slate-800 mb-3 flex items-center justify-between">
+                            Metodo dei 5 Perché (5 Whys)
+                            {!isViewMode && whys.length < 5 && (
+                                <button type="button" onClick={addWhy} className="text-xs flex items-center gap-1 bg-slate-100 px-2 py-1 rounded text-slate-600 hover:bg-slate-200">
+                                    <PlusCircle className="h-3 w-3" /> Aggiungi Perché
                                 </button>
+                            )}
+                        </h4>
+
+                        <div className="space-y-2 pl-2 border-l-2 border-primary/20">
+                            {whys.map((why, index) => (
+                                <div key={index} className="flex gap-2 items-center">
+                                    <span className="text-sm font-bold text-slate-400 w-24 text-right shrink-0">
+                                        {index + 1}° Perché?
+                                    </span>
+                                    <input
+                                        disabled={isViewMode}
+                                        type="text"
+                                        className="flex-1 text-sm p-2 rounded-md border bg-white focus:bg-slate-50 focus:ring-1"
+                                        placeholder={`Es. ${index === 0 ? 'Perché è saltato il fusibile?' : 'Perché ha lavorato sotto sforzo?'}`}
+                                        value={why}
+                                        onChange={e => updateWhy(index, e.target.value)}
+                                    />
+                                    {!isViewMode && whys.length > 1 && (
+                                        <button type="button" onClick={() => removeWhy(index)} className="p-2 text-slate-400 hover:text-red-500 rounded">
+                                            <MinusCircle className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                </div>
                             ))}
                         </div>
-                        <input
-                            disabled={isViewMode}
-                            placeholder="Dettagli intervento..."
-                            className="w-full p-2 text-sm border rounded"
-                            value={solutionDetails}
-                            onChange={e => setSolutionDetails(e.target.value)}
-                        />
                     </div>
+                </div>
+
+                {/* 3b. INTERVENTO ESEGUITO */}
+                <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
+                    <h3 className="font-semibold text-lg flex items-center gap-2 text-emerald-600">
+                        <Wrench className="h-5 w-5" />
+                        Intervento Eseguito / Soluzione
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {COMMON_SOLUTIONS.map(sol => (
+                            <button
+                                key={sol.id}
+                                type="button"
+                                disabled={isViewMode}
+                                onClick={() => toggleSelection(selectedSolutions, setSelectedSolutions, sol.id)}
+                                className={cn(
+                                    "flex flex-col items-center justify-center p-3 rounded-lg border text-sm transition-all hover:bg-muted/50",
+                                    selectedSolutions.includes(sol.id) ? "bg-emerald-50 border-emerald-500 text-emerald-900" : "bg-background"
+                                )}
+                            >
+                                <span className="text-lg mb-1">{sol.icon}</span>
+                                <span className="text-xs font-medium text-center">{sol.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                    <input
+                        disabled={isViewMode}
+                        placeholder="Dettagli intervento... Es. Sostituzione cuscinetto SKF"
+                        className="w-full p-3 text-sm border rounded-md bg-background"
+                        value={solutionDetails}
+                        onChange={e => setSolutionDetails(e.target.value)}
+                    />
                 </div>
 
                 {/* 4. RICAMBI (NEW) */}
@@ -544,6 +777,48 @@ export default function EWOFormPage({ params }: { params: { id: string } }) {
                             )}
                         </div>
                     </div>
+
+                    {/* NEW: GENERATE PREVENTIVE PLAN */}
+                    {!isViewMode && (
+                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 mt-4 print:hidden">
+                            <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
+                                <div className="flex-1 space-y-1">
+                                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                                        <CalendarPlus className="h-4 w-4 text-primary" /> Strategia a Lungo Termine
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                        Trasforma le azioni preventive scritte sopra in un programma ricorrente nel calendario del CMMS.
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                                    <select
+                                        className="p-2 text-sm border rounded-md bg-white"
+                                        value={preventiveFrequencyDays}
+                                        onChange={e => {
+                                            setPreventiveFrequencyDays(parseInt(e.target.value));
+                                            setPreventiveFrequency(e.target.options[e.target.selectedIndex].text.toUpperCase());
+                                        }}
+                                    >
+                                        <option value={7}>Settimanale</option>
+                                        <option value={30}>Mensile</option>
+                                        <option value={90}>Trimestrale</option>
+                                        <option value={180}>Semestrale</option>
+                                        <option value={365}>Manuale</option>
+                                    </select>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleCreatePreventive}
+                                        disabled={generatingPreventive || !formData.preventiveActions}
+                                        className="whitespace-nowrap px-4 py-2 bg-white border shadow-sm text-primary font-medium rounded-md hover:bg-slate-50 text-sm disabled:opacity-50"
+                                    >
+                                        {generatingPreventive ? "Creazione..." : "Salva come Piano Ricorrente"}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {!isViewMode && (

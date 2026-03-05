@@ -96,6 +96,7 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                     {/* Supervision Section */}
                     {(user?.role === 'SUPERVISOR' || user?.role === 'ADMIN') && (
                         <SidebarGroup title="Supervisione">
+                            <SidebarItem href="/process" icon={Settings} label="Ing. di Processo" active={isActive('/process')} onClick={onNavigate} />
                             <SidebarItem href="/technicians/calendar" icon={Calendar} label="Calendario Turni" active={isActive('/technicians/calendar')} onClick={onNavigate} />
                             <SidebarItem href="/technicians" icon={Users} label="Team Tecnico" active={isActive('/technicians')} onClick={onNavigate} />
                             <SidebarItem href="/activities" icon={ListChecks} label="Attività" active={isActive('/activities')} onClick={onNavigate} />
@@ -141,7 +142,7 @@ interface SidebarItemProps {
     label: string;
     active?: boolean;
     onClick?: () => void;
-    badge?: number;
+    badge?: number | string; // Changed to allow string for "AI" badge
     highlight?: boolean;
 }
 

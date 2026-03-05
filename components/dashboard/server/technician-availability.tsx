@@ -34,7 +34,7 @@ export async function TechnicianAvailability() {
                 <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{presentCount} su {totalCount} in servizio</span>
                 </div>
-                <Progress value={percentage} className="h-2" indicatorClassName={getStatusColor(percentage)} />
+                <Progress value={percentage} className={cn("h-2", getStatusColor(percentage))} />
             </div>
 
             {absentees.length > 0 ? (

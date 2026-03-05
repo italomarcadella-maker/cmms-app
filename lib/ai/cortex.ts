@@ -114,7 +114,14 @@ export class CortexEngine {
                 const faults = asset.workOrders;
 
                 if (faults.length < 2) {
-                    return { id: asset.id, riskLevel: 'LOW' };
+                    return {
+                        id: asset.id,
+                        riskLevel: 'LOW',
+                        name: asset.name,
+                        healthScore: asset.healthScore,
+                        mtbf: null,
+                        nextFailureDate: null
+                    };
                 }
 
                 // Calculate Mean Time Between Failures (MTBF)
@@ -138,7 +145,14 @@ export class CortexEngine {
                 else if (percentUsed > 0.8) riskLevel = 'HIGH';
                 else if (percentUsed > 0.5) riskLevel = 'MEDIUM';
 
-                return { id: asset.id, riskLevel };
+                return {
+                    id: asset.id,
+                    riskLevel,
+                    name: asset.name,
+                    healthScore: asset.healthScore,
+                    mtbf: Math.round(avgDiffMs / (1000 * 60 * 60 * 24)), // MTBF in days
+                    nextFailureDate: new Date(lastFaultDate.getTime() + avgDiffMs)
+                };
             });
         } catch (error) {
             console.error("Cortex Predictive Error:", error);

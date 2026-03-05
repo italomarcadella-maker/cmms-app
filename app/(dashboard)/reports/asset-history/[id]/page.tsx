@@ -7,14 +7,15 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
 interface PageProps {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }
 
 export const dynamic = 'force-dynamic';
 
 export default async function AssetHistoryReport({ params }: PageProps) {
+    const { id } = await params;
     const asset = await prisma.asset.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: {
             workOrders: {
                 orderBy: { createdAt: 'desc' },

@@ -46,7 +46,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         const mapped = data.map(m => ({
             ...m,
             role: m.role as "USER" | "TECHNICIAN" | "SUPERVISOR" | "SYSTEM",
-            timestamp: m.timestamp.toISOString()
+            timestamp: m.timestamp.toISOString(),
+            imageUrl: m.imageUrl || undefined
         }));
 
         // Only update if count changed to avoid excessive re-render or handle merges
@@ -71,7 +72,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             setMessages((prev) => [...prev, {
                 ...m,
                 role: m.role as any,
-                timestamp: m.timestamp.toISOString()
+                timestamp: m.timestamp.toISOString(),
+                imageUrl: m.imageUrl || undefined
             }]);
         }
 

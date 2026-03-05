@@ -17,6 +17,7 @@ const nextConfig = {
         // !! WARN !!
         ignoreBuildErrors: true,
     },
+    turbopack: {},
     async headers() {
         return [
             {

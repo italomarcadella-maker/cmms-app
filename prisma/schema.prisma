@@ -158,6 +158,10 @@ model Asset {
   documents       AssetDocument[]
   workOrders      WorkOrder[]
   schedules       PreventiveSchedule[]
+  
+  // Process Engineering
+  sopDocuments    SopDocument[]
+  processAnomalies ProcessAnomaly[]
 
   @@index([healthScore])
   @@index([status])
@@ -222,6 +226,11 @@ model WorkOrder {
   // EWO Fields
   ewoFilled            Boolean @default(false)
   ewo                  EWO?
+  
+  // Daily Meetings link
+  originMeetingId      String?
+  originMeeting        DailyMeeting? @relation(fields: [originMeetingId], references: [id])
+  
   @@index([dueDate])
   @@index([status])
   @@index([assetId])
@@ -305,6 +314,7 @@ model Technician {
   name       String
   specialty  String
   hourlyRate Float
+  skills     String[] @default([]) // For intelligent AI routing based on project/anomaly requirements
   
   user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String @unique
@@ -518,3 +528,125 @@ model AuditLog {
 }
 
 
+// --- PROCESS ENGINEERING MODELS ---
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("PLANNING") // PLANNING, ACTIVE, ON_HOLD, COMPLETED
+  startDate   DateTime
+  endDate     DateTime
+  progress    Int      @default(0)
+  roi         Float?   // Return on investment estimation (economic)
+  ecologicalRoi Float? // Estimated ecological savings (e.g. CO2 reduction)
+  expectedEnergySavings Float? // Estimated energy savings in kWh or percentage
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  tasks       ProjectTask[]
+}
+
+model ProjectTask {
+  id                String   @id @default(cuid())
+  projectId         String
+  title             String
+  status            String   @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
+  startDate         DateTime
+  endDate           DateTime
+  linkedWorkOrderId String?  // Optional bridge to Maintenance
+  dependencies      String?  // JSON list of parent Task IDs
+  orderIndex        Int      @default(0) // Visual sorting
+  
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model SopDocument {
+  id                    String   @id @default(cuid())
+  title                 String
+  assetId               String
+  imageUrl              String?  // Reference HMI photo
+  videoUrl              String?  // Video reference for Video-to-SOP
+  mediaFrames           Json?    // Optional JSON array of extracted keyframes from video/images
+  aiExtractedParameters String   // JSON of { label, optimalValue, tolerance }
+  author                String
+  version               Int      @default(1)
+  previousVersionId     String?  // For Git-style versioning / Rollbacks
+  isApproved            Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  asset                 Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  feedbacks             SopFeedback[]
+}
+
+model SopFeedback {
+  id          String   @id @default(cuid())
+  sopId       String
+  userId      String   // Using String to prevent circular loop if User is deleted, or add relation
+  title       String   // e.g. "Suggerimento per step 3"
+  description String   // "Risparmio 5 secondi se usiamo la pinza blu"
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
+
+  sop         SopDocument @relation(fields: [sopId], references: [id], onDelete: Cascade)
+  // Optional: user User @relation(fields: [userId], references: [id])  -- leaving just String for simplicity unless needed
+
+}
+
+model ProcessAnomaly {
+  id               String   @id @default(cuid())
+  assetId          String
+  detectedAt       DateTime @default(now())
+  description      String   // e.g. "Temperature +15°C above SOP"
+  aiRecommendation String?  // AI suggests lower extruder speed
+  isPredictive     Boolean  @default(false) // If true, it's a forecast, not a current error yet
+  autoRcaData      Json?    // Pre-filled 5 whys suggestions from historical AI analysis
+  isResolved       Boolean  @default(false)
+  
+  asset            Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+}
+
+// --- DAILY MEETING MODELS ---
+
+model DailyMeeting {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  department  String   // RETINATO, MAGLIATO
+  status      String   @default("DRAFT") // DRAFT, COMPLETED
+  conductedBy String?  // User ID or name
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  sections    MeetingSection[]
+  generatedOrders WorkOrder[]
+}
+
+model MeetingSection {
+  id          String   @id @default(cuid())
+  meetingId   String
+  type        String   // SAFETY, QUALITY, PRODUCTION, MAINTENANCE
+  content     String?  // Rich text notes or generalized text
+  kpiMetrics  Json?    // Specific data structured for the section type (e.g. { line1_OEE: 85, nc_count: 2 })
+  aiInsights  Json?    // Insights generated by AI specifically for this exact meeting date
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  meeting     DailyMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  actionItems MeetingActionItem[]
+  
+  @@unique([meetingId, type]) // Ensure only 1 section of each type per meeting
+}
+
+model MeetingActionItem {
+  id                String   @id @default(cuid())
+  sectionId         String
+  description       String
+  assigneeName      String?
+  status            String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED
+  linkedWorkOrderId String?  // ID trace back if this spawned an EWO or Routine task
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  section           MeetingSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+}

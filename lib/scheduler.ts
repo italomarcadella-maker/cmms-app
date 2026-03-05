@@ -37,7 +37,7 @@ export async function checkAndGeneratePreventiveWorkOrders() {
                             description: `${schedule.description}\n\nGenerated from Preventive Schedule: ${schedule.frequency}`,
                             priority: "MEDIUM", // Default for routine
                             type: "ROUTINE",
-                            category: "PREVENTIVE",
+                            category: "OTHER", // Adjusted from PREVENTIVE, as it's not in the WorkOrderCategory enum
                             status: "OPEN",
                             assetId: schedule.assetId,
                             dueDate: addDays(today, 7), // Give 1 week to complete by default

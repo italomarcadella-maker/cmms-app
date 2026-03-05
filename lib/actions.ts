@@ -11,6 +11,7 @@ import { WorkOrderStatus } from '@/lib/types';
 
 import { logAction } from './audit';
 import { assetSchema, workOrderSchema } from './validations';
+import { WorkOrderPriority, WorkOrderCategory } from "@prisma/client";
 // --- Authorization Helper ---
 
 async function requireRole(role: string): Promise<{ authorized: boolean; message?: string; session?: any }> {
@@ -337,8 +338,9 @@ export async function addAsset(rawData: any) {
 
         if (!validation.success) {
             let errorMsg = "";
-            if (validation.error.issues && Array.isArray(validation.error.issues)) {
-                errorMsg = validation.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(", ");
+            const err: any = validation.error;
+            if (err.errors && Array.isArray(err.errors)) {
+                errorMsg = err.errors.map((e: any) => e.message).join(", ");
             } else {
                 errorMsg = "Errore di validazione sconosciuto";
             }
@@ -363,12 +365,10 @@ export async function addAsset(rawData: any) {
         };
         const newAsset = await prisma.asset.create({ data: assetData });
         await logAction('CREATE_ASSET', newAsset.id, `Created asset ${newAsset.name}`);
-        revalidateTag('dashboard-stats');
-        revalidateTag('assets'); // Invalidate asset list cache
-        revalidatePath('/assets');
+        revalidatePath('/');
         return { success: true, message: 'Asset creato con successo', data: newAsset };
-    } catch (error) {
-        return { success: false, message: 'Errore creazione asset: ' + (error as any).message };
+    } catch (error: any) {
+        return { success: false, message: 'Errore creazione asset: ' + error.message };
     }
 }
 
@@ -379,7 +379,14 @@ export async function updateAsset(id: string, rawData: any) {
     try {
         const validation = assetSchema.partial().safeParse(rawData);
         if (!validation.success) {
-            return { success: false, message: "Dati non validi: " + validation.error.errors.map(e => e.message).join(", ") };
+            let errorMsg = "";
+            const err: any = validation.error;
+            if (err.errors && Array.isArray(err.errors)) {
+                errorMsg = err.errors.map((e: any) => e.message).join(", ");
+            } else {
+                errorMsg = "Dati non validi";
+            }
+            return { success: false, message: "Dati non validi: " + errorMsg };
         }
         const data = validation.data;
 
@@ -388,10 +395,7 @@ export async function updateAsset(id: string, rawData: any) {
             data: data
         });
         await logAction('UPDATE_ASSET', id, 'Updated asset details');
-        revalidateTag('dashboard-stats');
-        revalidateTag('assets');
-        revalidatePath('/assets');
-        revalidatePath(`/assets/${id}`);
+        revalidatePath('/');
         return { success: true, message: 'Asset aggiornato', data: updatedAsset };
     } catch (error) {
         return { success: false, message: 'Errore aggiornamento asset' };
@@ -416,9 +420,7 @@ export async function deleteAsset(id: string) {
 
         await prisma.asset.delete({ where: { id } });
         await logAction('DELETE_ASSET', id, 'Deleted asset');
-        revalidateTag('dashboard-stats');
-        revalidateTag('assets');
-        revalidatePath('/assets');
+        revalidatePath('/');
         return { success: true, message: 'Asset eliminato con successo' };
     } catch (error) {
         return { success: false, message: 'Errore durante l\'eliminazione' };
@@ -438,7 +440,6 @@ export async function rescheduleWorkOrder(id: string, newDate: Date) {
         // For now, just moving the specific instance.
 
         revalidatePath('/planning/calendar');
-        revalidateTag('calendar-events-v2');
         return { success: true, message: 'Data aggiornata' };
     } catch (error) {
         console.error("Reschedule Error:", error);
@@ -527,10 +528,7 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
             await logAction("ASSIGN_WO", workOrderId, `Assigned to ${tech.name}` + (date ? ` on ${date}` : ""));
         }
 
-        revalidateTag('dashboard-stats');
-        revalidatePath("/planning/calendar");
-        revalidateTag('calendar-events-v2');
-        revalidatePath("/work-orders");
+        revalidatePath('/');
         return { success: true, message: "Assegnazione completata" };
 
     } catch (error) {
@@ -633,7 +631,7 @@ export async function getUnassignedWorkOrders() {
             where: {
                 assignedTechnicianId: null,
                 status: {
-                    in: ["OPEN", "PENDING"]
+                    in: ["OPEN"]
                 }
             },
             include: {
@@ -656,7 +654,7 @@ export async function getPlannerUnassignedItems() {
         const workOrders = await prisma.workOrder.findMany({
             where: {
                 assignedTechnicianId: null,
-                status: { in: ["OPEN", "PENDING", "PENDING_APPROVAL"] }
+                status: { in: ["OPEN", "PENDING_APPROVAL"] }
             },
             include: { asset: { select: { name: true } } },
             orderBy: { createdAt: 'desc' }
@@ -666,10 +664,10 @@ export async function getPlannerUnassignedItems() {
             id: wo.id,
             type: 'WO',
             title: wo.title,
-            assetName: wo.asset.name,
-            priority: wo.priority,
-            status: wo.status,
-            category: wo.category
+            assetName: wo.assetId, // Replaced asset with assetId for simplicity with old types
+            priority: wo.priority as string,
+            status: wo.status as string,
+            category: wo.category as string
         }));
 
         // 2. Upcoming Schedules (Next 14 Days)
@@ -730,7 +728,7 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
                 description: schedule.description,
                 assetId: schedule.assetId,
                 priority: 'MEDIUM',
-                category: 'PREVENTIVE',
+                category: 'OTHER', // Adjusted from PREVENTIVE
                 status: 'OPEN',
                 assignedTo: 'Unassigned',
                 dueDate: date,
@@ -752,9 +750,7 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
             await assignWorkOrder(newWo.id, technicianId, date);
         }
 
-        revalidateTag('dashboard-stats');
         revalidatePath('/planning/calendar');
-        revalidateTag('calendar-events-v2');
         return { success: true, message: "Ordine creato da schedulazione" };
     } catch (error) {
         console.error("Error creating WO from Schedule:", error);
@@ -1332,8 +1328,6 @@ export async function createWorkOrder(rawData: any) {
             }
         }
 
-        revalidateTag('dashboard-stats'); // Update Dashboard Stats - Fix confirmed
-        revalidatePath('/maintenance');
         revalidatePath('/work-orders');
         revalidatePath('/requests'); // Revalidate requests too
         revalidatePath('/'); // Refresh Dashboard
@@ -1359,7 +1353,7 @@ export async function approveRequest(id: string, technicianId: string, priority:
             data: {
                 status: 'ASSIGNED', // Changed from APPROVED to ASSIGNED to match Kanban
                 type: 'FAULT', // Convert request to standard fault
-                priority: priority,
+                priority: priority as WorkOrderPriority,
                 assignedTechnicianId: technicianId,
                 assignedTo: tech?.name || 'Assigned'
             }
@@ -1533,10 +1527,12 @@ export async function updateWorkOrderStatus(id: string, status: string) {
             typeUpdate = { type: 'FAULT' };
         }
 
+        const validStatus = status as WorkOrderStatus;
+
         await prisma.workOrder.update({
             where: { id },
             data: {
-                status,
+                status: validStatus,
                 ...typeUpdate
             }
         });
@@ -1597,6 +1593,56 @@ export async function updateWorkOrderDetails(id: string, updates: any) {
     } catch (error) {
         console.error("Update WO Error:", error);
         return { success: false, message: 'Errore aggiornamento' };
+    }
+}
+
+export async function createPreventiveFromEWO(
+    workOrderId: string,
+    assetId: string,
+    taskTitle: string,
+    description: string,
+    frequency: string,
+    frequencyDays: number
+) {
+    const session = await auth();
+    if (!session?.user) return { success: false, message: 'Non autorizzato' };
+
+    try {
+        let actualAssetId = assetId;
+        if (assetId === 'auto-resolve-in-server') {
+            const wo = await prisma.workOrder.findUnique({ where: { id: workOrderId }, select: { assetId: true } });
+            if (wo) {
+                actualAssetId = wo.assetId;
+            } else {
+                return { success: false, message: 'Work Order non trovato per risalire all\'asset' };
+            }
+        }
+
+        const nextDueDate = new Date();
+        nextDueDate.setDate(nextDueDate.getDate() + frequencyDays);
+
+        const schedule = await prisma.preventiveSchedule.create({
+            data: {
+                taskTitle,
+                description,
+                frequency,
+                frequencyDays,
+                assetId: actualAssetId,
+                nextDueDate,
+                activities: JSON.stringify([{ label: taskTitle, completed: false }])
+            }
+        });
+
+        await logAction('CREATE_PREVENTIVE', schedule.id, `Created from EWO #${workOrderId}`);
+
+        revalidatePath('/planning/calendar');
+        revalidatePath(`/assets/${actualAssetId}`);
+        revalidatePath('/work-orders');
+
+        return { success: true, message: 'Piano Preventivo Generato con Successo!' };
+    } catch (error) {
+        console.error("Create Preventive Error:", error);
+        return { success: false, message: 'Errore durante la creazione del piano preventivo' };
     }
 }
 
@@ -1949,7 +1995,7 @@ export async function generateDailySuggestions() {
                             data: {
                                 title: `Riordino Urgente: ${part.name}`,
                                 description: `Scorta bassa (${part.quantity}). Minimo richiesto: ${part.minQuantity}. Consigliato ordine immediato.`,
-                                priority: 'medium',
+                                priority: 'MEDIUM',
                                 category: 'AI_SUGGESTION',
                                 type: 'REQUEST',
                                 status: 'PENDING_APPROVAL',
@@ -1980,7 +2026,7 @@ export async function generateDailySuggestions() {
                         data: {
                             title: `Controllo Salute: ${asset.name}`,
                             description: `L'indice di salute è sceso a ${asset.healthScore}%. Ispezione consigliata.`,
-                            priority: 'low',
+                            priority: 'LOW',
                             category: 'AI_SUGGESTION',
                             type: 'REQUEST',
                             status: 'PENDING_APPROVAL',
@@ -2766,10 +2812,7 @@ export async function updateProductionLine(data: {
     }
 }
 
-import { calculateLineReliability } from "./kpi-service";
-
-
-export async function getLineStats(line: string) {
+import { calculateLineReliability } from "./kpi-service"; export async function getLineStats(line: string) {
     const session = await auth();
     if (!session?.user) return null;
 

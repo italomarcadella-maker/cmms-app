@@ -171,10 +171,29 @@ export default function ScrewsPage() {
                                                     }</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-muted-foreground">
+                                        <td className="px-4 py-3">
                                             {comp.measurements.length > 0
-                                                ? `${comp.measurements[comp.measurements.length - 1].value1} mm`
-                                                : "-"
+                                                ? (() => {
+                                                    const lastMeasurement = comp.measurements[comp.measurements.length - 1];
+                                                    const mDate = new Date(lastMeasurement.date);
+                                                    const diffTime = new Date().getTime() - mDate.getTime();
+                                                    const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.44);
+
+                                                    let colorClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                                                    if (diffMonths >= 12) colorClass = "bg-red-100 text-red-800 border-red-200";
+                                                    else if (diffMonths >= 10) colorClass = "bg-orange-100 text-orange-800 border-orange-200";
+                                                    else if (diffMonths >= 8) colorClass = "bg-amber-100 text-amber-800 border-amber-200";
+
+                                                    return (
+                                                        <div className="flex flex-col gap-1 items-start">
+                                                            <span className="text-muted-foreground text-sm">{lastMeasurement.value1} mm</span>
+                                                            <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-medium whitespace-nowrap", colorClass)}>
+                                                                {mDate.toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()
+                                                : <span className="text-muted-foreground">-</span>
                                             }
                                         </td>
                                         <td className="px-4 py-3">

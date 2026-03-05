@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { getDailyInsights, DailyInsight } from '@/lib/ai-service';
+import { getDailyInsights } from '@/lib/ai-service';
+import { DailyInsight } from '@/lib/ai/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { AlertTriangle, CheckCircle, Info, AlertCircle, Sparkles } from 'lucide-react'; // Changed RefreshCw to Sparkles
 import Link from 'next/link';

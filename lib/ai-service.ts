@@ -483,3 +483,83 @@ export async function getMockInsights(): Promise<AIInsight[]> {
         }
     ];
 }
+
+// --- PROCESS ENGINEERING AI (HMI VISION & SOP) ---
+
+export async function parseHmiImageToSop(imageUrl: string, assetId: string) {
+    // Simulazione di una vera API Vision (es. OpenAI GPT-4 Vision o Gemini)
+    // Nella realtà, qui passeremmo l'immagine e chiederemmo un JSON strutturato
+
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Simuliamo caricamento OCR/AI
+
+    // Contenuto "finto" estratto dall'immagine
+    // Generiamo parametri realistici tipici di una ricetta di estrusione o stampaggio
+    const extractedParameters = [
+        { label: "Temperatura Zona 1", value: 185, unit: "°C", tolerance: 5 },
+        { label: "Temperatura Zona 2", value: 190, unit: "°C", tolerance: 5 },
+        { label: "Temperatura Zona 3", value: 195, unit: "°C", tolerance: 5 },
+        { label: "Pressione Testa", value: 120, unit: "bar", tolerance: 10 },
+        { label: "Velocità Coclea", value: 45, unit: "rpm", tolerance: 2 },
+        { label: "Tempo di Raffreddamento", value: 12, unit: "s", tolerance: 1 }
+    ];
+
+    // WOW FEATURE: Confronteremo questo risultato con l'ultima SOP approvata per la macchina.
+    let anomalies: any[] = [];
+
+    try {
+        const lastSop = await prisma.sopDocument.findFirst({
+            where: { assetId, isApproved: true },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        if (lastSop) {
+            const previousParams = JSON.parse(lastSop.aiExtractedParameters);
+
+            // Creiamo un dict per lookup facile
+            const prevDict: Record<string, any> = {};
+            previousParams.forEach((p: any) => { prevDict[p.label] = p; });
+
+            extractedParameters.forEach(current => {
+                const prev = prevDict[current.label];
+                if (prev) {
+                    const diff = current.value - prev.value;
+                    const isOutsideTolerance = Math.abs(diff) > current.tolerance;
+
+                    if (isOutsideTolerance) {
+                        anomalies.push({
+                            label: current.label,
+                            expected: prev.value,
+                            actual: current.value,
+                            diff: diff,
+                            description: `Deriva rilevata su ${current.label}: ${diff > 0 ? '+' : ''}${diff}${current.unit} rispetto allo standard approvato. Possibile impatto sulla fusione.`,
+                            recommendation: `Verificare rampa di riscaldamento o avvisare il capoturno.`
+                        });
+                    }
+                }
+            });
+
+            // Se ci sono anomalie, possibilmente le salviamo nel database (oppure lasciamo decidere all'UI)
+            if (anomalies.length > 0) {
+                // Per non bloccare, lo facciamo async
+                anomalies.map(async (anom) => {
+                    await prisma.processAnomaly.create({
+                        data: {
+                            assetId,
+                            description: anom.description,
+                            aiRecommendation: anom.recommendation
+                        }
+                    });
+                });
+            }
+        }
+    } catch (e) {
+        console.error("AI SOP diff failed:", e);
+    }
+
+    return {
+        success: true,
+        detectedTitle: `Ricetta Standard - Scansione ${new Date().toLocaleDateString()}`,
+        parameters: extractedParameters,
+        anomalies
+    };
+}
