@@ -178,8 +178,36 @@ export async function createSopDocument(data: { title: string, assetId: string, 
             }
         });
         revalidatePath('/process/sop');
+        revalidatePath(`/assets/${data.assetId}`);
         return { success: true };
     } catch (e) {
         return { success: false, message: "Errore creazione SOP" };
+    }
+}
+
+export async function getSOPsByAsset(assetId: string) {
+    try {
+        return await prisma.sopDocument.findMany({
+            where: { assetId, isApproved: true },
+            orderBy: { createdAt: 'desc' }
+        });
+    } catch (e) {
+        return [];
+    }
+}
+
+export async function updateSopDocument(id: string, data: { title?: string, aiExtractedParameters?: string }) {
+    const { authorized } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message: "Non autorizzato" };
+
+    try {
+        const sop = await prisma.sopDocument.update({
+            where: { id },
+            data
+        });
+        revalidatePath(`/assets/${sop.assetId}`);
+        return { success: true };
+    } catch (e) {
+        return { success: false, message: "Errore aggiornamento SOP" };
     }
 }

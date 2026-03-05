@@ -12,6 +12,7 @@ import QRCode from "react-qr-code";
 import { AssetMaintenancePlan } from "@/components/assets/asset-maintenance-plan";
 import { AssetAIChat } from "@/components/assets/asset-ai-chat";
 import { TagGeneratorDialog } from "@/components/assets/tag-generator-dialog";
+import { AssetSOPList } from "@/components/assets/asset-sop-list";
 
 export default function AssetDetailsPage() {
     const params = useParams();
@@ -192,6 +193,17 @@ export default function AssetDetailsPage() {
                                 ))}
                             </div>
                         )}
+                    </div>
+
+                    {/* SOP / Ricette Standard */}
+                    <div className="rounded-xl border bg-card p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="font-semibold text-lg">SOP & Ricette Macchina</h3>
+                                <p className="text-xs text-muted-foreground mt-1">Parametri di processo standard estratti da HMI tramite AI.</p>
+                            </div>
+                        </div>
+                        <AssetSOPList assetId={asset.id} />
                     </div>
                 </div>
 
