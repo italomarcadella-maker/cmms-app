@@ -358,7 +358,7 @@ export async function addAsset(rawData: any) {
             type: data.type,
             purchaseDate: data.purchaseDate,
             department: data.department,
-            plant: data.plant,
+            plantId: data.plant, // Changed 'plant' to 'plantId'
             line: data.line,
             cespite: data.cespite, // Updated
             vendor: data.vendor,
@@ -390,9 +390,15 @@ export async function updateAsset(id: string, rawData: any) {
         }
         const data = validation.data;
 
+        const { plant, line, ...restData } = data;
+
+        let updatePayload: any = { ...restData };
+        if (plant !== undefined) updatePayload.plantId = plant;
+        if (line !== undefined) updatePayload.line = line;
+
         const updatedAsset = await prisma.asset.update({
             where: { id },
-            data: data
+            data: updatePayload
         });
         await logAction('UPDATE_ASSET', id, 'Updated asset details');
         revalidatePath('/');
@@ -1035,9 +1041,56 @@ export async function addSparePart(data: { name: string; quantity: number; categ
     }
 }
 
+async function checkAndCreatePurchaseRequest(partId: string) {
+    const part = await prisma.sparePart.findUnique({ where: { id: partId } });
+    if (!part || part.quantity > part.minQuantity) return;
+
+    // Check if auto-request already exists that is active
+    const existingActiveRequest = await prisma.purchaseRequest.findFirst({
+        where: {
+            partId: part.id,
+            status: { in: ["DRAFT", "SUBMITTED", "APPROVED", "ORDERED"] }
+        }
+    });
+
+    if (existingActiveRequest) return; // Wait for the active request to be fulfilled
+
+    // Suggest quantity to reorder: bring stock back up to minQuantity * 2 + 5 buffer
+    const suggestedQuantity = Math.max((part.minQuantity * 2) - part.quantity, 10);
+
+    await prisma.purchaseRequest.create({
+        data: {
+            partId: part.id,
+            quantity: suggestedQuantity,
+            status: "DRAFT",
+            reason: `Giacenza critica (${part.quantity} / ${part.minQuantity}) - Auto-riordino dal sistema`,
+            expectedCost: suggestedQuantity * (part.unitCost || 0)
+        }
+    });
+
+    // Notify admins/purchasing
+    const purchasingUsers = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'SUPERVISOR'] } } });
+    for (const u of purchasingUsers) {
+        await prisma.notification.create({
+            data: {
+                userId: u.id,
+                title: "Riordino Automatico Generato",
+                message: `Creata bozza d'acquisto per ${part.name} (${suggestedQuantity}pz).`,
+                link: "/inventory/purchase-requests"
+            }
+        });
+    }
+}
+
 export async function updateSparePartQuantity(id: string, quantity: number) {
     try {
         const updated = await prisma.sparePart.update({ where: { id }, data: { quantity, lastUpdated: new Date() } });
+
+        // Auto-reorder check
+        if (quantity <= updated.minQuantity) {
+            await checkAndCreatePurchaseRequest(id);
+        }
+
         return {
             success: true,
             message: 'Quantità aggiornata',
@@ -1259,7 +1312,10 @@ export async function createWorkOrder(rawData: any) {
         // Ensure Virtual Asset Exists if applicable
         await ensureVirtualAsset(data.assetId);
 
-        console.log("Creating WO with data:", { ...data, checklist: data.checklist ? `Array(${data.checklist.length})` : 'undefined' });
+        console.log("Creating WO with data:", {
+            ...data, checklist: data.checklist ? `Array(${data.checklist.length
+                })` : 'undefined'
+        });
 
         const newWO = await prisma.workOrder.create({
             data: {
@@ -1285,7 +1341,7 @@ export async function createWorkOrder(rawData: any) {
             }
         });
 
-        await logAction('CREATE_WO', newWO.id, `Created Work Order: ${newWO.title}`);
+        await logAction('CREATE_WO', newWO.id, `Created Work Order: ${newWO.title} `);
 
         // NOTIFICATION: Check if created with assignment
         if (newWO.assignedTechnicianId) {
@@ -1296,8 +1352,8 @@ export async function createWorkOrder(rawData: any) {
                     data: {
                         userId: tech.userId,
                         title: "Nuovo Incarico",
-                        message: `Ti è stato assegnato un nuovo ordine di lavoro: ${newWO.title}`,
-                        link: `/work-orders/${newWO.id}`
+                        message: `Ti è stato assegnato un nuovo ordine di lavoro: ${newWO.title} `,
+                        link: `/ work - orders / ${newWO.id} `
                     }
                 });
             }
@@ -1318,8 +1374,8 @@ export async function createWorkOrder(rawData: any) {
                 const notifications = supervisors.map(supervisor => ({
                     userId: supervisor.id,
                     title: "⚠️ SICUREZZA: Segnalazione Critica",
-                    message: `Nuova richiesta di sicurezza ad ALTA priorità: ${newWO.title}`,
-                    link: `/work-orders/${newWO.id}`
+                    message: `Nuova richiesta di sicurezza ad ALTA priorità: ${newWO.title} `,
+                    link: `/ work - orders / ${newWO.id} `
                 }));
 
                 await prisma.notification.createMany({
@@ -1335,7 +1391,7 @@ export async function createWorkOrder(rawData: any) {
 
     } catch (error) {
         console.error("WO Create Error Detailed:", error);
-        return { success: false, message: `Errore creazione ordine: ${(error as any).message}` };
+        return { success: false, message: `Errore creazione ordine: ${(error as any).message} ` };
     }
 }
 
@@ -1375,8 +1431,8 @@ export async function approveRequest(id: string, technicianId: string, priority:
                 data: {
                     userId: tech.userId,
                     title: "Nuovo Incarico: " + assignedWO.title,
-                    message: `È stata approvata una nuova richiesta.\nDescrizione: ${assignedWO.description.substring(0, 100)}${assignedWO.description.length > 100 ? '...' : ''}`,
-                    link: `/work-orders/${id}`
+                    message: `È stata approvata una nuova richiesta.\nDescrizione: ${assignedWO.description.substring(0, 100)}${assignedWO.description.length > 100 ? '...' : ''} `,
+                    link: `/ work - orders / ${id} `
                 }
             });
         }
@@ -2559,6 +2615,9 @@ export async function submitEWO(data: any) {
                             }
                         });
                     }
+
+                    // Generate purchase request automatically
+                    await checkAndCreatePurchaseRequest(p.partId);
                 }
             }
         }

@@ -4,9 +4,10 @@ import { subDays } from "date-fns";
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         // Fetch recent Process Anomalies to feed into the "Causal Loop"
         const recentAnomalies = await prisma.processAnomaly.findMany({
             where: {
@@ -34,7 +35,7 @@ export async function GET(
 
         // We are simulating the AI Analysis Response
         const mockAiBriefing = {
-            meetingId: params.id,
+            meetingId: id,
             generatedAt: new Date(),
             areas: {
                 SAFETY: {

@@ -12,6 +12,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     isSupervisor: boolean;
+    status: "authenticated" | "loading" | "unauthenticated";
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,7 +42,8 @@ function AuthStateProvider({ children }: { children: React.ReactNode }) {
             logout,
             isAuthenticated: status === 'authenticated',
             isLoading: status === 'loading',
-            isSupervisor
+            isSupervisor,
+            status
         }}>
             {children}
         </AuthContext.Provider>

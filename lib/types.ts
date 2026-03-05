@@ -118,6 +118,7 @@ export interface User {
     isActive: boolean;
     lastLogin?: string;
     department?: string;
+    plantId?: string | null;
 }
 
 export interface Technician {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { getProjectById, createProjectTask, updateTaskDates, linkTaskToMaintenance } from "@/lib/process-actions";
 import { getAssets } from "@/lib/actions";
 import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripHorizontal } from "lucide-react";
@@ -17,7 +17,8 @@ interface GanttTask {
     linkedWorkOrderId: string | null;
 }
 
-export default function ProjectDetail({ params }: { params: { id: string } }) {
+export default function ProjectDetail({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const [project, setProject] = useState<any>(null);
     const [assets, setAssets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -33,7 +34,7 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
 
     const loadData = async () => {
         const [projData, assetsData] = await Promise.all([
-            getProjectById(params.id),
+            getProjectById(id),
             getAssets()
         ]);
         setProject(projData);
@@ -43,14 +44,14 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
 
     useEffect(() => {
         loadData();
-    }, [params.id]);
+    }, [id]);
 
     const handleAddTask = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTaskTitle) return;
 
         await createProjectTask({
-            projectId: params.id,
+            projectId: id,
             title: newTaskTitle,
             startDate: new Date(),
             endDate: addDays(new Date(), 3),
@@ -66,7 +67,7 @@ export default function ProjectDetail({ params }: { params: { id: string } }) {
         e.preventDefault();
         if (!linkingTask || !selectedAsset) return;
 
-        const res = await linkTaskToMaintenance(linkingTask.id, selectedAsset, maintenanceDesc, params.id);
+        const res = await linkTaskToMaintenance(linkingTask.id, selectedAsset, maintenanceDesc, id);
         if (res.success) {
             setLinkingTask(null);
             setMaintenanceDesc("");

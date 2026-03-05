@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ShieldCheck, AlertTriangle, Activity, Wrench, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function DailyMeetingPrintReport({ params }: { params: { id: string } }) {
+export default function DailyMeetingPrintReport({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const [dateString, setDateString] = useState("");
 
     useEffect(() => {
@@ -30,7 +31,7 @@ export default function DailyMeetingPrintReport({ params }: { params: { id: stri
                 <div>
                     <h1 className="text-4xl font-black uppercase tracking-tighter">Verbale Daily Meeting</h1>
                     <h2 className="text-xl font-medium text-gray-600 mt-1">Reparto: Retinato (Demo)</h2>
-                    <p className="text-sm mt-3 text-gray-500">Documento ID: {params.id}</p>
+                    <p className="text-sm mt-3 text-gray-500">Documento ID: {id}</p>
                 </div>
                 <div className="text-right">
                     <p className="font-bold text-lg">{dateString}</p>

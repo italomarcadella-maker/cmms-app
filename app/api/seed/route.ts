@@ -14,6 +14,19 @@ export async function GET() {
         const password = await bcrypt.hash('admin', 10);
         const userPassword = await bcrypt.hash('user', 10);
 
+        // 1. Create Plants First
+        const plantA = await prisma.plant.upsert({
+            where: { name: 'Turin Plant A' },
+            update: {},
+            create: { name: 'Turin Plant A', location: 'Turin, IT', country: 'IT' }
+        });
+
+        const plantB = await prisma.plant.upsert({
+            where: { name: 'Milan Plant B' },
+            update: {},
+            create: { name: 'Milan Plant B', location: 'Milan, IT', country: 'IT' }
+        });
+
         const users = [
             {
                 name: 'Mario Rossi',
@@ -21,6 +34,7 @@ export async function GET() {
                 password: password,
                 role: 'ADMIN',
                 image: '',
+                plantId: plantA.id
             },
             {
                 name: 'Luigi Bianchi',
@@ -28,6 +42,7 @@ export async function GET() {
                 password: userPassword,
                 role: 'SUPERVISOR',
                 image: '',
+                plantId: plantA.id
             },
             {
                 name: 'Giuseppe Verdi',
@@ -35,6 +50,7 @@ export async function GET() {
                 password: userPassword,
                 role: 'USER',
                 image: '',
+                plantId: plantA.id
             },
             {
                 name: 'Tecnico Manutentore',
@@ -42,6 +58,7 @@ export async function GET() {
                 password: userPassword,
                 role: 'MAINTAINER',
                 image: '',
+                plantId: plantA.id
             }
         ];
 
@@ -99,7 +116,7 @@ export async function GET() {
                 model: 'HP-2000-v2',
                 serialNumber: 'SN-8839201',
                 vendor: 'HeavyInd Solutions',
-                plant: 'Turin Plant A',
+                plantId: plantA.id,
                 department: 'Production',
                 location: 'Sector 4',
                 purchaseDate: new Date('2023-01-15'),
@@ -113,7 +130,7 @@ export async function GET() {
                 model: 'M-450-Turbo',
                 serialNumber: 'SN-4421109',
                 vendor: 'MotoTech S.p.A.',
-                plant: 'Turin Plant A',
+                plantId: plantA.id,
                 department: 'Logistics',
                 location: 'Assembly Line 2',
                 purchaseDate: new Date('2022-06-20'),
@@ -127,7 +144,7 @@ export async function GET() {
                 model: 'Kuka KR-10',
                 serialNumber: 'KUK-99283',
                 vendor: 'Robotics Daily',
-                plant: 'Milan Plant B',
+                plantId: plantB.id,
                 department: 'Assembly',
                 location: 'Welding Station',
                 purchaseDate: new Date('2024-03-10'),
@@ -141,7 +158,7 @@ export async function GET() {
                 model: 'Chill-Master 5000',
                 serialNumber: 'CM-5000-001',
                 vendor: 'CoolSys',
-                plant: 'Milan Plant B',
+                plantId: plantB.id,
                 department: 'Utilities',
                 location: 'Utility Room',
                 purchaseDate: new Date('2021-11-30'),
@@ -155,7 +172,7 @@ export async function GET() {
                 model: 'PrecisionCut 300',
                 serialNumber: 'PC-300-X7',
                 vendor: 'ToolMaster',
-                plant: 'Turin Plant A',
+                plantId: plantA.id,
                 department: 'Workshop',
                 location: 'Workshop',
                 purchaseDate: new Date('2023-08-22'),
@@ -184,6 +201,7 @@ export async function GET() {
                 category: 'HYDRAULIC',
                 status: 'OPEN',
                 assignedTo: 'Mario Rossi',
+                plantId: plantA.id,
                 dueDate: new Date('2026-01-05'),
                 createdAt: new Date('2026-01-01'),
                 checklist: {
@@ -202,6 +220,7 @@ export async function GET() {
                 category: 'ELECTRICAL',
                 status: 'IN_PROGRESS',
                 assignedTo: 'Luigi Verdi',
+                plantId: plantA.id,
                 dueDate: new Date('2026-01-03'),
                 createdAt: new Date('2025-12-30'),
                 checklist: {
@@ -220,6 +239,7 @@ export async function GET() {
                 category: 'MECHANICAL',
                 status: 'COMPLETED',
                 assignedTo: 'Elena Bianchi',
+                plantId: plantB.id,
                 dueDate: new Date('2025-12-28'),
                 createdAt: new Date('2025-12-25'),
             }

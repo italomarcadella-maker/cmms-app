@@ -32,6 +32,7 @@ export const metadata: Metadata = {
 import { CommandPalette } from "@/components/layout/command-palette";
 
 import { NotificationsProvider } from "@/lib/notifications-context";
+import { PlantProvider } from "@/lib/plant-context";
 import { SWRegister } from "@/components/pwa/sw-register";
 
 export default function RootLayout({
@@ -45,19 +46,21 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <NotificationsProvider>
-            <ComponentsProvider>
-              <ChatProvider>
-                <TooltipProvider>
-                  <CommandPalette />
-                  {children}
-                  <ChatWidget />
-                  <Toaster />
-                  <SWRegister />
-                </TooltipProvider>
-              </ChatProvider>
-            </ComponentsProvider>
-          </NotificationsProvider>
+          <PlantProvider>
+            <NotificationsProvider>
+              <ComponentsProvider>
+                <ChatProvider>
+                  <TooltipProvider>
+                    <CommandPalette />
+                    {children}
+                    <ChatWidget />
+                    <Toaster />
+                    <SWRegister />
+                  </TooltipProvider>
+                </ChatProvider>
+              </ComponentsProvider>
+            </NotificationsProvider>
+          </PlantProvider>
         </AuthProvider>
       </body>
     </html>

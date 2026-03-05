@@ -17,6 +17,11 @@ const nextConfig = {
         // !! WARN !!
         ignoreBuildErrors: true,
     },
+    experimental: {
+        serverActions: {
+            bodySizeLimit: '10mb',
+        },
+    },
     turbopack: {},
     async headers() {
         return [

@@ -1,11 +1,12 @@
 "use client";
 
-import { LayoutDashboard, Package, ClipboardList, Settings, ListChecks, Users, Box, BarChart3, Calendar, ReceiptEuro, Cylinder, CalendarDays, BrainCircuit, FileDown, Gauge, Inbox, PlusCircle, LucideIcon, ScanLine } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, Settings, ListChecks, Users, Box, BarChart3, Calendar, ReceiptEuro, Cylinder, CalendarDays, BrainCircuit, FileDown, Gauge, Inbox, PlusCircle, LucideIcon, ScanLine, Leaf } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useWorkOrders } from '@/lib/work-orders-context';
 import { useAuth } from '@/lib/auth-context';
+import { PlantSwitcher } from './plant-switcher';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
     onNavigate?: () => void;
@@ -47,6 +48,10 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                         <Box className="w-6 h-6 text-primary" />
                         <span>CMMS<span className="text-primary font-light">Pro</span></span>
                     </h2>
+                </div>
+
+                <div className="px-4 py-4 pt-6">
+                    <PlantSwitcher isCollapsed={false} />
                 </div>
 
                 <div className="flex-1 overflow-y-auto py-6 px-3 space-y-6">
@@ -103,6 +108,7 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                             <SidebarItem href="/activities" icon={ListChecks} label="Attività" active={isActive('/activities')} onClick={onNavigate} />
                             <SidebarItem href="/predictive" icon={BrainCircuit} label="AI Predittiva" active={isActive('/predictive')} onClick={onNavigate} />
                             <SidebarItem href="/energy" icon={Gauge} label="Energy Monitor" active={isActive('/energy')} onClick={onNavigate} />
+                            <SidebarItem href="/sustainability" icon={Leaf} label="Sostenibilità" active={isActive('/sustainability')} onClick={onNavigate} />
                         </SidebarGroup>
                     )}
 

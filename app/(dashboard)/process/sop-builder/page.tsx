@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { getAssets } from "@/lib/actions";
-import { parseHmiImageToSop, createSopDocument } from "@/lib/process-actions"; // We will add an export inside process-actions to call ai-service directly to avoid client circular deps
+import { createSopDocument } from "@/lib/process-actions";
+import { parseHmiImageToSop } from "@/lib/ai-service";
 import { Camera, Upload, ScanLine, FileCheck2, AlertTriangle, ArrowRight, Save, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,31 @@ export default function SOPBuilder() {
 
         const reader = new FileReader();
         reader.onload = (event) => {
-            setImagePreview(event.target?.result as string);
+            const img = new window.Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const MAX_WIDTH = 1200;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_WIDTH) {
+                    height = Math.round((height * MAX_WIDTH) / width);
+                    width = MAX_WIDTH;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+                    setImagePreview(dataUrl);
+                } else {
+                    setImagePreview(event.target?.result as string);
+                }
+            };
+            img.src = event.target?.result as string;
         };
         reader.readAsDataURL(file);
     };
@@ -48,9 +73,6 @@ export default function SOPBuilder() {
         setIsScanning(true);
 
         try {
-            // Import dynamycally to avoid client/server action weirdness if any
-            const { parseHmiImageToSop } = await import('@/lib/ai-service');
-
             const result = await parseHmiImageToSop(imagePreview, selectedAsset);
 
             setSopTitle(result.detectedTitle);
@@ -73,8 +95,6 @@ export default function SOPBuilder() {
 
     const handleSaveSOP = async () => {
         if (!selectedAsset || parameters.length === 0) return;
-
-        const { createSopDocument } = await import('@/lib/process-actions');
 
         const res = await createSopDocument({
             assetId: selectedAsset,

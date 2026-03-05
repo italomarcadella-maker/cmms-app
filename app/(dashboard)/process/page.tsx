@@ -157,7 +157,7 @@ export default function ProcessDashboard() {
                             <div className="mt-6 pt-4 border-t border-slate-100">
                                 <div className="flex justify-between items-center text-xs text-slate-500 mb-2">
                                     <span>{project.tasks?.length || 0} Task Pianificati</span>
-                                    <span className="font-semibold text-slate-700">Scadenza: {format(new Date(project.endDate), 'd MMM yyyy', { fallbackLocale: it })}</span>
+                                    <span className="font-semibold text-slate-700">Scadenza: {format(new Date(project.endDate), 'd MMM yyyy', { locale: it })}</span>
                                 </div>
                                 <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                                     <div

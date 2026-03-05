@@ -3,11 +3,12 @@
 import { unstable_cache } from 'next/cache';
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { cookies } from "next/headers";
 import { subDays, format, startOfDay, endOfDay } from "date-fns";
 import { it } from "date-fns/locale";
 
 const getDetailedDashboardStatsCached = unstable_cache(
-    async () => {
+    async (plantId?: string) => {
         try {
             // Execute parallel aggregation queries instead of counting locally
             const [
@@ -19,6 +20,7 @@ const getDetailedDashboardStatsCached = unstable_cache(
             ] = await Promise.all([
                 // 1. Asset Stats (Total, Active, Offline, AvgHealth) in one go if possible, but distinct queries are cleaner for Prisma
                 prisma.asset.aggregate({
+                    where: plantId ? { plantId } : undefined,
                     _count: {
                         id: true,
                         _all: true // Total
@@ -26,34 +28,33 @@ const getDetailedDashboardStatsCached = unstable_cache(
                     _avg: {
                         healthScore: true
                     }
-                    // Conditional counts are harder in single aggregate without raw query.
-                    // We stick to parallel counts for status but keep average here.
                 }),
                 // 2. WO Basic Counts
                 prisma.workOrder.groupBy({
                     by: ['status'],
+                    where: plantId ? { plantId } : undefined,
                     _count: { id: true }
                 }),
                 // 3. High Priority Open
-                prisma.workOrder.count({ where: { priority: 'STOPPED', status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
+                prisma.workOrder.count({ where: { priority: 'STOPPED', status: { in: ['OPEN', 'IN_PROGRESS'] }, ...(plantId && { plantId }) } }),
                 // 4. Overdue
-                prisma.workOrder.count({ where: { dueDate: { lt: new Date() }, status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] } } }),
-                // 5. Low Stock (Still needs filter logic or raw query, standard query is fastest maintainable way)
-                prisma.sparePart.count({ where: { quantity: { lte: prisma.sparePart.fields.minQuantity } } })
+                prisma.workOrder.count({ where: { dueDate: { lt: new Date() }, status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] }, ...(plantId && { plantId }) } }),
+                // 5. Low Stock
+                prisma.sparePart.count({ where: { quantity: { lte: prisma.sparePart.fields.minQuantity }, ...(plantId && { plantId }) } })
             ]);
 
-            // Refine Asset Status Counts (Parallelized)
+            // Refine Asset Status Counts
             const [activeAssets, offlineAssets] = await Promise.all([
-                prisma.asset.count({ where: { status: 'OPERATIONAL' } }),
-                prisma.asset.count({ where: { status: 'OFFLINE' } })
+                prisma.asset.count({ where: { status: 'OPERATIONAL', ...(plantId && { plantId }) } }),
+                prisma.asset.count({ where: { status: 'OFFLINE', ...(plantId && { plantId }) } })
             ]);
 
             // Parse WO Grouped Stats
-            const totalWorkOrders = woStats.reduce((acc, curr) => acc + curr._count.id, 0);
+            const totalWorkOrders = woStats.reduce((acc, curr) => acc + (curr._count?.id || 0), 0);
             const openStatuses = new Set(['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL']);
             const openWorkOrders = woStats
                 .filter(g => openStatuses.has(g.status))
-                .reduce((acc, curr) => acc + curr._count.id, 0);
+                .reduce((acc, curr) => acc + (curr._count?.id || 0), 0);
 
             return {
                 totalAssets: assetStats._count._all || 0,
@@ -101,7 +102,9 @@ export async function getDetailedDashboardStats() {
             lowStockCount: 0
         };
     }
-    return getDetailedDashboardStatsCached();
+    const cookieStore = await cookies();
+    const plantId = cookieStore.get('cmms_plant_id')?.value;
+    return getDetailedDashboardStatsCached(plantId);
 }
 
 export const getAssetStatusDistribution = unstable_cache(
@@ -212,8 +215,12 @@ export const getWorkOrderTrends = unstable_cache(
 
 export async function getRecentWorkOrders(limit = 5) {
     try {
+        const cookieStore = await cookies();
+        const plantId = cookieStore.get('cmms_plant_id')?.value;
+
         const wos = await prisma.workOrder.findMany({
             take: limit,
+            where: plantId ? { plantId } : undefined,
             orderBy: { createdAt: 'desc' },
             include: { asset: true }
         });
@@ -230,11 +237,15 @@ export async function getRecentWorkOrders(limit = 5) {
 
 export async function getOverdueWorkOrders(limit = 5) {
     try {
+        const cookieStore = await cookies();
+        const plantId = cookieStore.get('cmms_plant_id')?.value;
+
         const wos = await prisma.workOrder.findMany({
             take: limit,
             where: {
                 dueDate: { lt: new Date() },
-                status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] }
+                status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] },
+                ...(plantId && { plantId })
             },
             orderBy: { dueDate: 'asc' }, // Most overdue first
             include: { asset: true }
@@ -252,6 +263,9 @@ export async function getOverdueWorkOrders(limit = 5) {
 
 export async function getHighPrioritySafetyRequests(limit = 5) {
     try {
+        const cookieStore = await cookies();
+        const plantId = cookieStore.get('cmms_plant_id')?.value;
+
         const requests = await prisma.workOrder.findMany({
             take: limit,
             where: {
@@ -260,7 +274,8 @@ export async function getHighPrioritySafetyRequests(limit = 5) {
                     { assetId: 'SYS-SAFETY' }
                 ],
                 priority: { in: ['HIGH', 'MEDIUM', 'STOPPED'] },
-                status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] }
+                status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
+                ...(plantId && { plantId })
             },
             orderBy: [
                 { createdAt: 'desc' }
@@ -384,12 +399,16 @@ export const getMaintenanceMetrics = unstable_cache(
 
 export async function getAreaStatus() {
     try {
+        const cookieStore = await cookies();
+        const plantId = cookieStore.get('cmms_plant_id')?.value;
+
         const [production, facilities, workshop, improvement] = await Promise.all([
             // Production: WOs on assets with a defined line
             prisma.workOrder.count({
                 where: {
                     status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
-                    asset: { line: { not: null } }
+                    asset: { line: { not: null } },
+                    ...(plantId && { plantId })
                 }
             }),
             // Facilities: WOs on FACILITY assets or SYS-PLANT
@@ -400,7 +419,8 @@ export async function getAreaStatus() {
                         { asset: { type: 'FACILITY' } },
                         { assetId: 'SYS-PLANT' },
                         { category: 'OTHER' } // 'Impianti' in wizard uses OTHER category
-                    ]
+                    ],
+                    ...(plantId && { plantId })
                 }
             }),
             // Workshop: WOs on assets in location 'OFFICINA'
@@ -411,7 +431,8 @@ export async function getAreaStatus() {
                         { asset: { location: { contains: 'OFFICINA', mode: 'insensitive' } } },
                         { category: 'MECHANICAL' },
                         { assetId: 'SYS-WORKSHOP' }
-                    ]
+                    ],
+                    ...(plantId && { plantId })
                 }
             }),
             // Improvement: WOs of category IMPROVEMENT or KAIZEN assets
@@ -422,7 +443,8 @@ export async function getAreaStatus() {
                         { category: 'IMPROVEMENT' },
                         { asset: { type: 'KAIZEN' } },
                         { assetId: 'SYS-KAIZEN' }
-                    ]
+                    ],
+                    ...(plantId && { plantId })
                 }
             })
         ]);
@@ -484,6 +506,9 @@ export async function getTechnicianPresence() {
 
 export async function getUpcomingSchedule(days = 3) {
     try {
+        const cookieStore = await cookies();
+        const plantId = cookieStore.get('cmms_plant_id')?.value;
+
         const startDate = startOfDay(new Date());
         const endDate = endOfDay(new Date(new Date().setDate(new Date().getDate() + days)));
 
@@ -491,7 +516,8 @@ export async function getUpcomingSchedule(days = 3) {
         const wos = await prisma.workOrder.findMany({
             where: {
                 dueDate: { gte: startDate, lte: endDate },
-                status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL', 'ASSIGNED'] }
+                status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL', 'ASSIGNED'] },
+                ...(plantId && { plantId })
             },
             include: { asset: true },
             orderBy: { dueDate: 'asc' }
@@ -500,7 +526,8 @@ export async function getUpcomingSchedule(days = 3) {
         // 2. Fetch Planned Schedules due in range
         const schedules = await prisma.preventiveSchedule.findMany({
             where: {
-                nextDueDate: { gte: startDate, lte: endDate }
+                nextDueDate: { gte: startDate, lte: endDate },
+                ...(plantId && { asset: { plantId } })
             },
             include: { asset: true },
             orderBy: { nextDueDate: 'asc' }

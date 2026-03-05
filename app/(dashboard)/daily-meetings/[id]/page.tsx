@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import {
     Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter
@@ -13,7 +13,8 @@ import { ShieldCheck, AlertTriangle, Activity, Wrench, ChevronLeft, ChevronRight
 import { toast } from "sonner";
 import { AiDailyBriefing } from "@/components/daily/ai-daily-briefing";
 
-export default function DailyMeetingWizard({ params }: { params: { id: string } }) {
+export default function DailyMeetingWizard({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("SAFETY");
     const [saving, setSaving] = useState(false);
@@ -28,12 +29,12 @@ export default function DailyMeetingWizard({ params }: { params: { id: string } 
     useEffect(() => {
         // In real app, fetch meeting status to see if it's already DRAFT or CLOSED
         // Mocking an initial fetch
-        setMeeting({ id: params.id, department: "Reparto 1", date: new Date().toISOString() });
-    }, [params.id]);
+        setMeeting({ id, department: "Reparto 1", date: new Date().toISOString() });
+    }, [id]);
 
     const handleCreateTask = async (category: string, description: string) => {
         try {
-            await fetch(`/api/daily-meetings/${params.id}/action-items`, {
+            await fetch(`/api/daily-meetings/${id}/action-items`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ category, description, priority: "HIGH" })
@@ -197,7 +198,7 @@ export default function DailyMeetingWizard({ params }: { params: { id: string } 
                             <CardFooter className="flex justify-between">
                                 <Button variant="outline" onClick={() => setActiveTab("PRODUCTION")}>Indietro</Button>
                                 <div className="flex gap-2">
-                                    <Button variant="outline" onClick={() => window.open(`/daily-meetings/${params.id}/report`, "_blank")}>
+                                    <Button variant="outline" onClick={() => window.open(`/daily-meetings/${id}/report`, "_blank")}>
                                         <Printer className="mr-2 h-4 w-4" /> Genera PDF
                                     </Button>
                                     <Button onClick={handleComplete} disabled={saving} className="bg-green-600 hover:bg-green-700">
@@ -212,7 +213,7 @@ export default function DailyMeetingWizard({ params }: { params: { id: string } 
 
             {/* Right side: AI Panel */}
             <div className="w-full lg:w-[350px]">
-                <AiDailyBriefing meetingId={params.id} />
+                <AiDailyBriefing meetingId={id} />
             </div>
         </div>
     );

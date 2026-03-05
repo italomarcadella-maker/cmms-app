@@ -88,6 +88,8 @@ model User {
   isActive      Boolean   @default(true)
   lastLogin     DateTime?
   department    String?
+  plantId       String?
+  plant         Plant?    @relation(fields: [plantId], references: [id])
   accounts      Account[]
   sessions      Session[]
   notifications Notification[]
@@ -141,7 +143,8 @@ model Asset {
   model           String
   serialNumber    String   @unique
   vendor          String?
-  plant           String?
+  plantId         String?
+  plant           Plant?    @relation(fields: [plantId], references: [id])
   department      String?
   location        String
   line            String?
@@ -213,6 +216,8 @@ model WorkOrder {
   
   asset                Asset    @relation(fields: [assetId], references: [id])
   assetId              String
+  plantId              String?
+  plant                Plant?   @relation(fields: [plantId], references: [id])
 
   
   checklist            ChecklistItem[]
@@ -408,8 +413,12 @@ model SparePart {
   quantity    Int
   minQuantity Int      @default(0)
   location    String?
+  plantId     String?
+  plant       Plant?   @relation(fields: [plantId], references: [id])
   unitCost    Float    @default(0)
   lastUpdated DateTime @default(now())
+  
+  purchaseRequests PurchaseRequest[]
 }
 
 model Component {
@@ -649,4 +658,52 @@ model MeetingActionItem {
   updatedAt         DateTime @updatedAt
   
   section           MeetingSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+}
+
+// --- INDUSTRY 4.0 & ENTERPRISE MODELS ---
+
+model Plant {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  location    String?
+  country     String?
+  timezone    String   @default("Europe/Rome")
+  createdAt   DateTime @default(now())
+  
+  users       User[]
+  assets      Asset[]
+  workOrders  WorkOrder[]
+  spareParts  SparePart[]
+  energyLogs  EnergyLog[]
+}
+
+model PurchaseRequest {
+  id          String   @id @default(cuid())
+  partId      String
+  quantity    Int
+  status      String   @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, ORDERED, RECEIVED
+  reason      String?
+  expectedCost Float?
+  requestedAt DateTime @default(now())
+  orderedAt   DateTime?
+  receivedAt  DateTime?
+  
+  part        SparePart @relation(fields: [partId], references: [id], onDelete: Cascade)
+  
+  @@index([status])
+}
+
+model EnergyLog {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  plantId     String
+  assetId     String?  // Optional: can be plant-wide or asset-specific
+  kwhConsumed Float
+  co2Emitted  Float    // Est. kg of CO2 based on local emission factor
+  costLocal   Float?   // Estimated cost in EUR/local currency
+  
+  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  // Non colleghiamo esplicitamente ad Asset con constraint per flessibilità, basta l'ID per query.
+  
+  @@index([plantId, date])
 }

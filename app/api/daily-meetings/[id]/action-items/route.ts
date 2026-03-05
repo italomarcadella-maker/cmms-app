@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const body = await request.json();
         const { originSectionId, description, assignee, priority, category, assetId } = body;
 
@@ -17,7 +18,7 @@ export async function POST(
                 priority: priority || "MEDIUM",
                 category: category || "OTHER",
                 type: "FAULT",
-                originMeetingId: params.id,
+                originMeetingId: id,
                 assetId: assetId || "generic-plant-level", // Assuming a generic asset exists or we handle it
                 assignedTo: assignee,
                 // Optional logic based on real app state
