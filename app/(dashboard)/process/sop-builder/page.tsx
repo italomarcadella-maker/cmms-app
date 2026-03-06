@@ -21,6 +21,10 @@ export default function SOPBuilder() {
     const [parameters, setParameters] = useState<any[]>([]);
     const [anomalies, setAnomalies] = useState<any[]>([]);
 
+    // Context Data
+    const [line, setLine] = useState("");
+    const [product, setProduct] = useState("");
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -100,7 +104,9 @@ export default function SOPBuilder() {
             assetId: selectedAsset,
             title: sopTitle || `SOP_${new Date().getTime()}`,
             imageUrl: imagePreview || "",
-            aiExtractedParameters: JSON.stringify(parameters)
+            aiExtractedParameters: JSON.stringify(parameters),
+            line,
+            product
         });
 
         if (res.success) {
@@ -133,18 +139,43 @@ export default function SOPBuilder() {
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Macchinario / Asset</label>
-                            <select
-                                className="w-full border-slate-200 rounded-lg p-2.5 focus:border-fuchsia-500 focus:ring-fuchsia-500"
-                                value={selectedAsset}
-                                onChange={e => setSelectedAsset(e.target.value)}
-                            >
-                                <option value="">Seleziona l'impianto inquadrato...</option>
-                                {assets.map(a => (
-                                    <option key={a.id} value={a.id}>{a.name} ({a.model})</option>
-                                ))}
-                            </select>
+                        <div className="mb-4 space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">Macchinario / Asset</label>
+                                <select
+                                    className="w-full border-slate-200 rounded-lg p-2.5 focus:border-fuchsia-500 focus:ring-fuchsia-500 bg-white"
+                                    value={selectedAsset}
+                                    onChange={e => setSelectedAsset(e.target.value)}
+                                >
+                                    <option value="">Seleziona l'impianto inquadrato...</option>
+                                    {assets.map(a => (
+                                        <option key={a.id} value={a.id}>{a.name} ({a.model})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Linea (Opzionale)</label>
+                                    <input
+                                        type="text"
+                                        value={line}
+                                        onChange={e => setLine(e.target.value)}
+                                        placeholder="es. Linea A"
+                                        className="w-full border-slate-200 rounded-lg p-2.5 focus:border-fuchsia-500 focus:ring-fuchsia-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Prodotto (Opzionale)</label>
+                                    <input
+                                        type="text"
+                                        value={product}
+                                        onChange={e => setProduct(e.target.value)}
+                                        placeholder="es. Tubo PVC 50mm"
+                                        className="w-full border-slate-200 rounded-lg p-2.5 focus:border-fuchsia-500 focus:ring-fuchsia-500"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         <div className="mt-6">

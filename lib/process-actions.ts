@@ -165,7 +165,7 @@ export async function getSopDocuments() {
     }
 }
 
-export async function createSopDocument(data: { title: string, assetId: string, imageUrl: string, aiExtractedParameters: string }) {
+export async function createSopDocument(data: { title: string, assetId: string, imageUrl: string, aiExtractedParameters: string, line?: string, product?: string }) {
     const { authorized, session } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message: "Non autorizzato" };
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getProjects, createProject, deleteProject } from "@/lib/process-actions";
-import { Plus, BarChart3, TrendingUp, GitPullRequest, Settings, ArrowRight, Trash2, ShieldAlert } from "lucide-react";
+import { Plus, BarChart3, TrendingUp, GitPullRequest, Settings, ArrowRight, Trash2, ShieldAlert, FileCheck2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -51,12 +51,18 @@ export default function ProcessDashboard() {
                     </h1>
                     <p className="text-slate-500 mt-2 font-medium">Gestione progetti, standardizzazione SOP e derive di processo intelligenti.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
+                    <Link
+                        href="/process/sop"
+                        className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-5 py-2.5 rounded-xl font-semibold border border-indigo-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+                    >
+                        <FileCheck2 className="h-4 w-4" /> Archivio SOP
+                    </Link>
                     <Link
                         href="/process/sop-builder"
                         className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-purple-200 hover:shadow-xl hover:-translate-y-0.5 transition-all"
                     >
-                        <ShieldAlert className="h-4 w-4" /> SOP AI Scanner
+                        <ShieldAlert className="h-4 w-4" /> AI Scanner
                     </Link>
                     <button
                         className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-slate-200 hover:shadow-xl hover:-translate-y-0.5 transition-all"

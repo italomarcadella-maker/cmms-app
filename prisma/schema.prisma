@@ -579,6 +579,8 @@ model SopDocument {
   mediaFrames           Json?    // Optional JSON array of extracted keyframes from video/images
   aiExtractedParameters String   // JSON of { label, optimalValue, tolerance }
   author                String
+  line                  String?  // Associated production line
+  product               String?  // Associated product
   version               Int      @default(1)
   previousVersionId     String?  // For Git-style versioning / Rollbacks
   isApproved            Boolean  @default(false)
