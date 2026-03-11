@@ -77,7 +77,6 @@ export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
             return;
         }
 
-        // @ts-ignore
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         recognition.lang = 'it-IT';

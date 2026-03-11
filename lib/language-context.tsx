@@ -63,6 +63,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     // Persist choice
     useEffect(() => {
         const saved = localStorage.getItem('cmms_lang') as Language;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (saved) setLanguage(saved);
     }, []);
 

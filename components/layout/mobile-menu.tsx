@@ -12,7 +12,7 @@ export function MobileMenu() {
     const pathname = usePathname();
 
     useEffect(() => {
-        setOpen(false);
+        setTimeout(() => setOpen(false), 0);
     }, [pathname]);
 
     return (

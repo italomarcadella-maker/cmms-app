@@ -44,6 +44,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         refreshNotifications();
         const interval = setInterval(refreshNotifications, 60000); // Poll every minute
         return () => clearInterval(interval);

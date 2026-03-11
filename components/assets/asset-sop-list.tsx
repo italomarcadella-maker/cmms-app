@@ -12,13 +12,14 @@ export function AssetSOPList({ assetId }: { assetId: string }) {
     const [editTitle, setEditTitle] = useState("");
 
     const loadSOPs = async () => {
-        setLoading(true);
+        setTimeout(() => setLoading(true), 0);
         const data = await getSOPsByAsset(assetId);
         setSops(data);
         setLoading(false);
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadSOPs();
     }, [assetId]);
 

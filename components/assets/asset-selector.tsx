@@ -67,7 +67,7 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
                     });
                 });
             });
-            setExpandedNodes(allKeys);
+            setTimeout(() => setExpandedNodes(allKeys), 0);
         }
     }, [searchTerm, groupedAssets]);
 

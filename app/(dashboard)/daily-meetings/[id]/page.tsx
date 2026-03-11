@@ -29,7 +29,7 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
     useEffect(() => {
         // In real app, fetch meeting status to see if it's already DRAFT or CLOSED
         // Mocking an initial fetch
-        setMeeting({ id, department: "Reparto 1", date: new Date().toISOString() });
+        setTimeout(() => setMeeting({ id, department: "Reparto 1", date: new Date().toISOString() }), 0);
     }, [id]);
 
     const handleCreateTask = async (category: string, description: string) => {

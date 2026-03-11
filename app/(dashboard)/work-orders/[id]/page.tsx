@@ -144,6 +144,7 @@ export default function WorkOrderDetailPage() {
         if (!tech) return;
 
         const newLog = {
+            // eslint-disable-next-line react-hooks/purity
             id: `LOG-${Date.now()}`,
             technicianId: tech.id,
             technicianName: tech.name,

@@ -19,6 +19,22 @@ export function VoiceInput({ onTranscript, placeholder = "Parla ora...", classNa
     const [supported, setSupported] = useState(true);
     const recognitionRef = useRef<any>(null);
 
+    const startListening = () => {
+        if (recognitionRef.current && !listening) {
+            try {
+                recognitionRef.current.start();
+            } catch (e) {
+                console.error("Start error", e);
+            }
+        }
+    };
+
+    const stopListening = () => {
+        if (recognitionRef.current && listening) {
+            recognitionRef.current.stop();
+        }
+    };
+
     // Sync with external state if provided
     useEffect(() => {
         if (typeof externalIsListening !== 'undefined' && externalIsListening !== listening) {
@@ -65,6 +81,7 @@ export function VoiceInput({ onTranscript, placeholder = "Parla ora...", classNa
                 }
             };
         } else {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSupported(false);
         }
 
@@ -74,22 +91,6 @@ export function VoiceInput({ onTranscript, placeholder = "Parla ora...", classNa
             }
         };
     }, [onTranscript, onListeningChange]);
-
-    const startListening = () => {
-        if (recognitionRef.current && !listening) {
-            try {
-                recognitionRef.current.start();
-            } catch (e) {
-                console.error("Start error", e);
-            }
-        }
-    };
-
-    const stopListening = () => {
-        if (recognitionRef.current && listening) {
-            recognitionRef.current.stop();
-        }
-    };
 
     const toggleListening = () => {
         if (listening) stopListening();

@@ -54,7 +54,7 @@ export async function calculateLineReliability(
         if (isProduction) {
             const dateStr = format(day, 'yyyy-MM-dd');
             const start = parse(`${dateStr} ${startStr}`, 'yyyy-MM-dd HH:mm', new Date());
-            let end = parse(`${dateStr} ${endStr}`, 'yyyy-MM-dd HH:mm', new Date());
+            const end = parse(`${dateStr} ${endStr}`, 'yyyy-MM-dd HH:mm', new Date());
 
             // Handle overnight shifts if needed (end < start) -> add 1 day? 
             // For now assuming daily blocks as per UI (06:00-22:00 same day).
@@ -93,7 +93,7 @@ export async function calculateLineReliability(
 
     // 4. Calculate Total Downtime
     let totalDowntimeMinutes = 0;
-    let numberOfFailures = failures.length;
+    const numberOfFailures = failures.length;
 
     failures.forEach(f => {
         if (f.ewo?.totalDowntimeMin) {

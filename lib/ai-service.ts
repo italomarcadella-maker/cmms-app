@@ -608,7 +608,7 @@ export async function parseHmiImageToSop(imageUrl: string, assetId: string) {
     ];
 
     // WOW FEATURE: Confronteremo questo risultato con l'ultima SOP approvata per la macchina.
-    let anomalies: any[] = [];
+    const anomalies: any[] = [];
 
     try {
         const lastSop = await prisma.sopDocument.findFirst({

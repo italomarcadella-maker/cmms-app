@@ -21,15 +21,7 @@ export default function AssetDetailsPage() {
 
     const asset = assets.find(a => a.id === params.id) || assets.find(a => a.id === decodeURIComponent(params.id as string));
 
-    if (!asset) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-                <h2 className="text-xl font-semibold">Asset Non Trovato</h2>
-                <p className="text-muted-foreground">L'asset con ID {params.id} non è stato trovato.</p>
-                <Link href="/assets" className="text-primary hover:underline flex items-center gap-1"><ArrowLeft className="h-4 w-4" /> Torna alla lista</Link>
-            </div>
-        )
-    }
+
 
     const [activeWOs, setActiveWOs] = useState<any[]>([]);
     const [showTagGenerator, setShowTagGenerator] = useState(false);
@@ -42,8 +34,18 @@ export default function AssetDetailsPage() {
         }
     }, [asset?.id]);
 
-    const assetWorkOrders = workOrders.filter(wo => wo.assetId === asset.id);
-    const assetUrl = typeof window !== 'undefined' ? `${window.location.origin}/assets/${asset.id}` : '';
+    const assetWorkOrders = workOrders.filter(wo => wo.assetId === asset?.id);
+    const assetUrl = typeof window !== 'undefined' ? `${window.location.origin}/assets/${asset?.id}` : '';
+
+    if (!asset) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+                <h2 className="text-xl font-semibold">Asset Non Trovato</h2>
+                <p className="text-muted-foreground">L'asset con ID {params.id} non è stato trovato.</p>
+                <Link href="/assets" className="text-primary hover:underline flex items-center gap-1"><ArrowLeft className="h-4 w-4" /> Torna alla lista</Link>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-10">

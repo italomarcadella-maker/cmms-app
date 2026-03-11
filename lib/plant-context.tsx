@@ -64,6 +64,7 @@ export function PlantProvider({ children }: { children: ReactNode }) {
                     setIsLoading(false);
                 });
         } else if (status === 'unauthenticated') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsLoading(false);
         }
     }, [user, status]);

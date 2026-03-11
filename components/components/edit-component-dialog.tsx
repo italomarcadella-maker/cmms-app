@@ -21,14 +21,16 @@ export function EditComponentDialog({ component, children }: { component: Compon
     // Update state when component updates or dialog opens
     useEffect(() => {
         if (open) {
-            setCode(component.code);
-            setModel(component.model);
-            setType(component.type);
-            setUsageType(component.usageType);
-            setManufacturer(component.manufacturer);
-            setWarehouse(component.warehouse);
-            setLocation(component.location);
-            setStatus(component.status);
+            setTimeout(() => {
+                setCode(component.code);
+                setModel(component.model);
+                setType(component.type);
+                setUsageType(component.usageType);
+                setManufacturer(component.manufacturer);
+                setWarehouse(component.warehouse);
+                setLocation(component.location);
+                setStatus(component.status);
+            }, 0);
         }
     }, [open, component]);
 

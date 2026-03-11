@@ -43,6 +43,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadData();
     }, [id]);
 

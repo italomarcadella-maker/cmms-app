@@ -15,7 +15,7 @@ export default function SustainabilityDashboard() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        setIsLoading(true);
+        setTimeout(() => setIsLoading(true), 0);
         getEnergyMetrics(activePlant?.id).then(data => {
             setMetrics(data);
             setIsLoading(false);

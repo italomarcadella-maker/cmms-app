@@ -35,12 +35,6 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
     const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
     const [firstDate, setFirstDate] = useState<Date | undefined>(new Date());
 
-    useEffect(() => {
-        if (open) {
-            loadData();
-        }
-    }, [open]);
-
     const loadData = async () => {
         const [assetsData, activitiesData] = await Promise.all([
             getAssets(),
@@ -52,6 +46,13 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
             category: a.category || undefined
         })));
     };
+
+    useEffect(() => {
+        if (open) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            loadData();
+        }
+    }, [open]);
 
     const handleFrequencyChange = (val: string) => {
         setFrequency(val);

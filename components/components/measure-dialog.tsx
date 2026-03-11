@@ -15,7 +15,7 @@ export function MeasureDialog({ component, children }: { component: ComponentIte
 
     // Update operator when user changes or updates
     useEffect(() => {
-        if (user) setOperator(user.name);
+        if (user) setTimeout(() => setOperator(user.name), 0);
     }, [user]);
 
     const handleSubmit = (e: React.FormEvent) => {

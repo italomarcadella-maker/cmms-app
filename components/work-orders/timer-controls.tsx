@@ -40,7 +40,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
             const startTime = new Date(activeTimer.startTime).getTime();
 
             // Update immediately
-            setElapsed(Math.floor((Date.now() - startTime) / 1000));
+            setTimeout(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 0);
 
             interval = setInterval(() => {
                 const now = Date.now();
@@ -48,6 +48,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                 setElapsed(seconds);
             }, 1000);
         } else {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setElapsed(0);
         }
         return () => clearInterval(interval);

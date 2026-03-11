@@ -20,7 +20,6 @@ export default function AssetsPage() {
     const { assets, addAsset, updateAsset } = useAssets();
     const { user } = useAuth(); // Auth context for role check
     const [search, setSearch] = useState("");
-    const [filteredAssets, setFilteredAssets] = useState<any[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedAsset, setSelectedAsset] = useState<any>(null); // Use selectedAsset for editing
     const [isQrOpen, setIsQrOpen] = useState(false);
@@ -36,11 +35,11 @@ export default function AssetsPage() {
 
     const [showGenerics, setShowGenerics] = useState(false);
 
-    useEffect(() => {
-        if (!assets) return;
+    const filteredAssets = (() => {
+        if (!assets) return [];
         const lowercasedSearch = search.toLowerCase();
 
-        const filtered = assets.filter((asset) => {
+        return assets.filter((asset) => {
             // 1. Text Search
             const matchesSearch =
                 asset.name.toLowerCase().includes(lowercasedSearch) ||
@@ -54,9 +53,7 @@ export default function AssetsPage() {
 
             return matchesSearch;
         });
-
-        setFilteredAssets(filtered);
-    }, [search, assets, showGenerics]);
+    })();
 
     const handleSaveAsset = (asset: any) => {
         if (asset.id && assets.some(a => a.id === asset.id)) {

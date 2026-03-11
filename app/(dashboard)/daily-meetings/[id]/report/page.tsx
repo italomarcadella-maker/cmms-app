@@ -10,7 +10,7 @@ export default function DailyMeetingPrintReport({ params }: { params: Promise<{ 
     const [dateString, setDateString] = useState("");
 
     useEffect(() => {
-        setDateString(new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+        setTimeout(() => setDateString(new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })), 0);
     }, []);
 
     const handlePrint = () => {

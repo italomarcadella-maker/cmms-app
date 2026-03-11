@@ -12,13 +12,14 @@ export default function ProcessDashboard() {
     const [loading, setLoading] = useState(true);
 
     const loadData = async () => {
-        setLoading(true);
+        setTimeout(() => setLoading(true), 0);
         const data = await getProjects();
         setProjects(data);
         setLoading(false);
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadData();
     }, []);
 

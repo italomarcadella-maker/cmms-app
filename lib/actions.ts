@@ -290,7 +290,7 @@ export const getAssets = unstable_cache(
 
 export async function importAssets(assets: any[]) {
     let count = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
     const { authorized } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message: "Unauthorized", count: 0, errors: ["Unauthorized"] };
 
@@ -392,7 +392,7 @@ export async function updateAsset(id: string, rawData: any) {
 
         const { plant, line, ...restData } = data;
 
-        let updatePayload: any = { ...restData };
+        const updatePayload: any = { ...restData };
         if (plant !== undefined) updatePayload.plantId = plant;
         if (line !== undefined) updatePayload.line = line;
 
@@ -1508,12 +1508,12 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
             // Auto-Regenerate Schedule if linked
             if (wo.originScheduleId && wo.originSchedule) {
                 const sched = wo.originSchedule;
-                let nextDate = new Date(); // Start from "Now" (completion time) or keep strict schedule?
+                const nextDate = new Date(); // Start from "Now" (completion time) or keep strict schedule?
                 // Usually strict schedule means next due = prev due + freq, but if late, we might want from completion.
                 // Let's settle on: Next Due = Today + Frequency Days (Reset clock)
 
                 // Calc days based on frequency or fallback
-                let daysToAdd = sched.frequencyDays;
+                const daysToAdd = sched.frequencyDays;
                 // We could look up RECURRENCE_OPTIONS map here, but frequencyDays is stored in DB for convenience.
 
                 nextDate.setDate(nextDate.getDate() + daysToAdd);
@@ -1900,7 +1900,7 @@ export async function completeWorkOrder(workOrderId: string, note?: string) {
 
 export async function importWorkOrders(workOrders: any[]) {
     let count = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
     for (const wo of workOrders) {
         try {
             if (!wo.title || !wo.assetName) continue;
@@ -2731,7 +2731,6 @@ const getAssetMaintenanceEventsCached = async (start: Date, end: Date) => {
                     ids: wo.id, // Legacy compatibility
                     assetId: wo.assetId,
                     assetName: wo.asset?.name || 'Unknown Asset',
-                    // @ts-ignore
                     line: wo.asset?.line || 'Nessuna Linea',
                     title: wo.title,
                     start: (wo.dueDate || wo.createdAt).toISOString(),
