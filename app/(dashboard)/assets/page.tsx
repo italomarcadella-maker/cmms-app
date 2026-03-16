@@ -30,7 +30,7 @@ export default function AssetsPage() {
     const [viewMode, setViewMode] = useState<'list' | 'tree'>('list');
 
     const defaultAsset = {
-        name: "", model: "", serialNumber: "", vendor: "", plant: "Main Plant", department: "", location: "", line: "", purchaseDate: "", status: "OPERATIONAL", healthScore: 100, lastMaintenance: "", cespite: ""
+        name: "", model: "", serialNumber: "", vendor: "", plant: "", department: "", location: "", line: "", purchaseDate: "", status: "OPERATIONAL", healthScore: 100, lastMaintenance: "", cespite: ""
     };
 
     const [showGenerics, setShowGenerics] = useState(false);

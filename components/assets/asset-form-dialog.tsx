@@ -15,7 +15,12 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
     const [plants, setPlants] = useState<any[]>([]);
 
     useEffect(() => {
-        setFormData(asset);
+        setFormData({
+            ...asset,
+            // Ensure the 'plant' field in form data is the ID, not the name, 
+            // so the <select> can match the correct <option value={p.id}>
+            plant: asset.plantId || asset.plant
+        });
     }, [asset]);
 
     useEffect(() => {

@@ -283,6 +283,7 @@ export const getAssets = unstable_cache(
             ...asset,
             purchaseDate: asset.purchaseDate ? asset.purchaseDate.toISOString().split('T')[0] : '',
             lastMaintenance: asset.lastMaintenance ? asset.lastMaintenance.toISOString().split('T')[0] : null,
+            plantId: asset.plantId,
             plant: asset.plant?.name || asset.plantId || 'Non Assegnato' // Map plant object to name for UI
         }));
     },
