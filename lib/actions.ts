@@ -1155,10 +1155,15 @@ export async function deleteSparePart(id: string) {
 // --- Components ---
 
 export async function getComponents() {
+    // Authorized for multiple roles
+    const { authorized } = await requireRole(['ADMIN', 'MAINTAINER', 'SUPERVISOR', 'PROCESS_ENGINEER']);
+    if (!authorized) return [];
     try { return await prisma.component.findMany({ include: { measurements: true }, orderBy: { purchaseDate: 'desc' } }); } catch (error) { return []; }
 }
 
 export async function addComponent(data: any) {
+    const { authorized } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    if (!authorized) return { success: false, message: 'Non autorizzato' };
     try {
         const newComp = await prisma.component.create({ data });
         return { success: true, message: 'Componente aggiunto', data: newComp };
@@ -1168,6 +1173,8 @@ export async function addComponent(data: any) {
 }
 
 export async function updateComponent(id: string, updates: any) {
+    const { authorized } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    if (!authorized) return { success: false, message: 'Non autorizzato' };
     try {
         const updated = await prisma.component.update({ where: { id }, data: updates });
         return { success: true, message: 'Componente aggiornato', data: updated };
@@ -1177,6 +1184,8 @@ export async function updateComponent(id: string, updates: any) {
 }
 
 export async function addMeasurement(componentId: string, measurement: { date: string | Date; value1: number; value2?: number; operator: string }) {
+    const { authorized } = await requireRole(['ADMIN', 'PROCESS_ENGINEER', 'MAINTAINER']);
+    if (!authorized) return { success: false, message: 'Non autorizzato' };
     try {
         const newMeas = await prisma.componentMeasurement.create({
             data: {

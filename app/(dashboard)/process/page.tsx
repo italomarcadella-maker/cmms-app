@@ -59,6 +59,12 @@ export default function ProcessDashboard() {
                 </div>
                 <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
                     <Link
+                        href="/screws"
+                        className="flex items-center gap-2 bg-amber-50 text-amber-700 px-5 py-2.5 rounded-xl font-semibold border border-amber-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+                    >
+                        <Settings className="h-4 w-4" /> Viti & Cilindri
+                    </Link>
+                    <Link
                         href="/process/sop"
                         className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-5 py-2.5 rounded-xl font-semibold border border-indigo-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
                     >

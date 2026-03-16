@@ -11,7 +11,8 @@ async function requireRole(role: string): Promise<{ authorized: boolean; message
         return { authorized: false, message: 'Non autenticato' };
     }
     // We can expand this to allow both ADMIN and SUPERVISOR to run process tasks
-    if (session.user.role !== role && session.user.role !== 'SUPERVISOR') {
+    const roles = ['ADMIN', 'SUPERVISOR', 'PROCESS_ENGINEER'];
+    if (!roles.includes(session.user.role)) {
         return { authorized: false, message: `Non autorizzato: Richiesto ruolo adeguato` };
     }
     return { authorized: true, session };
@@ -179,7 +180,7 @@ export async function getSopDocuments() {
 }
 
 export async function createSopDocument(data: { title: string, assetId: string, imageUrl: string, aiExtractedParameters: string, line?: string, product?: string }) {
-    const { authorized, session } = await requireRole('ADMIN');
+    const { authorized, session } = await requireRole('PROCESS_ENGINEER'); // Broadened to include Process Engineers
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
     try {
@@ -210,7 +211,7 @@ export async function getSOPsByAsset(assetId: string) {
 }
 
 export async function updateSopDocument(id: string, data: { title?: string, aiExtractedParameters?: string }) {
-    const { authorized } = await requireRole('ADMIN');
+    const { authorized } = await requireRole('PROCESS_ENGINEER');
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
     try {
