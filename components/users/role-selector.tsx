@@ -43,6 +43,7 @@ export function RoleSelector({ userId, currentRole }: RoleSelectorProps) {
             <SelectContent className="bg-white">
                 <SelectItem value="USER">User</SelectItem>
                 <SelectItem value="MAINTAINER">Maintainer</SelectItem>
+                <SelectItem value="PROCESS_ENGINEER">Ingegnere di Processo</SelectItem>
                 <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>
             </SelectContent>

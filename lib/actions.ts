@@ -14,15 +14,14 @@ import { assetSchema, workOrderSchema } from './validations';
 import { WorkOrderPriority, WorkOrderCategory } from "@prisma/client";
 // --- Authorization Helper ---
 
-async function requireRole(role: string): Promise<{ authorized: boolean; message?: string; session?: any }> {
+async function requireRole(role: string | string[]): Promise<{ authorized: boolean; message?: string; session?: any }> {
     const session = await auth();
     if (!session?.user) {
         return { authorized: false, message: 'Non autenticato' };
     }
-    // Strict Role Check or "At Least" logic could go here. 
-    // For now strict equality as per original code.
-    if (session.user.role !== role) {
-        return { authorized: false, message: `Non autorizzato: Richiesto ruolo ${role}` };
+    const roles = Array.isArray(role) ? role : [role];
+    if (!roles.includes(session.user.role)) {
+        return { authorized: false, message: `Non autorizzato: Richiesto ruolo ${roles.join(' o ')}` };
     }
     return { authorized: true, session };
 }
@@ -192,7 +191,7 @@ export async function updateUserStatus(userId: string, isActive: boolean) {
     }
 }
 
-export async function updateUser(userId: string, data: { name?: string; email?: string; department?: string; image?: string }) {
+export async function updateUser(userId: string, data: { name?: string; email?: string; department?: string; image?: string; role?: string }) {
     const { authorized, message } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
     try {
@@ -202,7 +201,8 @@ export async function updateUser(userId: string, data: { name?: string; email?: 
                 name: data.name,
                 email: data.email,
                 department: data.department,
-                image: data.image
+                image: data.image,
+                role: data.role as any
             }
         });
         revalidatePath('/users');
@@ -328,8 +328,8 @@ export async function deletePlant(id: string) {
 export async function importAssets(assets: any[]) {
     let count = 0;
     const errors: string[] = [];
-    const { authorized } = await requireRole('ADMIN');
-    if (!authorized) return { success: false, message: "Unauthorized", count: 0, errors: ["Unauthorized"] };
+    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    if (!authorized) return { success: false, message: message || "Unauthorized", count: 0, errors: ["Unauthorized"] };
 
     for (const asset of assets) {
         try {
@@ -367,7 +367,7 @@ export async function importAssets(assets: any[]) {
 }
 
 export async function addAsset(rawData: any) {
-    const { authorized, message } = await requireRole('ADMIN');
+    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
     if (!authorized) return { success: false, message };
 
     try {
@@ -410,7 +410,7 @@ export async function addAsset(rawData: any) {
 }
 
 export async function updateAsset(id: string, rawData: any) {
-    const { authorized, message } = await requireRole('ADMIN');
+    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
     if (!authorized) return { success: false, message };
 
     try {
@@ -1937,6 +1937,8 @@ export async function completeWorkOrder(workOrderId: string, note?: string) {
 
 
 export async function importWorkOrders(workOrders: any[]) {
+    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    if (!authorized) return { success: false, message: message || "Unauthorized", count: 0, errors: ["Unauthorized"] };
     let count = 0;
     const errors: string[] = [];
     for (const wo of workOrders) {
@@ -2384,6 +2386,8 @@ export async function addMeterReading(data: { meterId: string, value: number, da
 }
 
 export async function getAllMeterReadings() {
+    const { authorized } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    if (!authorized) return [];
     const readings = await prisma.meterReading.findMany({
         include: { meter: true },
         orderBy: { date: 'desc' }
@@ -2689,8 +2693,8 @@ export async function submitEWO(data: any) {
 }
 
 export async function getAdvancedKPIs() {
-    const session = await auth();
-    if (!session?.user) return null;
+    const { authorized } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    if (!authorized) return null;
 
     try {
         const ewos = await prisma.eWO.findMany({

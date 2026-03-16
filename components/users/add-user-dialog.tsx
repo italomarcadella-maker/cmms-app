@@ -140,6 +140,7 @@ export function AddUserDialog() {
                             <SelectContent>
                                 <SelectItem value="USER">User</SelectItem>
                                 <SelectItem value="MAINTAINER">Manutentore</SelectItem>
+                                <SelectItem value="PROCESS_ENGINEER">Ingegnere di Processo</SelectItem>
                                 <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
                                 <SelectItem value="ADMIN">Admin</SelectItem>
                             </SelectContent>

@@ -87,7 +87,7 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                     </SidebarGroup>
 
                     {/* Operational Section */}
-                    {(user?.role === 'MAINTAINER' || user?.role === 'SUPERVISOR' || user?.role === 'ADMIN') && (
+                    {(user?.role === 'MAINTAINER' || user?.role === 'SUPERVISOR' || user?.role === 'ADMIN' || user?.role === 'PROCESS_ENGINEER') && (
                         <SidebarGroup title="Operativo">
                             <SidebarItem href="/assets" icon={Box} label="Asset & Macchinari" active={isActive('/assets')} onClick={onNavigate} />
                             <SidebarItem href="/mobile/scan" icon={ScanLine} label="Scanner QR" active={isActive('/mobile/scan')} onClick={onNavigate} />
@@ -99,27 +99,35 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                     )}
 
                     {/* Supervision Section */}
-                    {(user?.role === 'SUPERVISOR' || user?.role === 'ADMIN') && (
+                    {(user?.role === 'SUPERVISOR' || user?.role === 'ADMIN' || user?.role === 'PROCESS_ENGINEER') && (
                         <SidebarGroup title="Supervisione">
                             <SidebarItem href="/daily-meetings" icon={Users} label="Daily Meetings" active={isActive('/daily-meetings')} onClick={onNavigate} />
                             <SidebarItem href="/process" icon={Settings} label="Ing. di Processo" active={isActive('/process')} onClick={onNavigate} />
-                            <SidebarItem href="/technicians/calendar" icon={Calendar} label="Calendario Turni" active={isActive('/technicians/calendar')} onClick={onNavigate} />
-                            <SidebarItem href="/technicians" icon={Users} label="Team Tecnico" active={isActive('/technicians')} onClick={onNavigate} />
-                            <SidebarItem href="/activities" icon={ListChecks} label="Attività" active={isActive('/activities')} onClick={onNavigate} />
-                            <SidebarItem href="/predictive" icon={BrainCircuit} label="AI Predittiva" active={isActive('/predictive')} onClick={onNavigate} />
+                            {(user?.role === 'SUPERVISOR' || user?.role === 'ADMIN') && (
+                                <>
+                                    <SidebarItem href="/technicians/calendar" icon={Calendar} label="Calendario Turni" active={isActive('/technicians/calendar')} onClick={onNavigate} />
+                                    <SidebarItem href="/technicians" icon={Users} label="Team Tecnico" active={isActive('/technicians')} onClick={onNavigate} />
+                                    <SidebarItem href="/activities" icon={ListChecks} label="Attività" active={isActive('/activities')} onClick={onNavigate} />
+                                    <SidebarItem href="/predictive" icon={BrainCircuit} label="AI Predittiva" active={isActive('/predictive')} onClick={onNavigate} />
+                                </>
+                            )}
                             <SidebarItem href="/sustainability" icon={Leaf} label="Sostenibilità" active={isActive('/sustainability')} onClick={onNavigate} />
                         </SidebarGroup>
                     )}
 
                     {/* Admin Section */}
-                    {user?.role === 'ADMIN' && (
+                    {(user?.role === 'ADMIN' || user?.role === 'PROCESS_ENGINEER') && (
                         <SidebarGroup title="Amministrazione">
                             <SidebarItem href="/kpi" icon={BarChart3} label="KPI & Report" active={isActive('/kpi')} onClick={onNavigate} />
                             <SidebarItem href="/costs" icon={ReceiptEuro} label="Analisi Costi" active={isActive('/costs')} onClick={onNavigate} />
-                            <SidebarItem href="/users" icon={Users} label="Utenti" active={isActive('/users')} onClick={onNavigate} />
+                            {user?.role === 'ADMIN' && <SidebarItem href="/users" icon={Users} label="Utenti" active={isActive('/users')} onClick={onNavigate} />}
                             <SidebarItem href="/exports" icon={FileDown} label="Export Dati" active={isActive('/exports')} onClick={onNavigate} />
-                            <SidebarItem href="/plants" icon={Factory} label="Stabilimenti" active={isActive('/plants')} onClick={onNavigate} />
-                            <SidebarItem href="/settings" icon={Settings} label="Impostazioni" active={isActive('/settings')} onClick={onNavigate} />
+                            {user?.role === 'ADMIN' && (
+                                <>
+                                    <SidebarItem href="/plants" icon={Factory} label="Stabilimenti" active={isActive('/plants')} onClick={onNavigate} />
+                                    <SidebarItem href="/settings" icon={Settings} label="Impostazioni" active={isActive('/settings')} onClick={onNavigate} />
+                                </>
+                            )}
                         </SidebarGroup>
                     )}
                 </div>

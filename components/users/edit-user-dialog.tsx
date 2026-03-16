@@ -31,6 +31,7 @@ interface EditUserDialogProps {
         email: string | null;
         department?: string;
         image?: string;
+        role: string;
     };
 }
 
@@ -43,6 +44,7 @@ export function EditUserDialog({ user }: EditUserDialogProps) {
     const [email, setEmail] = useState(user.email || '');
     const [department, setDepartment] = useState(user.department || '');
     const [image, setImage] = useState(user.image || '');
+    const [role, setRole] = useState(user.role);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,7 +55,8 @@ export function EditUserDialog({ user }: EditUserDialogProps) {
                 name,
                 email,
                 department,
-                image
+                image,
+                role
             });
 
             if (result.success) {
@@ -124,6 +127,23 @@ export function EditUserDialog({ user }: EditUserDialogProps) {
                                 <SelectItem value="Ufficio Tecnico">Ufficio Tecnico</SelectItem>
                                 <SelectItem value="Amministrazione">Amministrazione</SelectItem>
                                 <SelectItem value="Altro">Altro</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="role" className="text-right">
+                            Ruolo
+                        </Label>
+                        <Select value={role} onValueChange={setRole}>
+                            <SelectTrigger className="col-span-3">
+                                <SelectValue placeholder="Seleziona Ruolo" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white">
+                                <SelectItem value="USER">User</SelectItem>
+                                <SelectItem value="MAINTAINER">Manutentore</SelectItem>
+                                <SelectItem value="PROCESS_ENGINEER">Ingegnere di Processo</SelectItem>
+                                <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
+                                <SelectItem value="ADMIN">Admin</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

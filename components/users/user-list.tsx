@@ -111,7 +111,8 @@ export function UserList({ users }: UserListProps) {
                                         name: user.name,
                                         email: user.email,
                                         department: user.department || undefined,
-                                        image: user.image || undefined
+                                        image: user.image || undefined,
+                                        role: user.role
                                     }} />
                                     <ChangePasswordDialog userId={user.id} userName={user.name || user.email || 'Utente'} />
                                     <DeleteUserDialog userId={user.id} userName={user.name || user.email || 'Utente'} />

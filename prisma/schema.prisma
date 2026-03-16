@@ -11,6 +11,7 @@ generator client {
 
 enum UserRole {
   ADMIN
+  PROCESS_ENGINEER
   SUPERVISOR
   MAINTAINER
   USER

@@ -13,7 +13,7 @@ import { generateAIResponse } from "@/lib/ai-service";
 interface Message {
     id: string;
     sender: string;
-    role: "USER" | "TECHNICIAN" | "SUPERVISOR" | "SYSTEM";
+    role: "USER" | "TECHNICIAN" | "SUPERVISOR" | "SYSTEM" | "PROCESS_ENGINEER";
     content: string;
     timestamp: string;
     isRead: boolean;

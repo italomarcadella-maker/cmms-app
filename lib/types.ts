@@ -107,7 +107,7 @@ export interface WorkOrderTimer {
     note: string | null;
 }
 
-export type UserRole = 'ADMIN' | 'SUPERVISOR' | 'MAINTAINER' | 'USER';
+export type UserRole = 'ADMIN' | 'PROCESS_ENGINEER' | 'SUPERVISOR' | 'MAINTAINER' | 'USER';
 
 export interface User {
     id: string;
