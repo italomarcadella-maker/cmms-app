@@ -275,11 +275,15 @@ export const getDashboardStats = unstable_cache(
 
 export const getAssets = unstable_cache(
     async () => {
-        const assets = await prisma.asset.findMany({ orderBy: { name: 'asc' } });
+        const assets = await prisma.asset.findMany({ 
+            include: { plant: true },
+            orderBy: { name: 'asc' } 
+        });
         return assets.map((asset: any) => ({
             ...asset,
             purchaseDate: asset.purchaseDate ? asset.purchaseDate.toISOString().split('T')[0] : '',
             lastMaintenance: asset.lastMaintenance ? asset.lastMaintenance.toISOString().split('T')[0] : null,
+            plant: asset.plant?.name || asset.plantId || 'Non Assegnato' // Map plant object to name for UI
         }));
     },
     ['all-assets'],
