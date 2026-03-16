@@ -50,12 +50,30 @@ export async function getEnergyMetrics(plantId?: string) {
         const baselineKwh = averageKwh * 1.15; // Assumption: we improved by 15%
         const savingsPercent = ((baselineKwh - averageKwh) / baselineKwh) * 100;
 
+        // NEW: Sustainability Score (0-100)
+        let sustainabilityScore = 75; // Base score
+        if (savingsPercent > 10) sustainabilityScore += 15;
+        else if (savingsPercent > 5) sustainabilityScore += 5;
+        else if (savingsPercent < 0) sustainabilityScore -= 10;
+        
+        // Cap score
+        sustainabilityScore = Math.min(100, Math.max(0, sustainabilityScore));
+
+        // NEW: Estimated Costs (Fallback factors)
+        const costs = {
+            electricity: totalKwh * 0.22, // €/kWh
+            co2: totalCo2 * 0.05,        // Potential carbon tax simulator
+            total: (totalKwh * 0.22)
+        };
+
         return {
             chartData,
             totalKwh,
             totalCo2,
             averageKwh,
-            savingsPercent
+            savingsPercent,
+            sustainabilityScore,
+            estimatedCosts: costs
         };
     } catch (error) {
         console.error("Failed to fetch energy metrics:", error);
