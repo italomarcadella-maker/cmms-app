@@ -598,68 +598,113 @@ export async function parseHmiImageToSop(imageUrl: string, assetId: string) {
 
     // Contenuto "finto" estratto dall'immagine
     // Generiamo parametri realistici tipici di una ricetta di estrusione o stampaggio
-    const extractedParameters = [
-        // Modulo Riscaldamento / Estrusore
-        { label: "Temperatura Zona 1", value: 185, unit: "°C", tolerance: 5 },
-        { label: "Temperatura Zona 2", value: 190, unit: "°C", tolerance: 5 },
-        { label: "Temperatura Zona 3", value: 195, unit: "°C", tolerance: 5 },
-        { label: "Temperatura Zona 4", value: 200, unit: "°C", tolerance: 5 },
-        { label: "Temperatura Zona 5", value: 205, unit: "°C", tolerance: 5 },
-        { label: "Temperatura Flangia", value: 200, unit: "°C", tolerance: 2 },
-        { label: "Temperatura Filtro", value: 200, unit: "°C", tolerance: 2 },
-        { label: "Temperatura Testa", value: 210, unit: "°C", tolerance: 2 },
-        { label: "Pressione Melt", value: 150, unit: "bar", tolerance: 10 },
-        { label: "Allarme Limite Pressione", value: 180, unit: "bar", tolerance: 0 },
-        { label: "Giri Coclea 1", value: 45, unit: "rpm", tolerance: 2 },
-        { label: "Coppia Motore 1", value: 65, unit: "%", tolerance: 5 },
-        { label: "Giri Coclea 2", value: 42, unit: "rpm", tolerance: 2 },
-        { label: "Coppia Motore 2", value: 60, unit: "%", tolerance: 5 },
-        { label: "Raffreddamento Settore 1", value: 15, unit: "l/min", tolerance: 1 },
-        { label: "Raffreddamento Settore 2", value: 15, unit: "l/min", tolerance: 1 },
-        { label: "Vuoto Pompa di Degasaggio", value: -0.8, unit: "bar", tolerance: 0.1 },
-        { label: "Amperaggio Estrusore", value: 120, unit: "A", tolerance: 5 },
-        
-        // Modulo Testa / Calibrazione
-        { label: "Spessore Nominale Raggio X", value: 2.5, unit: "mm", tolerance: 0.1 },
-        { label: "Set Velocità Pompa Ingranaggi", value: 30, unit: "rpm", tolerance: 1 },
-        { label: "Temp. Acqua Calibratore 1", value: 15, unit: "°C", tolerance: 2 },
-        { label: "Temp. Acqua Calibratore 2", value: 20, unit: "°C", tolerance: 2 },
-        { label: "Pressione Vuoto Calibratore 1", value: -0.2, unit: "bar", tolerance: 0.05 },
-        { label: "Pressione Vuoto Calibratore 2", value: -0.15, unit: "bar", tolerance: 0.05 },
-        { label: "Quota Vasca", value: 50, unit: "mm", tolerance: 5 },
-        
-        // Modulo Traino
-        { label: "Velocità Traino 1", value: 12.5, unit: "m/min", tolerance: 0.2 },
-        { label: "Pressione Rulli Traino 1", value: 4.0, unit: "bar", tolerance: 0.5 },
-        { label: "Tensione Cinghia Sup.", value: 50, unit: "%", tolerance: 5 },
-        { label: "Tensione Cinghia Inf.", value: 50, unit: "%", tolerance: 5 },
-        { label: "Apertura Rulli Traino", value: 25.0, unit: "mm", tolerance: 0.5 },
-        { label: "Sincro Estrusore/Traino", value: 85, unit: "%", tolerance: 2 },
-        { label: "Camber Rullo", value: 0.0, unit: "mm", tolerance: 0.1 },
-        
-        // Modulo Forno / Ricottura
-        { label: "Temp. Forno Zona 1", value: 120, unit: "°C", tolerance: 4 },
-        { label: "Temp. Forno Zona 2", value: 130, unit: "°C", tolerance: 4 },
-        { label: "Temp. Forno Zona 3", value: 140, unit: "°C", tolerance: 4 },
-        { label: "Flusso Aria Calda", value: 80, unit: "%", tolerance: 5 },
-        { label: "Velocità Ventola Ricircolo", value: 1500, unit: "rpm", tolerance: 50 },
-        { label: "Tensione Materiale Forno", value: 1.5, unit: "kg", tolerance: 0.2 },
-        
-        // Modulo Taglio / Avvolgimento
-        { label: "Lunghezza di Taglio", value: 3000, unit: "mm", tolerance: 5 },
-        { label: "Velocità Lama Tagliarina", value: 2800, unit: "rpm", tolerance: 100 },
-        { label: "Avanzamento Lama", value: 0.5, unit: "m/s", tolerance: 0.05 },
-        { label: "Soffio Scarico", value: 2.0, unit: "s", tolerance: 0.2 },
-        { label: "Tiro Bobina 1", value: 45, unit: "N", tolerance: 2 },
-        { label: "Tiro Bobina 2", value: 45, unit: "N", tolerance: 2 },
-        { label: "Taper Tension", value: 15, unit: "%", tolerance: 1 },
-        { label: "Pressione Braccio Ballerino", value: 2.5, unit: "bar", tolerance: 0.2 },
-        { label: "Diametro Finale Bobina", value: 800, unit: "mm", tolerance: 10 },
-        { label: "Allon. Rullo Pressore", value: 10, unit: "mm", tolerance: 1 },
-        
-        // Generale
-        { label: "Target Produzione Oraria", value: 450, unit: "kg/h", tolerance: 20 }
+    // Contenuto "finto" estratto dall'immagine
+    // Generiamo ~150 parametri realistici divisi per categorie
+    const categories = [
+        { name: "Estrusore Principale", count: 25 },
+        { name: "Co-Estrusore A", count: 15 },
+        { name: "Co-Estrusore B", count: 15 },
+        { name: "Dosaggio e Gravimetria", count: 20 },
+        { name: "Testa e Filtro", count: 15 },
+        { name: "Calibrazione e Vuoto", count: 15 },
+        { name: "Traino e Tensionamento", count: 15 },
+        { name: "Raffreddamento vasche", count: 10 },
+        { name: "Taglio e Scarico", count: 10 },
+        { name: "Parametri Qualità Linea", count: 10 }
     ];
+
+    const extractedParameters: any[] = [];
+
+    // Helper to generate ranges
+    const gen = (label: string, value: number, unit: string, tol: number, cat: string) => {
+        extractedParameters.push({ label, value, unit, tolerance: tol, category: cat });
+    };
+
+    // 1. Estrusore Principale (CAT: Heating & Drive)
+    for(let i=1; i<=12; i++) gen(`Temp. Cilindro Zona ${i}`, 180 + (i*2), "°C", 5, "Estrusore Principale");
+    gen("Temp. Flangia", 205, "°C", 3, "Estrusore Principale");
+    gen("Temp. Collo", 210, "°C", 3, "Estrusore Principale");
+    gen("Velocità Vite", 48.5, "rpm", 0.5, "Estrusore Principale");
+    gen("Assorbimento Motore", 145, "A", 10, "Estrusore Principale");
+    gen("Coppia (%)", 68, "%", 5, "Estrusore Principale");
+    gen("Pressione Melt", 240, "bar", 10, "Estrusore Principale");
+    gen("Temp. Melt", 215, "°C", 5, "Estrusore Principale");
+    gen("Carico Alimentazione", 85, "%", 2, "Estrusore Principale");
+    gen("Ventilazione Zona 1-3", 40, "%", 5, "Estrusore Principale");
+    gen("Ventilazione Zona 4-8", 60, "%", 5, "Estrusore Principale");
+
+    // 2. Co-Estrusore A (CAT: Side Feed)
+    for(let i=1; i<=6; i++) gen(`Co-Ex A: Temp. Zona ${i}`, 190 + i, "°C", 5, "Co-Estrusore A");
+    gen("Co-Ex A: Velocità", 22.0, "rpm", 1, "Co-Estrusore A");
+    gen("Co-Ex A: Coppia", 45, "%", 5, "Co-Estrusore A");
+    gen("Co-Ex A: Pressione", 120, "bar", 10, "Co-Estrusore A");
+    for(let i=1; i<=6; i++) gen(`Co-Ex A: Vent. Zona ${i}`, 30, "%", 5, "Co-Estrusore A");
+
+    // 3. Co-Estrusore B
+    for(let i=1; i<=6; i++) gen(`Co-Ex B: Temp. Zona ${i}`, 195 - i, "°C", 5, "Co-Estrusore B");
+    gen("Co-Ex B: Velocità", 18.5, "rpm", 1, "Co-Estrusore B");
+    gen("Co-Ex B: Coppia", 52, "%", 5, "Co-Estrusore B");
+    gen("Co-Ex B: Pressione", 135, "bar", 10, "Co-Estrusore B");
+    for(let i=1; i<=6; i++) gen(`Co-Ex B: Vent. Zona ${i}`, 35, "%", 5, "Co-Estrusore B");
+
+    // 4. Dosaggio e Gravimetria
+    gen("Portata Totale Target", 450, "kg/h", 5, "Dosaggio e Gravimetria");
+    gen("Portata Reale", 448.5, "kg/h", 2, "Dosaggio e Gravimetria");
+    gen("Dosatore 1 (Master)", 2.5, "%", 0.1, "Dosaggio e Gravimetria");
+    gen("Dosatore 2 (Additivo)", 1.2, "%", 0.05, "Dosaggio e Gravimetria");
+    gen("Dosatore 3 (Regenerato)", 15.0, "%", 0.5, "Dosaggio e Gravimetria");
+    gen("Dosatore 4 (Vergine)", 81.3, "%", 0.5, "Dosaggio e Gravimetria");
+    for(let i=1; i<=8; i++) gen(`Consumo Componente ${i}`, 12.5 + i, "kg/h", 1, "Dosaggio e Gravimetria");
+    gen("Errore Dosaggio Cumulativo", 0.02, "%", 0.01, "Dosaggio e Gravimetria");
+    gen("Livello Tramoggia", 75, "%", 5, "Dosaggio e Gravimetria");
+    gen("Velocità Mixer", 120, "rpm", 10, "Dosaggio e Gravimetria");
+
+    // 5. Testa e Filtro
+    for(let i=1; i<=8; i++) gen(`Temp. Bullone Termico ${i}`, 210, "°C", 2, "Testa e Filtro");
+    gen("Temp. Testa DX", 215, "°C", 2, "Testa e Filtro");
+    gen("Temp. Testa SX", 215, "°C", 2, "Testa e Filtro");
+    gen("Temp. Cuore", 208, "°C", 2, "Testa e Filtro");
+    gen("Delta P Filtro", 15, "bar", 5, "Testa e Filtro");
+    gen("Posizione Cambiafiltro", 0, "mm", 0, "Testa e Filtro");
+    gen("Temp. Olio Centralina", 45, "°C", 5, "Testa e Filtro");
+
+    // 6. Calibrazione e Vuoto
+    for(let i=1; i<=6; i++) gen(`Pompa Vuoto ${i} Power`, 80, "%", 5, "Calibrazione e Vuoto");
+    for(let i=1; i<=6; i++) gen(`Livello Vuoto ${i}`, -0.6, "bar", 0.05, "Calibrazione e Vuoto");
+    gen("Temp. Acqua Ingresso", 14.5, "°C", 1, "Calibrazione e Vuoto");
+    gen("Portata Acqua Totale", 120, "l/min", 10, "Calibrazione e Vuoto");
+    gen("Posizione Calibratore", 1250, "mm", 5, "Calibrazione e Vuoto");
+
+    // 7. Traino e Tensionamento
+    gen("Velocità Traino", 12.4, "m/min", 0.1, "Traino e Tensionamento");
+    gen("Sincronismo (%)", 100.2, "%", 0.1, "Traino e Tensionamento");
+    gen("Pressione Cingoli", 4.5, "bar", 0.2, "Traino e Tensionamento");
+    gen("Coppia Motore Traino", 35, "%", 5, "Traino e Tensionamento");
+    gen("Distanza Rulli Guida", 200, "mm", 1, "Traino e Tensionamento");
+    for(let i=1; i<=10; i++) gen(`Tensione Settore ${i}`, 15 + i, "N", 2, "Traino e Tensionamento");
+
+    // 8. Raffreddamento vasche
+    for(let i=1; i<=6; i++) {
+        gen(`Temp. Vasca ${i}`, 15 + i, "°C", 2, "Raffreddamento vasche");
+        gen(`Livello Vasca ${i}`, 95, "%", 2, "Raffreddamento vasche");
+    }
+
+    // 9. Taglio e Scarico
+    gen("Lunghezza Taglio", 6000, "mm", 2, "Taglio e Scarico");
+    gen("Velocità Lama", 2800, "rpm", 50, "Taglio e Scarico");
+    gen("Avanzamento Carro", 1.2, "m/s", 0.1, "Taglio e Scarico");
+    gen("Pressione Morse", 6.0, "bar", 0.5, "Taglio e Scarico");
+    gen("Conteggio Pezzi", 1240, "pcs", 0, "Taglio e Scarico");
+    gen("Tempo Ciclo Taglio", 4.2, "s", 0.1, "Taglio e Scarico");
+    gen("Posizione Ribaltatore", 0, "deg", 0, "Taglio e Scarico");
+
+    // 10. Parametri Qualità Linea (Ultrasonico / Laser)
+    gen("Diametro Esterno Medio", 110.2, "mm", 0.2, "Parametri Qualità Linea");
+    gen("Ovalizzazione", 0.15, "mm", 0.1, "Parametri Qualità Linea");
+    gen("Spessore Minimo", 5.2, "mm", 0.1, "Parametri Qualità Linea");
+    gen("Spessore Massimo", 5.6, "mm", 0.1, "Parametri Qualità Linea");
+    for(let i=1; i<=8; i++) gen(`Spessore Punto ${i}`, 5.4, "mm", 0.2, "Parametri Qualità Linea");
+    gen("Grammatura (g/m)", 1850, "g/m", 20, "Parametri Qualità Linea");
 
     // WOW FEATURE: Confronteremo questo risultato con l'ultima SOP approvata per la macchina.
     const anomalies: any[] = [];

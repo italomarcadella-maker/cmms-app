@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { getAssets } from "@/lib/actions";
 import { createSopDocument } from "@/lib/process-actions";
 import { parseHmiImageToSop } from "@/lib/ai-service";
-import { Camera, Upload, ScanLine, FileCheck2, AlertTriangle, ArrowRight, Save, LayoutGrid } from "lucide-react";
+import { Camera, Upload, ScanLine, FileCheck2, AlertTriangle, ArrowRight, Save, LayoutGrid, Search, Filter, ChevronDown, ChevronRight, Settings } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,8 @@ export default function SOPBuilder() {
     // Context Data
     const [line, setLine] = useState("");
     const [product, setProduct] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,6 +84,15 @@ export default function SOPBuilder() {
             setSopTitle(result.detectedTitle);
             setParameters(result.parameters);
             setAnomalies(result.anomalies || []);
+            
+            // Auto-expand categories with anomalies
+            const initialExpanded: Record<string, boolean> = {};
+            const cats = new Set(result.parameters.map((p: any) => p.category));
+            cats.forEach(c => {
+                initialExpanded[c as string] = true;
+            });
+            setExpandedCategories(initialExpanded);
+            
             setScanComplete(true);
         } catch (e) {
             console.error(e);
@@ -116,6 +127,21 @@ export default function SOPBuilder() {
             alert(res.message);
         }
     };
+
+    const toggleCategory = (cat: string) => {
+        setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
+    };
+
+    const filteredParameters = parameters.filter(p => 
+        p.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        p.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const groupedParameters = filteredParameters.reduce((acc: Record<string, any[]>, param) => {
+        if (!acc[param.category]) acc[param.category] = [];
+        acc[param.category].push(param);
+        return acc;
+    }, {});
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
@@ -322,47 +348,97 @@ export default function SOPBuilder() {
                             )}
 
                             <div className="p-6">
-                                <input
-                                    type="text"
-                                    value={sopTitle}
-                                    onChange={e => setSopTitle(e.target.value)}
-                                    className="text-xl font-bold text-slate-800 border-none outline-none focus:ring-0 p-0 w-full mb-6 bg-transparent"
-                                    placeholder="Nome SOP / Ricetta"
-                                />
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                                    <input
+                                        type="text"
+                                        value={sopTitle}
+                                        onChange={e => setSopTitle(e.target.value)}
+                                        className="text-xl font-bold text-slate-800 border-none outline-none focus:ring-0 p-0 bg-transparent flex-1"
+                                        placeholder="Nome SOP / Ricetta"
+                                    />
+                                    <div className="relative w-full md:w-64">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Cerca parametro..."
+                                            value={searchTerm}
+                                            onChange={e => setSearchTerm(e.target.value)}
+                                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-fuchsia-500 focus:ring-fuchsia-500 transition-all shadow-sm"
+                                        />
+                                    </div>
+                                </div>
 
-                                <div className="space-y-3">
-                                    <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider px-2">
+                                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                                    <div className="bg-slate-50 grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 py-3 border-b border-slate-200">
                                         <div className="col-span-6">Parametro</div>
-                                        <div className="col-span-3 text-center">Valore ({parameters[0]?.unit || '-'})</div>
+                                        <div className="col-span-3 text-center">Valore</div>
                                         <div className="col-span-3 text-center">Toll. (±)</div>
                                     </div>
 
-                                    {parameters.map((param, index) => (
-                                        <div key={index} className="grid grid-cols-12 gap-2 items-center bg-slate-50 hover:bg-slate-100 transition-colors p-2 rounded-xl border border-slate-100">
-                                            <div className="col-span-6 font-medium text-slate-700">{param.label}</div>
-                                            <div className="col-span-3">
-                                                <input
-                                                    type="number"
-                                                    value={param.value}
-                                                    onChange={e => handleParameterChange(index, "value", Number(e.target.value))}
-                                                    className="w-full text-center border-slate-200 rounded-lg p-2 focus:ring-fuchsia-500 font-mono text-sm shadow-inner"
-                                                />
+                                    <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
+                                        {Object.entries(groupedParameters).length === 0 ? (
+                                            <div className="p-8 text-center text-slate-400 text-sm italic">
+                                                Nessun parametro trovato per "{searchTerm}"
                                             </div>
-                                            <div className="col-span-3">
-                                                <input
-                                                    type="number"
-                                                    value={param.tolerance}
-                                                    onChange={e => handleParameterChange(index, "tolerance", Number(e.target.value))}
-                                                    className="w-full text-center border-slate-200 rounded-lg p-2 focus:ring-fuchsia-500 font-mono text-sm bg-white"
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ) : (
+                                            Object.entries(groupedParameters).map(([category, items]: [string, any[]]) => (
+                                                <div key={category} className="border-b border-slate-100 last:border-0">
+                                                    <button
+                                                        onClick={() => toggleCategory(category)}
+                                                        className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50/50 hover:bg-slate-100/80 transition-colors text-left"
+                                                    >
+                                                        <span className="text-xs font-bold text-slate-600 flex items-center gap-2">
+                                                            {expandedCategories[category] ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                                                            {category}
+                                                            <span className="bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded-full text-[9px]">{items.length}</span>
+                                                        </span>
+                                                    </button>
+                                                    
+                                                    {expandedCategories[category] && (
+                                                        <div className="divide-y divide-slate-50 animate-in slide-in-from-top-1 duration-200">
+                                                            {items.map((param, idx) => {
+                                                                const globalIdx = parameters.findIndex(p => p.label === param.label);
+                                                                const hasAnomaly = anomalies.some(a => a.label === param.label);
+                                                                
+                                                                return (
+                                                                    <div key={idx} className={cn("grid grid-cols-12 gap-2 items-center px-4 py-2 hover:bg-fuchsia-50/30 transition-colors", hasAnomaly && "bg-orange-50/40")}>
+                                                                        <div className="col-span-6">
+                                                                            <div className="text-sm font-medium text-slate-700 truncate" title={param.label}>{param.label}</div>
+                                                                            <div className="text-[10px] text-slate-400 uppercase font-mono">{param.unit}</div>
+                                                                        </div>
+                                                                        <div className="col-span-3">
+                                                                            <input
+                                                                                type="number"
+                                                                                value={param.value}
+                                                                                onChange={e => handleParameterChange(globalIdx, "value", Number(e.target.value))}
+                                                                                className={cn(
+                                                                                    "w-full text-center border-slate-200 rounded-lg py-1 px-1 focus:ring-fuchsia-500 font-mono text-sm shadow-sm",
+                                                                                    hasAnomaly ? "border-orange-300 bg-orange-50 text-orange-700" : "bg-white"
+                                                                                )}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="col-span-3">
+                                                                            <input
+                                                                                type="number"
+                                                                                value={param.tolerance}
+                                                                                onChange={e => handleParameterChange(globalIdx, "tolerance", Number(e.target.value))}
+                                                                                className="w-full text-center border-slate-200 rounded-lg py-1 px-1 focus:ring-fuchsia-500 font-mono text-xs bg-slate-50 text-slate-500"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
 
                                 <button
                                     onClick={handleSaveSOP}
-                                    className="w-full mt-8 bg-slate-900 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors shadow-lg"
+                                    className="w-full mt-8 bg-slate-900 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200"
                                 >
                                     <Save className="h-5 w-5" /> Salva come Standard SOP
                                 </button>
