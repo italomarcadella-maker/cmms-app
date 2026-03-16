@@ -296,6 +296,28 @@ export async function getPlants() {
     }
 }
 
+export async function addPlant(data: { name: string; location?: string }) {
+    try {
+        const newPlant = await prisma.plant.create({ data });
+        revalidatePath('/assets');
+        revalidatePath('/plants');
+        return { success: true, data: newPlant };
+    } catch (error) {
+        return { success: false, message: "Errore aggiunta stabilimento" };
+    }
+}
+
+export async function deletePlant(id: string) {
+    try {
+        await prisma.plant.delete({ where: { id } });
+        revalidatePath('/assets');
+        revalidatePath('/plants');
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: "Errore eliminazione stabilimento. Assicurati che non ci siano asset collegati." };
+    }
+}
+
 
 
 export async function importAssets(assets: any[]) {

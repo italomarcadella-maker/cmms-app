@@ -7,6 +7,7 @@ import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripH
 import Link from "next/link";
 import { format, addDays, getDaysInMonth, startOfMonth, differenceInDays } from "date-fns";
 import { it } from "date-fns/locale";
+import { toast } from "sonner";
 import { DndContext, useDraggable, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 
 interface GanttTask {
@@ -134,14 +135,14 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
         const task = active.data.current?.task;
         if (!task) return;
 
-        // Calculate days shifted
-        // We know the container for the tracks has a certain width. 
-        // We can estimate the pixel-to-day ratio based on the 30-day window.
-        // The container usually fills the space after the 192px sidebar (w-48).
         const container = document.getElementById("gantt-container");
         if (!container) return;
         
-        const trackWidth = container.offsetWidth - 192; // ml-48 is 12rem = 192px
+        // ML-48 is 12rem. In Tailwind 1rem = 16px usually, but let's be safer with getBoundingClientRect if possible
+        const innerContainer = container.querySelector(".min-w-\\[800px\\]");
+        if (!innerContainer) return;
+        
+        const trackWidth = innerContainer.clientWidth - 192; 
         const pixelsPerDay = trackWidth / daysWindow;
         const daysShifted = Math.round(delta.x / pixelsPerDay);
 
@@ -150,8 +151,23 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
         const newStart = addDays(new Date(task.startDate), daysShifted);
         const newEnd = addDays(new Date(task.endDate), daysShifted);
 
-        await updateTaskDates(task.id, newStart, newEnd, id);
-        loadData();
+        // Optimistic update
+        setProject((prev: any) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                tasks: prev.tasks.map((t: any) => 
+                    t.id === task.id ? { ...t, startDate: newStart, endDate: newEnd } : t
+                )
+            };
+        });
+
+        try {
+            await updateTaskDates(task.id, newStart, newEnd, id);
+        } catch (error) {
+            toast.error("Errore salvataggio date");
+            loadData(); // Revert on failure
+        }
     };
 
     if (loading) return <div className="p-8 text-center animate-pulse">Caricamento Progetto...</div>;

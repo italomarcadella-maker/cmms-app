@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { getSopDocuments } from "@/lib/process-actions";
-import { FileCheck2, Filter, Search, Factory, ScanLine } from "lucide-react";
+import { FileCheck2, Filter, Search, Factory, ScanLine, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -50,6 +50,9 @@ export default function SOPArchivePage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
                 <div>
+                    <Link href="/process" className="text-sm font-medium text-slate-500 hover:text-indigo-600 flex items-center gap-1 mb-2 group">
+                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Torna a Dashboard Processo
+                    </Link>
                     <h1 className="text-3xl font-extrabold text-slate-800 flex items-center gap-3">
                         <FileCheck2 className="h-8 w-8 text-indigo-600" />
                         Archivio SOP & Ricette

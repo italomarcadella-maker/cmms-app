@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Package, ClipboardList, Settings, ListChecks, Users, Box, BarChart3, Calendar, ReceiptEuro, Cylinder, CalendarDays, BrainCircuit, FileDown, Gauge, Inbox, PlusCircle, LucideIcon, ScanLine, Leaf } from 'lucide-react';
+import { LayoutDashboard, Package, ClipboardList, Settings, ListChecks, Users, Box, BarChart3, Calendar, ReceiptEuro, Cylinder, CalendarDays, BrainCircuit, FileDown, Gauge, Inbox, PlusCircle, LucideIcon, ScanLine, Leaf, Factory } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -118,6 +118,7 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                             <SidebarItem href="/costs" icon={ReceiptEuro} label="Analisi Costi" active={isActive('/costs')} onClick={onNavigate} />
                             <SidebarItem href="/users" icon={Users} label="Utenti" active={isActive('/users')} onClick={onNavigate} />
                             <SidebarItem href="/exports" icon={FileDown} label="Export Dati" active={isActive('/exports')} onClick={onNavigate} />
+                            <SidebarItem href="/plants" icon={Factory} label="Stabilimenti" active={isActive('/plants')} onClick={onNavigate} />
                             <SidebarItem href="/settings" icon={Settings} label="Impostazioni" active={isActive('/settings')} onClick={onNavigate} />
                         </SidebarGroup>
                     )}

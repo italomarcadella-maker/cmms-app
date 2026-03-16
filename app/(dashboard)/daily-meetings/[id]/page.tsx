@@ -11,7 +11,9 @@ import { Textarea } from "@/components/ui/text-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldCheck, AlertTriangle, Activity, Wrench, ChevronLeft, ChevronRight, Save, Play, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { AiDailyBriefing } from "@/components/daily/ai-daily-briefing";
+import { AssetTree } from "@/components/assets/asset-tree";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { getAssets } from "@/lib/actions";
 
 export default function DailyMeetingWizard({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -19,6 +21,12 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
     const [activeTab, setActiveTab] = useState("SAFETY");
     const [saving, setSaving] = useState(false);
     const [meeting, setMeeting] = useState<any>(null);
+    const [assets, setAssets] = useState<any[]>([]);
+    
+    // Asset Picker State
+    const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
+    const [pendingCategory, setPendingCategory] = useState("");
+    const [pendingDescription, setPendingDescription] = useState("");
 
     // Forms Content
     const [safetyNotes, setSafetyNotes] = useState("Nessun incidente segnalato.");
@@ -50,19 +58,37 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
             }
         }
         fetchActionItems();
+
+        async function fetchAssets() {
+            const data = await getAssets();
+            setAssets(data);
+        }
+        fetchAssets();
     }, [id]);
 
-    const handleCreateTask = async (category: string, description: string) => {
+    const openAssetPicker = (category: string, description: string) => {
+        setPendingCategory(category);
+        setPendingDescription(description);
+        setIsAssetPickerOpen(true);
+    };
+
+    const handleCreateTask = async (category: string, description: string, assetId?: string) => {
         try {
             const res = await fetch(`/api/daily-meetings/${id}/action-items`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ category, description, priority: "HIGH" })
+                body: JSON.stringify({ 
+                    category, 
+                    description, 
+                    priority: "HIGH",
+                    assetId: assetId || "SYS-OTHER" // Default to general if not selected
+                })
             });
             if (res.ok) {
                 const newItem = await res.json();
                 setActionItems(prev => [newItem, ...prev]);
                 toast.success(`Task ${category} generato inviato alla Manutenzione!`);
+                setIsAssetPickerOpen(false);
             }
         } catch (e) {
             toast.error("Errore generazione Task");
@@ -118,7 +144,7 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                                 />
                                 <div className="bg-muted p-4 rounded-lg flex items-center justify-between">
                                     <span className="text-sm">È richiesto un intervento urgente di Manutenzione per ripristinare la Sicurezza?</span>
-                                    <Button variant="destructive" size="sm" onClick={() => handleCreateTask("SAFETY", safetyNotes)}>
+                                    <Button variant="destructive" size="sm" onClick={() => openAssetPicker("SAFETY", safetyNotes)}>
                                         Genera Ticket Emergenza (EWO)
                                     </Button>
                                 </div>
@@ -228,7 +254,7 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                                 />
                                 <div className="bg-muted p-4 rounded-lg flex items-center justify-between">
                                     <span className="text-sm">Assegna un Task preventivo o curativo per quanto descritto sopra.</span>
-                                    <Button variant="secondary" size="sm" onClick={() => handleCreateTask("MECHANICAL", maintenanceNotes)}>
+                                    <Button variant="secondary" size="sm" onClick={() => openAssetPicker("MECHANICAL", maintenanceNotes)}>
                                         <Wrench className="mr-2 h-4 w-4" /> Genera Ordine (WO)
                                     </Button>
                                 </div>
@@ -249,9 +275,8 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                 </Tabs>
             </div>
 
-            {/* Right side: AI Panel & Follow-up */}
+            {/* Right side: Follow-up */}
             <div className="w-full lg:w-[350px] space-y-4">
-                <AiDailyBriefing meetingId={id} />
                 
                 <Card className="border-indigo-100 shadow-sm overflow-hidden">
                     <CardHeader className="bg-indigo-50/50 py-3">
@@ -288,6 +313,36 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Asset Selection Dialog */}
+            <Dialog open={isAssetPickerOpen} onOpenChange={setIsAssetPickerOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Seleziona l'Asset per la richiesta</DialogTitle>
+                        <DialogDescription>
+                            Sfoglia l'albero degli asset per indicare con precisione dove intervenire.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="flex-1 overflow-y-auto pr-2">
+                        <AssetTree 
+                            assets={assets} 
+                            onEdit={(e, asset) => {
+                                e.stopPropagation();
+                                handleCreateTask(pendingCategory, pendingDescription, asset.id);
+                            }}
+                            onDelete={() => {}} 
+                            canManage={false}
+                        />
+                    </div>
+                    
+                    <DialogFooter className="bg-slate-50 p-4 -mx-6 -mb-6">
+                        <Button variant="outline" onClick={() => handleCreateTask(pendingCategory, pendingDescription)}>
+                            Salta e usa Asset Generico
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
