@@ -1294,8 +1294,8 @@ export async function getActiveWorkOrdersForAsset(assetId: string) {
 const VIRTUAL_ASSETS: Record<string, { name: string; type: string }> = {
     'SYS-SAFETY': { name: 'Segnalazione Sicurezza', type: 'SAFETY' },
     'SYS-KAIZEN': { name: 'Proposta Miglioramento', type: 'KAIZEN' },
-    'SYS-WORKSHOP': { name: 'Richiesta Officina', type: 'WORKSHOP' },
-    'SYS-PLANT': { name: 'Manutenzione Impianti', type: 'PLANT' },
+    'SYS-WORKSHOP': { name: 'Richiesta Officina', type: 'OTHER' },
+    'SYS-PLANT': { name: 'Manutenzione Impianti', type: 'FACILITY' },
     'SYS-OTHER': { name: 'Altro / Generico', type: 'OTHER' },
 };
 
@@ -1308,6 +1308,7 @@ async function ensureVirtualAsset(id: string) {
             create: {
                 id,
                 name: info.name,
+                type: info.type as any,
                 model: 'System Virtual Asset',
                 serialNumber: id,
                 location: 'VIRTUAL',

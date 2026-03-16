@@ -48,7 +48,11 @@ export default function AssetsPage() {
                 asset.location.toLowerCase().includes(lowercasedSearch);
 
             // 2. Type Filter (Hide generics unless toggle is on)
-            const isGeneric = ['SAFETY', 'KAIZEN', 'OTHER'].includes(asset.type);
+            const isGeneric = 
+                ['SAFETY', 'KAIZEN', 'OTHER'].includes(asset.type) || 
+                asset.location === 'VIRTUAL' || 
+                asset.id.startsWith('SYS-');
+                
             if (!showGenerics && isGeneric) return false;
 
             return matchesSearch;
