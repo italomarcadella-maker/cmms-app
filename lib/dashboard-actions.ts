@@ -273,7 +273,7 @@ export async function getHighPrioritySafetyRequests(limit = 5) {
                     { category: 'SAFETY' },
                     { assetId: 'SYS-SAFETY' }
                 ],
-                priority: { in: ['HIGH', 'MEDIUM', 'STOPPED'] },
+                priority: { in: ['HIGH', 'MEDIUM', 'STOPPED', 'LOW', 'WORKING'] },
                 status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
                 ...(plantId && { plantId })
             },

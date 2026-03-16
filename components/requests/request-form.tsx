@@ -41,7 +41,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
         title: "",
         description: "",
         assetId: initialAssetId || "",
-        priority: "WORKING",
+        priority: initialCategory === 'SAFETY' ? "MEDIUM" : "WORKING",
         category: initialCategory || "OTHER", // Default or passed prop
         requestImage: null as string | null // Base64 image
     });
