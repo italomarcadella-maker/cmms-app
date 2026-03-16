@@ -76,12 +76,13 @@ export default function ProcessDashboard() {
                             // Demo Create Project
                             const title = prompt("Nome del nuovo Progetto?");
                             if (title) {
+                                const roiVal = prompt("Valore ROI stimato (€)?", "0");
                                 createProject({
                                     title,
-                                    description: "Nuovo progetto di processo",
+                                    description: "Progetto di miglioramento di processo",
                                     startDate: new Date(),
                                     endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-                                    roi: Math.floor(Math.random() * 50000)
+                                    roi: parseFloat(roiVal || "0")
                                 }).then(loadData);
                             }
                         }}

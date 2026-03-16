@@ -7,6 +7,7 @@ import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripH
 import Link from "next/link";
 import { format, addDays, getDaysInMonth, startOfMonth, differenceInDays } from "date-fns";
 import { it } from "date-fns/locale";
+import { DndContext, useDraggable, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 
 interface GanttTask {
     id: string;
@@ -17,12 +18,47 @@ interface GanttTask {
     linkedWorkOrderId: string | null;
 }
 
+function DraggableTaskBar({ task, timelineStart, daysWindow, getTaskStyle, onClick }: any) {
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({
+        id: task.id,
+        data: { task }
+    });
+
+    const style = {
+        ...getTaskStyle(task),
+        transform: transform ? `translate3d(${transform.x}px, 0, 0)` : undefined,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={`absolute top-1 bottom-1 rounded-md shadow-sm border flex items-center px-3 cursor-grab active:cursor-grabbing hover:brightness-95 transition-all z-20
+                ${task.status === 'DONE' ? 'bg-emerald-500 border-emerald-600 text-white' :
+                    task.linkedWorkOrderId ? 'bg-amber-400 border-amber-500 text-amber-950' :
+                        'bg-indigo-500 border-indigo-600 text-white'}
+            `}
+            style={style}
+            onClick={onClick}
+        >
+            <span className="text-[10px] font-bold truncate pointer-events-none">{task.title}</span>
+        </div>
+    );
+}
+
 export default function ProjectDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const [project, setProject] = useState<any>(null);
     const [assets, setAssets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAddingTask, setIsAddingTask] = useState(false);
+
+    // DND Sensors
+    const sensors = useSensors(
+        useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(TouchSensor)
+    );
 
     // Quick Add Form
     const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -89,6 +125,33 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
         } else {
             alert(res.message);
         }
+    };
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, delta } = event;
+        if (!delta.x || !project) return;
+
+        const task = active.data.current?.task;
+        if (!task) return;
+
+        // Calculate days shifted
+        // We know the container for the tracks has a certain width. 
+        // We can estimate the pixel-to-day ratio based on the 30-day window.
+        // The container usually fills the space after the 192px sidebar (w-48).
+        const container = document.getElementById("gantt-container");
+        if (!container) return;
+        
+        const trackWidth = container.offsetWidth - 192; // ml-48 is 12rem = 192px
+        const pixelsPerDay = trackWidth / daysWindow;
+        const daysShifted = Math.round(delta.x / pixelsPerDay);
+
+        if (daysShifted === 0) return;
+
+        const newStart = addDays(new Date(task.startDate), daysShifted);
+        const newEnd = addDays(new Date(task.endDate), daysShifted);
+
+        await updateTaskDates(task.id, newStart, newEnd, id);
+        loadData();
     };
 
     if (loading) return <div className="p-8 text-center animate-pulse">Caricamento Progetto...</div>;
@@ -193,7 +256,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
             )}
 
             {/* Visual Gantt Chart Sandbox */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="gantt-container">
                 <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
                     <Calendar className="h-5 w-5 text-indigo-500" />
                     <h3 className="font-bold text-slate-700">Timeline di Progetto (Gantt Interattivo)</h3>
@@ -212,55 +275,52 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
                         </div>
 
                         {/* Tasks Rows */}
-                        <div className="space-y-4">
-                            {project.tasks?.length === 0 ? (
-                                <div className="text-center py-10 text-slate-400 italic">Nessun task in timeline.</div>
-                            ) : (
-                                project.tasks?.map((task: any) => (
-                                    <div key={task.id} className="relative flex items-center group">
-                                        {/* Row Label */}
-                                        <div className="w-48 pr-4 py-1 shrink-0 flex items-center justify-between z-10 bg-white">
-                                            <div className="truncate text-sm font-medium text-slate-700 flex items-center gap-2">
-                                                <GripHorizontal className="h-3 w-3 text-slate-300 opacity-0 group-hover:opacity-100 cursor-grab" />
-                                                {task.title}
+                        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                            <div className="space-y-4">
+                                {project.tasks?.length === 0 ? (
+                                    <div className="text-center py-10 text-slate-400 italic">Nessun task in timeline.</div>
+                                ) : (
+                                    project.tasks?.map((task: any) => (
+                                        <div key={task.id} className="relative flex items-center group">
+                                            {/* Row Label */}
+                                            <div className="w-48 pr-4 py-1 shrink-0 flex items-center justify-between z-10 bg-white">
+                                                <div className="truncate text-sm font-medium text-slate-700 flex items-center gap-2">
+                                                    <GripHorizontal className="h-3 w-3 text-slate-300 opacity-0 group-hover:opacity-100 cursor-grab" />
+                                                    {task.title}
+                                                </div>
+                                                {task.linkedWorkOrderId ? (
+                                                    <Link href={`/work-orders/${task.linkedWorkOrderId}?tab=details`} className="text-amber-600 hover:bg-amber-50 p-1 rounded" title="WO di Manutenzione collegato">
+                                                        <Wrench className="h-3.5 w-3.5" />
+                                                    </Link>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => setLinkingTask(task)}
+                                                        className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        title="Collega a Manutenzione"
+                                                    >
+                                                        <LinkIcon className="h-3.5 w-3.5" />
+                                                    </button>
+                                                )}
                                             </div>
-                                            {task.linkedWorkOrderId ? (
-                                                <Link href={`/work-orders/${task.linkedWorkOrderId}?tab=details`} className="text-amber-600 hover:bg-amber-50 p-1 rounded" title="WO di Manutenzione collegato">
-                                                    <Wrench className="h-3.5 w-3.5" />
-                                                </Link>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setLinkingTask(task)}
-                                                    className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    title="Collega a Manutenzione"
-                                                >
-                                                    <LinkIcon className="h-3.5 w-3.5" />
-                                                </button>
-                                            )}
-                                        </div>
 
-                                        {/* Row Track */}
-                                        <div className="flex-1 relative h-10 border-b border-slate-50 border-dashed rounded bg-slate-50/50">
-                                            {/* The Task Bar */}
-                                            <div
-                                                className={`absolute top-1 bottom-1 rounded-md shadow-sm border flex items-center px-3 cursor-pointer hover:brightness-95 transition-all
-                                                    ${task.status === 'DONE' ? 'bg-emerald-500 border-emerald-600 text-white' :
-                                                        task.linkedWorkOrderId ? 'bg-amber-400 border-amber-500 text-amber-950' :
-                                                            'bg-indigo-500 border-indigo-600 text-white'}
-                                                `}
-                                                style={getTaskStyle(task)}
-                                                onClick={() => {
-                                                    // In a real app, this would open a side panel. For MVP, we alert.
-                                                    alert(`Dettaglio Task: ${task.title}\nStatus: ${task.status}\nInizio: ${format(new Date(task.startDate), 'PP', { locale: it })}\nFine: ${format(new Date(task.endDate), 'PP', { locale: it })}`);
-                                                }}
-                                            >
-                                                <span className="text-[10px] font-bold truncate">{task.title}</span>
+                                            {/* Row Track */}
+                                            <div className="flex-1 relative h-10 border-b border-slate-50 border-dashed rounded bg-slate-50/50">
+                                                {/* The Draggable Task Bar */}
+                                                <DraggableTaskBar
+                                                    task={task}
+                                                    timelineStart={timelineStart}
+                                                    daysWindow={daysWindow}
+                                                    getTaskStyle={getTaskStyle}
+                                                    onClick={() => {
+                                                        alert(`Dettaglio Task: ${task.title}\nStatus: ${task.status}\nInizio: ${format(new Date(task.startDate), 'PP', { locale: it })}\nFine: ${format(new Date(task.endDate), 'PP', { locale: it })}`);
+                                                    }}
+                                                />
                                             </div>
                                         </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </DndContext>
                     </div>
                 </div>
 
@@ -270,7 +330,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
                         <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-amber-400"></div> Task Manutentivo (WO)</span>
                         <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-emerald-500"></div> Completato</span>
                     </div>
-                    <span>* Trascina le barre per cambiare le date (Frontend mock: richiede refactor completo per vero drag&drop)</span>
+                    <span>* Trascina le barre per cambiare le date in tempo reale</span>
                 </div>
             </div>
 

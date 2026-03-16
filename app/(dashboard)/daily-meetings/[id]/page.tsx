@@ -26,20 +26,44 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
     const [productionNotes, setProductionNotes] = useState("");
     const [maintenanceNotes, setMaintenanceNotes] = useState("");
 
+    // KPI Content
+    const [oee, setOee] = useState(88);
+    const [efficiency, setEfficiency] = useState(92);
+    const [actionItems, setActionItems] = useState<any[]>([]);
+
     useEffect(() => {
         // In real app, fetch meeting status to see if it's already DRAFT or CLOSED
         // Mocking an initial fetch
-        setTimeout(() => setMeeting({ id, department: "Reparto 1", date: new Date().toISOString() }), 0);
+        const mockMeeting = { id, department: "Reparto 1", date: new Date().toISOString() };
+        setMeeting(mockMeeting);
+        
+        // Fetch existing action items
+        async function fetchActionItems() {
+            try {
+                const res = await fetch(`/api/daily-meetings/${id}/action-items`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setActionItems(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch action items", error);
+            }
+        }
+        fetchActionItems();
     }, [id]);
 
     const handleCreateTask = async (category: string, description: string) => {
         try {
-            await fetch(`/api/daily-meetings/${id}/action-items`, {
+            const res = await fetch(`/api/daily-meetings/${id}/action-items`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ category, description, priority: "HIGH" })
             });
-            toast.success(`Task ${category} generato inviato alla Manutenzione!`);
+            if (res.ok) {
+                const newItem = await res.json();
+                setActionItems(prev => [newItem, ...prev]);
+                toast.success(`Task ${category} generato inviato alla Manutenzione!`);
+            }
         } catch (e) {
             toast.error("Errore generazione Task");
         }
@@ -147,16 +171,30 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex gap-4">
-                                    <Card className="flex-1 bg-indigo-50/50">
+                                    <Card className="flex-1 bg-indigo-50/50 border-indigo-200">
                                         <CardContent className="p-4 text-center">
-                                            <div className="text-3xl font-bold text-indigo-700">88%</div>
-                                            <div className="text-xs text-muted-foreground uppercase">OEE Stimato Ieri</div>
+                                            <div className="flex flex-col items-center">
+                                                <input
+                                                    type="number"
+                                                    value={oee}
+                                                    onChange={(e) => setOee(Number(e.target.value))}
+                                                    className="text-3xl font-bold text-indigo-700 bg-transparent border-none text-center focus:ring-0 w-20"
+                                                />
+                                                <div className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">OEE Stimato (%)</div>
+                                            </div>
                                         </CardContent>
                                     </Card>
-                                    <Card className="flex-1 bg-emerald-50/50">
+                                    <Card className="flex-1 bg-emerald-50/50 border-emerald-200">
                                         <CardContent className="p-4 text-center">
-                                            <div className="text-3xl font-bold text-emerald-700">92%</div>
-                                            <div className="text-xs text-muted-foreground uppercase">Efficienza Target</div>
+                                            <div className="flex flex-col items-center">
+                                                <input
+                                                    type="number"
+                                                    value={efficiency}
+                                                    onChange={(e) => setEfficiency(Number(e.target.value))}
+                                                    className="text-3xl font-bold text-emerald-700 bg-transparent border-none text-center focus:ring-0 w-20"
+                                                />
+                                                <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Efficienza Target (%)</div>
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -211,9 +249,44 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                 </Tabs>
             </div>
 
-            {/* Right side: AI Panel */}
-            <div className="w-full lg:w-[350px]">
+            {/* Right side: AI Panel & Follow-up */}
+            <div className="w-full lg:w-[350px] space-y-4">
                 <AiDailyBriefing meetingId={id} />
+                
+                <Card className="border-indigo-100 shadow-sm overflow-hidden">
+                    <CardHeader className="bg-indigo-50/50 py-3">
+                        <CardTitle className="text-sm font-bold flex items-center gap-2 text-indigo-900">
+                            <Activity className="h-4 w-4" /> Follow-up Attività
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+                            {actionItems.length === 0 ? (
+                                <div className="p-6 text-center text-xs text-slate-400 italic">
+                                    Nessun task generato in questa sessione.
+                                </div>
+                            ) : (
+                                actionItems.map((item: any) => (
+                                    <div key={item.id} className="p-3 hover:bg-slate-50 transition-colors">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase border 
+                                                ${item.status === 'OPEN' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-emerald-100 text-emerald-700 border-emerald-200'}`}>
+                                                {item.status}
+                                            </span>
+                                            <span className="text-[10px] text-slate-400">{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <p className="text-xs font-medium text-slate-700 line-clamp-2">{item.description}</p>
+                                        {item.linkedWorkOrderId && (
+                                            <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-indigo-600">
+                                                <Wrench className="h-3 w-3" /> Collegato WO
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

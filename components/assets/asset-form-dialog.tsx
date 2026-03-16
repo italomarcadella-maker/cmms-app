@@ -1,7 +1,6 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { Loader2, X } from "lucide-react";
+import { getPlants } from "@/lib/actions";
 
 interface AssetFormDialogProps {
     isOpen: boolean;
@@ -13,12 +12,23 @@ interface AssetFormDialogProps {
 export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDialogProps) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState(asset);
+    const [plants, setPlants] = useState<any[]>([]);
 
     useEffect(() => {
         setFormData(asset);
     }, [asset]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    useEffect(() => {
+        async function loadPlants() {
+            const data = await getPlants();
+            setPlants(data);
+        }
+        if (isOpen) {
+            loadPlants();
+        }
+    }, [isOpen]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev: any) => ({ ...prev, [name]: value }));
     };
@@ -33,8 +43,9 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
         const finalAsset = {
             ...formData,
             id: formData.id || `AST-${Math.floor(Math.random() * 10000)}`,
-            // If location was replaced by plant in the UI, we might want to default location to plant or generic
-            location: formData.location || formData.plant || "N/A"
+            // Map 'plant' from select to 'plantId' for the backend
+            plant: formData.plant,
+            location: formData.location || "N/A"
         };
 
         onSave(finalAsset);
@@ -150,20 +161,25 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                         </div>
 
                         {/* Row 3: Plant & Department */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label htmlFor="plant" className="text-sm font-medium">
                                     Stabilimento
                                 </label>
-                                <input
+                                <select
                                     id="plant"
                                     name="plant"
                                     value={formData.plant || ''}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                     required
-                                    placeholder="es. Stabilimento A"
-                                />
+                                >
+                                    <option value="">Seleziona stabilimento...</option>
+                                    {plants.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="department" className="text-sm font-medium">

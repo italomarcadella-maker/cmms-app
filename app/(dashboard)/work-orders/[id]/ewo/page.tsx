@@ -394,7 +394,6 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                             <AlertTriangle className="h-6 w-6 text-amber-500" />
                             EWO Evoluto
                         </h1>
-                        <p className="text-muted-foreground">Analisi Guasto, Costi e Impatto #{id}</p>
                     </div>
                 </div>
                 {isViewMode && (

@@ -286,6 +286,16 @@ export const getAssets = unstable_cache(
     { tags: ['assets'], revalidate: 3600 }
 );
 
+export async function getPlants() {
+    try {
+        const plants = await prisma.plant.findMany({ orderBy: { name: 'asc' } });
+        return plants;
+    } catch (error) {
+        console.error('Failed to fetch plants:', error);
+        return [];
+    }
+}
+
 
 
 export async function importAssets(assets: any[]) {
