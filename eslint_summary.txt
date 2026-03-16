@@ -1,0 +1,870 @@
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\actions.ts - 56 Errors
+  Line 17: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 86: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 133: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 166: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 279: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 291: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 332: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 341: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 343: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 370: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 375: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 383: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 385: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 395: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 482: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 718: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 722: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 816: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 820: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 846: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 858: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 902: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 939: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 970: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 976: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 993: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1004: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1018: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1040: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1109: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1124: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1133: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1205: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1209: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1213: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1218: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1223: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1290: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1303: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1306: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1336: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1394: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1400: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1451: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1610: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1623: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1629: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 1901: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 2117: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 2144: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 2354: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 2529: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 2663: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 2734: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free. (@typescript-eslint/ban-ts-comment)
+  Line 2937: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 2998: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\planning\calendar\page.tsx - 17 Errors
+  Line 23: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 23: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 48: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 48: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 103: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 103: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 113: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 144: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 147: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 150: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 151: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 152: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 154: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 157: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 189: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 425: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 509: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\energy\energy-dashboard.tsx - 13 Errors
+  Line 30: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 31: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 33: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 38: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 39: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 40: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 74: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 82: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 90: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 108: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 122: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 136: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 168: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\exports\page.tsx - 12 Errors
+  Line 41: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 108: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 127: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 223: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 250: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 250: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 322: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 329: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 336: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 343: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 352: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 372: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\dashboard\dashboard-ui.tsx - 11 Errors
+  Line 31: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 32: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 33: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 34: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 35: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 36: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 37: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 38: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 39: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 194: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 328: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process\projects\[id]\page.tsx - 8 Errors
+  Line 22: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 23: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 46: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process\projects\[id]\page.tsx:46:9
+  44 |
+  45 |     useEffect(() => {
+> 46 |         loadData();
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  47 |     }, [id]);
+  48 |
+  49 |     const handleAddTask = async (e: React.FormEvent) => { (react-hooks/set-state-in-effect)
+  Line 88: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 96: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 179: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 247: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 247: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-ai-chat.tsx - 8 Errors
+  Line 13: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 80: Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free. (@typescript-eslint/ban-ts-comment)
+  Line 89: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 96: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 163: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 201: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 201: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 206: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\requests\request-form.tsx - 8 Errors
+  Line 22: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 23: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 48: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 108: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 116: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 203: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 227: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 227: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx - 8 Errors
+  Line 20: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 25: Error: Cannot access variable before it is declared
+
+`startListening` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx:25:38
+  23 |     useEffect(() => {
+  24 |         if (typeof externalIsListening !== 'undefined' && externalIsListening !== listening) {
+> 25 |             if (externalIsListening) startListening();
+     |                                      ^^^^^^^^^^^^^^ `startListening` accessed before it is declared
+  26 |             else stopListening();
+  27 |         }
+  28 |     }, [externalIsListening]);
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx:78:5
+  76 |     }, [onTranscript, onListeningChange]);
+  77 |
+> 78 |     const startListening = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 79 |         if (recognitionRef.current && !listening) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |             try {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |                 recognitionRef.current.start();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 82 |             } catch (e) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 83 |                 console.error("Start error", e);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 84 |             }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 85 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 86 |     };
+     | ^^^^^^^ `startListening` is declared here
+  87 |
+  88 |     const stopListening = () => {
+  89 |         if (recognitionRef.current && listening) { (react-hooks/immutability)
+  Line 26: Error: Cannot access variable before it is declared
+
+`stopListening` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx:26:18
+  24 |         if (typeof externalIsListening !== 'undefined' && externalIsListening !== listening) {
+  25 |             if (externalIsListening) startListening();
+> 26 |             else stopListening();
+     |                  ^^^^^^^^^^^^^ `stopListening` accessed before it is declared
+  27 |         }
+  28 |     }, [externalIsListening]);
+  29 |
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx:88:5
+  86 |     };
+  87 |
+> 88 |     const stopListening = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 89 |         if (recognitionRef.current && listening) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 90 |             recognitionRef.current.stop();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 91 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 92 |     };
+     | ^^^^^^^ `stopListening` is declared here
+  93 |
+  94 |     const toggleListening = () => {
+  95 |         if (listening) stopListening(); (react-hooks/immutability)
+  Line 32: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 32: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 48: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 50: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 59: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\work-orders\timer-controls.tsx - 8 Errors
+  Line 43: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\work-orders\timer-controls.tsx:43:13
+  41 |
+  42 |             // Update immediately
+> 43 |             setElapsed(Math.floor((Date.now() - startTime) / 1000));
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  44 |
+  45 |             interval = setInterval(() => {
+  46 |                 const now = Date.now(); (react-hooks/set-state-in-effect)
+  Line 113: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 232: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 248: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 275: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 275: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 275: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 275: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process\sop-builder\page.tsx - 7 Errors
+  Line 12: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 21: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 22: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 94: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 150: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 263: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 263: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\work-orders\[id]\page.tsx - 7 Errors
+  Line 147: Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\work-orders\[id]\page.tsx:147:24
+  145 |
+  146 |         const newLog = {
+> 147 |             id: `LOG-${Date.now()}`,
+      |                        ^^^^^^^^^^ Cannot call impure function
+  148 |             technicianId: tech.id,
+  149 |             technicianName: tech.name,
+  150 |             hours: laborHours, (react-hooks/purity)
+  Line 239: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 336: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 336: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 398: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 465: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 599: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\ai-service.ts - 7 Errors
+  Line 12: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 351: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 351: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 477: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 611: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 623: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 624: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\assets\page.tsx - 6 Errors
+  Line 23: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 25: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 27: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 58: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\assets\page.tsx:58:9
+  56 |         });
+  57 |
+> 58 |         setFilteredAssets(filtered);
+     |         ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  59 |     }, [search, assets, showGenerics]);
+  60 |
+  61 |     const handleSaveAsset = (asset: any) => { (react-hooks/set-state-in-effect)
+  Line 61: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 71: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\sustainability\page.tsx - 6 Errors
+  Line 14: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 18: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\sustainability\page.tsx:18:9
+  16 |
+  17 |     useEffect(() => {
+> 18 |         setIsLoading(true);
+     |         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  19 |         getEnergyMetrics(activePlant?.id).then(data => {
+  20 |             setMetrics(data);
+  21 |             setIsLoading(false); (react-hooks/set-state-in-effect)
+  Line 111: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 111: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 114: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 114: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-sop-list.tsx - 6 Errors
+  Line 8: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 11: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 22: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-sop-list.tsx:22:9
+  20 |
+  21 |     useEffect(() => {
+> 22 |         loadSOPs();
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  23 |     }, [assetId]);
+  24 |
+  25 |     const startEditing = (sop: typeof sops[0]) => { (react-hooks/set-state-in-effect)
+  Line 40: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 74: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 128: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\assets\[id]\page.tsx - 5 Errors
+  Line 28: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 34: React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. (react-hooks/rules-of-hooks)
+  Line 34: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 35: React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. (react-hooks/rules-of-hooks)
+  Line 37: React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render. (react-hooks/rules-of-hooks)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-form-dialog.tsx - 5 Errors
+  Line 9: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 10: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 23: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 77: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 224: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\planning\line-settings-dialog.tsx - 5 Errors
+  Line 16: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 26: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 368: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 368: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 369: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\daily-meetings\[id]\report\page.tsx - 4 Errors
+  Line 13: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\daily-meetings\[id]\report\page.tsx:13:9
+  11 |
+  12 |     useEffect(() => {
+> 13 |         setDateString(new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+     |         ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  14 |     }, []);
+  15 |
+  16 |     const handlePrint = () => { (react-hooks/set-state-in-effect)
+  Line 52: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 52: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 56: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process-engineering\page.tsx - 4 Errors
+  Line 30: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 30: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 30: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 77: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\auth.ts - 4 Errors
+  Line 11: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 50: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 50: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 62: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\calendar\calendar-view.tsx - 4 Errors
+  Line 128: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\calendar\calendar-view.tsx:128:9
+  126 |
+  127 |     useEffect(() => {
+> 128 |         setIsMounted(true);
+      |         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  129 |     }, []);
+  130 |
+  131 |     const [currentMonth, setCurrentMonth] = useState(new Date()); (react-hooks/set-state-in-effect)
+  Line 211: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 399: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 399: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\layout\command-palette.tsx - 4 Errors
+  Line 91: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 91: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 99: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 99: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\work-orders\wo-printable.tsx - 4 Errors
+  Line 53: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 107: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 131: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 148: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\dashboard-actions.ts - 4 Errors
+  Line 331: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 337: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 345: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 347: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\repro_energy.ts - 4 Errors
+  Line 7: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 7: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 33: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 33: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process\page.tsx - 3 Errors
+  Line 11: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 22: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process\page.tsx:22:9
+  20 |
+  21 |     useEffect(() => {
+> 22 |         loadData();
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  23 |     }, []);
+  24 |
+  25 |     const handleDelete = async (id: string, e: React.MouseEvent) => { (react-hooks/set-state-in-effect)
+  Line 118: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\reports\asset-history\[id]\page.tsx - 3 Errors
+  Line 29: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 31: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 79: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\api\scheduler\auto-assign\route.ts - 3 Errors
+  Line 114: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 118: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 134: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-selector.tsx - 3 Errors
+  Line 70: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-selector.tsx:70:13
+  68 |                 });
+  69 |             });
+> 70 |             setExpandedNodes(allKeys);
+     |             ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  71 |         }
+  72 |     }, [searchTerm, groupedAssets]);
+  73 | (react-hooks/set-state-in-effect)
+  Line 157: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 222: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\daily\ai-daily-briefing.tsx - 3 Errors
+  Line 10: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 73: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 77: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\inventory\purchase-requests-list.tsx - 3 Errors
+  Line 9: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 41: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 153: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\planning\ai-suggestion-dialog.tsx - 3 Errors
+  Line 17: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 44: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 44: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\__tests__\energy_distribution.test.ts - 3 Errors
+  Line 29: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 50: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 62: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\analyze.js - 2 Errors
+  Line 1: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+  Line 2: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\calendar\page.tsx - 2 Errors
+  Line 112: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 147: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\daily-meetings\[id]\page.tsx - 2 Errors
+  Line 21: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 32: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\daily-meetings\[id]\page.tsx:32:9
+  30 |         // In real app, fetch meeting status to see if it's already DRAFT or CLOSED
+  31 |         // Mocking an initial fetch
+> 32 |         setMeeting({ id, department: "Reparto 1", date: new Date().toISOString() });
+     |         ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  33 |     }, [id]);
+  34 |
+  35 |     const handleCreateTask = async (category: string, description: string) => { (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\inventory\purchase-requests\page.tsx - 2 Errors
+  Line 12: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 14: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\screws\page.tsx - 2 Errors
+  Line 109: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 337: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\settings\page.tsx - 2 Errors
+  Line 267: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+  Line 282: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\work-orders\page.tsx - 2 Errors
+  Line 196: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 236: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\api\seed\route.ts - 2 Errors
+  Line 252: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 257: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\api\sops\[id]\ar-export\route.ts - 2 Errors
+  Line 34: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 43: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\check-env.js - 2 Errors
+  Line 1: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+  Line 2: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-table.tsx - 2 Errors
+  Line 149: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 149: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\dashboard\safety-widget.tsx - 2 Errors
+  Line 30: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 31: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\dashboard\weekly-trends-chart.tsx - 2 Errors
+  Line 6: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 51: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\energy\reading-form-dialog.tsx - 2 Errors
+  Line 13: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 74: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\energy\readings-history.tsx - 2 Errors
+  Line 8: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 10: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\notifications\notification-bell.tsx - 2 Errors
+  Line 10: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 47: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\process\gantt-sandbox-controls.tsx - 2 Errors
+  Line 94: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+  Line 94: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\qr-scanner.tsx - 2 Errors
+  Line 9: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 79: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\debug_wo.ts - 2 Errors
+  Line 53: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 54: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\debug_workshop_count.ts - 2 Errors
+  Line 20: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 27: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\ai\types.ts - 2 Errors
+  Line 10: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 31: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\assets-context.tsx - 2 Errors
+  Line 9: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 41: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\availability-actions.ts - 2 Errors
+  Line 50: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 57: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\components-context.tsx - 2 Errors
+  Line 120: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 153: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\scheduler.ts - 2 Errors
+  Line 63: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 75: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\work-orders-context.tsx - 2 Errors
+  Line 35: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+  Line 70: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\prisma\seed-roles.js - 2 Errors
+  Line 1: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+  Line 2: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\prisma\seed-technician.js - 2 Errors
+  Line 1: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+  Line 2: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\prisma\seed-users.js - 2 Errors
+  Line 1: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+  Line 2: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\costs\page.tsx - 1 Errors
+  Line 173: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\daily-meetings\page.tsx - 1 Errors
+  Line 102: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\energy\meters\loading.tsx - 1 Errors
+  Line 8: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\inventory\page.tsx - 1 Errors
+  Line 68: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\kpi\page.tsx - 1 Errors
+  Line 27: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\maintenance\schedule\page.tsx - 1 Errors
+  Line 56: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process\sop\page.tsx - 1 Errors
+  Line 11: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\reports\costs\page.tsx - 1 Errors
+  Line 20: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\reports\page.tsx - 1 Errors
+  Line 32: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\screws\assignment\page.tsx - 1 Errors
+  Line 102: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\users\page.tsx - 1 Errors
+  Line 14: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\work-orders\[id]\ewo\page.tsx - 1 Errors
+  Line 62: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\api\debug\route.ts - 1 Errors
+  Line 17: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\api\health\route.ts - 1 Errors
+  Line 11: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\api\plants\route.ts - 1 Errors
+  Line 18: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\api\projects\sandbox\route.ts - 1 Errors
+  Line 14: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\api\scheduler\run\route.ts - 1 Errors
+  Line 11: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ai\maintenance-recommendation-card.tsx - 1 Errors
+  Line 14: Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ai\maintenance-recommendation-card.tsx:14:22
+  12 |     // In a real app, this would fetch from the AI service based on the specific asset
+  13 |     // For now, we mock a random scenario
+> 14 |     const hasIssue = Math.random() > 0.3; // 70% chance of an issue for demo purposes
+     |                      ^^^^^^^^^^^^^ Cannot call impure function
+  15 |
+  16 |     if (!hasIssue) {
+  17 |         return ( (react-hooks/purity)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-maintenance-plan.tsx - 1 Errors
+  Line 40: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-tree.tsx - 1 Errors
+  Line 22: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\import-assets-dialog.tsx - 1 Errors
+  Line 13: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\qr-code-dialog.tsx - 1 Errors
+  Line 11: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\calendar\technician-calendar.tsx - 1 Errors
+  Line 65: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\chat\chat-widget.tsx - 1 Errors
+  Line 40: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\components\edit-component-dialog.tsx - 1 Errors
+  Line 24: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\components\edit-component-dialog.tsx:24:13
+  22 |     useEffect(() => {
+  23 |         if (open) {
+> 24 |             setCode(component.code);
+     |             ^^^^^^^ Avoid calling setState() directly within an effect
+  25 |             setModel(component.model);
+  26 |             setType(component.type);
+  27 |             setUsageType(component.usageType); (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\components\measure-dialog.tsx - 1 Errors
+  Line 18: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\components\measure-dialog.tsx:18:19
+  16 |     // Update operator when user changes or updates
+  17 |     useEffect(() => {
+> 18 |         if (user) setOperator(user.name);
+     |                   ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  19 |     }, [user]);
+  20 |
+  21 |     const handleSubmit = (e: React.FormEvent) => { (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\dashboard\analytics-charts.tsx - 1 Errors
+  Line 13: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\dashboard\metric-card.tsx - 1 Errors
+  Line 8: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\dashboard\predictive-risk-pie.tsx - 1 Errors
+  Line 16: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\dashboard\recent-activity-list.tsx - 1 Errors
+  Line 8: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\dashboard\server\overdue-alerts.tsx - 1 Errors
+  Line 14: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\energy\consumption-chart.tsx - 1 Errors
+  Line 5: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\energy\meters-list.tsx - 1 Errors
+  Line 8: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\inventory\import-dialog.tsx - 1 Errors
+  Line 12: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\inventory\qr-code-dialog.tsx - 1 Errors
+  Line 82: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\layout\mobile-menu.tsx - 1 Errors
+  Line 15: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\layout\mobile-menu.tsx:15:9
+  13 |
+  14 |     useEffect(() => {
+> 15 |         setOpen(false);
+     |         ^^^^^^^ Avoid calling setState() directly within an effect
+  16 |     }, [pathname]);
+  17 |
+  18 |     return ( (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\maintenance\create-schedule-dialog.tsx - 1 Errors
+  Line 40: Error: Cannot access variable before it is declared
+
+`loadData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\maintenance\create-schedule-dialog.tsx:40:13
+  38 |     useEffect(() => {
+  39 |         if (open) {
+> 40 |             loadData();
+     |             ^^^^^^^^ `loadData` accessed before it is declared
+  41 |         }
+  42 |     }, [open]);
+  43 |
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\maintenance\create-schedule-dialog.tsx:44:5
+  42 |     }, [open]);
+  43 |
+> 44 |     const loadData = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 45 |         const [assetsData, activitiesData] = await Promise.all([
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 46 |             getAssets(),
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 53 |         })));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |     };
+     | ^^^^^^^ `loadData` is declared here
+  55 |
+  56 |     const handleFrequencyChange = (val: string) => {
+  57 |         setFrequency(val); (react-hooks/immutability)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\process\micro-kaizen-dialog.tsx - 1 Errors
+  Line 98: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\process\video-sop-wizard.tsx - 1 Errors
+  Line 92: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\requests\request-stats.tsx - 1 Errors
+  Line 7: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\requests\safety-list.tsx - 1 Errors
+  Line 29: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\input.tsx - 1 Errors
+  Line 5: An interface declaring no members is equivalent to its supertype. (@typescript-eslint/no-empty-object-type)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\text-area.tsx - 1 Errors
+  Line 4: An interface declaring no members is equivalent to its supertype. (@typescript-eslint/no-empty-object-type)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\textarea.tsx - 1 Errors
+  Line 5: An interface declaring no members is equivalent to its supertype. (@typescript-eslint/no-empty-object-type)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\users\change-password-dialog.tsx - 1 Errors
+  Line 77: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\users\delete-user-dialog.tsx - 1 Errors
+  Line 56: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\users\edit-user-dialog.tsx - 1 Errors
+  Line 83: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`. (react/no-unescaped-entities)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\work-orders\wo-checklist.tsx - 1 Errors
+  Line 13: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\work-orders\wo-form.tsx - 1 Errors
+  Line 72: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\debug-admin-notif.js - 1 Errors
+  Line 2: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\debug-notifications.js - 1 Errors
+  Line 2: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\gen-hash.js - 1 Errors
+  Line 1: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\ai\cortex.ts - 1 Errors
+  Line 89: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\ai\llm-service.ts - 1 Errors
+  Line 28: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\chat-context.tsx - 1 Errors
+  Line 74: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\cost-service.ts - 1 Errors
+  Line 18: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\energy-actions.ts - 1 Errors
+  Line 27: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\inventory-actions.ts - 1 Errors
+  Line 22: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\language-context.tsx - 1 Errors
+  Line 66: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\language-context.tsx:66:20
+  64 |     useEffect(() => {
+  65 |         const saved = localStorage.getItem('cmms_lang') as Language;
+> 66 |         if (saved) setLanguage(saved);
+     |                    ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  67 |     }, []);
+  68 |
+  69 |     const changeLanguage = (lang: Language) => { (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\notifications-context.tsx - 1 Errors
+  Line 47: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\notifications-context.tsx:47:9
+  45 |
+  46 |     useEffect(() => {
+> 47 |         refreshNotifications();
+     |         ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  48 |         const interval = setInterval(refreshNotifications, 60000); // Poll every minute
+  49 |         return () => clearInterval(interval);
+  50 |     }, []); (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\plant-context.tsx - 1 Errors
+  Line 67: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\plant-context.tsx:67:13
+  65 |                 });
+  66 |         } else if (status === 'unauthenticated') {
+> 67 |             setIsLoading(false);
+     |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  68 |         }
+  69 |     }, [user, status]);
+  70 | (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\pm-context.tsx - 1 Errors
+  Line 48: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\process-actions.ts - 1 Errors
+  Line 8: Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\prisma\seed-pm.js - 1 Errors
+  Line 2: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\scripts\verify-persistence.js - 1 Errors
+  Line 2: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\test-db-connection.js - 1 Errors
+  Line 1: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\test-db.js - 1 Errors
+  Line 2: A `require()` style import is forbidden. (@typescript-eslint/no-require-imports)

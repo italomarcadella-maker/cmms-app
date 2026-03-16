@@ -599,12 +599,66 @@ export async function parseHmiImageToSop(imageUrl: string, assetId: string) {
     // Contenuto "finto" estratto dall'immagine
     // Generiamo parametri realistici tipici di una ricetta di estrusione o stampaggio
     const extractedParameters = [
+        // Modulo Riscaldamento / Estrusore
         { label: "Temperatura Zona 1", value: 185, unit: "°C", tolerance: 5 },
         { label: "Temperatura Zona 2", value: 190, unit: "°C", tolerance: 5 },
         { label: "Temperatura Zona 3", value: 195, unit: "°C", tolerance: 5 },
-        { label: "Pressione Testa", value: 120, unit: "bar", tolerance: 10 },
-        { label: "Velocità Coclea", value: 45, unit: "rpm", tolerance: 2 },
-        { label: "Tempo di Raffreddamento", value: 12, unit: "s", tolerance: 1 }
+        { label: "Temperatura Zona 4", value: 200, unit: "°C", tolerance: 5 },
+        { label: "Temperatura Zona 5", value: 205, unit: "°C", tolerance: 5 },
+        { label: "Temperatura Flangia", value: 200, unit: "°C", tolerance: 2 },
+        { label: "Temperatura Filtro", value: 200, unit: "°C", tolerance: 2 },
+        { label: "Temperatura Testa", value: 210, unit: "°C", tolerance: 2 },
+        { label: "Pressione Melt", value: 150, unit: "bar", tolerance: 10 },
+        { label: "Allarme Limite Pressione", value: 180, unit: "bar", tolerance: 0 },
+        { label: "Giri Coclea 1", value: 45, unit: "rpm", tolerance: 2 },
+        { label: "Coppia Motore 1", value: 65, unit: "%", tolerance: 5 },
+        { label: "Giri Coclea 2", value: 42, unit: "rpm", tolerance: 2 },
+        { label: "Coppia Motore 2", value: 60, unit: "%", tolerance: 5 },
+        { label: "Raffreddamento Settore 1", value: 15, unit: "l/min", tolerance: 1 },
+        { label: "Raffreddamento Settore 2", value: 15, unit: "l/min", tolerance: 1 },
+        { label: "Vuoto Pompa di Degasaggio", value: -0.8, unit: "bar", tolerance: 0.1 },
+        { label: "Amperaggio Estrusore", value: 120, unit: "A", tolerance: 5 },
+        
+        // Modulo Testa / Calibrazione
+        { label: "Spessore Nominale Raggio X", value: 2.5, unit: "mm", tolerance: 0.1 },
+        { label: "Set Velocità Pompa Ingranaggi", value: 30, unit: "rpm", tolerance: 1 },
+        { label: "Temp. Acqua Calibratore 1", value: 15, unit: "°C", tolerance: 2 },
+        { label: "Temp. Acqua Calibratore 2", value: 20, unit: "°C", tolerance: 2 },
+        { label: "Pressione Vuoto Calibratore 1", value: -0.2, unit: "bar", tolerance: 0.05 },
+        { label: "Pressione Vuoto Calibratore 2", value: -0.15, unit: "bar", tolerance: 0.05 },
+        { label: "Quota Vasca", value: 50, unit: "mm", tolerance: 5 },
+        
+        // Modulo Traino
+        { label: "Velocità Traino 1", value: 12.5, unit: "m/min", tolerance: 0.2 },
+        { label: "Pressione Rulli Traino 1", value: 4.0, unit: "bar", tolerance: 0.5 },
+        { label: "Tensione Cinghia Sup.", value: 50, unit: "%", tolerance: 5 },
+        { label: "Tensione Cinghia Inf.", value: 50, unit: "%", tolerance: 5 },
+        { label: "Apertura Rulli Traino", value: 25.0, unit: "mm", tolerance: 0.5 },
+        { label: "Sincro Estrusore/Traino", value: 85, unit: "%", tolerance: 2 },
+        { label: "Camber Rullo", value: 0.0, unit: "mm", tolerance: 0.1 },
+        
+        // Modulo Forno / Ricottura
+        { label: "Temp. Forno Zona 1", value: 120, unit: "°C", tolerance: 4 },
+        { label: "Temp. Forno Zona 2", value: 130, unit: "°C", tolerance: 4 },
+        { label: "Temp. Forno Zona 3", value: 140, unit: "°C", tolerance: 4 },
+        { label: "Flusso Aria Calda", value: 80, unit: "%", tolerance: 5 },
+        { label: "Velocità Ventola Ricircolo", value: 1500, unit: "rpm", tolerance: 50 },
+        { label: "Tensione Materiale Forno", value: 1.5, unit: "kg", tolerance: 0.2 },
+        
+        // Modulo Taglio / Avvolgimento
+        { label: "Lunghezza di Taglio", value: 3000, unit: "mm", tolerance: 5 },
+        { label: "Velocità Lama Tagliarina", value: 2800, unit: "rpm", tolerance: 100 },
+        { label: "Avanzamento Lama", value: 0.5, unit: "m/s", tolerance: 0.05 },
+        { label: "Soffio Scarico", value: 2.0, unit: "s", tolerance: 0.2 },
+        { label: "Tiro Bobina 1", value: 45, unit: "N", tolerance: 2 },
+        { label: "Tiro Bobina 2", value: 45, unit: "N", tolerance: 2 },
+        { label: "Taper Tension", value: 15, unit: "%", tolerance: 1 },
+        { label: "Pressione Braccio Ballerino", value: 2.5, unit: "bar", tolerance: 0.2 },
+        { label: "Diametro Finale Bobina", value: 800, unit: "mm", tolerance: 10 },
+        { label: "Allon. Rullo Pressore", value: 10, unit: "mm", tolerance: 1 },
+        
+        // Generale
+        { label: "Target Produzione Oraria", value: 450, unit: "kg/h", tolerance: 20 }
     ];
 
     // WOW FEATURE: Confronteremo questo risultato con l'ultima SOP approvata per la macchina.

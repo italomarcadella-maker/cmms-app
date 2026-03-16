@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getProjects, createProject, deleteProject } from "@/lib/process-actions";
+import { getProjects, createProject, deleteProject, getUnresolvedAnomalies } from "@/lib/process-actions";
 import { Plus, BarChart3, TrendingUp, GitPullRequest, Settings, ArrowRight, Trash2, ShieldAlert, FileCheck2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -9,12 +9,17 @@ import { it } from "date-fns/locale";
 
 export default function ProcessDashboard() {
     const [projects, setProjects] = useState<any[]>([]);
+    const [anomalies, setAnomalies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const loadData = async () => {
         setTimeout(() => setLoading(true), 0);
-        const data = await getProjects();
-        setProjects(data);
+        const [projectsData, anomaliesData] = await Promise.all([
+            getProjects(),
+            getUnresolvedAnomalies()
+        ]);
+        setProjects(projectsData);
+        setAnomalies(anomaliesData);
         setLoading(false);
     };
 
@@ -116,7 +121,19 @@ export default function ProcessDashboard() {
                         <h3 className="font-bold text-amber-900 flex items-center gap-2">
                             <ShieldAlert className="h-5 w-5" /> Derive Segnalate (Live)
                         </h3>
-                        <p className="text-sm text-amber-700 mt-1">2 anomalie di processo rilevate dall'ultima scansione HMI. Revisione necessaria sulla linea di Estrusione B.</p>
+                        {anomalies.length > 0 ? (
+                            <div className="mt-2 space-y-2">
+                                <p className="text-sm font-bold text-amber-800">{anomalies.length} anomalie di processo rilevate:</p>
+                                {anomalies.slice(0, 2).map((a: any) => (
+                                    <div key={a.id} className="text-xs text-amber-900 bg-white/50 p-2 rounded-lg border border-amber-200">
+                                        <span className="font-bold block w-full truncate">{a.asset?.name || "Asset"}</span>
+                                        <span className="line-clamp-2">{a.description}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-amber-700 mt-1">Nessuna anomalia di processo rilevata al momento. Tutti i parametri sono entro i limiti delle SOP.</p>
+                        )}
                         <Link href="/process/sop-builder" className="mt-3 inline-block text-sm font-semibold text-amber-800 underline decoration-amber-300 underline-offset-4 hover:text-amber-950">
                             Verifica scostamenti &rarr;
                         </Link>

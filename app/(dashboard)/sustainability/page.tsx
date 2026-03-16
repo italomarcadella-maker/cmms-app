@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { getEnergyMetrics } from "@/lib/energy-actions";
+import { getMeters, getEnergyStats } from "@/lib/actions";
 import { usePlant } from "@/lib/plant-context";
+import { EnergyDashboard } from "@/components/energy/energy-dashboard";
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
     BarChart, Bar, Legend, ComposedChart, Area, AreaChart
@@ -12,12 +14,21 @@ import { Gauge, Leaf, TrendingDown, Bolt, BrainCircuit, AlertTriangle, ArrowRigh
 export default function SustainabilityDashboard() {
     const { activePlant } = usePlant();
     const [metrics, setMetrics] = useState<any>(null);
+    const [meters, setMeters] = useState<any[]>([]);
+    const [stats, setStats] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         setTimeout(() => setIsLoading(true), 0);
-        getEnergyMetrics(activePlant?.id).then(data => {
-            setMetrics(data);
+        
+        Promise.all([
+            getEnergyMetrics(activePlant?.id),
+            getMeters(),
+            getEnergyStats()
+        ]).then(([metricsData, metersData, statsData]) => {
+            setMetrics(metricsData);
+            setMeters(metersData);
+            setStats(statsData);
             setIsLoading(false);
         });
     }, [activePlant?.id]);
@@ -197,6 +208,16 @@ export default function SustainabilityDashboard() {
 
             </div>
 
+            {/* Injected Detailed Energy Monitor */}
+            {stats && meters && (
+                <div className="mt-12 pt-8 border-t border-slate-200">
+                    <div className="mb-6 flex items-center gap-2">
+                        <Gauge className="h-6 w-6 text-indigo-600" />
+                        <h2 className="text-2xl font-bold tracking-tight text-slate-800">Dettaglio Monitoraggio Energetico (Meters)</h2>
+                    </div>
+                    <EnergyDashboard stats={stats} meters={meters} />
+                </div>
+            )}
         </div>
     );
 }

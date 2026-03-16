@@ -44,21 +44,7 @@ export async function getEnergyMetrics(plantId?: string) {
             co2: data.co2
         }));
 
-        // Generate some mock data if empty (for demo purposes)
-        if (chartData.length === 0) {
-            for (let i = 29; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                const dateStr = d.toISOString().split('T')[0];
-                const mockKwh = 1500 + Math.random() * 500;
-                const mockCo2 = mockKwh * 0.25;
-                chartData.push({ date: dateStr, kwh: mockKwh, co2: mockCo2 });
-                totalKwh += mockKwh;
-                totalCo2 += mockCo2;
-            }
-        }
-
-        const averageKwh = totalKwh / chartData.length;
+        const averageKwh = chartData.length > 0 ? (totalKwh / chartData.length) : 0;
 
         // Mock baseline for comparison
         const baselineKwh = averageKwh * 1.15; // Assumption: we improved by 15%

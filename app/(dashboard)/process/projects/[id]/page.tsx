@@ -26,6 +26,9 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
 
     // Quick Add Form
     const [newTaskTitle, setNewTaskTitle] = useState("");
+    const [newTaskStart, setNewTaskStart] = useState("");
+    const [newTaskEnd, setNewTaskEnd] = useState("");
+    const [newTaskDependency, setNewTaskDependency] = useState("");
 
     // Modal for Maintenance Link
     const [linkingTask, setLinkingTask] = useState<GanttTask | null>(null);
@@ -47,6 +50,13 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
         loadData();
     }, [id]);
 
+    useEffect(() => {
+        if (isAddingTask && !newTaskStart) {
+            setNewTaskStart(format(new Date(), 'yyyy-MM-dd'));
+            setNewTaskEnd(format(addDays(new Date(), 3), 'yyyy-MM-dd'));
+        }
+    }, [isAddingTask, newTaskStart]);
+
     const handleAddTask = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTaskTitle) return;
@@ -54,9 +64,10 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
         await createProjectTask({
             projectId: id,
             title: newTaskTitle,
-            startDate: new Date(),
-            endDate: addDays(new Date(), 3),
-            status: "TODO"
+            startDate: new Date(newTaskStart),
+            endDate: new Date(newTaskEnd),
+            status: "TODO",
+            dependencies: newTaskDependency ? JSON.stringify([newTaskDependency]) : undefined
         });
 
         setNewTaskTitle("");
@@ -139,17 +150,45 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
 
             {/* Quick Add Form */}
             {isAddingTask && (
-                <form onSubmit={handleAddTask} className="bg-white p-4 rounded-xl border border-indigo-200 shadow-sm flex gap-3 items-center animate-in fade-in zoom-in-95">
+                <form onSubmit={handleAddTask} className="bg-white p-4 rounded-xl border border-indigo-200 shadow-sm flex flex-col md:flex-row gap-3 md:items-center animate-in fade-in zoom-in-95">
                     <input
                         type="text"
-                        placeholder="Titolo della nuova attività..."
+                        placeholder="Titolo attività..."
                         value={newTaskTitle}
                         onChange={e => setNewTaskTitle(e.target.value)}
-                        className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         autoFocus
                     />
-                    <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">Salva</button>
-                    <button type="button" onClick={() => setIsAddingTask(false)} className="text-slate-500 px-3 py-2 text-sm hover:bg-slate-100 rounded-lg">Annulla</button>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
+                        <input
+                            type="date"
+                            value={newTaskStart}
+                            onChange={e => setNewTaskStart(e.target.value)}
+                            className="border rounded-lg px-3 py-2 text-sm text-slate-700 w-full"
+                            title="Data Inizio"
+                        />
+                        <input
+                            type="date"
+                            value={newTaskEnd}
+                            onChange={e => setNewTaskEnd(e.target.value)}
+                            className="border rounded-lg px-3 py-2 text-sm text-slate-700 w-full"
+                            title="Data Fine"
+                        />
+                        <select 
+                            value={newTaskDependency} 
+                            onChange={e => setNewTaskDependency(e.target.value)}
+                            className="border rounded-lg px-3 py-2 text-sm text-slate-700 w-full bg-slate-50"
+                        >
+                            <option value="">Nessuna dipendenza</option>
+                            {project?.tasks?.map((t: any) => (
+                                <option key={t.id} value={t.id}>{t.title}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex gap-2 self-end md:self-auto shrink-0">
+                        <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 whitespace-nowrap">Salva</button>
+                        <button type="button" onClick={() => setIsAddingTask(false)} className="text-slate-500 px-3 py-2 text-sm hover:bg-slate-100 rounded-lg">Annulla</button>
+                    </div>
                 </form>
             )}
 

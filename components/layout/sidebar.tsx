@@ -107,7 +107,6 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                             <SidebarItem href="/technicians" icon={Users} label="Team Tecnico" active={isActive('/technicians')} onClick={onNavigate} />
                             <SidebarItem href="/activities" icon={ListChecks} label="Attività" active={isActive('/activities')} onClick={onNavigate} />
                             <SidebarItem href="/predictive" icon={BrainCircuit} label="AI Predittiva" active={isActive('/predictive')} onClick={onNavigate} />
-                            <SidebarItem href="/energy" icon={Gauge} label="Energy Monitor" active={isActive('/energy')} onClick={onNavigate} />
                             <SidebarItem href="/sustainability" icon={Leaf} label="Sostenibilità" active={isActive('/sustainability')} onClick={onNavigate} />
                         </SidebarGroup>
                     )}

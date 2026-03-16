@@ -1,0 +1,240 @@
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\assets\[id]\page.tsx:34 React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. (react-hooks/rules-of-hooks)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\assets\[id]\page.tsx:35 React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. (react-hooks/rules-of-hooks)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\assets\[id]\page.tsx:37 React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render. (react-hooks/rules-of-hooks)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process\page.tsx:22 Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process\page.tsx:22:9
+  20 |
+  21 |     useEffect(() => {
+> 22 |         loadData();
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  23 |     }, []);
+  24 |
+  25 |     const handleDelete = async (id: string, e: React.MouseEvent) => { (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process\projects\[id]\page.tsx:46 Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\process\projects\[id]\page.tsx:46:9
+  44 |
+  45 |     useEffect(() => {
+> 46 |         loadData();
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  47 |     }, [id]);
+  48 |
+  49 |     const handleAddTask = async (e: React.FormEvent) => { (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\work-orders\[id]\page.tsx:147 Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\app\(dashboard)\work-orders\[id]\page.tsx:147:24
+  145 |
+  146 |         const newLog = {
+> 147 |             id: `LOG-${Date.now()}`,
+      |                        ^^^^^^^^^^ Cannot call impure function
+  148 |             technicianId: tech.id,
+  149 |             technicianName: tech.name,
+  150 |             hours: laborHours, (react-hooks/purity)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ai\maintenance-recommendation-card.tsx:14 Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ai\maintenance-recommendation-card.tsx:14:22
+  12 |     // In a real app, this would fetch from the AI service based on the specific asset
+  13 |     // For now, we mock a random scenario
+> 14 |     const hasIssue = Math.random() > 0.3; // 70% chance of an issue for demo purposes
+     |                      ^^^^^^^^^^^^^ Cannot call impure function
+  15 |
+  16 |     if (!hasIssue) {
+  17 |         return ( (react-hooks/purity)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-ai-chat.tsx:80 Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free. (@typescript-eslint/ban-ts-comment)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-sop-list.tsx:22 Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\assets\asset-sop-list.tsx:22:9
+  20 |
+  21 |     useEffect(() => {
+> 22 |         loadSOPs();
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  23 |     }, [assetId]);
+  24 |
+  25 |     const startEditing = (sop: typeof sops[0]) => { (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\maintenance\create-schedule-dialog.tsx:40 Error: Cannot access variable before it is declared
+
+`loadData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\maintenance\create-schedule-dialog.tsx:40:13
+  38 |     useEffect(() => {
+  39 |         if (open) {
+> 40 |             loadData();
+     |             ^^^^^^^^ `loadData` accessed before it is declared
+  41 |         }
+  42 |     }, [open]);
+  43 |
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\maintenance\create-schedule-dialog.tsx:44:5
+  42 |     }, [open]);
+  43 |
+> 44 |     const loadData = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 45 |         const [assetsData, activitiesData] = await Promise.all([
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 46 |             getAssets(),
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 53 |         })));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |     };
+     | ^^^^^^^ `loadData` is declared here
+  55 |
+  56 |     const handleFrequencyChange = (val: string) => {
+  57 |         setFrequency(val); (react-hooks/immutability)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\input.tsx:5 An interface declaring no members is equivalent to its supertype. (@typescript-eslint/no-empty-object-type)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\text-area.tsx:4 An interface declaring no members is equivalent to its supertype. (@typescript-eslint/no-empty-object-type)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\textarea.tsx:5 An interface declaring no members is equivalent to its supertype. (@typescript-eslint/no-empty-object-type)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx:25 Error: Cannot access variable before it is declared
+
+`startListening` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx:25:38
+  23 |     useEffect(() => {
+  24 |         if (typeof externalIsListening !== 'undefined' && externalIsListening !== listening) {
+> 25 |             if (externalIsListening) startListening();
+     |                                      ^^^^^^^^^^^^^^ `startListening` accessed before it is declared
+  26 |             else stopListening();
+  27 |         }
+  28 |     }, [externalIsListening]);
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx:78:5
+  76 |     }, [onTranscript, onListeningChange]);
+  77 |
+> 78 |     const startListening = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 79 |         if (recognitionRef.current && !listening) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |             try {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |                 recognitionRef.current.start();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 82 |             } catch (e) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 83 |                 console.error("Start error", e);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 84 |             }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 85 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 86 |     };
+     | ^^^^^^^ `startListening` is declared here
+  87 |
+  88 |     const stopListening = () => {
+  89 |         if (recognitionRef.current && listening) { (react-hooks/immutability)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx:26 Error: Cannot access variable before it is declared
+
+`stopListening` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx:26:18
+  24 |         if (typeof externalIsListening !== 'undefined' && externalIsListening !== listening) {
+  25 |             if (externalIsListening) startListening();
+> 26 |             else stopListening();
+     |                  ^^^^^^^^^^^^^ `stopListening` accessed before it is declared
+  27 |         }
+  28 |     }, [externalIsListening]);
+  29 |
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\ui\voice-input.tsx:88:5
+  86 |     };
+  87 |
+> 88 |     const stopListening = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 89 |         if (recognitionRef.current && listening) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 90 |             recognitionRef.current.stop();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 91 |         }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 92 |     };
+     | ^^^^^^^ `stopListening` is declared here
+  93 |
+  94 |     const toggleListening = () => {
+  95 |         if (listening) stopListening(); (react-hooks/immutability)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\work-orders\timer-controls.tsx:51 Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\components\work-orders\timer-controls.tsx:51:13
+  49 |             }, 1000);
+  50 |         } else {
+> 51 |             setElapsed(0);
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  52 |         }
+  53 |         return () => clearInterval(interval);
+  54 |     }, [activeTimer]); (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\actions.ts:2734 Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free. (@typescript-eslint/ban-ts-comment)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\language-context.tsx:66 Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\language-context.tsx:66:20
+  64 |     useEffect(() => {
+  65 |         const saved = localStorage.getItem('cmms_lang') as Language;
+> 66 |         if (saved) setLanguage(saved);
+     |                    ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  67 |     }, []);
+  68 |
+  69 |     const changeLanguage = (lang: Language) => { (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\notifications-context.tsx:47 Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\notifications-context.tsx:47:9
+  45 |
+  46 |     useEffect(() => {
+> 47 |         refreshNotifications();
+     |         ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  48 |         const interval = setInterval(refreshNotifications, 60000); // Poll every minute
+  49 |         return () => clearInterval(interval);
+  50 |     }, []); (react-hooks/set-state-in-effect)
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\plant-context.tsx:67 Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\WDAGUtilityAccount\Desktop\Progetto manutenzione\cmms_2.0\lib\plant-context.tsx:67:13
+  65 |                 });
+  66 |         } else if (status === 'unauthenticated') {
+> 67 |             setIsLoading(false);
+     |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  68 |         }
+  69 |     }, [user, status]);
+  70 | (react-hooks/set-state-in-effect)

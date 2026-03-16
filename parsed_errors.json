@@ -1,0 +1,107 @@
+[
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\app\\(dashboard)\\assets\\[id]\\page.tsx",
+    "lines": [
+      34,
+      35,
+      37
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\app\\(dashboard)\\process\\page.tsx",
+    "lines": [
+      22
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\app\\(dashboard)\\process\\projects\\[id]\\page.tsx",
+    "lines": [
+      46
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\app\\(dashboard)\\work-orders\\[id]\\page.tsx",
+    "lines": [
+      147
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\components\\ai\\maintenance-recommendation-card.tsx",
+    "lines": [
+      14
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\components\\assets\\asset-ai-chat.tsx",
+    "lines": [
+      80
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\components\\assets\\asset-sop-list.tsx",
+    "lines": [
+      22
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\components\\maintenance\\create-schedule-dialog.tsx",
+    "lines": [
+      40
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\components\\ui\\input.tsx",
+    "lines": [
+      5
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\components\\ui\\text-area.tsx",
+    "lines": [
+      4
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\components\\ui\\textarea.tsx",
+    "lines": [
+      5
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\components\\ui\\voice-input.tsx",
+    "lines": [
+      25,
+      26
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\components\\work-orders\\timer-controls.tsx",
+    "lines": [
+      51
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\lib\\actions.ts",
+    "lines": [
+      2734
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\lib\\language-context.tsx",
+    "lines": [
+      66
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\lib\\notifications-context.tsx",
+    "lines": [
+      47
+    ]
+  },
+  {
+    "file": "C:\\Users\\WDAGUtilityAccount\\Desktop\\Progetto manutenzione\\cmms_2.0\\lib\\plant-context.tsx",
+    "lines": [
+      67
+    ]
+  }
+]

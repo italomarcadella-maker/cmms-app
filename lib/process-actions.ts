@@ -19,6 +19,19 @@ async function requireRole(role: string): Promise<{ authorized: boolean; message
 
 // --- PROJECTS ---
 
+export async function getUnresolvedAnomalies() {
+    try {
+        return await prisma.processAnomaly.findMany({
+            where: { isResolved: false },
+            include: { asset: true },
+            orderBy: { detectedAt: 'desc' }
+        });
+    } catch (e) {
+        console.error("Failed to fetch anomalies", e);
+        return [];
+    }
+}
+
 export async function getProjects() {
     try {
         const projects = await prisma.project.findMany({
@@ -83,7 +96,7 @@ export async function deleteProject(id: string) {
 
 // --- PROJECT TASKS (GANTT) ---
 
-export async function createProjectTask(data: { projectId: string, title: string, startDate: Date, endDate: Date, status?: string }) {
+export async function createProjectTask(data: { projectId: string, title: string, startDate: Date, endDate: Date, status?: string, dependencies?: string }) {
     const { authorized } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
