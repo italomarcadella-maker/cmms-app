@@ -1379,6 +1379,9 @@ export async function createWorkOrder(rawData: any) {
                 validatedById: data.validatedById,
                 assignedTechnicianId: data.assignedTechnicianId,
 
+                // NEW: Better plant association
+                plantId: data.plantId || (await prisma.asset.findUnique({ where: { id: data.assetId } }))?.plantId || (session.user as any).plantId,
+
                 checklist: data.checklist && data.checklist.length > 0 ? {
                     create: data.checklist.map((c: any) => ({
                         label: c.label,

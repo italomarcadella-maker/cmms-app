@@ -275,7 +275,14 @@ export async function getHighPrioritySafetyRequests(limit = 5) {
                 ],
                 priority: { in: ['HIGH', 'MEDIUM', 'STOPPED', 'LOW', 'WORKING'] },
                 status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
-                ...(plantId && { plantId })
+                AND: [
+                    plantId ? {
+                        OR: [
+                            { plantId: plantId },
+                            { plantId: null }
+                        ]
+                    } : {}
+                ]
             },
             orderBy: [
                 { createdAt: 'desc' }
