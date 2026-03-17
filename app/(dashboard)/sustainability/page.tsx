@@ -219,7 +219,7 @@ export default function SustainabilityDashboard() {
                         <Gauge className="h-6 w-6" />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-slate-500">Media Giornaliera (Ultimi 30gg)</p>
+                        <p className="text-sm font-medium text-slate-500">Media Giornaliera (Ultimi {period}gg)</p>
                         <div className="flex items-baseline gap-2">
                             <div className="text-3xl font-bold text-slate-800 mt-1">{metrics.averageKwh?.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-lg font-normal text-slate-500">kWh/giorno</span></div>
                         </div>
