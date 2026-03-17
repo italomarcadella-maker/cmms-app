@@ -91,16 +91,18 @@ export async function getEnergyMetrics(plantId?: string, days: number = 30) {
         const savingsPercent = previousAvg > 0 ? ((previousAvg - currentAvg) / previousAvg) * 100 : 0;
 
         let sustainabilityScore = 0; 
-        if (totalKwh > 0) sustainabilityScore += 50;
-        if (totalWater > 0) sustainabilityScore += 20;
-        if (savingsPercent > 5) sustainabilityScore += 30;
+        if (totalKwh > 0 || totalWater > 0) {
+            // Basato su risparmio vs baseline (savingsPercent)
+            // 50 punti base se ci sono dati, + fino a 50 basati su efficienza
+            sustainabilityScore = 50 + Math.min(50, Math.max(0, savingsPercent * 2));
+        }
         
-        sustainabilityScore = Math.min(100, Math.max(0, sustainabilityScore));
+        sustainabilityScore = Math.round(Math.min(100, Math.max(0, sustainabilityScore)));
 
         const costs = {
-            electricity: totalKwh * 0.22,
-            water: totalWater * 0.85, // Updated to standard rate
-            total: (totalKwh * 0.22) + (totalWater * 0.85)
+            electricity: totalKwh > 0 ? totalKwh * 0.22 : 0,
+            water: totalWater > 0 ? totalWater * 0.85 : 0,
+            total: (totalKwh > 0 ? totalKwh * 0.22 : 0) + (totalWater > 0 ? totalWater * 0.85 : 0)
         };
 
         const aiInsights = [];

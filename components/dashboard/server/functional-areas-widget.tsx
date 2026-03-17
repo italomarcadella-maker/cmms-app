@@ -1,5 +1,6 @@
 
 import { getAreaStatus } from "@/lib/dashboard-actions";
+import { getEnergyMetrics } from "@/lib/energy-actions";
 import { AreaCard } from "@/components/dashboard/area-card";
 import { Factory, Wrench, Settings, TrendingUp } from "lucide-react";
 
@@ -38,7 +39,7 @@ export async function FunctionalAreasWidget() {
             />
             <AreaCard
                 title="Sostenibilità AI"
-                count={0}
+                count={(await getEnergyMetrics()).sustainabilityScore}
                 icon={<TrendingUp className="h-5 w-5" />}
                 href="/sustainability"
                 color="bg-indigo-600"
