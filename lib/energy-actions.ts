@@ -28,11 +28,14 @@ export async function getEnergyMetrics(plantId?: string) {
             const dateStr = log.date.toISOString().split('T')[0];
             const current = dailyData.get(dateStr) || { kwh: 0, co2: 0 };
 
-            current.kwh += log.kwhConsumed;
-            current.co2 += log.co2Emitted || (log.kwhConsumed * 0.25); // fallback CO2 factor
+            const kwh = log.kwhConsumed || 0;
+            const co2 = log.co2Emitted || (kwh * 0.25);
 
-            totalKwh += log.kwhConsumed;
-            totalCo2 += log.co2Emitted || (log.kwhConsumed * 0.25);
+            current.kwh += kwh;
+            current.co2 += co2;
+
+            totalKwh += kwh;
+            totalCo2 += co2;
 
             dailyData.set(dateStr, current);
         });
@@ -48,7 +51,7 @@ export async function getEnergyMetrics(plantId?: string) {
 
         // Mock baseline for comparison
         const baselineKwh = averageKwh * 1.15; // Assumption: we improved by 15%
-        const savingsPercent = ((baselineKwh - averageKwh) / baselineKwh) * 100;
+        const savingsPercent = baselineKwh > 0 ? ((baselineKwh - averageKwh) / baselineKwh) * 100 : 0;
 
         // NEW: Sustainability Score (0-100)
         let sustainabilityScore = 75; // Base score
@@ -82,7 +85,9 @@ export async function getEnergyMetrics(plantId?: string) {
             totalKwh: 0,
             totalCo2: 0,
             averageKwh: 0,
-            savingsPercent: 0
+            savingsPercent: 0,
+            sustainabilityScore: 0,
+            estimatedCosts: { electricity: 0, co2: 0, total: 0 }
         };
     }
 }

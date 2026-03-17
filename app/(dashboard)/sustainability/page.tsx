@@ -21,9 +21,14 @@ export default function SustainabilityDashboard() {
     const [meters, setMeters] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        setTimeout(() => setIsLoading(true), 0);
+        setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        setIsLoading(true);
         
         Promise.all([
             getEnergyMetrics(activePlant?.id),
@@ -34,10 +39,13 @@ export default function SustainabilityDashboard() {
             setMeters(metersData);
             setStats(statsData);
             setIsLoading(false);
+        }).catch(err => {
+            console.error("Dashboard data load error:", err);
+            setIsLoading(false);
         });
     }, [activePlant?.id]);
 
-    if (isLoading) {
+    if (!isMounted || isLoading) {
         return (
             <div className="space-y-6 animate-pulse">
                 <div className="h-8 w-64 bg-slate-200 rounded"></div>
@@ -51,9 +59,9 @@ export default function SustainabilityDashboard() {
 
     if (!metrics) return null;
 
-    const formattedCosts = metrics.estimatedCosts?.total?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0";
-    const formattedTotalCo2 = metrics.totalCo2?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0";
-    const savings = metrics.savingsPercent?.toFixed(1) || "0.0";
+    const formattedCosts = metrics?.estimatedCosts?.total?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0";
+    const formattedTotalCo2 = metrics?.totalCo2?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0";
+    const savings = metrics?.savingsPercent?.toFixed(1) || "0.0";
 
     const [activeInsight, setActiveInsight] = useState(0);
     const insights = [
@@ -87,9 +95,10 @@ export default function SustainabilityDashboard() {
         return () => clearInterval(interval);
     }, [insights.length]);
 
+    const scoreValue = metrics?.sustainabilityScore || 0;
     const scoreData = [
-        { name: 'Score', value: metrics.sustainabilityScore || 0, fill: (metrics.sustainabilityScore > 80 ? '#10b981' : metrics.sustainabilityScore > 60 ? '#f59e0b' : '#ef4444') },
-        { name: 'Remaining', value: 100 - (metrics.sustainabilityScore || 0), fill: '#f1f5f9' }
+        { name: 'Score', value: scoreValue, fill: (scoreValue > 80 ? '#10b981' : scoreValue > 60 ? '#f59e0b' : '#ef4444') },
+        { name: 'Remaining', value: 100 - scoreValue, fill: '#f1f5f9' }
     ];
 
     return (
@@ -155,7 +164,7 @@ export default function SustainabilityDashboard() {
                         <div>
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Risparmio Proiettato (Anno)</p>
                             <div className="flex items-baseline gap-2 text-indigo-600">
-                                <span className="text-3xl font-black">€{(metrics.totalKwh * 0.22 * 12 * 0.15).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                                <span className="text-3xl font-black">€{((metrics?.totalKwh || 0) * 0.22 * 12 * 0.15).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
                                 <Wallet className="h-5 w-5 opacity-50" />
                             </div>
                             <p className="text-xs text-slate-500 mt-2 italic flex items-center gap-1">
@@ -182,7 +191,7 @@ export default function SustainabilityDashboard() {
                             <div className="p-2 bg-white/20 rounded-lg">
                                 <Leaf className="h-5 w-5" />
                             </div>
-                            <p className="text-sm">Equivale a <strong>{(metrics.totalCo2 / 21).toFixed(0)} alberi</strong> salvati.</p>
+                            <p className="text-sm">Equivale a <strong>{((metrics?.totalCo2 || 0) / 21).toFixed(0)} alberi</strong> salvati.</p>
                         </div>
                     </div>
                 </div>

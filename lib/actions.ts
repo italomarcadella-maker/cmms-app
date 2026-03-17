@@ -2163,7 +2163,12 @@ export async function generateDailySuggestions() {
 
 
 export async function getMeters() {
-    return await prisma.meter.findMany({ orderBy: { name: 'asc' } });
+    try {
+        return await prisma.meter.findMany({ orderBy: { name: 'asc' } });
+    } catch (error) {
+        console.error("Failed to fetch meters:", error);
+        return [];
+    }
 }
 
 export async function createMeter(data: any) {
