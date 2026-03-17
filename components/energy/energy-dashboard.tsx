@@ -56,9 +56,10 @@ export function EnergyDashboard({
         
         // If a specific meter is selected, use its history
         if (selectedMeterId !== "all" && stats.meterHistory?.[selectedMeterId]) {
+            const meter = meters.find(m => m.id === selectedMeterId);
             baseTrends = stats.meterHistory[selectedMeterId].map(h => ({
                 date: h.date,
-                [meters.find(m => m.id === selectedMeterId)?.type.toLowerCase()]: h.consumption
+                [(meter?.type || "unknown").toLowerCase()]: h.consumption
             }));
         }
 

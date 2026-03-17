@@ -28,11 +28,11 @@ export async function getEnergyMetrics(plantId?: string) {
             const dateStr = log.date.toISOString().split('T')[0];
             const current = dailyData.get(dateStr) || { kwh: 0, co2: 0 };
 
-            current.kwh += log.kwh;
-            current.co2 += log.co2Emissions || (log.kwh * 0.25); // fallback CO2 factor
+            current.kwh += log.kwhConsumed;
+            current.co2 += log.co2Emitted || (log.kwhConsumed * 0.25); // fallback CO2 factor
 
-            totalKwh += log.kwh;
-            totalCo2 += log.co2Emissions || (log.kwh * 0.25);
+            totalKwh += log.kwhConsumed;
+            totalCo2 += log.co2Emitted || (log.kwhConsumed * 0.25);
 
             dailyData.set(dateStr, current);
         });
