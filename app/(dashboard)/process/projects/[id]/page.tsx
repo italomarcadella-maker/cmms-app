@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, use } from "react";
-import { getProjectById, createProjectTask, updateTaskDates, linkTaskToMaintenance, addProjectTaskNote, updateProject } from "@/lib/process-actions";
+import { getProjectById, createProjectTask, updateTaskDates, linkTaskToMaintenance, addProjectTaskNote, updateProject, deleteProject, archiveProject } from "@/lib/process-actions";
 import { getAssets } from "@/lib/actions";
 import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripHorizontal, TrendingUp, Edit3 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,7 @@ import { format, addDays, getDaysInMonth, startOfMonth, differenceInDays } from 
 import { it } from "date-fns/locale";
 import { toast } from "sonner";
 import { DndContext, useDraggable, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { X, Send, User, MessageSquare } from "lucide-react";
+import { X, Send, User, MessageSquare, Archive, Trash2 } from "lucide-react";
 
 interface GanttTask {
     id: string;
@@ -85,16 +85,18 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
 
     const loadData = async () => {
         setLoading(true);
+        console.log(`[ProjectDetail] Loading data for ID: ${id}`);
         try {
             const [projData, assetsData] = await Promise.all([
                 getProjectById(id),
                 getAssets()
             ]);
+            console.log(`[ProjectDetail] Project data received:`, projData ? "Found" : "NOT FOUND");
             setProject(projData);
             setAssets(assetsData);
             if (projData) setTempRoi(projData.roi?.toString() || "0");
         } catch (error) {
-            console.error("Error loading project data:", error);
+            console.error("[ProjectDetail] Error loading project data:", error);
             toast.error("Errore caricamento dati");
         } finally {
             setLoading(false);
@@ -180,6 +182,30 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
             loadData();
         } else {
             toast.error(res.message);
+        }
+    };
+
+    const handleDeleteProject = async () => {
+        if (confirm("Eliminare definitivamente questo progetto?")) {
+            const res = await deleteProject(id);
+            if (res.success) {
+                toast.success("Progetto eliminato");
+                window.location.href = "/process";
+            } else {
+                toast.error(res.message);
+            }
+        }
+    };
+
+    const handleArchiveProject = async () => {
+        if (confirm("Archiviare questo progetto?")) {
+            const res = await archiveProject(id);
+            if (res.success) {
+                toast.success("Progetto archiviato");
+                loadData();
+            } else {
+                toast.error(res.message);
+            }
         }
     };
 
@@ -287,12 +313,12 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
                     <h1 className="text-3xl font-extrabold text-slate-800">{project.title}</h1>
                     <p className="text-slate-500 mt-1">{project.description}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <div className="bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-xl flex items-center gap-3">
                         <TrendingUp className="h-5 w-5 text-emerald-600" />
                         <div>
                             <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">ROI Stimato</p>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 text-sm">
                                 <span className="font-extrabold text-slate-800">€ {project.roi?.toLocaleString() || "0"}</span>
                                 <button onClick={() => setIsEditingRoi(true)} className="text-slate-400 hover:text-indigo-600">
                                     <Edit3 className="h-3.5 w-3.5" />
@@ -300,13 +326,31 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
                             </div>
                         </div>
                     </div>
+
+                    {project.status !== 'COMPLETED' && (
+                        <button
+                            onClick={handleArchiveProject}
+                            className="bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-amber-100 transition text-sm font-bold"
+                            title="Chiudi e Archivia"
+                        >
+                            <Archive className="h-4 w-4" /> Chiudi Progetto
+                        </button>
+                    )}
+
+                    <button
+                        onClick={handleDeleteProject}
+                        className="bg-red-50 text-red-700 border border-red-200 px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-red-100 transition text-sm font-bold"
+                        title="Elimina Definitivamente"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </button>
+
                     <button
                         onClick={() => setIsAddingTask(true)}
-                        className="bg-indigo-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-md hover:bg-indigo-700 transition"
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm hover:bg-indigo-700 transition text-sm font-bold"
                     >
                         <Plus className="h-4 w-4" /> Aggiungi Task
                     </button>
-                    {/* ... rest of buttons ... */}
                 </div>
             </div>
 

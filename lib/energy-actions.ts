@@ -3,22 +3,22 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function getEnergyMetrics(plantId?: string) {
+export async function getEnergyMetrics(plantId?: string, days: number = 30) {
     try {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
 
         // Fetch both EnergyLog and MeterReading
         const [logs, meterReadings] = await Promise.all([
             prisma.energyLog.findMany({
                 where: {
-                    date: { gte: thirtyDaysAgo },
+                    date: { gte: startDate },
                     ...(plantId && { plantId })
                 },
                 orderBy: { date: 'asc' }
             }),
             prisma.meterReading.findMany({
-                where: { date: { gte: thirtyDaysAgo } },
+                where: { date: { gte: startDate } },
                 include: { meter: true },
                 orderBy: { date: 'asc' }
             })
@@ -92,10 +92,10 @@ export async function getEnergyMetrics(plantId?: string) {
         };
 
         const aiInsights = [];
-        if (totalWater > 500) {
+        if (totalWater > (days * 15)) { // Dynamic threshold based on days
             aiInsights.push({
                 title: "Alto Consumo Idrico Rilevato",
-                content: `Rilevato un consumo totale di ${totalWater.toLocaleString()} m³ negli ultimi 30 giorni.`,
+                content: `Rilevato un consumo totale di ${totalWater.toLocaleString()} m³ negli ultimi ${days} giorni.`,
                 suggestion: "Verificare perdite nel circuito di raffreddamento secondario.",
                 type: "warning",
                 savings: "5-10% sui costi idrici"

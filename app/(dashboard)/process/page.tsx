@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getProjects, createProject, deleteProject, getUnresolvedAnomalies } from "@/lib/process-actions";
-import { Plus, BarChart3, TrendingUp, GitPullRequest, Settings, ArrowRight, Trash2, ShieldAlert, FileCheck2 } from "lucide-react";
+import { getProjects, createProject, deleteProject, getUnresolvedAnomalies, archiveProject } from "@/lib/process-actions";
+import { Plus, BarChart3, TrendingUp, GitPullRequest, Settings, ArrowRight, Trash2, ShieldAlert, FileCheck2, Archive, ListFilter } from "lucide-react";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -11,11 +12,12 @@ export default function ProcessDashboard() {
     const [projects, setProjects] = useState<any[]>([]);
     const [anomalies, setAnomalies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showArchived, setShowArchived] = useState(false);
 
     const loadData = async () => {
-        setTimeout(() => setLoading(true), 0);
+        setLoading(true);
         const [projectsData, anomaliesData] = await Promise.all([
-            getProjects(),
+            getProjects(showArchived),
             getUnresolvedAnomalies()
         ]);
         setProjects(projectsData);
@@ -24,16 +26,26 @@ export default function ProcessDashboard() {
     };
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadData();
-    }, []);
+    }, [showArchived]);
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         if (confirm("Eliminare definitivamente questo progetto e tutti i task associati?")) {
-            await deleteProject(id);
-            loadData();
+            const res = await deleteProject(id);
+            if (res.success) loadData();
+            else alert(res.message);
+        }
+    };
+
+    const handleArchive = async (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (confirm("Archiviare questo progetto?")) {
+            const res = await archiveProject(id);
+            if (res.success) loadData();
+            else alert(res.message);
         }
     };
 
@@ -148,8 +160,28 @@ export default function ProcessDashboard() {
                 </div>
             </div>
 
+            {/* Project List Header */}
+            <div className="flex justify-between items-center mt-8">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-indigo-600" />
+                    {showArchived ? 'Archivio Progetti' : 'Progetti Attivi'}
+                </h2>
+                <button 
+                    onClick={() => setShowArchived(!showArchived)}
+                    className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border",
+                        showArchived 
+                            ? "bg-indigo-600 text-white border-indigo-700 shadow-md" 
+                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    )}
+                >
+                    <ListFilter className="h-4 w-4" />
+                    {showArchived ? 'Mostra Attivi' : 'Mostra Archiviati'}
+                </button>
+            </div>
+
             {/* Project List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {loading ? (
                     <div className="col-span-full py-20 text-center text-slate-400 font-medium animate-pulse">
                         Caricamento Hub Progetti...
@@ -170,12 +202,22 @@ export default function ProcessDashboard() {
                                     <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase border ${getStatusColor(project.status)}`}>
                                         {project.status === 'PLANNING' ? 'IN PIANIFICAZIONE' : project.status}
                                     </span>
-                                    <button
-                                        onClick={(e) => handleDelete(project.id, e)}
-                                        className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={(e) => handleArchive(project.id, e)}
+                                            className="text-slate-300 hover:text-amber-500 hover:bg-amber-50 p-1.5 rounded-lg transition-colors"
+                                            title="Archivia"
+                                        >
+                                            <Archive className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleDelete(project.id, e)}
+                                            className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                            title="Elimina"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
                                 </div>
                                 <h3 className="text-xl font-bold text-slate-800 group-hover:text-indigo-700 transition-colors line-clamp-2">
                                     {project.title}

@@ -33,9 +33,12 @@ export async function getUnresolvedAnomalies() {
     }
 }
 
-export async function getProjects() {
+export async function getProjects(showArchived: boolean = false) {
     try {
         const projects = await prisma.project.findMany({
+            where: {
+                status: showArchived ? 'COMPLETED' : { not: 'COMPLETED' }
+            },
             orderBy: { createdAt: 'desc' },
             include: {
                 tasks: true
@@ -118,6 +121,23 @@ export async function createProject(data: { title: string, description?: string,
         return { success: true, project };
     } catch (e) {
         return { success: false, message: "Errore creazione progetto" };
+    }
+}
+
+export async function archiveProject(id: string) {
+    const { authorized } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message: "Non autorizzato" };
+
+    try {
+        await prisma.project.update({
+            where: { id },
+            data: { status: 'COMPLETED' }
+        });
+        revalidatePath('/process');
+        revalidatePath(`/process/projects/${id}`);
+        return { success: true };
+    } catch (e) {
+        return { success: false, message: "Errore archiviazione progetto" };
     }
 }
 
