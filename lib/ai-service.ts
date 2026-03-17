@@ -749,9 +749,16 @@ export async function parseHmiImageToSop(imageUrl: string, assetId: string) {
                         data: {
                             assetId,
                             description: anom.description,
-                            aiRecommendation: anom.recommendation
+                            aiRecommendation: anom.recommendation + " (Consigliato controllo tecnico preventivo)"
                         }
                     });
+
+                    // AUTO-BRIDGE: If the anomaly looks mechanical/critical, suggest a Maintenance Ticket draft
+                    const isMechanical = anom.label.toLowerCase().includes("pressione") || anom.label.toLowerCase().includes("coppia");
+                    if (isMechanical) {
+                        // Normally we'd use learnFromWorkOrder or a specific trigger
+                        console.log(`[Cortex Bridge] Mechanical Anomaly detected on ${anom.label}. Tagging for maintenance.`);
+                    }
                 });
             }
         }

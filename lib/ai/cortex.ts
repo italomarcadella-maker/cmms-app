@@ -17,16 +17,72 @@ export class CortexEngine {
     async generateDailyInsights(): Promise<import("./types").DailyInsight[]> {
         const insights: import("./types").DailyInsight[] = [];
         try {
-            // 1. Critical Pending WOs
-            const criticalWOs = await prisma.workOrder.count({ where: { priority: 'STOPPED', status: { in: ['OPEN', 'IN_PROGRESS'] } } });
+            // 0. Global Search for correlations (Memory based)
+            const globalContext = await this.memory.search("problemi urgenti impianto", 5);
+            
+            // 1. Critical Pending WOs & Safety
+            const [criticalWOs, openSafety] = await Promise.all([
+                prisma.workOrder.count({ where: { priority: 'STOPPED', status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
+                prisma.workOrder.count({ where: { category: 'SAFETY', status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] } } })
+            ]);
+
+            if (openSafety > 0) {
+                insights.push({
+                    id: 'safety-alert',
+                    type: 'ALERT',
+                    title: 'Sicurezza Prioritaria',
+                    message: `Sono presenti ${openSafety} segnalazioni di sicurezza aperte. La sicurezza dei tecnici è la priorità assoluta.`,
+                    actionLabel: 'Vai a Sicurezza',
+                    actionUrl: '/requests/safety'
+                });
+            }
+
             if (criticalWOs > 0) {
                 insights.push({
                     id: 'critical-wo',
                     type: 'ALERT',
                     title: 'Interventi Critici',
-                    message: `Ci sono ${criticalWOs} interventi ad alta priorità in attesa.`,
+                    message: `Ci sono ${criticalWOs} interventi ad alta priorità in attesa. Rischio fermo produzione prolungato.`,
                     actionLabel: 'Visualizza',
                     actionUrl: '/work-orders?priority=STOPPED'
+                });
+            }
+
+            // 2. Sustainability & Costs
+            const energyStats = await prisma.energyLog.findMany({
+                take: 7,
+                orderBy: { date: 'desc' }
+            });
+
+            if (energyStats.length > 1) {
+                const totalCost = energyStats.reduce((acc, curr) => acc + (curr.costLocal || 0), 0);
+                const avgKwh = energyStats.reduce((acc, curr) => acc + curr.kwhConsumed, 0) / energyStats.length;
+                
+                if (avgKwh > 500) { // Threshold for "High Consumption" context
+                    insights.push({
+                        id: 'sustainability-cost',
+                        type: 'INFO',
+                        title: 'Efficienza Energetica',
+                        message: `Costo energetico stimato ultimi 7 giorni: €${totalCost.toFixed(0)}. Consumo medio elevato rilevato.`,
+                        actionLabel: 'Dettaglio Consumi',
+                        actionUrl: '/sustainability'
+                    });
+                }
+            }
+
+            // 3. Process Anomalies (Linking to Quality/Maintenance)
+            const recentAnomalies = await prisma.processAnomaly.count({
+                where: { isResolved: false, detectedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
+            });
+
+            if (recentAnomalies > 0) {
+                insights.push({
+                    id: 'process-anomaly',
+                    type: 'WARNING',
+                    title: 'Anomalie di Processo',
+                    message: `Rilevate ${recentAnomalies} derive dai parametri SOP nelle ultime 24h. Possibile usura meccanica latente.`,
+                    actionLabel: 'Analisi Deriva',
+                    actionUrl: '/process/optimization'
                 });
             }
 
@@ -140,10 +196,17 @@ export class CortexEngine {
                 const timeSinceLast = now - lastFaultDate.getTime();
                 const percentUsed = timeSinceLast / avgDiffMs;
 
+                // NEW: Energy Factor in Risk
+                // In a real system we would query EnergyLogs for this asset
+                // and see if consumption is rising vs baseline.
+                // For MVP, we simulate a slight increase in risk if healthScore < 80
+                const energyRiskMultiplier = asset.healthScore < 80 ? 1.2 : 1.0;
+                const adjustedUsage = percentUsed * energyRiskMultiplier;
+
                 let riskLevel = 'LOW';
-                if (percentUsed > 1.1) riskLevel = 'CRITICAL';
-                else if (percentUsed > 0.8) riskLevel = 'HIGH';
-                else if (percentUsed > 0.5) riskLevel = 'MEDIUM';
+                if (adjustedUsage > 1.1) riskLevel = 'CRITICAL';
+                else if (adjustedUsage > 0.8) riskLevel = 'HIGH';
+                else if (adjustedUsage > 0.5) riskLevel = 'MEDIUM';
 
                 return {
                     id: asset.id,

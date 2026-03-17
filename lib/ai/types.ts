@@ -14,7 +14,7 @@ export interface AIMemoryItem {
     id: string;
     tags: string[];
     content: string;
-    type: 'knowledge' | 'history' | 'manual';
+    type: 'knowledge' | 'history' | 'manual' | 'process' | 'energy' | 'safety';
     createdAt: Date;
     relevance?: number;
 }

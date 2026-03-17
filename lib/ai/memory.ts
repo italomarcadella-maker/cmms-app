@@ -35,13 +35,15 @@ export class VectorMemory {
         // 1. Fetch Candidates from DB (Knowledge Base & Work Order History)
         // In a real vector DB, we'd query embeddings. Here we fetch broad matches.
 
-        const [kbItems, woItems] = await Promise.all([
+        const [kbItems, woItems, anomalies, energyLogs] = await Promise.all([
             prisma.maintenanceKnowledge.findMany({ take: 50 }),
             prisma.workOrder.findMany({
                 where: { status: 'CLOSED' },
                 take: 50,
                 orderBy: { createdAt: 'desc' }
-            })
+            }),
+            prisma.processAnomaly.findMany({ take: 20, orderBy: { detectedAt: 'desc' } }),
+            prisma.energyLog.findMany({ take: 20, orderBy: { date: 'desc' } })
         ]);
 
         const candidates: AIMemoryItem[] = [];
@@ -62,10 +64,34 @@ export class VectorMemory {
             candidates.push({
                 id: w.id,
                 tags: this.tokenize(w.title + " " + w.description),
-                content: `Intervento: ${w.title}. Risoluzione: ${w.status}`, // Should optimally have resolution text
+                content: `Intervento storico: ${w.title}. Risolto con queste note: ${w.description}`,
                 type: 'history',
                 createdAt: w.createdAt
             });
+        });
+
+        // Map Process Anomalies
+        anomalies.forEach(a => {
+            candidates.push({
+                id: a.id,
+                tags: this.tokenize(a.description),
+                content: `Anomalia Processo: ${a.description}. Suggerimento AI: ${a.aiRecommendation}`,
+                type: 'process',
+                createdAt: a.detectedAt
+            });
+        });
+
+        // Map Energy Logs (if they have anomalies or significant context)
+        energyLogs.forEach(e => {
+            if (e.kwhConsumed > 0) { // In a real case, we'd filter for spikes
+                candidates.push({
+                    id: e.id,
+                    tags: ['energia', 'sostenibilità', 'consumo', e.assetId || 'plant'],
+                    content: `Consumo Energetico rilevato: ${e.kwhConsumed} kWh. Costo stimato: €${e.costLocal?.toFixed(2)}`,
+                    type: 'energy',
+                    createdAt: e.date
+                });
+            }
         });
 
         // Rank
