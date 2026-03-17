@@ -48,15 +48,7 @@ export default function SustainabilityDashboard() {
         });
     }, [activePlant?.id, period]);
 
-    const insights = metrics?.aiInsights || [
-        {
-            title: "Dati in fase di analisi",
-            content: "L'AI sta analizzando i nuovi flussi di dati dai contatori per generare suggerimenti personalizzati.",
-            suggestion: "Continuare il monitoraggio dei consumi.",
-            savings: "N/A",
-            type: "info"
-        }
-    ];
+    const insights = metrics?.aiInsights || [];
 
     useEffect(() => {
         if (!insights || insights.length <= 1) return;
@@ -74,6 +66,40 @@ export default function SustainabilityDashboard() {
                     {[1, 2, 3].map(i => <div key={i} className="h-32 bg-slate-200 rounded-xl"></div>)}
                 </div>
                 <div className="h-[400px] bg-slate-200 rounded-xl"></div>
+            </div>
+        );
+    }
+
+    const hasNoData = !metrics || (metrics.totalKwh === 0 && metrics.totalWater === 0 && (!metrics.chartData || metrics.chartData.length === 0));
+
+    if (hasNoData) {
+        return (
+            <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-800 flex items-center gap-3">
+                            <Leaf className="h-8 w-8 text-emerald-500" />
+                            Sostenibilità & Energy Management
+                        </h1>
+                        <p className="text-slate-500 mt-2">Monitoraggio consumi energetici, emissioni CO₂ e ottimizzazioni AI.</p>
+                    </div>
+                    <BackToDashboardButton />
+                </div>
+                
+                <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-20 text-center">
+                    <div className="bg-indigo-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Zap className="h-10 w-10 text-indigo-400" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-800">Nessun dato disponibile nel periodo</h2>
+                    <p className="text-slate-500 mt-2 max-w-md mx-auto">
+                        Inizia inserendo le letture dei contatori o collegando i log energetici della pianta per visualizzare analisi e trend.
+                    </p>
+                    <div className="mt-8 flex justify-center gap-4">
+                        <button onClick={() => setPeriod(90)} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">
+                            Prova un periodo più lungo
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -214,61 +240,63 @@ export default function SustainabilityDashboard() {
             </div>
 
             {/* AI Insights Carousel */}
-            <div className="bg-gradient-to-r from-indigo-50 to-blue-50/50 p-6 rounded-2xl border border-indigo-100 shadow-sm relative overflow-hidden min-h-[220px]">
-                <div className="absolute right-0 top-0 opacity-5 w-64 h-64 translate-x-1/3 -translate-y-1/3 grayscale">
-                    <BrainCircuit className="w-full h-full" />
-                </div>
-
-                <div className="relative z-10 h-full flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2 text-indigo-700 font-bold uppercase tracking-wider text-xs">
-                            <BrainCircuit className="h-5 w-5" />
-                            AI Energy Insights
-                        </div>
-                        <div className="flex gap-1">
-                            {insights.map((_: any, i: number) => (
-                                <button 
-                                    key={i} 
-                                    onClick={() => setActiveInsight(i)}
-                                    className={cn(
-                                        "h-1.5 rounded-full transition-all",
-                                        activeInsight === i ? "w-6 bg-indigo-600" : "w-1.5 bg-indigo-200"
-                                    )}
-                                />
-                            ))}
-                        </div>
+            {insights.length > 0 && (
+                <div className="bg-gradient-to-r from-indigo-50 to-blue-50/50 p-6 rounded-2xl border border-indigo-100 shadow-sm relative overflow-hidden min-h-[220px]">
+                    <div className="absolute right-0 top-0 opacity-5 w-64 h-64 translate-x-1/3 -translate-y-1/3 grayscale">
+                        <BrainCircuit className="w-full h-full" />
                     </div>
 
-                    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white shadow-sm flex-1 animate-in fade-in slide-in-from-right-4 duration-700 ease-out" key={activeInsight}>
-                        <div className="flex gap-4">
-                            <div className={cn(
-                                "p-3 rounded-full h-fit",
-                                insights[activeInsight % insights.length]?.type === 'critical' ? 'bg-red-100 text-red-600' : 
-                                insights[activeInsight % insights.length]?.type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
-                            )}>
-                                {insights[activeInsight % insights.length]?.type === 'critical' ? <AlertTriangle className="h-6 w-6" /> : <BrainCircuit className="h-6 w-6" />}
+                    <div className="relative z-10 h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2 text-indigo-700 font-bold uppercase tracking-wider text-xs">
+                                <BrainCircuit className="h-5 w-5" />
+                                AI Energy Insights
                             </div>
-                            <div className="flex-1">
-                                <h4 className="font-bold text-slate-900 mb-1">{(insights[activeInsight % insights.length] as any).title}</h4>
-                                <p className="text-sm text-slate-600 mb-4 leading-relaxed">{(insights[activeInsight % insights.length] as any).content}</p>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                                    <div className="text-sm">
-                                        <span className="font-bold text-slate-400 uppercase text-[10px] block mb-1">Azione Suggerita</span>
-                                        <p className="font-medium text-indigo-700">{(insights[activeInsight % insights.length] as any).suggestion}</p>
-                                    </div>
-                                    <div className="text-sm">
-                                        <span className="font-bold text-slate-400 uppercase text-[10px] block mb-1">Risparmio Stimato</span>
-                                        <p className="font-bold text-emerald-600 flex items-center gap-1">
-                                            <TrendingDown className="h-4 w-4" /> {(insights[activeInsight % insights.length] as any).savings}
-                                        </p>
+                            <div className="flex gap-1">
+                                {insights.map((_: any, i: number) => (
+                                    <button 
+                                        key={i} 
+                                        onClick={() => setActiveInsight(i)}
+                                        className={cn(
+                                            "h-1.5 rounded-full transition-all",
+                                            activeInsight === i ? "w-6 bg-indigo-600" : "w-1.5 bg-indigo-200"
+                                        )}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-white shadow-sm flex-1 animate-in fade-in slide-in-from-right-4 duration-700 ease-out" key={activeInsight}>
+                            <div className="flex gap-4">
+                                <div className={cn(
+                                    "p-3 rounded-full h-fit",
+                                    insights[activeInsight % insights.length]?.type === 'critical' ? 'bg-red-100 text-red-600' : 
+                                    insights[activeInsight % insights.length]?.type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
+                                )}>
+                                    {insights[activeInsight % insights.length]?.type === 'critical' ? <AlertTriangle className="h-6 w-6" /> : <BrainCircuit className="h-6 w-6" />}
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-slate-900 mb-1">{(insights[activeInsight % insights.length] as any).title}</h4>
+                                    <p className="text-sm text-slate-600 mb-4 leading-relaxed">{(insights[activeInsight % insights.length] as any).content}</p>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                                        <div className="text-sm">
+                                            <span className="font-bold text-slate-400 uppercase text-[10px] block mb-1">Azione Suggerita</span>
+                                            <p className="font-medium text-indigo-700">{(insights[activeInsight % insights.length] as any).suggestion}</p>
+                                        </div>
+                                        <div className="text-sm">
+                                            <span className="font-bold text-slate-400 uppercase text-[10px] block mb-1">Risparmio Stimato</span>
+                                            <p className="font-bold text-emerald-600 flex items-center gap-1">
+                                                <TrendingDown className="h-4 w-4" /> {(insights[activeInsight % insights.length] as any).savings}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Charts Section with Selectors */}
             <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">

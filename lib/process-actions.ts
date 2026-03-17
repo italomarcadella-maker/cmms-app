@@ -163,6 +163,7 @@ export async function deleteProject(id: string) {
 // --- PROJECT TASKS (GANTT) ---
 
 export async function createProjectTask(data: { projectId: string, title: string, startDate: Date, endDate: Date, status?: string, dependencies?: string }) {
+    console.log(`[createProjectTask] Attempting to create task for project: ${data.projectId}`, data);
     const { authorized } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
@@ -170,10 +171,12 @@ export async function createProjectTask(data: { projectId: string, title: string
         const task = await prisma.projectTask.create({
             data
         });
+        console.log(`[createProjectTask] Success: Task ${task.id} created.`);
         revalidatePath(`/process/projects/${data.projectId}`);
         return { success: true, task };
     } catch (e) {
-        return { success: false, message: "Errore creazione task" };
+        console.error("[createProjectTask] FATAL ERROR:", e);
+        return { success: false, message: e instanceof Error ? e.message : "Errore creazione task" };
     }
 }
 

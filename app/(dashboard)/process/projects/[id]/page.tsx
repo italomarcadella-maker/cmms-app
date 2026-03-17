@@ -119,7 +119,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
         e.preventDefault();
         if (!newTaskTitle) return;
 
-        await createProjectTask({
+        const res = await createProjectTask({
             projectId: id,
             title: newTaskTitle,
             startDate: new Date(newTaskStart),
@@ -128,9 +128,15 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
             dependencies: newTaskDependency ? JSON.stringify([newTaskDependency]) : undefined
         });
 
-        setNewTaskTitle("");
-        setIsAddingTask(false);
-        loadData();
+        if (res.success) {
+            setNewTaskTitle("");
+            setIsAddingTask(false);
+            toast.success("Task aggiunto con successo");
+            loadData();
+        } else {
+            console.error("[handleAddTask] Failure:", res.message);
+            toast.error(`Errore: ${res.message}`);
+        }
     };
 
     const handleLinkMaintenance = async (e: React.FormEvent) => {

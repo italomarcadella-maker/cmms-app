@@ -90,16 +90,17 @@ export async function getEnergyMetrics(plantId?: string, days: number = 30) {
         const averageKwh = currentAvg;
         const savingsPercent = previousAvg > 0 ? ((previousAvg - currentAvg) / previousAvg) * 100 : 0;
 
-        let sustainabilityScore = 70; 
-        if (totalWater > 0) sustainabilityScore += 5;
-        if (savingsPercent > 5) sustainabilityScore += 10;
+        let sustainabilityScore = 0; 
+        if (totalKwh > 0) sustainabilityScore += 50;
+        if (totalWater > 0) sustainabilityScore += 20;
+        if (savingsPercent > 5) sustainabilityScore += 30;
         
         sustainabilityScore = Math.min(100, Math.max(0, sustainabilityScore));
 
         const costs = {
             electricity: totalKwh * 0.22,
-            water: totalWater * 1.5, // Mock rate: €1.5/m3
-            total: (totalKwh * 0.22) + (totalWater * 1.5)
+            water: totalWater * 0.85, // Updated to standard rate
+            total: (totalKwh * 0.22) + (totalWater * 0.85)
         };
 
         const aiInsights = [];
