@@ -69,6 +69,39 @@ export async function getEnergyMetrics(plantId?: string) {
             total: (totalKwh * 0.22)
         };
 
+        // AUTO-BRIDGE: If anomalies detected in readings, trigger maintenance health check
+        const energyAnomalies = logs.filter((l: any) => l.isAnomaly);
+        if (energyAnomalies.length > 0) {
+            console.log(`[Cortex Bridge] Energy Anomalies detected (${energyAnomalies.length}). Generating health check.`);
+            
+            // Collect unique assetIds or default to plant check
+            const targetAssets = Array.from(new Set(energyAnomalies.map((l: any) => l.assetId).filter(Boolean)));
+            
+            for (const assetId of (targetAssets.length > 0 ? targetAssets : ['plant-wide'])) {
+                const wo = await prisma.workOrder.create({
+                    data: {
+                        title: `[AI ENERGY-CHECK] Ispezione Efficienza Energetica`,
+                        description: `Rilevate anomalie nei consumi energetici negli ultimi 30 giorni. Richiesto controllo efficienza asset/area.`,
+                        priority: 'MEDIUM',
+                        category: 'ELECTRICAL',
+                        status: 'PENDING_APPROVAL',
+                        assetId: assetId === 'plant-wide' ? (await prisma.asset.findFirst({ select: { id: true } }))?.id || '' : assetId as string,
+                        requesterId: 'cortex-ai-energy'
+                    }
+                });
+
+                // Audit Log for energy-triggered action
+                await prisma.auditLog.create({
+                    data: {
+                        userId: 'system',
+                        action: 'AI_ENERGY_BRIDGE',
+                        resourceId: wo.id,
+                        details: `Energy anomaly triggered health check for ${assetId}`
+                    }
+                });
+            }
+        }
+
         return {
             chartData,
             totalKwh,

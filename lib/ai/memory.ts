@@ -18,15 +18,23 @@ export class VectorMemory {
     }
 
     private calculateSimilarity(queryTokens: string[], itemTags: string[]): number {
-        let intersection = 0;
+        if (queryTokens.length === 0) return 0;
+        
+        let score = 0;
+        const tagSet = new Set(itemTags);
+        
         for (const token of queryTokens) {
-            if (itemTags.some(tag => tag.includes(token) || token.includes(tag))) {
-                intersection += 1;
+            // Weighted match: Exact matches are better than partials
+            if (tagSet.has(token)) {
+                score += 1.0;
+            } else if (itemTags.some(tag => tag.includes(token) || token.includes(tag))) {
+                score += 0.4;
             }
         }
-        // Jaccard-ish index (simplified)
-        const union = new Set([...queryTokens, ...itemTags]).size;
-        return union === 0 ? 0 : intersection / union;
+        
+        // Normalize by query length and unique tags count (Jaccard-like influence)
+        const combinedSize = new Set([...queryTokens, ...itemTags]).size;
+        return score / Math.sqrt(combinedSize * queryTokens.length);
     }
 
     async search(query: string, limit: number = 3): Promise<AIMemoryItem[]> {
