@@ -161,7 +161,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
             // Refresh local data to show new note
             loadData().then(() => {
                 // Update the viewingTask reference too so the UI refreshes
-                setProject(prev => {
+                setProject((prev: any) => {
                     const updatedTask = prev.tasks.find((t: any) => t.id === viewingTask.id);
                     if (updatedTask) setViewingTask(updatedTask);
                     return prev;
@@ -267,9 +267,17 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
                 <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                 <h1 className="text-xl font-bold text-slate-800">Progetto non trovato</h1>
                 <p className="text-slate-500 mt-2">Non è stato possibile trovare il progetto specificato (ID: {id}).</p>
-                <Link href="/process" className="mt-6 inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition">
-                    <ArrowLeft className="h-4 w-4" /> Torna alla lista
-                </Link>
+                <div className="mt-6 flex flex-col gap-2">
+                    <button 
+                        onClick={() => loadData()}
+                        className="inline-flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition"
+                    >
+                        Riprova caricamento
+                    </button>
+                    <Link href="/process" className="inline-flex items-center justify-center gap-2 text-slate-500 hover:text-indigo-600 px-4 py-2 transition text-sm">
+                        <ArrowLeft className="h-4 w-4" /> Torna alla lista
+                    </Link>
+                </div>
             </div>
         </div>
     );

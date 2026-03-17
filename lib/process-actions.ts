@@ -52,6 +52,7 @@ export async function getProjects(showArchived: boolean = false) {
 }
 
 export async function getProjectById(id: string) {
+    console.log(`[getProjectById] Fetching project with ID: "${id}"`);
     try {
         const project = await prisma.project.findUnique({
             where: { id },
@@ -62,9 +63,14 @@ export async function getProjectById(id: string) {
                 }
             }
         });
+        if (!project) {
+            console.warn(`[getProjectById] Project NOT FOUND for ID: "${id}"`);
+        } else {
+            console.log(`[getProjectById] Project FOUND: "${project.title}"`);
+        }
         return project;
     } catch (e) {
-        console.error(`Failed to fetch project with id: ${id}`, e);
+        console.error(`[getProjectById] Failed to fetch project with id: "${id}"`, e);
         return null;
     }
 }

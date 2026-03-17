@@ -48,12 +48,23 @@ export default function SustainabilityDashboard() {
         });
     }, [activePlant?.id, period]);
 
+    const insights = metrics?.aiInsights || [
+        {
+            title: "Dati in fase di analisi",
+            content: "L'AI sta analizzando i nuovi flussi di dati dai contatori per generare suggerimenti personalizzati.",
+            suggestion: "Continuare il monitoraggio dei consumi.",
+            savings: "N/A",
+            type: "info"
+        }
+    ];
+
     useEffect(() => {
+        if (!insights || insights.length <= 1) return;
         const interval = setInterval(() => {
-            setActiveInsight(prev => (prev + 1) % 3); // 3 insights
+            setActiveInsight(prev => (prev + 1) % insights.length);
         }, 8000);
         return () => clearInterval(interval);
-    }, []);
+    }, [insights?.length]);
 
     if (!isMounted || isLoading) {
         return (
@@ -77,16 +88,6 @@ export default function SustainabilityDashboard() {
     const scoreData = [
         { name: 'Score', value: scoreValue, fill: (scoreValue > 80 ? '#10b981' : scoreValue > 60 ? '#f59e0b' : '#ef4444') },
         { name: 'Remaining', value: 100 - scoreValue, fill: '#f1f5f9' }
-    ];
-
-    const insights = metrics?.aiInsights || [
-        {
-            title: "Dati in fase di analisi",
-            content: "L'AI sta analizzando i nuovi flussi di dati dai contatori per generare suggerimenti personalizzati.",
-            suggestion: "Continuare il monitoraggio dei consumi.",
-            savings: "N/A",
-            type: "info"
-        }
     ];
 
     return (
@@ -242,10 +243,10 @@ export default function SustainabilityDashboard() {
                         <div className="flex gap-4">
                             <div className={cn(
                                 "p-3 rounded-full h-fit",
-                                insights[activeInsight].type === 'critical' ? 'bg-red-100 text-red-600' : 
-                                insights[activeInsight].type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
+                                insights[activeInsight % insights.length]?.type === 'critical' ? 'bg-red-100 text-red-600' : 
+                                insights[activeInsight % insights.length]?.type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
                             )}>
-                                {insights[activeInsight].type === 'critical' ? <AlertTriangle className="h-6 w-6" /> : <BrainCircuit className="h-6 w-6" />}
+                                {insights[activeInsight % insights.length]?.type === 'critical' ? <AlertTriangle className="h-6 w-6" /> : <BrainCircuit className="h-6 w-6" />}
                             </div>
                             <div className="flex-1">
                                 <h4 className="font-bold text-slate-900 mb-1">{(insights[activeInsight % insights.length] as any).title}</h4>

@@ -73,11 +73,22 @@ export async function getEnergyMetrics(plantId?: string, days: number = 30) {
             co2: data.co2 || (data.kwh * 0.25),
             water: data.water,
             gas: data.gas
-        }));
+        })).sort((a, b) => a.date.localeCompare(b.date));
 
-        const averageKwh = chartData.length > 0 ? (totalKwh / chartData.length) : 0;
-        const baselineKwh = averageKwh * 1.15; 
-        const savingsPercent = baselineKwh > 0 ? ((baselineKwh - averageKwh) / baselineKwh) * 100 : 0;
+        // Period-over-Period Calculation (Real data instead of mock 1.15 baseline)
+        const midPoint = Math.floor(chartData.length / 2);
+        const currentPeriodData = chartData.slice(midPoint);
+        const previousPeriodData = chartData.slice(0, midPoint);
+        
+        const currentAvg = currentPeriodData.length > 0 
+            ? currentPeriodData.reduce((acc, curr) => acc + curr.kwh, 0) / (currentPeriodData.length || 1)
+            : 0;
+        const previousAvg = previousPeriodData.length > 0 
+            ? previousPeriodData.reduce((acc, curr) => acc + curr.kwh, 0) / (previousPeriodData.length || 1)
+            : 0;
+            
+        const averageKwh = currentAvg;
+        const savingsPercent = previousAvg > 0 ? ((previousAvg - currentAvg) / previousAvg) * 100 : 0;
 
         let sustainabilityScore = 70; 
         if (totalWater > 0) sustainabilityScore += 5;
