@@ -7,7 +7,7 @@ export async function FunctionalAreasWidget() {
     const status = await getAreaStatus();
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <AreaCard
                 title="Linee Produttive"
                 count={status.production}
@@ -35,6 +35,13 @@ export async function FunctionalAreasWidget() {
                 icon={<TrendingUp className="h-5 w-5" />}
                 href="/work-orders?category=IMPROVEMENT"
                 color="bg-emerald-500"
+            />
+            <AreaCard
+                title="Sostenibilità AI"
+                count={0}
+                icon={<TrendingUp className="h-5 w-5" />}
+                href="/sustainability"
+                color="bg-indigo-600"
             />
         </div>
     );

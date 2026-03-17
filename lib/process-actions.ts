@@ -54,7 +54,8 @@ export async function getProjectById(id: string) {
             where: { id },
             include: {
                 tasks: {
-                    orderBy: { startDate: 'asc' }
+                    orderBy: { startDate: 'asc' },
+                    include: { notes: { orderBy: { createdAt: 'desc' } } }
                 }
             }
         });
@@ -62,6 +63,26 @@ export async function getProjectById(id: string) {
     } catch (e) {
         console.error("Failed to fetch project", e);
         return null;
+    }
+}
+
+export async function addProjectTaskNote(taskId: string, content: string, projectId: string) {
+    const { authorized, session } = await requireRole('PROCESS_ENGINEER');
+    if (!authorized) return { success: false, message: "Non autorizzato" };
+
+    try {
+        await prisma.projectTaskNote.create({
+            data: {
+                taskId,
+                content,
+                authorName: session.user.name || "Sistema"
+            }
+        });
+        revalidatePath(`/process/projects/${projectId}`);
+        return { success: true };
+    } catch (e) {
+        console.error("Failed to add note", e);
+        return { success: false, message: "Errore salvataggio nota" };
     }
 }
 

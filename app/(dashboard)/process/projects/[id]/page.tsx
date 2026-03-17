@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, use } from "react";
-import { getProjectById, createProjectTask, updateTaskDates, linkTaskToMaintenance } from "@/lib/process-actions";
+import { getProjectById, createProjectTask, updateTaskDates, linkTaskToMaintenance, addProjectTaskNote } from "@/lib/process-actions";
 import { getAssets } from "@/lib/actions";
 import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { format, addDays, getDaysInMonth, startOfMonth, differenceInDays } from "date-fns";
 import { it } from "date-fns/locale";
 import { toast } from "sonner";
 import { DndContext, useDraggable, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { X, Send, User, MessageSquare } from "lucide-react";
 
 interface GanttTask {
     id: string;
@@ -72,6 +74,11 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
     const [selectedAsset, setSelectedAsset] = useState("");
     const [maintenanceDesc, setMaintenanceDesc] = useState("");
 
+    // Modal for Task Detail & Notes
+    const [viewingTask, setViewingTask] = useState<any>(null);
+    const [newNote, setNewNote] = useState("");
+    const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+
     const loadData = async () => {
         const [projData, assetsData] = await Promise.all([
             getProjectById(id),
@@ -122,10 +129,34 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
             setMaintenanceDesc("");
             setSelectedAsset("");
             loadData();
-            alert("Work Order creato con successo e collegato al Task!");
+            toast.success("Work Order creato con successo!");
         } else {
-            alert(res.message);
+            toast.error(res.message);
         }
+    };
+
+    const handleAddNote = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newNote.trim() || !viewingTask) return;
+
+        setIsSubmittingNote(true);
+        const res = await addProjectTaskNote(viewingTask.id, newNote, id);
+        if (res.success) {
+            setNewNote("");
+            toast.success("Nota aggiunta");
+            // Refresh local data to show new note
+            loadData().then(() => {
+                // Update the viewingTask reference too so the UI refreshes
+                setProject(prev => {
+                    const updatedTask = prev.tasks.find((t: any) => t.id === viewingTask.id);
+                    if (updatedTask) setViewingTask(updatedTask);
+                    return prev;
+                });
+            });
+        } else {
+            toast.error(res.message);
+        }
+        setIsSubmittingNote(false);
     };
 
     const handleDragEnd = async (event: DragEndEvent) => {
@@ -327,9 +358,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
                                                     timelineStart={timelineStart}
                                                     daysWindow={daysWindow}
                                                     getTaskStyle={getTaskStyle}
-                                                    onClick={() => {
-                                                        alert(`Dettaglio Task: ${task.title}\nStatus: ${task.status}\nInizio: ${format(new Date(task.startDate), 'PP', { locale: it })}\nFine: ${format(new Date(task.endDate), 'PP', { locale: it })}`);
-                                                    }}
+                                                    onClick={() => setViewingTask(task)}
                                                 />
                                             </div>
                                         </div>
@@ -363,6 +392,9 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
                                     Invia una richiesta formale di Work Order per il task <strong>"{linkingTask.title}"</strong>.
                                 </p>
                             </div>
+                            <button onClick={() => setLinkingTask(null)} className="text-slate-400 hover:text-slate-600">
+                                <X className="h-6 w-6" />
+                            </button>
                         </div>
                         <form onSubmit={handleLinkMaintenance} className="p-6 space-y-4">
                             <div>
@@ -401,6 +433,94 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
                                 <button type="submit" className="px-5 py-2 font-medium bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition">Richiedi Intervento</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal for Task Detail & Notes */}
+            {viewingTask && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col h-[80vh]">
+                        {/* Header */}
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className={cn(
+                                        "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
+                                        viewingTask.status === 'DONE' ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'
+                                    )}>
+                                        {viewingTask.status}
+                                    </span>
+                                    {viewingTask.linkedWorkOrderId && (
+                                        <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase flex items-center gap-1">
+                                            <Wrench className="h-3 w-3" /> Manutenzione
+                                        </span>
+                                    )}
+                                </div>
+                                <h3 className="font-bold text-xl text-slate-800">{viewingTask.title}</h3>
+                                <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    {format(new Date(viewingTask.startDate), 'dd MMM')} - {format(new Date(viewingTask.endDate), 'dd MMM yyyy', { locale: it })}
+                                </p>
+                            </div>
+                            <button onClick={() => setViewingTask(null)} className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition">
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+
+                        {/* Content & Notes Feed */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                            {/* Notes Section */}
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                    <MessageSquare className="h-4 w-4" /> Log Note & Avanzamento
+                                </h4>
+                                
+                                <div className="space-y-4">
+                                    {(!viewingTask.notes || viewingTask.notes.length === 0) ? (
+                                        <div className="text-center py-6 border-2 border-dashed rounded-xl bg-slate-50 text-slate-400 text-sm">
+                                            Nessuna nota presente. Inizia la conversazione!
+                                        </div>
+                                    ) : (
+                                        viewingTask.notes.map((note: any) => (
+                                            <div key={note.id} className="bg-white border rounded-xl p-4 shadow-sm hover:border-indigo-200 transition-colors">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                            <User className="h-3 w-3 text-indigo-600" />
+                                                        </div>
+                                                        <span className="text-xs font-bold text-slate-700">{note.authorName}</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-slate-400">{format(new Date(note.createdAt), 'dd/MM/yy HH:mm')}</span>
+                                                </div>
+                                                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer / Input */}
+                        <div className="p-4 bg-slate-50 border-t border-slate-100">
+                            <form onSubmit={handleAddNote} className="flex gap-2">
+                                <input 
+                                    type="text"
+                                    placeholder="Scrivi una nota..."
+                                    className="flex-1 border rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    value={newNote}
+                                    onChange={e => setNewNote(e.target.value)}
+                                    disabled={isSubmittingNote}
+                                />
+                                <button 
+                                    type="submit" 
+                                    disabled={!newNote.trim() || isSubmittingNote}
+                                    className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm"
+                                >
+                                    <Send className="h-5 w-5" />
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}

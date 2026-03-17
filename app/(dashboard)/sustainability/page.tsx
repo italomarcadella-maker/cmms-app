@@ -22,6 +22,7 @@ export default function SustainabilityDashboard() {
     const [stats, setStats] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isMounted, setIsMounted] = useState(false);
+    const [activeInsight, setActiveInsight] = useState(0);
 
     useEffect(() => {
         setIsMounted(true);
@@ -45,6 +46,13 @@ export default function SustainabilityDashboard() {
         });
     }, [activePlant?.id]);
 
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setActiveInsight(prev => (prev + 1) % 3); // 3 insights
+        }, 8000);
+        return () => clearInterval(interval);
+    }, []);
+
     if (!isMounted || isLoading) {
         return (
             <div className="space-y-6 animate-pulse">
@@ -63,7 +71,12 @@ export default function SustainabilityDashboard() {
     const formattedTotalCo2 = metrics?.totalCo2?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0";
     const savings = metrics?.savingsPercent?.toFixed(1) || "0.0";
 
-    const [activeInsight, setActiveInsight] = useState(0);
+    const scoreValue = metrics?.sustainabilityScore || 0;
+    const scoreData = [
+        { name: 'Score', value: scoreValue, fill: (scoreValue > 80 ? '#10b981' : scoreValue > 60 ? '#f59e0b' : '#ef4444') },
+        { name: 'Remaining', value: 100 - scoreValue, fill: '#f1f5f9' }
+    ];
+
     const insights = [
         {
             title: "Correlazione Fermi Macchina vs Efficienza Termica",
@@ -86,19 +99,6 @@ export default function SustainabilityDashboard() {
             savings: "2.5% spreco energetico",
             type: "critical"
         }
-    ];
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setActiveInsight(prev => (prev + 1) % insights.length);
-        }, 8000);
-        return () => clearInterval(interval);
-    }, [insights.length]);
-
-    const scoreValue = metrics?.sustainabilityScore || 0;
-    const scoreData = [
-        { name: 'Score', value: scoreValue, fill: (scoreValue > 80 ? '#10b981' : scoreValue > 60 ? '#f59e0b' : '#ef4444') },
-        { name: 'Remaining', value: 100 - scoreValue, fill: '#f1f5f9' }
     ];
 
     return (
