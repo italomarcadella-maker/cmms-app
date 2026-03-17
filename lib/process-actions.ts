@@ -61,8 +61,26 @@ export async function getProjectById(id: string) {
         });
         return project;
     } catch (e) {
-        console.error("Failed to fetch project", e);
+        console.error(`Failed to fetch project with id: ${id}`, e);
         return null;
+    }
+}
+
+export async function updateProject(id: string, data: { roi?: number; title?: string; description?: string; status?: string; progress?: number }) {
+    const { authorized } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message: "Non autorizzato" };
+
+    try {
+        await prisma.project.update({
+            where: { id },
+            data
+        });
+        revalidatePath(`/process/projects/${id}`);
+        revalidatePath('/process');
+        return { success: true };
+    } catch (e) {
+        console.error("Failed to update project", e);
+        return { success: false, message: "Errore aggiornamento progetto" };
     }
 }
 

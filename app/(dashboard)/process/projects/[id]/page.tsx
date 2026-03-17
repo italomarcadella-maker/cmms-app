@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, use } from "react";
-import { getProjectById, createProjectTask, updateTaskDates, linkTaskToMaintenance, addProjectTaskNote } from "@/lib/process-actions";
+import { getProjectById, createProjectTask, updateTaskDates, linkTaskToMaintenance, addProjectTaskNote, updateProject } from "@/lib/process-actions";
 import { getAssets } from "@/lib/actions";
-import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripHorizontal } from "lucide-react";
+import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripHorizontal, TrendingUp, Edit3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { format, addDays, getDaysInMonth, startOfMonth, differenceInDays } from "date-fns";
@@ -79,14 +79,26 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
     const [newNote, setNewNote] = useState("");
     const [isSubmittingNote, setIsSubmittingNote] = useState(false);
 
+    // Edit ROI
+    const [isEditingRoi, setIsEditingRoi] = useState(false);
+    const [tempRoi, setTempRoi] = useState("0");
+
     const loadData = async () => {
-        const [projData, assetsData] = await Promise.all([
-            getProjectById(id),
-            getAssets()
-        ]);
-        setProject(projData);
-        setAssets(assetsData);
-        setLoading(false);
+        setLoading(true);
+        try {
+            const [projData, assetsData] = await Promise.all([
+                getProjectById(id),
+                getAssets()
+            ]);
+            setProject(projData);
+            setAssets(assetsData);
+            if (projData) setTempRoi(projData.roi?.toString() || "0");
+        } catch (error) {
+            console.error("Error loading project data:", error);
+            toast.error("Errore caricamento dati");
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -159,6 +171,18 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
         setIsSubmittingNote(false);
     };
 
+    const handleUpdateRoi = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const res = await updateProject(id, { roi: parseFloat(tempRoi) });
+        if (res.success) {
+            toast.success("ROI aggiornato");
+            setIsEditingRoi(false);
+            loadData();
+        } else {
+            toast.error(res.message);
+        }
+    };
+
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, delta } = event;
         if (!delta.x || !project) return;
@@ -201,8 +225,28 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
         }
     };
 
-    if (loading) return <div className="p-8 text-center animate-pulse">Caricamento Progetto...</div>;
-    if (!project) return <div className="p-8 text-center">Progetto non trovato.</div>;
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                <div className="text-slate-600 font-medium">Caricamento Progetto...</div>
+                <div className="text-xs text-slate-400 mt-2">ID: {id}</div>
+            </div>
+        </div>
+    );
+
+    if (!project) return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="max-w-md w-full p-8 bg-white rounded-2xl shadow-sm border text-center">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h1 className="text-xl font-bold text-slate-800">Progetto non trovato</h1>
+                <p className="text-slate-500 mt-2">Non è stato possibile trovare il progetto specificato (ID: {id}).</p>
+                <Link href="/process" className="mt-6 inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition">
+                    <ArrowLeft className="h-4 w-4" /> Torna alla lista
+                </Link>
+            </div>
+        </div>
+    );
 
     // Gantt Logic (Simple Timeline View)
     // We visualize a 30-day window starting from the earliest task or today.
@@ -244,19 +288,57 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
                     <p className="text-slate-500 mt-1">{project.description}</p>
                 </div>
                 <div className="flex gap-2">
+                    <div className="bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-xl flex items-center gap-3">
+                        <TrendingUp className="h-5 w-5 text-emerald-600" />
+                        <div>
+                            <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">ROI Stimato</p>
+                            <div className="flex items-center gap-2">
+                                <span className="font-extrabold text-slate-800">€ {project.roi?.toLocaleString() || "0"}</span>
+                                <button onClick={() => setIsEditingRoi(true)} className="text-slate-400 hover:text-indigo-600">
+                                    <Edit3 className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <button
                         onClick={() => setIsAddingTask(true)}
                         className="bg-indigo-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-md hover:bg-indigo-700 transition"
                     >
                         <Plus className="h-4 w-4" /> Aggiungi Task
                     </button>
-                    {!project.linkedWorkOrderId && (
-                        <button className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-50 transition">
-                            Modifica Info
-                        </button>
-                    )}
+                    {/* ... rest of buttons ... */}
                 </div>
             </div>
+
+            {/* Modal for Editing ROI */}
+            {isEditingRoi && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-emerald-50">
+                            <h3 className="font-bold text-emerald-900">Aggiorna ROI Progetto</h3>
+                            <button onClick={() => setIsEditingRoi(false)} className="text-slate-400 hover:text-slate-600">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleUpdateRoi} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">ROI Stimato (€)</label>
+                                <input
+                                    type="number"
+                                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    value={tempRoi}
+                                    onChange={e => setTempRoi(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button type="button" onClick={() => setIsEditingRoi(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Annulla</button>
+                                <button type="submit" className="px-5 py-2 bg-emerald-600 text-white rounded-lg font-bold shadow-md hover:bg-emerald-700 transition">Salva</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Quick Add Form */}
             {isAddingTask && (

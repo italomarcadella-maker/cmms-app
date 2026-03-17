@@ -77,27 +77,13 @@ export default function SustainabilityDashboard() {
         { name: 'Remaining', value: 100 - scoreValue, fill: '#f1f5f9' }
     ];
 
-    const insights = [
+    const insights = metrics?.aiInsights || [
         {
-            title: "Correlazione Fermi Macchina vs Efficienza Termica",
-            content: "L'analisi rivela che i fermi superiori a 45 minuti sulla Linea 2 causano un calo dell'efficienza termica del 18% alla ripartenza.",
-            suggestion: "Utilizzare 'modalità stand-by' invece dello spegnimento completo.",
-            savings: "1.2% sui consumi totali",
-            type: "warning"
-        },
-        {
-            title: "Ottimizzazione Fascia Oraria",
-            content: "Il 30% del consumo energetico avviene in fascia F1 (punta). Spostando il ciclo di riscaldamento pre-turno dalle 06:00 alle 05:30 si riducono i costi del 4%.",
-            suggestion: "Programmare l'accensione automatica forni 30 min prima in fascia F2.",
-            savings: "€450 / mese stimati",
+            title: "Dati in fase di analisi",
+            content: "L'AI sta analizzando i nuovi flussi di dati dai contatori per generare suggerimenti personalizzati.",
+            suggestion: "Continuare il monitoraggio dei consumi.",
+            savings: "N/A",
             type: "info"
-        },
-        {
-            title: "Rilevamento Anomalie Aria Compressa",
-            content: "Rilevato consumo anomalo di 15 kWh/h durante la pausa pranzo domenicale, indicativo di una perdita nel circuito pneumatico zona 4.",
-            suggestion: "Ispezione valvole di intercettazione zona 4.",
-            savings: "2.5% spreco energetico",
-            type: "critical"
         }
     ];
 
@@ -151,24 +137,23 @@ export default function SustainabilityDashboard() {
                     
                     <div className="p-8 flex-1 grid grid-cols-1 sm:grid-cols-2 gap-8">
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Costo Energetico Mensile</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Costo Mensile Stimato</p>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-3xl font-black text-slate-800">€{formattedCosts}</span>
-                                <span className="text-emerald-600 text-sm font-bold flex items-center">
-                                    <TrendingDown className="h-3 w-3 mr-0.5" /> 12%
+                                <span className="text-indigo-600 text-sm font-bold flex items-center">
+                                    <TrendingDown className="h-3 w-3 mr-0.5" /> {savings}%
                                 </span>
                             </div>
-                            <p className="text-xs text-slate-500 mt-2">Stima basata su €0.22/kWh</p>
+                            <p className="text-xs text-slate-500 mt-2">Include Elettricità e Acqua</p>
                         </div>
                         
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Risparmio Proiettato (Anno)</p>
-                            <div className="flex items-baseline gap-2 text-indigo-600">
-                                <span className="text-3xl font-black">€{((metrics?.totalKwh || 0) * 0.22 * 12 * 0.15).toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                                <Wallet className="h-5 w-5 opacity-50" />
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Consumo Idrico Totale</p>
+                            <div className="flex items-baseline gap-2 text-blue-600">
+                                <span className="text-3xl font-black">{(metrics?.totalWater || 0).toLocaleString()} <span className="text-xl">m³</span></span>
                             </div>
                             <p className="text-xs text-slate-500 mt-2 italic flex items-center gap-1">
-                                <Info className="h-3 w-3" /> Potenziale con ottimizzazioni AI
+                                <Info className="h-3 w-3" /> Basato sulle ultime letture contatore
                             </p>
                         </div>
                     </div>
@@ -237,7 +222,7 @@ export default function SustainabilityDashboard() {
                             AI Energy Insights
                         </div>
                         <div className="flex gap-1">
-                            {insights.map((_, i) => (
+                            {insights.map((_: any, i: number) => (
                                 <button 
                                     key={i} 
                                     onClick={() => setActiveInsight(i)}
@@ -354,6 +339,45 @@ export default function SustainabilityDashboard() {
                                 />
                                 <Bar dataKey="co2" fill="#10b981" radius={[4, 4, 0, 0]} name="CO₂ (kg)" />
                             </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Water Trend */}
+                <div className="bg-white p-6 rounded-2xl border shadow-sm">
+                    <h3 className="font-semibold text-lg text-blue-800 mb-6 font-display flex justify-between items-center">
+                        Andamento Consumo Acqua (m³)
+                        <span className="text-xs font-normal bg-blue-50 px-2 py-1 rounded-md text-blue-500 tracking-wide font-bold">LIVE</span>
+                    </h3>
+                    <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={metrics.chartData}>
+                                <defs>
+                                    <linearGradient id="colorWater" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis
+                                    dataKey="date"
+                                    tickFormatter={(val) => new Date(val).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}
+                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    tick={{ fontSize: 12, fill: '#64748b' }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    dx={-10}
+                                />
+                                <RechartsTooltip
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                />
+                                <Area type="monotone" dataKey="water" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorWater)" name="Acqua (m³)" />
+                            </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
