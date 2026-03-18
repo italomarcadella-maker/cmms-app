@@ -149,28 +149,37 @@ export default function SustainabilityDashboard() {
     const scoreData = [
         { name: 'Score', value: scoreValue, fill: (scoreValue > 80 ? '#10b981' : scoreValue > 60 ? '#f59e0b' : '#ef4444') },
         { name: 'Remaining', value: 100 - scoreValue, fill: '#f1f5f9' }
-    ];
+    ];    const METER_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#475569'];
+
+    const activeMetersByType = useMemo(() => {
+        if (!metrics?.activeMeters) return [];
+        const typeMap: Record<string, string> = { kwh: 'ELEC', water: 'WATER', gas: 'GAS', co2: 'ELEC' };
+        return metrics.activeMeters.filter((m: any) => m.type === typeMap[chartType]);
+    }, [metrics?.activeMeters, chartType]);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+            {/* Header section... */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
-                            <Leaf className="h-10 w-10 text-emerald-500" />
-                            Sostenibilità & AI
-                        </h1>
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full animate-in fade-in slide-in-from-left-4 duration-1000">
-                             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                             <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Sistema Online</span>
-                        </div>
+                <div className="flex items-center gap-3">
+                    <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+                        <Leaf className="h-10 w-10 text-emerald-500" />
+                        Sostenibilità & AI
+                    </h1>
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full animate-in fade-in slide-in-from-left-4 duration-1000">
+                         <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                         <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Sistema Online</span>
                     </div>
-                    <p className="text-slate-500 mt-2 font-medium">Monitoraggio consumi reali e analisi d'impatto ambientale dai log di macchina.</p>
+                </div>
+                <p className="text-slate-500 mt-2 font-medium">Monitoraggio consumi reali e analisi d'impatto ambientale dai log di macchina.</p>
 
                 <BackToDashboardButton />
             </div>
 
-            {/* Premium Header: Score Card & Summary */}
+            {/* Premium Header: Score Card & Summary... */}
+            {/* ... keeping previous sections as they are ... */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* ECO Score Card */}
                 <div className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col md:flex-row">
                     <div className="p-10 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/30">
                         <div className="flex items-center justify-between mb-1">
@@ -185,16 +194,12 @@ export default function SustainabilityDashboard() {
                                         <p className="font-medium text-slate-800 mb-1">Criterio di Calcolo</p>
                                         <p className="text-xs text-slate-500 leading-relaxed">
                                             L'Eco Score valuta l'efficienza energetica confrontando i consumi attuali con i benchmark storici. 
-                                            Un punteggio elevato indica un utilizzo ottimale delle risorse e ridotti picchi di carico.
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
                         </div>
                         <p className="text-sm text-slate-500 mb-8 font-medium italic">Basato su efficienza reale</p>
-
-
-                        
                         <div className="relative h-48 w-48 mx-auto">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
@@ -211,7 +216,7 @@ export default function SustainabilityDashboard() {
                                         stroke="none"
                                         cornerRadius={10}
                                     >
-                                        {scoreData.map((entry, index) => (
+                                        {scoreData.map((entry: any, index: number) => (
                                             <Cell key={`cell-${index}`} fill={entry.fill} />
                                         ))}
                                     </Pie>
@@ -223,7 +228,6 @@ export default function SustainabilityDashboard() {
                             </div>
                         </div>
                     </div>
-                    
                     <div className="p-10 flex-1 flex items-center justify-center">
                         <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100 w-full">
                             <h4 className="text-emerald-900 font-bold mb-2 flex items-center gap-2">
@@ -241,37 +245,15 @@ export default function SustainabilityDashboard() {
                     <div className="absolute top-[-2rem] right-[-2rem] p-4 opacity-5 group-hover:opacity-10 transition-all duration-700 group-hover:scale-125 rotate-12">
                         <Leaf className="h-64 w-64" />
                     </div>
-                    
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-6">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <p className="text-emerald-400 font-black text-xs uppercase tracking-[0.3em] flex items-center gap-2 cursor-help border-b border-white/10 pb-1">
-                                            <Leaf className="h-4 w-4" /> Impatto Carbonico
-                                        </p>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-[350px] p-4 bg-slate-900 text-white border-slate-700">
-                                        <div className="space-y-3">
-                                            <div>
-                                                <p className="font-bold text-emerald-400 text-xs uppercase mb-1">Alberi Piantati</p>
-                                                <p className="text-xs text-slate-300">1 albero assorbe mediamente 20kg di CO2 all'anno. Questo dato visualizza l'equivalente boschivo necessario per compensare le emissioni.</p>
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-emerald-400 text-xs uppercase mb-1">KG di CO2</p>
-                                                <p className="text-xs text-slate-300">Il calcolo si basa sul mix energetico nazionale: ogni kWh consumato produce circa 0.44kg di CO2.</p>
-                                            </div>
-                                        </div>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                            <p className="text-emerald-400 font-black text-xs uppercase tracking-[0.3em] flex items-center gap-2 border-b border-white/10 pb-1">
+                                <Leaf className="h-4 w-4" /> Impatto Carbonico
+                            </p>
                         </div>
                         <div className="text-6xl font-black mb-3 tracking-tighter">{formattedTotalCo2} <span className="text-2xl font-light opacity-50">kg</span></div>
                         <p className="text-lg font-medium text-slate-300 leading-tight">Emissioni stimate nel periodo selezionato</p>
                     </div>
-
-
-                    
                     <div className="relative z-10 mt-10 pt-8 border-t border-white/10">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-2xl">
@@ -284,7 +266,9 @@ export default function SustainabilityDashboard() {
                         </div>
                     </div>
                 </div>
-            </div>            {/* Main Stats Cluster */}
+            </div>
+
+            {/* Main Stats Cluster... */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-start gap-4 hover:shadow-md transition-all group">
                     <div className="p-3 bg-slate-100 text-slate-900 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
@@ -298,7 +282,6 @@ export default function SustainabilityDashboard() {
                         </div>
                     </div>
                 </div>
-
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-start gap-4 hover:shadow-md transition-all group">
                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                         <Bolt className="h-6 w-6" />
@@ -309,14 +292,8 @@ export default function SustainabilityDashboard() {
                             <div className="text-3xl font-black text-slate-900 tracking-tighter">{(metrics.totalKwh || 0).toLocaleString()}</div>
                             <span className="text-[10px] font-bold text-slate-400 font-mono">kWh</span>
                         </div>
-                        <div className="mt-4 flex items-center gap-2">
-                             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Dati in tempo reale</span>
-                        </div>
                     </div>
-
                 </div>
-
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-start gap-4 hover:shadow-md transition-all group">
                     <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl group-hover:bg-orange-600 group-hover:text-white transition-colors">
                         <Flame className="h-6 w-6" />
@@ -331,8 +308,7 @@ export default function SustainabilityDashboard() {
                 </div>
             </div>
 
-
-            {/* AI Contextual Insights */}
+            {/* AI Contextual Insights... */}
             {insights.length > 0 && (
                 <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-200 relative overflow-hidden">
                     <div className="flex items-center justify-between mb-8">
@@ -342,44 +318,29 @@ export default function SustainabilityDashboard() {
                             </div>
                             <h3 className="text-2xl font-black text-slate-900 tracking-tight">Analisi Dinamiche AI</h3>
                         </div>
-
-                        <div className="flex gap-2 bg-slate-200/50 p-1.5 rounded-full">
+                        <div className="flex gap-2">
                             {insights.map((_: any, i: number) => (
-                                <button 
-                                    key={i} 
-                                    onClick={() => setActiveInsight(i)}
-                                    className={cn(
-                                        "h-2 rounded-full transition-all duration-500",
-                                        activeInsight === i ? "w-10 bg-indigo-600 shadow-sm" : "w-2 bg-slate-400/30 hover:bg-slate-400"
-                                    )}
-                                />
+                                <button key={i} onClick={() => setActiveInsight(i)} className={cn("h-2 rounded-full transition-all", activeInsight === i ? "w-8 bg-indigo-600" : "w-2 bg-slate-300")} />
                             ))}
                         </div>
                     </div>
-
-                    <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-xl shadow-slate-200/40 min-h-[220px] transition-all" key={activeInsight}>
+                    <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-xl shadow-slate-200/40" key={activeInsight}>
                         <div className="flex flex-col md:flex-row gap-8">
-                            <div className={cn(
-                                "p-6 rounded-2xl h-fit border shrink-0",
-                                insights[activeInsight]?.type === 'warning' ? 'bg-amber-50 border-amber-100 text-amber-600' : 
-                                insights[activeInsight]?.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-blue-50 border-blue-100 text-blue-600'
-                            )}>
+                            <div className={cn("p-6 rounded-2xl h-fit shrink-0", insights[activeInsight]?.type === 'warning' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600')}>
                                 {insights[activeInsight]?.type === 'warning' ? <AlertTriangle className="h-10 w-10" /> : <BrainCircuit className="h-10 w-10" />}
                             </div>
-                            
                             <div className="flex-1 space-y-6">
                                 <div>
                                     <h4 className="text-2xl font-black text-slate-900 tracking-tight mb-2">{insights[activeInsight]?.title}</h4>
                                     <p className="text-slate-600 text-lg leading-relaxed font-medium">{insights[activeInsight]?.content}</p>
                                 </div>
-                                
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-8 border-t border-slate-50">
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Azione Analizzata</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Azione Consigliata</p>
                                         <p className="text-lg font-bold text-indigo-700">{insights[activeInsight]?.suggestion}</p>
                                     </div>
                                     <div className="space-y-1 sm:text-right">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Impatto Economico</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Risparmio Stimato</p>
                                         <div className="text-2xl font-black text-emerald-600 flex items-center gap-2 sm:justify-end">
                                             <TrendingDown className="h-6 w-6" /> {insights[activeInsight]?.savings}
                                         </div>
@@ -391,14 +352,13 @@ export default function SustainabilityDashboard() {
                 </div>
             )}
 
-            {/* Main Interactive Chart */}
+            {/* Main Interactive Chart: Monitoraggio Analitico */}
             <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm">
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 mb-12">
                     <div>
-                        <h3 className="text-3xl font-black text-slate-900 tracking-tight">Monitoraggio Analitico</h3>
-                        <p className="text-slate-500 font-medium mt-1 italic">Analisi dettagliata prelievi da contatore</p>
+                        <h3 className="text-3xl font-black text-slate-900 tracking-tight">Monitoraggio Analitico Multi-Contatore</h3>
+                        <p className="text-slate-500 font-medium mt-1 italic">Dettaglio progressivo per ogni punto di misura</p>
                     </div>
-                    
                     <div className="flex flex-wrap gap-3 bg-slate-50 p-2 rounded-[1.5rem] border border-slate-100">
                         <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm">
                             {[
@@ -406,15 +366,12 @@ export default function SustainabilityDashboard() {
                                 { id: 'water', label: 'Acqua', icon: Droplets, color: 'text-blue-500' },
                                 { id: 'gas', label: 'Gas', icon: Flame, color: 'text-orange-500' }
                             ].map(type => (
-
                                 <button
                                     key={type.id}
                                     onClick={() => setChartType(type.id as any)}
                                     className={cn(
                                         "flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-black transition-all",
-                                        chartType === type.id 
-                                            ? "bg-slate-900 text-white shadow-lg" 
-                                            : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                                        chartType === type.id ? "bg-slate-900 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
                                     )}
                                 >
                                     <type.icon className={cn("h-4 w-4", chartType === type.id ? "text-white" : type.color)} />
@@ -422,30 +379,21 @@ export default function SustainabilityDashboard() {
                                 </button>
                             ))}
                         </div>
-                        
-                        <div className="flex items-center gap-2 p-1 bg-white rounded-xl shadow-sm border border-slate-100 min-h-[46px]">
-                            <div className="flex items-center gap-1 px-3 border-r border-slate-100">
-                                <Calendar className="h-4 w-4 text-indigo-500" />
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Periodo</span>
-                            </div>
-                            <div className="flex items-center px-2">
+                        <div className="flex items-center gap-2 p-1 bg-white rounded-xl shadow-sm border border-slate-100">
+                            <div className="flex items-center px-4">
                                 <Input 
-                                    type="date" 
-                                    value={dateRange.start}
+                                    type="date" value={dateRange.start}
                                     onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                                    className="h-8 w-[140px] border-none bg-transparent text-sm font-bold text-slate-700 focus-visible:ring-0"
+                                    className="h-8 border-none bg-transparent text-sm font-bold text-slate-700 w-[140px]"
                                 />
                                 <span className="text-slate-300 mx-1">—</span>
                                 <Input 
-                                    type="date" 
-                                    value={dateRange.end}
+                                    type="date" value={dateRange.end}
                                     onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                                    className="h-8 w-[140px] border-none bg-transparent text-sm font-bold text-slate-700 focus-visible:ring-0"
+                                    className="h-8 border-none bg-transparent text-sm font-bold text-slate-700 w-[140px]"
                                 />
                             </div>
                         </div>
-
-
                     </div>
                 </div>
 
@@ -468,29 +416,27 @@ export default function SustainabilityDashboard() {
                                 dx={-15}
                             />
                             <RechartsTooltip
-                                contentStyle={{ 
-                                    borderRadius: '24px', 
-                                    border: 'none', 
-                                    padding: '20px',
-                                    boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)',
-                                    background: '#0f172a',
-                                    color: '#f8fafc'
-                                }}
+                                contentStyle={{ borderRadius: '24px', border: 'none', padding: '20px', background: '#0f172a', color: '#f8fafc' }}
                                 itemStyle={{ color: '#f8fafc', fontWeight: 800, fontSize: '14px' }}
-                                labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}
+                                labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontWeight: 600, fontSize: '10px' }}
                                 labelFormatter={(val) => new Date(val).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             />
-                            <Line 
-                                type="monotone" 
-                                dataKey={chartType} 
-                                stroke={chartType === 'kwh' ? '#f59e0b' : chartType === 'water' ? '#3b82f6' : '#f97316'} 
-                                strokeWidth={4} 
-                                dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
-                                activeDot={{ r: 6, strokeWidth: 0 }}
-                                name={chartType === 'kwh' ? 'Consumo (kWh)' : chartType === 'water' ? 'Acqua (m³)' : 'Gas (m³)'} 
-                                animationDuration={1000}
-                                strokeLinecap="round"
-                            />
+                            <Legend verticalAlign="top" height={36} />
+                            {activeMetersByType.map((meter: any, idx: number) => (
+                                <Line 
+                                    key={meter.name}
+                                    type="monotone" 
+                                    dataKey={meter.name} 
+                                    stroke={METER_COLORS[idx % METER_COLORS.length]} 
+                                    strokeWidth={4} 
+                                    dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                                    activeDot={{ r: 6, strokeWidth: 0 }}
+                                    name={meter.name}
+                                    animationDuration={1000}
+                                    strokeLinecap="round"
+                                    connectNulls={true}
+                                />
+                            ))}
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
