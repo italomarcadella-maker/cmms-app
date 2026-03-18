@@ -136,12 +136,8 @@ export function EnergyDashboard({
                             )}
                         </SelectContent>
                     </Select>
-                    <Link href="/energy/meters">
-                        <Button variant="outline">
-                            Gestione Contatori
-                        </Button>
-                    </Link>
                     <ReadingFormDialog meters={meters} />
+
 
                 </div>
             </div>

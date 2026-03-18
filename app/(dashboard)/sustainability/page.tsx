@@ -73,17 +73,19 @@ export default function SustainabilityDashboard() {
     }, [insights?.length]);
 
 
-    if (!isMounted || isLoading) {
+    // Only show full-page skeleton on INITIAL load (metrics null)
+    if (!isMounted || (isLoading && !metrics)) {
         return (
-            <div className="space-y-6 animate-pulse">
+            <div className="space-y-6 animate-pulse p-8">
                 <div className="h-8 w-64 bg-slate-200 rounded"></div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[1, 2, 3].map(i => <div key={i} className="h-32 bg-slate-200 rounded-xl"></div>)}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+                    {[1, 2, 3].map(i => <div key={i} className="h-40 bg-slate-200 rounded-[2rem]"></div>)}
                 </div>
-                <div className="h-[400px] bg-slate-200 rounded-xl"></div>
+                <div className="h-[400px] bg-slate-200 rounded-[2.5rem] mt-10"></div>
             </div>
         );
     }
+
 
     const hasNoDataAtAll = !metrics || !metrics.hasReadingsHistory;
     const hasNoDataInPeriod = metrics && metrics.totalKwh === 0 && metrics.totalWater === 0 && (!metrics.chartData || metrics.chartData.length === 0);
@@ -151,13 +153,18 @@ export default function SustainabilityDashboard() {
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
-                        <Leaf className="h-10 w-10 text-emerald-500" />
-                        Energy Intelligence
-                    </h1>
-                    <p className="text-slate-500 mt-2 font-medium">Dashboard di monitoraggio consumi reali e analisi d'impatto ambientale.</p>
-                </div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+                            <Leaf className="h-10 w-10 text-emerald-500" />
+                            Sostenibilità & AI
+                        </h1>
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full animate-in fade-in slide-in-from-left-4 duration-1000">
+                             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                             <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Sistema Online</span>
+                        </div>
+                    </div>
+                    <p className="text-slate-500 mt-2 font-medium">Monitoraggio consumi reali e analisi d'impatto ambientale dai log di macchina.</p>
+
                 <BackToDashboardButton />
             </div>
 
@@ -211,7 +218,7 @@ export default function SustainabilityDashboard() {
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                                 <span className="text-5xl font-black text-slate-900 tracking-tighter">{metrics.sustainabilityScore}</span>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Sustainability</span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Sostenibilità</span>
                             </div>
                         </div>
                     </div>
@@ -276,47 +283,53 @@ export default function SustainabilityDashboard() {
                         </div>
                     </div>
                 </div>
-            </div>
-
-            {/* Main Stats Cluster */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex items-start gap-6 hover:shadow-md transition-all group">
-                    <div className="p-4 bg-slate-100 text-slate-900 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                        <Gauge className="h-7 w-7" />
+            </div>            {/* Main Stats Cluster */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-start gap-4 hover:shadow-md transition-all group">
+                    <div className="p-3 bg-slate-100 text-slate-900 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                        <Gauge className="h-6 w-6" />
                     </div>
                     <div>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Media Giornaliera ({rangeDays} giorni)</p>
-                        <div className="flex items-baseline gap-3">
-
-                            <div className="text-4xl font-black text-slate-900 tracking-tighter">{metrics.averageKwh?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                            <span className="text-sm font-bold text-slate-400">kWh / day</span>
-                        </div>
-                        <div className="mt-6 flex items-center gap-2">
-                             <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-indigo-500 rounded-full" style={{ width: '65%' }} />
-                             </div>
-                             <span className="text-[10px] font-black text-slate-400">TARGET: 850</span>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Media Giornaliera ({rangeDays}d)</p>
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{metrics.averageKwh?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                            <span className="text-[10px] font-bold text-slate-400">kWh/d</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex items-start gap-6 hover:shadow-md transition-all group">
-                    <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                        <Bolt className="h-7 w-7" />
+                <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-start gap-4 hover:shadow-md transition-all group">
+                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                        <Bolt className="h-6 w-6" />
                     </div>
                     <div>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Energia Totale Prelevata</p>
-                        <div className="flex items-baseline gap-3">
-                            <div className="text-4xl font-black text-slate-900 tracking-tighter">{(metrics.totalKwh).toLocaleString()}</div>
-                            <span className="text-sm font-bold text-slate-400 font-mono">kWh</span>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Energia Totale</p>
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{(metrics.totalKwh || 0).toLocaleString()}</div>
+                            <span className="text-[10px] font-bold text-slate-400 font-mono">kWh</span>
                         </div>
-                        <p className="text-xs text-slate-500 mt-4 font-medium flex items-center gap-2">
-                             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                             Letture live dai log di macchina
-                        </p>
+                        <div className="mt-4 flex items-center gap-2">
+                             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Dati in tempo reale</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-start gap-4 hover:shadow-md transition-all group">
+                    <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                        <Flame className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Gas Totale</p>
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{(metrics.totalGas || 0).toLocaleString()}</div>
+                            <span className="text-[10px] font-bold text-slate-400 font-mono">m³</span>
+                        </div>
                     </div>
                 </div>
             </div>
+
 
             {/* AI Contextual Insights */}
             {insights.length > 0 && (
@@ -326,8 +339,9 @@ export default function SustainabilityDashboard() {
                             <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200">
                                 <BrainCircuit className="h-6 w-6" />
                             </div>
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">AI Dynamic Insights</h3>
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Analisi Dinamiche AI</h3>
                         </div>
+
                         <div className="flex gap-2 bg-slate-200/50 p-1.5 rounded-full">
                             {insights.map((_: any, i: number) => (
                                 <button 
@@ -411,7 +425,7 @@ export default function SustainabilityDashboard() {
                         <div className="flex items-center gap-2 p-1 bg-white rounded-xl shadow-sm border border-slate-100">
                             <div className="flex items-center gap-1 px-3">
                                 <Calendar className="h-4 w-4 text-indigo-500" />
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Range</span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Intervallo</span>
                             </div>
                             <div className="flex items-center">
                                 <Input 
@@ -479,7 +493,7 @@ export default function SustainabilityDashboard() {
                                 strokeWidth={6} 
                                 fillOpacity={1} 
                                 fill="url(#colorMain)" 
-                                name={chartType === 'kwh' ? 'Consumption (kWh)' : chartType === 'water' ? 'Water (m³)' : 'Gas (m³)'} 
+                                name={chartType === 'kwh' ? 'Consumo (kWh)' : chartType === 'water' ? 'Acqua (m³)' : 'Gas (m³)'} 
                                 animationDuration={1500}
                                 strokeLinecap="round"
                             />
