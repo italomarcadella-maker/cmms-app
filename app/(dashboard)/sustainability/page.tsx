@@ -149,7 +149,9 @@ export default function SustainabilityDashboard() {
     const scoreData = [
         { name: 'Score', value: scoreValue, fill: (scoreValue > 80 ? '#10b981' : scoreValue > 60 ? '#f59e0b' : '#ef4444') },
         { name: 'Remaining', value: 100 - scoreValue, fill: '#f1f5f9' }
-    ];    const METER_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#475569'];
+    ];
+    
+    const METER_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#475569'];
 
     const activeMetersByType = useMemo(() => {
         if (!metrics?.activeMeters) return [];
@@ -223,7 +225,7 @@ export default function SustainabilityDashboard() {
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-5xl font-black text-slate-900 tracking-tighter">{metrics.sustainabilityScore}</span>
+                                <span className="text-5xl font-black text-slate-900 tracking-tighter">{metrics?.sustainabilityScore ?? 0}</span>
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Sostenibilità</span>
                             </div>
                         </div>
@@ -277,7 +279,7 @@ export default function SustainabilityDashboard() {
                     <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Media Giornaliera ({rangeDays}d)</p>
                         <div className="flex items-baseline gap-2">
-                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{metrics.averageKwh?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{metrics?.averageKwh?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0"}</div>
                             <span className="text-[10px] font-bold text-slate-400">kWh/d</span>
                         </div>
                     </div>
@@ -424,7 +426,7 @@ export default function SustainabilityDashboard() {
                             <Legend verticalAlign="top" height={36} />
                             {activeMetersByType.map((meter: any, idx: number) => (
                                 <Line 
-                                    key={meter.name}
+                                    key={meter.id || meter.name || `meter-${idx}`}
                                     type="monotone" 
                                     dataKey={meter.name} 
                                     stroke={METER_COLORS[idx % METER_COLORS.length]} 
