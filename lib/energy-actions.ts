@@ -59,10 +59,14 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
                     else if (meter.type === 'WATER') totalWater += delta;
                     else if (meter.type === 'GAS') totalGas += delta;
 
-                    const bucketKey = format(current.date, bucketFormat);
+                    let bucketKey: string;
+                    if (bucketFormat === 'yyyy-MM') bucketKey = format(startOfMonth(current.date), 'yyyy-MM-dd');
+                    else if (bucketFormat === 'I-yyyy') bucketKey = format(startOfWeek(current.date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+                    else bucketKey = format(current.date, 'yyyy-MM-dd');
+
                     if (!bucketData.has(bucketKey)) {
                         let label: string;
-                        if (bucketFormat === 'yyyy-MM') label = format(current.date, 'MMM yyyy', { locale: it });
+                        if (bucketFormat === 'yyyy-MM') label = format(startOfMonth(current.date), 'MMM yyyy', { locale: it });
                         else if (bucketFormat === 'I-yyyy') label = `Sett ${format(current.date, 'I', { locale: it })}`;
                         else label = format(current.date, 'dd MMM', { locale: it });
                         
@@ -78,8 +82,8 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
         });
 
         const chartData = Array.from(bucketData.entries())
-            .map(([key, d]) => ({ ...d, key, co2: d.kwh * 0.44 }))
-            .sort((a, b) => a.key.localeCompare(b.key));
+            .map(([key, d]) => ({ ...d, date: key, co2: d.kwh * 0.44 }))
+            .sort((a, b) => a.date.localeCompare(b.date));
 
         const totalCo2 = totalKwh * 0.44;
 

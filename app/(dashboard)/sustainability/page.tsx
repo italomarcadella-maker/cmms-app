@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { getEnergyMetrics } from "@/lib/energy-actions";
 import { getMeters, getEnergyStats } from "@/lib/actions";
 import { EnergyDashboard } from "@/components/energy/energy-dashboard";
+import { MetersList } from "@/components/energy/meters-list";
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
     BarChart, Bar, Legend, ComposedChart, Area, AreaChart,
@@ -422,24 +423,24 @@ export default function SustainabilityDashboard() {
                             ))}
                         </div>
                         
-                        <div className="flex items-center gap-2 p-1 bg-white rounded-xl shadow-sm border border-slate-100">
-                            <div className="flex items-center gap-1 px-3">
+                        <div className="flex items-center gap-2 p-1 bg-white rounded-xl shadow-sm border border-slate-100 min-h-[46px]">
+                            <div className="flex items-center gap-1 px-3 border-r border-slate-100">
                                 <Calendar className="h-4 w-4 text-indigo-500" />
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Intervallo</span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Periodo</span>
                             </div>
-                            <div className="flex items-center">
+                            <div className="flex items-center px-2">
                                 <Input 
                                     type="date" 
                                     value={dateRange.start}
                                     onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                                    className="h-9 w-[135px] border-none bg-transparent text-sm font-bold text-slate-700"
+                                    className="h-8 w-[140px] border-none bg-transparent text-sm font-bold text-slate-700 focus-visible:ring-0"
                                 />
                                 <span className="text-slate-300 mx-1">—</span>
                                 <Input 
                                     type="date" 
                                     value={dateRange.end}
                                     onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                                    className="h-9 w-[135px] border-none bg-transparent text-sm font-bold text-slate-700"
+                                    className="h-8 w-[140px] border-none bg-transparent text-sm font-bold text-slate-700 focus-visible:ring-0"
                                 />
                             </div>
                         </div>
@@ -505,17 +506,26 @@ export default function SustainabilityDashboard() {
 
             {/* Injected Detailed Energy Monitor */}
             {stats && meters && (
-                <div className="mt-12 pt-8 border-t border-slate-200">
-                    <div className="mb-6 flex items-center gap-2">
-                        <Gauge className="h-6 w-6 text-indigo-600" />
-                        <h2 className="text-2xl font-bold tracking-tight text-slate-800">Dettaglio Monitoraggio Energetico (Meters)</h2>
+                <div className="mt-12 space-y-12">
+                     <div className="pt-8 border-t border-slate-200">
+                        <div className="mb-6 flex items-center gap-2">
+                            <Gauge className="h-6 w-6 text-indigo-600" />
+                            <h2 className="text-2xl font-bold tracking-tight text-slate-800">Gestione Contatori (Meters)</h2>
+                        </div>
+                        <MetersList initialMeters={meters} />
                     </div>
-                    <EnergyDashboard 
-                        stats={stats} 
-                        meters={meters} 
-                        externalDateRange={dateRange}
-                    />
 
+                    <div className="pt-8 border-t border-slate-200">
+                        <div className="mb-6 flex items-center gap-2">
+                            <Gauge className="h-6 w-6 text-indigo-600" />
+                            <h2 className="text-2xl font-bold tracking-tight text-slate-800">Dettaglio Monitoraggio Energetico</h2>
+                        </div>
+                        <EnergyDashboard 
+                            stats={stats} 
+                            meters={meters} 
+                            externalDateRange={dateRange}
+                        />
+                    </div>
                 </div>
             )}
 
