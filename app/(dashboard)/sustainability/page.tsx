@@ -116,7 +116,8 @@ export default function SustainabilityDashboard() {
         { name: 'Remaining', value: 100 - scoreValue, fill: '#f1f5f9' }
     ];
 
-    return        <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-10">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
