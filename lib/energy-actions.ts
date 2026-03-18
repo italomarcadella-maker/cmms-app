@@ -14,9 +14,8 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
         const startDate = startDateStr ? parseISO(startDateStr) : subDays(endDate, 30);
         
         const daysInRange = differenceInDays(endDate, startDate);
-        const bucketFormat = daysInRange > 60 ? 'yyyy-MM' : daysInRange > 14 ? 'I-yyyy' : 'yyyy-MM-dd';
-
-        // Fetch readings with enough history to find the first base reading
+        
+        // Fetch readings with history
         const historyStart = subDays(startDate, 365); 
 
         const meterReadings = await prisma.meterReading.findMany({
@@ -37,7 +36,7 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
             meterGroups.set(r.meterId, list);
         });
 
-        const bucketData = new Map<string, { kwh: number, co2: number, water: number, gas: number, label: string }>();
+        const readingPoints = new Map<string, { kwh: number, co2: number, water: number, gas: number, label: string }>();
 
         let totalKwh = 0;
         let totalWater = 0;
@@ -49,31 +48,25 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
             for (let i = 1; i < readings.length; i++) {
                 const current = readings[i];
                 const prev = readings[i - 1];
-                
-                // Effective consumption between these two points
                 const delta = Math.max(0, current.value - prev.value);
                 
-                // If the CURRENT reading is within the requested range, add to totals and buckets
                 if (current.date >= startDate && current.date <= endDate) {
                     if (meter.type === 'ELEC') totalKwh += delta;
                     else if (meter.type === 'WATER') totalWater += delta;
                     else if (meter.type === 'GAS') totalGas += delta;
 
-                    let bucketKey: string;
-                    if (bucketFormat === 'yyyy-MM') bucketKey = format(startOfMonth(current.date), 'yyyy-MM-dd');
-                    else if (bucketFormat === 'I-yyyy') bucketKey = format(startOfWeek(current.date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-                    else bucketKey = format(current.date, 'yyyy-MM-dd');
-
-                    if (!bucketData.has(bucketKey)) {
-                        let label: string;
-                        if (bucketFormat === 'yyyy-MM') label = format(startOfMonth(current.date), 'MMM yyyy', { locale: it });
-                        else if (bucketFormat === 'I-yyyy') label = `Sett ${format(current.date, 'I', { locale: it })}`;
-                        else label = format(current.date, 'dd MMM', { locale: it });
-                        
-                        bucketData.set(bucketKey, { kwh: 0, co2: 0, water: 0, gas: 0, label });
+                    const dateKey = current.date.toISOString();
+                    if (!readingPoints.has(dateKey)) {
+                        readingPoints.set(dateKey, { 
+                            kwh: 0, 
+                            co2: 0, 
+                            water: 0, 
+                            gas: 0, 
+                            label: format(current.date, 'dd MMM HH:mm', { locale: it }) 
+                        });
                     }
 
-                    const stats = bucketData.get(bucketKey)!;
+                    const stats = readingPoints.get(dateKey)!;
                     if (meter.type === 'ELEC') stats.kwh += delta;
                     else if (meter.type === 'WATER') stats.water += delta;
                     else if (meter.type === 'GAS') stats.gas += delta;
@@ -81,8 +74,8 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
             }
         });
 
-        const chartData = Array.from(bucketData.entries())
-            .map(([key, d]) => ({ ...d, date: key, co2: d.kwh * 0.44 }))
+        const chartData = Array.from(readingPoints.entries())
+            .map(([date, d]) => ({ ...d, date, co2: d.kwh * 0.44 }))
             .sort((a, b) => a.date.localeCompare(b.date));
 
         const totalCo2 = totalKwh * 0.44;
@@ -90,14 +83,18 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
         // Insights qualitativi in Italiano
         const aiInsights = [
             {
-                title: "Analisi Pattern Energetico",
-                content: `Consumo totale di ${totalKwh.toFixed(0)} kWh rilevato tramite ${meterReadings.length} letture puntuali. I trend mostrano l'assorbimento cumulativo per periodo.`,
-                type: "info"
+                title: "Analisi Misure Puntuali",
+                content: `Visualizzazione di ${chartData.length} misure dirette rilevate dai contatori nel periodo selezionato. Consumo totale di ${totalKwh.toFixed(0)} kWh.`,
+                type: "info",
+                suggestion: "Controlla i picchi tra le singole letture",
+                savings: "-5% ottimizzando i carichi"
             },
             {
                 title: "Impatto CO2",
                 content: `Emissioni stimate pari a ${totalCo2.toFixed(0)} kg CO2. Equivalgono a circa ${Math.round(totalCo2 / 20)} alberi necessari per la compensazione.`,
-                type: "warning"
+                type: "warning",
+                suggestion: "Usa energia da fonti rinnovabili",
+                savings: "Compensazione 100%"
             }
         ];
 

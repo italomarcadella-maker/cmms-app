@@ -451,14 +451,7 @@ export default function SustainabilityDashboard() {
 
                 <div className="h-[450px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={metrics.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={chartType === 'kwh' ? '#f59e0b' : chartType === 'water' ? '#3b82f6' : '#f97316'} stopOpacity={0.4} />
-                                    <stop offset="95%" stopColor={chartType === 'kwh' ? '#f59e0b' : chartType === 'water' ? '#3b82f6' : '#f97316'} stopOpacity={0} />
-                                </linearGradient>
-
-                            </defs>
+                        <LineChart data={metrics.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#f1f5f9" />
                             <XAxis
                                 dataKey="date"
@@ -485,21 +478,20 @@ export default function SustainabilityDashboard() {
                                 }}
                                 itemStyle={{ color: '#f8fafc', fontWeight: 800, fontSize: '14px' }}
                                 labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}
-                                labelFormatter={(val) => new Date(val).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                labelFormatter={(val) => new Date(val).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             />
-                            <Area 
+                            <Line 
                                 type="monotone" 
                                 dataKey={chartType} 
                                 stroke={chartType === 'kwh' ? '#f59e0b' : chartType === 'water' ? '#3b82f6' : '#f97316'} 
-                                strokeWidth={6} 
-                                fillOpacity={1} 
-                                fill="url(#colorMain)" 
+                                strokeWidth={4} 
+                                dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                                activeDot={{ r: 6, strokeWidth: 0 }}
                                 name={chartType === 'kwh' ? 'Consumo (kWh)' : chartType === 'water' ? 'Acqua (m³)' : 'Gas (m³)'} 
-                                animationDuration={1500}
+                                animationDuration={1000}
                                 strokeLinecap="round"
                             />
-
-                        </AreaChart>
+                        </LineChart>
                     </ResponsiveContainer>
                 </div>
             </div>
