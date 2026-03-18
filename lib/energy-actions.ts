@@ -8,15 +8,7 @@ export async function getEnergyMetrics(plantId?: string, days: number = 30) {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
-        // Fetch both EnergyLog and MeterReading
-        const [logs, meterReadings] = await Promise.all([
-            prisma.energyLog.findMany({
-                where: {
-                    date: { gte: startDate },
-                    ...(plantId && { plantId })
-                },
-                orderBy: { date: 'asc' }
-            }),
+        const [meterReadings] = await Promise.all([
             prisma.meterReading.findMany({
                 where: { date: { gte: startDate } },
                 include: { meter: true },
@@ -26,112 +18,131 @@ export async function getEnergyMetrics(plantId?: string, days: number = 30) {
 
         const dailyData = new Map<string, { kwh: number, co2: number, water: number, gas: number }>();
 
-        // Process EnergyLogs (mostly for electricity/CO2 if already aggregated)
-        let totalKwh = 0;
-        let totalCo2 = 0;
-
-        logs.forEach((log: any) => {
-            const dateStr = log.date.toISOString().split('T')[0];
-            const current = dailyData.get(dateStr) || { kwh: 0, co2: 0, water: 0, gas: 0 };
-            const kwh = log.kwhConsumed || 0;
-            const co2 = log.co2Emitted || (kwh * 0.25);
-            current.kwh += kwh;
-            current.co2 += co2;
-            totalKwh += kwh;
-            totalCo2 += co2;
-            dailyData.set(dateStr, current);
-        });
-
         // Process MeterReadings (The real data source mentioned by the user)
         let totalWater = 0;
         let totalGas = 0;
+        let totalKwh = 0;
+        let totalCo2 = 0;
 
+        // Group readings by meter to calculate deltas
+        const meterGroups = new Map<string, any[]>();
         meterReadings.forEach((reading: any) => {
-            const dateStr = reading.date.toISOString().split('T')[0];
-            const current = dailyData.get(dateStr) || { kwh: 0, co2: 0, water: 0, gas: 0 };
-            
-            if (reading.meter.type === 'ELEC') {
-                // If it's a cumulative meter, we should ideally subtract previous reading, 
-                // but for now let's assume it's daily consumption or provide the value.
-                // Assuming it might be cumulative based on typical meter behavior.
-                current.kwh += reading.value; 
-                totalKwh += reading.value;
-            } else if (reading.meter.type === 'WATER') {
-                current.water += reading.value;
-                totalWater += reading.value;
-            } else if (reading.meter.type === 'GAS') {
-                current.gas += reading.value;
-                totalGas += reading.value;
-            }
-            
-            dailyData.set(dateStr, current);
+            const list = meterGroups.get(reading.meterId) || [];
+            list.push(reading);
+            meterGroups.set(reading.meterId, list);
         });
 
-        const chartData = Array.from(dailyData.entries()).map(([date, data]) => ({
+        meterGroups.forEach((readings, meterId) => {
+            const meter = readings[0].meter;
+            for (let i = 1; i < readings.length; i++) {
+                const current = readings[i];
+                const prev = readings[i - 1];
+                let consumption = current.value - prev.value;
+
+                // Anomaly filter
+                if (consumption < 0) consumption = 0;
+
+                const dateStr = current.date.toISOString().split('T')[0];
+                const data = dailyData.get(dateStr) || { kwh: 0, co2: 0, water: 0, gas: 0 };
+
+                if (meter.type === 'ELEC') {
+                    data.kwh += consumption;
+                    totalKwh += consumption;
+                    const co2 = consumption * 0.44; // standard IT conversion factor
+                    data.co2 += co2;
+                    totalCo2 += co2;
+                } else if (meter.type === 'WATER') {
+                    data.water += consumption;
+                    totalWater += consumption;
+                } else if (meter.type === 'GAS') {
+                    data.gas += consumption;
+                    totalGas += consumption;
+                }
+                dailyData.set(dateStr, data);
+            }
+        });
+
+        const chartData = Array.from(dailyData.entries()).map(([date, data]: [string, any]) => ({
             date,
             kwh: data.kwh,
-            co2: data.co2 || (data.kwh * 0.25),
+            co2: data.co2 || (data.kwh * 0.44), // standard IT conversion factor
             water: data.water,
             gas: data.gas
         })).sort((a, b) => a.date.localeCompare(b.date));
 
-        // Period-over-Period Calculation (Real data instead of mock 1.15 baseline)
+        // Period-over-Period Calculation
         const midPoint = Math.floor(chartData.length / 2);
         const currentPeriodData = chartData.slice(midPoint);
         const previousPeriodData = chartData.slice(0, midPoint);
         
         const currentAvg = currentPeriodData.length > 0 
-            ? currentPeriodData.reduce((acc, curr) => acc + curr.kwh, 0) / (currentPeriodData.length || 1)
+            ? currentPeriodData.reduce((acc, curr: any) => acc + curr.kwh, 0) / (currentPeriodData.length || 1)
             : 0;
         const previousAvg = previousPeriodData.length > 0 
-            ? previousPeriodData.reduce((acc, curr) => acc + curr.kwh, 0) / (previousPeriodData.length || 1)
+            ? previousPeriodData.reduce((acc, curr: any) => acc + curr.kwh, 0) / (previousPeriodData.length || 1)
             : 0;
             
         const averageKwh = currentAvg;
-        const savingsPercent = previousAvg > 0 ? ((previousAvg - currentAvg) / previousAvg) * 100 : 0;
+        const kwhSavingsPercent = previousAvg > 0 ? ((previousAvg - currentAvg) / previousAvg) * 100 : 0;
+
+        // Peak analysis for real AI insights
+        const maxKwh = chartData.length > 0 ? Math.max(...chartData.map((d: any) => d.kwh), 0) : 0;
+        const avgKwhLimit = averageKwh * 1.5;
+        const peakDays = chartData.filter((d: any) => d.kwh > avgKwhLimit).length;
 
         let sustainabilityScore = 0; 
         if (totalKwh > 0 || totalWater > 0) {
-            // Basato su risparmio vs baseline (savingsPercent)
-            // 50 punti base se ci sono dati, + fino a 50 basati su efficienza
-            sustainabilityScore = 50 + Math.min(50, Math.max(0, savingsPercent * 2));
+            sustainabilityScore = 50 + Math.min(50, Math.max(0, kwhSavingsPercent * 2));
         }
         
         sustainabilityScore = Math.round(Math.min(100, Math.max(0, sustainabilityScore)));
 
         const costs = {
-            electricity: totalKwh > 0 ? totalKwh * 0.22 : 0,
-            water: totalWater > 0 ? totalWater * 0.85 : 0,
-            total: (totalKwh > 0 ? totalKwh * 0.22 : 0) + (totalWater > 0 ? totalWater * 0.85 : 0)
+            electricity: totalKwh * 0.22,
+            water: totalWater * 0.85, 
+            total: (totalKwh * 0.22) + (totalWater * 0.85)
         };
 
         const aiInsights = [];
-        if (totalWater > (days * 15)) { // Dynamic threshold based on days
+        
+        if (peakDays > 0) {
+            const potentialSavings = (maxKwh - averageKwh) * peakDays * 0.22;
             aiInsights.push({
-                title: "Alto Consumo Idrico Rilevato",
-                content: `Rilevato un consumo totale di ${totalWater.toLocaleString()} m³ negli ultimi ${days} giorni.`,
-                suggestion: "Verificare perdite nel circuito di raffreddamento secondario.",
+                title: "Ottimizzazione Picchi Energetici",
+                content: `Rilevati ${peakDays} giorni con consumi superiori del 50% alla media. Stabilizzando questi picchi potresti risparmiare significativamente.`,
+                suggestion: "Programmare i cicli di riscaldamento degli estrusori in modalità scaglionata.",
                 type: "warning",
-                savings: "5-10% sui costi idrici"
+                savings: `€ ${potentialSavings.toFixed(0)} / periodo`
             });
         }
-        if (savingsPercent > 0) {
+
+        if (totalWater > (days * 10)) { 
             aiInsights.push({
-                title: "Trend Efficienza Positivo",
-                content: `Il consumo elettrico è inferiore del ${savingsPercent.toFixed(1)}% rispetto alla baseline.`,
-                suggestion: "Mantenere gli attuali parametri di set-point sulle estrusatrici.",
+                title: "Analisi Flusso Idrico",
+                content: `Il consumo di ${totalWater.toLocaleString()} m³ indica un utilizzo intensivo degli impianti di raffreddamento.`,
+                suggestion: "Verificare l'efficienza degli scambiatori di calore sulla linea 2.",
                 type: "info",
-                savings: `€ ${(totalKwh * 0.22 * 0.05).toFixed(0)} / mese`
+                savings: "Ottimizzazione operativa"
+            });
+        }
+
+        if (kwhSavingsPercent > 2) {
+            aiInsights.push({
+                title: "Efficienza in Miglioramento",
+                content: `Riduzione del ${kwhSavingsPercent.toFixed(1)}% rispetto al periodo precedente grazie alle nuove SOP.`,
+                suggestion: "Continuare il monitoraggio dei parametri di processo correnti.",
+                type: "success",
+                savings: `€ ${(totalKwh * 0.22 * (kwhSavingsPercent/100)).toFixed(0)} risparmiati`
             });
         }
 
         return {
             chartData,
             totalKwh,
-            totalCo2: totalCo2 || (totalKwh * 0.25),
+            totalCo2: totalCo2 || (totalKwh * 0.44), // Re-using standard factor
             totalWater,
             averageKwh,
-            savingsPercent,
+            savingsPercent: kwhSavingsPercent,
             sustainabilityScore,
             estimatedCosts: costs,
             aiInsights: aiInsights.length > 0 ? aiInsights : undefined

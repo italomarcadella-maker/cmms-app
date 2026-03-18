@@ -244,37 +244,8 @@ export function EnergyDashboard({
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
                 <ReadingsHistory meters={meters} />
-
-                <Card className="col-span-1">
-                    <CardHeader>
-                        <CardTitle>Trend Consumi</CardTitle>
-                    <CardDescription>
-                            {selectedMeterId === 'all'
-                                ? `Andamento giornaliero ${selectedType !== 'ALL' ? selectedType : 'aggregato'} nel periodo selezionato`
-                                : `Consumo calcolato per singola lettura (${meters.find(m => m.id === selectedMeterId)?.name})`}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[300px] w-full">
-                            <ConsumptionChart
-                                data={selectedMeterId === 'all' && selectedType === 'ALL'
-                                    ? chartData 
-                                    : chartData.map(d => ({ 
-                                        date: d.date, 
-                                        consumption: selectedType !== 'ALL' ? (d as any)[selectedType.toLowerCase()] : (d.consumption || d.elec || d.water || d.gas)
-                                      }))
-                                }
-                                mode={selectedMeterId === 'all' ? 'aggregate' : 'single'}
-                                unit={selectedMeterId !== 'all' 
-                                    ? meters.find((m: any) => m.id === selectedMeterId)?.unit 
-                                    : (selectedType === 'ELEC' ? 'kWh' : (selectedType === 'WATER' || selectedType === 'GAS' ? 'm³' : 'Unità'))
-                                }
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </div>
     );
