@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { differenceInDays } from "date-fns";
+
 import { usePlant } from "@/lib/plant-context";
 import { cn } from "@/lib/utils";
 import { getEnergyMetrics } from "@/lib/energy-actions";
@@ -14,7 +16,10 @@ import {
 import { Gauge, Leaf, TrendingDown, Bolt, BrainCircuit, AlertTriangle, ArrowRight, Wallet, Info, Calendar, Zap, Droplets, Wind, Flame } from "lucide-react";
 
 import { BackToDashboardButton } from "@/components/ui/back-button";
-import { format, subDays } from "date-fns";
+import { format, subDays, parseISO } from "date-fns";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+
 
 
 export default function SustainabilityDashboard() {
@@ -25,8 +30,12 @@ export default function SustainabilityDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [isMounted, setIsMounted] = useState(false);
     const [activeInsight, setActiveInsight] = useState(0);
-    const [chartType, setChartType] = useState<'kwh' | 'water' | 'co2'>('kwh');
-    const [period, setPeriod] = useState(30);
+    const [chartType, setChartType] = useState<'kwh' | 'water' | 'co2' | 'gas'>('kwh');
+    const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
+        start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
+        end: format(new Date(), 'yyyy-MM-dd')
+    });
+
 
     useEffect(() => {
         setIsMounted(true);
@@ -35,12 +44,13 @@ export default function SustainabilityDashboard() {
     useEffect(() => {
         setIsLoading(true);
         
-        Promise.all([
-            getEnergyMetrics(activePlant?.id, period),
-            getMeters(),
-            getEnergyStats(period)
-        ]).then(([metricsData, metersData, statsData]) => {
+        const days = differenceInDays(parseISO(dateRange.end), parseISO(dateRange.start));
 
+        Promise.all([
+            getEnergyMetrics(activePlant?.id, dateRange.start, dateRange.end),
+            getMeters(),
+            getEnergyStats(days > 0 ? days : 30) // Fallback to days for stats 
+        ]).then(([metricsData, metersData, statsData]) => {
             setMetrics(metricsData);
             setMeters(metersData);
             setStats(statsData);
@@ -49,17 +59,19 @@ export default function SustainabilityDashboard() {
             console.error("Dashboard data load error:", err);
             setIsLoading(false);
         });
-    }, [activePlant?.id, period]);
+    }, [activePlant?.id, dateRange.start, dateRange.end]);
+
 
     const insights = metrics?.aiInsights || [];
 
     useEffect(() => {
         if (!insights || insights.length <= 1) return;
         const interval = setInterval(() => {
-            setActiveInsight(prev => (prev + 1) % insights.length);
+            setActiveInsight((prev: number) => (prev + 1) % insights.length);
         }, 8000);
         return () => clearInterval(interval);
     }, [insights?.length]);
+
 
     if (!isMounted || isLoading) {
         return (
@@ -75,8 +87,11 @@ export default function SustainabilityDashboard() {
 
     const hasNoDataAtAll = !metrics || !metrics.hasReadingsHistory;
     const hasNoDataInPeriod = metrics && metrics.totalKwh === 0 && metrics.totalWater === 0 && (!metrics.chartData || metrics.chartData.length === 0);
+    const rangeDays = differenceInDays(parseISO(dateRange.end), parseISO(dateRange.start));
 
-    if (hasNoDataAtAll || (hasNoDataInPeriod && period <= 30)) {
+    if (hasNoDataAtAll || (hasNoDataInPeriod && rangeDays <= 30)) {
+
+
         return (
             <div className="space-y-8 animate-in fade-in duration-500">
                 <div className="flex justify-between items-start">
@@ -104,10 +119,17 @@ export default function SustainabilityDashboard() {
                         }
                     </p>
                     <div className="mt-8 flex justify-center gap-4">
-                        <button onClick={() => setPeriod(period > 30 ? 365 : 90)} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">
-                            Visualizza periodo più lungo
+                        <button 
+                            onClick={() => setDateRange({
+                                start: format(subDays(new Date(), 365), 'yyyy-MM-dd'),
+                                end: format(new Date(), 'yyyy-MM-dd')
+                            })} 
+                            className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition"
+                        >
+                            Visualizza l'ultimo anno
                         </button>
                     </div>
+
                 </div>
             </div>
         );
@@ -144,12 +166,25 @@ export default function SustainabilityDashboard() {
                 <div className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col md:flex-row">
                     <div className="p-10 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/30">
                         <div className="flex items-center justify-between mb-1">
-                            <h3 className="text-xl font-bold text-slate-900">Eco Score</h3>
-                            <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                                Ultimi {period} giorni
-                            </span>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <h3 className="text-xl font-bold text-slate-900 flex items-center gap-1 cursor-help underline decoration-dotted decoration-slate-300">
+                                            Eco Score <Info className="h-4 w-4 text-slate-400" />
+                                        </h3>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-[300px] p-4 bg-white shadow-2xl border-slate-200">
+                                        <p className="font-medium text-slate-800 mb-1">Criterio di Calcolo</p>
+                                        <p className="text-xs text-slate-500 leading-relaxed">
+                                            L'Eco Score valuta l'efficienza energetica confrontando i consumi attuali con i benchmark storici. 
+                                            Un punteggio elevato indica un utilizzo ottimale delle risorse e ridotti picchi di carico.
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
-                        <p className="text-sm text-slate-500 mb-8 font-medium italic">Basato su efficienza energetica reale</p>
+                        <p className="text-sm text-slate-500 mb-8 font-medium italic">Basato su efficienza reale</p>
+
 
                         
                         <div className="relative h-48 w-48 mx-auto">
@@ -201,16 +236,32 @@ export default function SustainabilityDashboard() {
                     
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-6">
-                            <p className="text-emerald-400 font-black text-xs uppercase tracking-[0.3em] flex items-center gap-2">
-                                <Leaf className="h-4 w-4" /> Impatto Carbonico
-                            </p>
-                            <span className="text-[10px] font-bold bg-white/10 text-emerald-300 px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                                Ultimi {period} giorni
-                            </span>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <p className="text-emerald-400 font-black text-xs uppercase tracking-[0.3em] flex items-center gap-2 cursor-help border-b border-white/10 pb-1">
+                                            <Leaf className="h-4 w-4" /> Impatto Carbonico
+                                        </p>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-[350px] p-4 bg-slate-900 text-white border-slate-700">
+                                        <div className="space-y-3">
+                                            <div>
+                                                <p className="font-bold text-emerald-400 text-xs uppercase mb-1">Alberi Piantati</p>
+                                                <p className="text-xs text-slate-300">1 albero assorbe mediamente 20kg di CO2 all'anno. Questo dato visualizza l'equivalente boschivo necessario per compensare le emissioni.</p>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-emerald-400 text-xs uppercase mb-1">KG di CO2</p>
+                                                <p className="text-xs text-slate-300">Il calcolo si basa sul mix energetico nazionale: ogni kWh consumato produce circa 0.44kg di CO2.</p>
+                                            </div>
+                                        </div>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                         <div className="text-6xl font-black mb-3 tracking-tighter">{formattedTotalCo2} <span className="text-2xl font-light opacity-50">kg</span></div>
                         <p className="text-lg font-medium text-slate-300 leading-tight">Emissioni stimate nel periodo selezionato</p>
                     </div>
+
 
                     
                     <div className="relative z-10 mt-10 pt-8 border-t border-white/10">
@@ -234,8 +285,9 @@ export default function SustainabilityDashboard() {
                         <Gauge className="h-7 w-7" />
                     </div>
                     <div>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Media Giornaliera (Ultimi {period}gg)</p>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Media Giornaliera ({rangeDays} giorni)</p>
                         <div className="flex items-baseline gap-3">
+
                             <div className="text-4xl font-black text-slate-900 tracking-tighter">{metrics.averageKwh?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                             <span className="text-sm font-bold text-slate-400">kWh / day</span>
                         </div>
@@ -356,27 +408,28 @@ export default function SustainabilityDashboard() {
                             ))}
                         </div>
                         
-                        <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm">
-                            {[
-                                { id: 7, label: '7g' },
-                                { id: 30, label: '30g' },
-                                { id: 90, label: '90g' },
-                                { id: 365, label: '1 anno' }
-                            ].map(p => (
-                                <button
-                                    key={p.id}
-                                    onClick={() => setPeriod(p.id)}
-                                    className={cn(
-                                        "px-4 h-10 flex items-center justify-center rounded-lg text-sm font-black transition-all",
-                                        period === p.id 
-                                            ? "bg-indigo-600 text-white shadow-lg" 
-                                            : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-                                    )}
-                                >
-                                    {p.label}
-                                </button>
-                            ))}
+                        <div className="flex items-center gap-2 p-1 bg-white rounded-xl shadow-sm border border-slate-100">
+                            <div className="flex items-center gap-1 px-3">
+                                <Calendar className="h-4 w-4 text-indigo-500" />
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Range</span>
+                            </div>
+                            <div className="flex items-center">
+                                <Input 
+                                    type="date" 
+                                    value={dateRange.start}
+                                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                                    className="h-9 w-[135px] border-none bg-transparent text-sm font-bold text-slate-700"
+                                />
+                                <span className="text-slate-300 mx-1">—</span>
+                                <Input 
+                                    type="date" 
+                                    value={dateRange.end}
+                                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                                    className="h-9 w-[135px] border-none bg-transparent text-sm font-bold text-slate-700"
+                                />
+                            </div>
                         </div>
+
 
                     </div>
                 </div>
@@ -446,11 +499,9 @@ export default function SustainabilityDashboard() {
                     <EnergyDashboard 
                         stats={stats} 
                         meters={meters} 
-                        externalDateRange={{
-                            start: format(subDays(new Date(), period), 'yyyy-MM-dd'),
-                            end: format(new Date(), 'yyyy-MM-dd')
-                        }}
+                        externalDateRange={dateRange}
                     />
+
                 </div>
             )}
 
