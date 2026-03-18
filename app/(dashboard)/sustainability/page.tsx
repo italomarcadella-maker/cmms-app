@@ -11,9 +11,11 @@ import {
     BarChart, Bar, Legend, ComposedChart, Area, AreaChart,
     PieChart, Pie, Cell
 } from "recharts";
-import { Gauge, Leaf, TrendingDown, Bolt, BrainCircuit, AlertTriangle, ArrowRight, Wallet, Info, Calendar, Zap, Droplets, Wind } from "lucide-react";
+import { Gauge, Leaf, TrendingDown, Bolt, BrainCircuit, AlertTriangle, ArrowRight, Wallet, Info, Calendar, Zap, Droplets, Wind, Flame } from "lucide-react";
 
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { format, subDays } from "date-fns";
+
 
 export default function SustainabilityDashboard() {
     const { activePlant } = usePlant();
@@ -36,8 +38,9 @@ export default function SustainabilityDashboard() {
         Promise.all([
             getEnergyMetrics(activePlant?.id, period),
             getMeters(),
-            getEnergyStats()
+            getEnergyStats(period)
         ]).then(([metricsData, metersData, statsData]) => {
+
             setMetrics(metricsData);
             setMeters(metersData);
             setStats(statsData);
@@ -140,8 +143,14 @@ export default function SustainabilityDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col md:flex-row">
                     <div className="p-10 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/30">
-                        <h3 className="text-xl font-bold text-slate-900 mb-1">Eco Score</h3>
-                        <p className="text-sm text-slate-500 mb-8 font-medium italic">Basato su efficienza energetica</p>
+                        <div className="flex items-center justify-between mb-1">
+                            <h3 className="text-xl font-bold text-slate-900">Eco Score</h3>
+                            <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                                Ultimi {period} giorni
+                            </span>
+                        </div>
+                        <p className="text-sm text-slate-500 mb-8 font-medium italic">Basato su efficienza energetica reale</p>
+
                         
                         <div className="relative h-48 w-48 mx-auto">
                             <ResponsiveContainer width="100%" height="100%">
@@ -191,12 +200,18 @@ export default function SustainabilityDashboard() {
                     </div>
                     
                     <div className="relative z-10">
-                        <p className="text-emerald-400 font-black text-xs uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-                             <Leaf className="h-4 w-4" /> Impatto Carbonico
-                        </p>
+                        <div className="flex items-center justify-between mb-6">
+                            <p className="text-emerald-400 font-black text-xs uppercase tracking-[0.3em] flex items-center gap-2">
+                                <Leaf className="h-4 w-4" /> Impatto Carbonico
+                            </p>
+                            <span className="text-[10px] font-bold bg-white/10 text-emerald-300 px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                                Ultimi {period} giorni
+                            </span>
+                        </div>
                         <div className="text-6xl font-black mb-3 tracking-tighter">{formattedTotalCo2} <span className="text-2xl font-light opacity-50">kg</span></div>
-                        <p className="text-lg font-medium text-slate-300 leading-tight">Emissioni stimate nel periodo</p>
+                        <p className="text-lg font-medium text-slate-300 leading-tight">Emissioni stimate nel periodo selezionato</p>
                     </div>
+
                     
                     <div className="relative z-10 mt-10 pt-8 border-t border-white/10">
                         <div className="flex items-center gap-4">
@@ -321,8 +336,10 @@ export default function SustainabilityDashboard() {
                         <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm">
                             {[
                                 { id: 'kwh', label: 'Energia', icon: Zap, color: 'text-amber-500' },
-                                { id: 'water', label: 'Acqua', icon: Droplets, color: 'text-blue-500' }
+                                { id: 'water', label: 'Acqua', icon: Droplets, color: 'text-blue-500' },
+                                { id: 'gas', label: 'Gas', icon: Flame, color: 'text-orange-500' }
                             ].map(type => (
+
                                 <button
                                     key={type.id}
                                     onClick={() => setChartType(type.id as any)}
@@ -341,15 +358,16 @@ export default function SustainabilityDashboard() {
                         
                         <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm">
                             {[
-                                { id: 7, label: 'W' },
-                                { id: 30, label: 'M' },
-                                { id: 90, label: 'Q' }
+                                { id: 7, label: '7g' },
+                                { id: 30, label: '30g' },
+                                { id: 90, label: '90g' },
+                                { id: 365, label: '1 anno' }
                             ].map(p => (
                                 <button
                                     key={p.id}
                                     onClick={() => setPeriod(p.id)}
                                     className={cn(
-                                        "w-12 h-10 flex items-center justify-center rounded-lg text-sm font-black transition-all",
+                                        "px-4 h-10 flex items-center justify-center rounded-lg text-sm font-black transition-all",
                                         period === p.id 
                                             ? "bg-indigo-600 text-white shadow-lg" 
                                             : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
@@ -359,6 +377,7 @@ export default function SustainabilityDashboard() {
                                 </button>
                             ))}
                         </div>
+
                     </div>
                 </div>
 
@@ -367,9 +386,10 @@ export default function SustainabilityDashboard() {
                         <AreaChart data={metrics.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={chartType === 'kwh' ? '#f59e0b' : '#3b82f6'} stopOpacity={0.4} />
-                                    <stop offset="95%" stopColor={chartType === 'kwh' ? '#f59e0b' : '#3b82f6'} stopOpacity={0} />
+                                    <stop offset="5%" stopColor={chartType === 'kwh' ? '#f59e0b' : chartType === 'water' ? '#3b82f6' : '#f97316'} stopOpacity={0.4} />
+                                    <stop offset="95%" stopColor={chartType === 'kwh' ? '#f59e0b' : chartType === 'water' ? '#3b82f6' : '#f97316'} stopOpacity={0} />
                                 </linearGradient>
+
                             </defs>
                             <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#f1f5f9" />
                             <XAxis
@@ -402,14 +422,15 @@ export default function SustainabilityDashboard() {
                             <Area 
                                 type="monotone" 
                                 dataKey={chartType} 
-                                stroke={chartType === 'kwh' ? '#f59e0b' : '#3b82f6'} 
+                                stroke={chartType === 'kwh' ? '#f59e0b' : chartType === 'water' ? '#3b82f6' : '#f97316'} 
                                 strokeWidth={6} 
                                 fillOpacity={1} 
                                 fill="url(#colorMain)" 
-                                name={chartType === 'kwh' ? 'Consumption (kWh)' : 'Water (m³)'} 
+                                name={chartType === 'kwh' ? 'Consumption (kWh)' : chartType === 'water' ? 'Water (m³)' : 'Gas (m³)'} 
                                 animationDuration={1500}
                                 strokeLinecap="round"
                             />
+
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
@@ -422,9 +443,17 @@ export default function SustainabilityDashboard() {
                         <Gauge className="h-6 w-6 text-indigo-600" />
                         <h2 className="text-2xl font-bold tracking-tight text-slate-800">Dettaglio Monitoraggio Energetico (Meters)</h2>
                     </div>
-                    <EnergyDashboard stats={stats} meters={meters} />
+                    <EnergyDashboard 
+                        stats={stats} 
+                        meters={meters} 
+                        externalDateRange={{
+                            start: format(subDays(new Date(), period), 'yyyy-MM-dd'),
+                            end: format(new Date(), 'yyyy-MM-dd')
+                        }}
+                    />
                 </div>
             )}
+
         </div>
     );
 }

@@ -2206,14 +2206,14 @@ export async function getMeterReadings(meterId: string) {
 
 
 
-export async function getEnergyStats() {
+export async function getEnergyStats(days: number = 30) {
     try {
         const now = new Date();
         const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-        const startOfTrend = subDays(new Date(), 30);
+        const startOfTrend = subDays(new Date(), days);
 
         // Fetch all meters
         const meters = await prisma.meter.findMany();
@@ -2236,12 +2236,13 @@ export async function getEnergyStats() {
         const dailyTrends = new Map<string, { date: string, elec: number, water: number, gas: number }>();
         const meterDailyTrends = new Map<string, Map<string, number>>();
 
-        // Initialize daily trends for last 30 days using date-fns for safety
-        for (let d = 0; d <= 30; d++) {
+        // Initialize daily trends for requested days using date-fns for safety
+        for (let d = 0; d <= days; d++) {
             const date = addDays(startOfTrend, d);
             const key = format(date, 'yyyy-MM-dd');
             dailyTrends.set(key, { date: key, elec: 0, water: 0, gas: 0 });
         }
+
 
         // Initialize meter specific maps
         meters.forEach(m => meterDailyTrends.set(m.id, new Map()));

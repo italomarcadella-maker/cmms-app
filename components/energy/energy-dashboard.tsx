@@ -3,7 +3,7 @@
 
 
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Zap, Droplets, Flame, LineChart as ChartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -25,7 +25,8 @@ import { format, subDays, isWithinInterval, parseISO } from "date-fns";
 
 export function EnergyDashboard({
     stats,
-    meters
+    meters,
+    externalDateRange
 }: {
     stats: {
         currentMonth: { ELEC: number, WATER: number, GAS: number },
@@ -33,14 +34,24 @@ export function EnergyDashboard({
         trends: any[],
         meterHistory?: Record<string, any[]>
     },
-    meters: any[]
+    meters: any[],
+    externalDateRange?: { start: string, end: string }
 }) {
     const [selectedMeterId, setSelectedMeterId] = useState<string>("all");
     const [selectedType, setSelectedType] = useState<string>("ALL"); // ALL, ELEC, WATER, GAS
-    const [dateRange, setDateRange] = useState<{ start: string, end: string }>({
+    const [dateRange, setDateRange] = useState<{ start: string, end: string }>(externalDateRange || {
         start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
         end: format(new Date(), 'yyyy-MM-dd')
     });
+
+    // Sync with external range if provided
+    useEffect(() => {
+        if (externalDateRange) {
+            setDateRange(externalDateRange);
+        }
+    }, [externalDateRange]);
+
+
 
     // Group meters
     const elecMeters = meters.filter((m: any) => m.type === 'ELEC');
