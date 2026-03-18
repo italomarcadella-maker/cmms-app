@@ -70,9 +70,10 @@ export default function SustainabilityDashboard() {
         );
     }
 
-    const hasNoData = !metrics || (metrics.totalKwh === 0 && metrics.totalWater === 0 && (!metrics.chartData || metrics.chartData.length === 0));
+    const hasNoDataAtAll = !metrics || !metrics.hasReadingsHistory;
+    const hasNoDataInPeriod = metrics && metrics.totalKwh === 0 && metrics.totalWater === 0 && (!metrics.chartData || metrics.chartData.length === 0);
 
-    if (hasNoData) {
+    if (hasNoDataAtAll || (hasNoDataInPeriod && period <= 30)) {
         return (
             <div className="space-y-8 animate-in fade-in duration-500">
                 <div className="flex justify-between items-start">
@@ -90,19 +91,25 @@ export default function SustainabilityDashboard() {
                     <div className="bg-indigo-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Zap className="h-10 w-10 text-indigo-400" />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-800">Nessun dato disponibile nel periodo</h2>
+                    <h2 className="text-2xl font-bold text-slate-800">
+                        {hasNoDataAtAll ? "Nessun dato disponibile" : "Nessuna lettura negli ultimi 30 giorni"}
+                    </h2>
                     <p className="text-slate-500 mt-2 max-w-md mx-auto">
-                        Inizia inserendo le letture dei contatori o collegando i log energetici della pianta per visualizzare analisi e trend.
+                        {hasNoDataAtAll 
+                            ? "Inizia inserendo le letture dei contatori o collegando i log energetici della pianta per visualizzare analisi e trend."
+                            : "Esistono letture nel passato, ma non nel periodo attuale. Prova ad espandere la visualizzazione per vedere i trend storici."
+                        }
                     </p>
                     <div className="mt-8 flex justify-center gap-4">
-                        <button onClick={() => setPeriod(90)} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">
-                            Prova un periodo più lungo
+                        <button onClick={() => setPeriod(period > 30 ? 365 : 90)} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">
+                            Visualizza periodo più lungo
                         </button>
                     </div>
                 </div>
             </div>
         );
     }
+
 
     if (!metrics) return null;
 
