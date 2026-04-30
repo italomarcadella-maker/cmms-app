@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Save, Box, Network, Settings, BarChart2 } from "lucide-react";
+import { Play, Save, Box, Network, Settings, BarChart2, Plus } from "lucide-react";
 import { getSimulations, createSimulation, saveSimulationSnapshot } from "@/lib/actions/fpes-actions";
 import { format } from "date-fns";
 
