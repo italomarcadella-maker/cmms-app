@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Play, Save, Box, Network, Settings, BarChart2 } from "lucide-react";
 import { getSimulations, createSimulation, saveSimulationSnapshot } from "@/lib/actions/fpes-actions";
+import { format } from "date-fns";
 
 export default function FpesDashboard() {
   const [simulations, setSimulations] = useState<any[]>([]);
@@ -108,7 +109,7 @@ export default function FpesDashboard() {
             >
               <p className="font-semibold text-sm truncate">{s.name}</p>
               <div className="flex justify-between items-center mt-2">
-                <span className="text-[10px] text-slate-400">{new Date(s.updatedAt).toLocaleDateString()}</span>
+                <span className="text-[10px] text-slate-400">{s.updatedAt ? format(new Date(s.updatedAt), 'dd/MM/yyyy') : ''}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.leanScore >= 70 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Score: {s.leanScore}</span>
               </div>
             </div>

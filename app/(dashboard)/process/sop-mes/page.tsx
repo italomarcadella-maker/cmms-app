@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Save, Activity, Camera, Layers, Settings2, Trash2 } from "lucide-react";
 import { getRecipes, createRecipe, saveRecipeData, addQualityReading } from "@/lib/actions/sop-actions";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { format } from "date-fns";
 
 export default function SopMesDashboard() {
   const [activeTab, setActiveTab] = useState<'recipe'|'quality'>('recipe');
@@ -109,7 +110,7 @@ export default function SopMesDashboard() {
               className={`p-3 rounded-xl cursor-pointer transition-all border ${currentRecipe?.id === r.id ? 'bg-indigo-50 border-indigo-200 text-indigo-800 shadow-sm' : 'border-transparent hover:bg-slate-100'}`}
             >
               <p className="font-semibold text-sm truncate">{r.name}</p>
-              <p className="text-[10px] text-slate-400">{new Date(r.updatedAt).toLocaleDateString()}</p>
+              <p className="text-[10px] text-slate-400">{r.updatedAt ? format(new Date(r.updatedAt), 'dd/MM/yyyy') : ''}</p>
             </div>
           ))}
         </div>
