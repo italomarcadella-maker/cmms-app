@@ -49,6 +49,7 @@ export async function generateMaintenanceSuggestions(assetId: string): Promise<s
 
 import { CortexEngine } from "./ai/cortex";
 import { callLLM } from "./ai/llm-service";
+import { GlobalAIEngine } from "./ai/GlobalAIEngine";
 
 // Singleton instance to keep memory loaded (in serverless this might reset, but fine for MVP)
 const cortex = new CortexEngine();
@@ -331,7 +332,21 @@ import { DailyInsight } from "./ai/types";
 // ... (getPredictiveInsights removed) ...
 
 export async function getDailyInsights(): Promise<DailyInsight[]> {
-    return cortex.generateDailyInsights();
+    const cortexInsights = await cortex.generateDailyInsights();
+    
+    try {
+        const dbInsights = await GlobalAIEngine.getActiveInsights();
+        const mappedGlobalInsights: DailyInsight[] = dbInsights.map((g: any) => ({
+            id: g.id,
+            title: `[Global AI] ${g.title}`,
+            description: g.description,
+            type: g.priority === 'HIGH' ? 'CRITICAL' : (g.priority === 'MEDIUM' ? 'WARNING' : 'INFO'),
+            category: 'SYSTEM'
+        }));
+        return [...mappedGlobalInsights, ...cortexInsights];
+    } catch (e) {
+        return cortexInsights;
+    }
 }
 
 export async function getPredictiveInsights() {

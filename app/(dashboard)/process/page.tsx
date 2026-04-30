@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getProjects, createProject, deleteProject, getUnresolvedAnomalies, archiveProject } from "@/lib/process-actions";
-import { Plus, BarChart3, TrendingUp, GitPullRequest, Settings, ArrowRight, Trash2, ShieldAlert, FileCheck2, Archive, ListFilter } from "lucide-react";
+import { Plus, BarChart3, TrendingUp, GitPullRequest, Settings, ArrowRight, Trash2, ShieldAlert, FileCheck2, Archive, ListFilter, Network } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -77,16 +77,16 @@ export default function ProcessDashboard() {
                         <Settings className="h-4 w-4" /> Viti & Cilindri
                     </Link>
                     <Link
-                        href="/process/sop"
+                        href="/process/sop-mes"
                         className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-5 py-2.5 rounded-xl font-semibold border border-indigo-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
                     >
-                        <FileCheck2 className="h-4 w-4" /> Archivio SOP
+                        <FileCheck2 className="h-4 w-4" /> SOP MES & AI
                     </Link>
                     <Link
-                        href="/process/sop-builder"
-                        className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-purple-200 hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                        href="/process/fpes"
+                        className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-amber-200 hover:shadow-xl hover:-translate-y-0.5 transition-all"
                     >
-                        <ShieldAlert className="h-4 w-4" /> AI Scanner
+                        <Network className="h-4 w-4" /> FPES Suite
                     </Link>
                     <button
                         className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-slate-200 hover:shadow-xl hover:-translate-y-0.5 transition-all"

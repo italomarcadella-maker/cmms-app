@@ -101,6 +101,9 @@ model User {
   validatedWorkOrders WorkOrder[] @relation("ValidatedBy")
   availability        TechnicianAvailability[]
   technicianProfile   Technician?
+  
+  // AI & FPES
+  simulationSnapshots LineSimulationVersion[]
 }
 
 model Account {
@@ -166,6 +169,11 @@ model Asset {
   // Process Engineering
   sopDocuments    SopDocument[]
   processAnomalies ProcessAnomaly[]
+
+  // Nuovi moduli SOP e FPES
+  processRecipes   ProcessRecipe[]
+  knowledgeDefects KnowledgeDefect[]
+  lineSimulations  LineSimulation[]
 
   @@index([healthScore])
   @@index([status])
@@ -719,4 +727,111 @@ model EnergyLog {
   // Non colleghiamo esplicitamente ad Asset con constraint per flessibilità, basta l'ID per query.
   
   @@index([plantId, date])
+}
+
+// --- GLOBAL AI ENGINE ---
+model GlobalInsight {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  source      String   // SOP, FPES, MAINTENANCE, QUALITY
+  priority    String   // HIGH, MEDIUM, LOW
+  tags        String[]
+  assetId     String?
+  relatedData Json?    // Per contenere i dettagli incrociati
+  isResolved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// --- SOP MES MODELS ---
+model ProcessRecipe {
+  id          String   @id @default(cuid())
+  name        String
+  assetId     String?  // Relazione alla macchina/linea
+  asset       Asset?   @relation(fields: [assetId], references: [id])
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  machines    ProcessMachine[]
+  changelogs  ProcessChangelog[]
+  readings    QualityReading[]
+}
+
+model ProcessMachine {
+  id          String   @id @default(cuid())
+  recipeId    String
+  recipe      ProcessRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  name        String
+  image       String?
+  
+  parameters  ProcessParameter[]
+}
+
+model ProcessParameter {
+  id          String   @id @default(cuid())
+  machineId   String
+  machine     ProcessMachine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  name        String
+  unit        String
+  setPoint    Float
+  tolerance   Float
+}
+
+model ProcessChangelog {
+  id          String   @id @default(cuid())
+  recipeId    String
+  recipe      ProcessRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  operator    String
+  note        String
+  timestamp   DateTime @default(now())
+}
+
+model QualityReading {
+  id          String   @id @default(cuid())
+  recipeId    String
+  recipe      ProcessRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  value       Float
+  timestamp   DateTime @default(now())
+}
+
+model KnowledgeDefect {
+  id          String   @id @default(cuid())
+  assetId     String?
+  asset       Asset?   @relation(fields: [assetId], references: [id])
+  name        String
+  cause       String
+  action      String
+  priority    String
+  createdAt   DateTime @default(now())
+}
+
+// --- FPES MODELS ---
+model LineSimulation {
+  id          String   @id @default(cuid())
+  name        String
+  assetId     String?
+  asset       Asset?   @relation(fields: [assetId], references: [id])
+  layout      String
+  leanScore   Int      @default(0)
+  lineEff     Int      @default(0)
+  dataJson    Json     // Contiene turni, macchine, ecc
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  snapshots   LineSimulationVersion[]
+}
+
+model LineSimulationVersion {
+  id             String   @id @default(cuid())
+  simulationId   String
+  simulation     LineSimulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  version        Int
+  label          String
+  leanScore      Int
+  lineEff        Int
+  snapshotBy     String?
+  user           User?    @relation(fields: [snapshotBy], references: [id])
+  dataJson       Json
+  createdAt      DateTime @default(now())
 }
