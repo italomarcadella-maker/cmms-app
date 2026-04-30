@@ -1,218 +1,191 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Save, Box, Network, Settings, BarChart2, Plus } from "lucide-react";
+import { Play, Save, Box, Network, Settings, BarChart2, Plus, Factory } from "lucide-react";
 import { getSimulations, createSimulation, saveSimulationSnapshot } from "@/lib/actions/fpes-actions";
 import { format } from "date-fns";
+import { newFpesProject, calcP } from "@/lib/fpes-utils";
+
+import Setup from "./components/Setup";
+import LineDesigner from "./components/LineDesigner";
+import Yamazumi from "./components/Yamazumi";
+
+const TABS = [
+  { id: 1, label: "Setup", icon: Settings },
+  { id: 2, label: "Line Designer", icon: Factory },
+  { id: 3, label: "Yamazumi", icon: BarChart2 },
+];
 
 export default function FpesDashboard() {
   const [simulations, setSimulations] = useState<any[]>([]);
   const [activeSim, setActiveSim] = useState<any>(null);
   
-  // What-If State
-  const [stations, setStations] = useState<any[]>([]);
-  const [taktTime, setTaktTime] = useState(60);
+  // The active project JSON state
+  const [projectData, setProjectData] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState(1);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const data = await getSimulations();
-    setSimulations(data);
-    if (data.length > 0 && !activeSim) {
-      handleSelectSim(data[0]);
+    try {
+      const data = await getSimulations();
+      setSimulations(data || []);
+      if (data && data.length > 0 && !activeSim) {
+        handleSelectSim(data[0]);
+      }
+    } catch (e) {
+      console.error("Error loading simulations:", e);
     }
   };
 
   const handleSelectSim = (sim: any) => {
     setActiveSim(sim);
     
-    // Assicura che dataJson sia un oggetto (in produzione Prisma potrebbe ritornare stringa)
     let parsedData = sim.dataJson;
     if (typeof parsedData === 'string') {
-      try { parsedData = JSON.parse(parsedData); } catch (e) { parsedData = {}; }
+      try { parsedData = JSON.parse(parsedData); } catch (e) { parsedData = null; }
     }
     
-    const loadedStations = parsedData?.stations || [
-      { id: "1", name: "Taglio", cycle: 45, va: 30, nva: 10, wait: 5 },
-      { id: "2", name: "Saldatura", cycle: 70, va: 50, nva: 10, wait: 10 },
-      { id: "3", name: "Assemblaggio", cycle: 55, va: 40, nva: 5, wait: 10 }
-    ];
-    setStations(loadedStations);
-    setTaktTime(parsedData?.takt || 60);
+    if (!parsedData || !parsedData.stazioni) {
+      parsedData = newFpesProject(sim.name);
+    }
+    
+    setProjectData(parsedData);
   };
 
   const handleNewSim = async () => {
-    const name = prompt("Nome della nuova simulazione Yamazumi?");
+    const name = prompt("Nome del nuovo Progetto FPES?");
     if (name) {
-      const newSim = await createSimulation({
-        name,
-        layout: "Linea Continua",
-        dataJson: {
-          takt: 60,
-          stations: [
-            { id: "1", name: "Stazione 1", cycle: 50, va: 40, nva: 10, wait: 0 }
-          ]
-        }
-      });
-      await loadData();
-      handleSelectSim(newSim);
+      const initialData = newFpesProject(name);
+      try {
+        const newSim = await createSimulation({
+          name,
+          layout: "U",
+          dataJson: initialData
+        });
+        await loadData();
+        handleSelectSim(newSim);
+      } catch(e) {
+        console.error(e);
+        alert("Errore durante la creazione del progetto.");
+      }
     }
   };
 
-  const calculateLeanScore = () => {
-    if (stations.length === 0) return 0;
-    const maxCycle = Math.max(...stations.map(s => s.cycle || 0));
-    const isOverTakt = maxCycle > taktTime;
-    return isOverTakt ? 45 : 85;
+  const updProject = (patch: any) => {
+    setProjectData((prev: any) => ({ ...prev, ...patch }));
   };
 
   const handleSaveSnapshot = async () => {
-    if (!activeSim) return;
-    const score = calculateLeanScore();
-    await saveSimulationSnapshot(activeSim.id, {
-      label: "Snapshot V" + Date.now(),
-      leanScore: score,
-      lineEff: score + 5,
-      dataJson: { takt: taktTime, stations }
-    });
-    alert(`Snapshot salvato! Lean Score: ${score}/100. Analizzato dal Global AI Engine.`);
-    loadData();
+    if (!activeSim || !projectData) return;
+    const cr = calcP(projectData);
+    const score = cr.leanScore || (cr.lineEff > 80 ? 85 : 45); // fallback se non c'è leanScore completo ancora
+    
+    try {
+      await saveSimulationSnapshot(activeSim.id, {
+        label: "Snapshot V" + Date.now(),
+        leanScore: score,
+        lineEff: cr.lineEff,
+        dataJson: projectData
+      });
+      alert(`Snapshot salvato! Lean Score: ${score}/100. Analizzato dal Global AI Engine.`);
+      loadData();
+    } catch(e) {
+      console.error(e);
+      alert("Errore durante il salvataggio dello snapshot.");
+    }
   };
 
-  const updateStation = (index: number, field: string, val: number) => {
-    const updated = [...stations];
-    updated[index][field] = val;
-    // Auto adjust cycle time
-    if (field === 'va' || field === 'nva' || field === 'wait') {
-      updated[index].cycle = updated[index].va + updated[index].nva + updated[index].wait;
-    }
-    setStations(updated);
-  };
+  const cr = projectData ? calcP(projectData) : null;
 
   return (
     <div className="flex h-[calc(100vh-6rem)] bg-slate-50 overflow-hidden rounded-2xl border shadow-sm animate-in fade-in">
       {/* SIDEBAR FPES */}
-      <div className="w-64 bg-white border-r flex flex-col">
-        <div className="p-4 border-b bg-amber-900 text-white">
-          <h2 className="font-bold text-lg flex items-center gap-2"><Network className="h-5 w-5 text-amber-400"/> FPES Suite</h2>
-          <p className="text-xs text-amber-200">Process Engineering & Lean</p>
+      <div className="w-64 bg-white border-r flex flex-col z-10 shadow-sm">
+        <div className="p-4 border-b bg-gradient-to-r from-blue-700 to-blue-900 text-white">
+          <h2 className="font-bold text-lg flex items-center gap-2"><Network className="h-5 w-5 text-blue-200"/> FPES Suite</h2>
+          <p className="text-xs text-blue-100">Factory Process Engineering</p>
         </div>
         
-        <div className="p-2 space-y-1 overflow-y-auto flex-1">
+        <div className="p-3 space-y-2 overflow-y-auto flex-1">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">Progetti Recenti</p>
           {simulations.map(s => (
             <div 
               key={s.id} 
               onClick={() => handleSelectSim(s)}
-              className={`p-3 rounded-xl cursor-pointer transition-all border ${activeSim?.id === s.id ? 'bg-amber-50 border-amber-200 text-amber-900 shadow-sm' : 'border-transparent hover:bg-slate-100'}`}
+              className={`p-3 rounded-xl cursor-pointer transition-all border ${activeSim?.id === s.id ? 'bg-blue-50 border-blue-200 text-blue-900 shadow-sm' : 'border-transparent hover:bg-slate-100'}`}
             >
               <p className="font-semibold text-sm truncate">{s.name}</p>
               <div className="flex justify-between items-center mt-2">
                 <span className="text-[10px] text-slate-400">{s.updatedAt ? format(new Date(s.updatedAt), 'dd/MM/yyyy') : ''}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.leanScore >= 70 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>Score: {s.leanScore}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.leanScore >= 70 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>Score: {s.leanScore || 0}</span>
               </div>
             </div>
           ))}
         </div>
         
         <div className="p-4 border-t bg-slate-50 gap-2 flex flex-col">
-          <button onClick={handleNewSim} className="flex items-center justify-center gap-2 w-full bg-white border border-slate-300 text-slate-700 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm">
+          <button onClick={handleNewSim} className="flex items-center justify-center gap-2 w-full bg-white border border-slate-300 text-blue-700 py-2.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm hover:shadow">
             <Plus className="h-4 w-4" /> Nuovo Progetto
           </button>
         </div>
       </div>
 
-      {/* MAIN CONTENT: WHAT-IF SIMULATOR */}
-      <div className="flex-1 flex flex-col overflow-y-auto p-6 bg-slate-50/50">
-        {activeSim ? (
-          <div className="max-w-5xl mx-auto w-full space-y-6">
-            
-            {/* Header & Global KPIs */}
-            <div className="flex justify-between items-start bg-white p-6 rounded-2xl border shadow-sm">
-              <div>
-                <h3 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
-                  <Play className="h-6 w-6 text-amber-500 fill-amber-500" /> What-If Simulator: {activeSim.name}
+      {/* MAIN CONTENT */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+        {activeSim && projectData ? (
+          <>
+            {/* Topbar: Simulation Name & Save */}
+            <div className="flex justify-between items-center bg-white p-4 border-b shadow-sm z-10">
+              <div className="flex flex-col">
+                <h3 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
+                  <Play className="h-5 w-5 text-blue-600 fill-blue-600" /> {projectData.nome}
                 </h3>
-                <p className="text-sm text-slate-500 font-medium mt-1">Sposta i tempi tra le postazioni e analizza l'impatto con l'IA Globale.</p>
-              </div>
-              <div className="flex gap-3">
-                <div className="bg-slate-50 px-4 py-2 rounded-xl border flex items-center gap-3">
-                   <span className="text-xs font-bold text-slate-400 uppercase">Takt Time (s)</span>
-                   <input type="number" value={taktTime} onChange={e => setTaktTime(parseInt(e.target.value) || 60)} className="w-16 bg-white border rounded p-1 text-center font-mono font-bold text-slate-700" />
+                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium mt-1">
+                  <span className="bg-slate-100 px-2 py-0.5 rounded border">{projectData.layout}</span>
+                  {cr && <span>Efficienza: <strong className={cr.lineEff >= 80 ? 'text-emerald-600' : 'text-amber-600'}>{cr.lineEff}%</strong></span>}
                 </div>
-                <button onClick={handleSaveSnapshot} className="flex items-center gap-2 bg-amber-600 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-amber-700 transition-colors">
-                  <Save className="h-4 w-4" /> Salva Snapshot & Analizza
+              </div>
+              
+              <div className="flex gap-3">
+                <button onClick={handleSaveSnapshot} className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors hover:shadow-md hover:-translate-y-0.5">
+                  <Save className="h-4 w-4" /> Salva Snapshot
                 </button>
               </div>
             </div>
 
-            {/* Visual Yamazumi (Simplified Demo) */}
-            <div className="bg-white p-6 rounded-2xl border shadow-sm">
-              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2"><BarChart2 className="h-4 w-4"/> Grafico Yamazumi</h4>
-              <div className="flex items-end gap-4 h-64 border-b-2 border-slate-200 pb-2 relative">
-                {/* Takt Line */}
-                <div className="absolute w-full border-t-2 border-dashed border-red-400" style={{ bottom: `${(taktTime / 100) * 100}%` }}>
-                  <span className="text-xs font-bold text-red-500 absolute -top-5 right-0">Takt: {taktTime}s</span>
-                </div>
-
-                {stations.map((s, i) => {
-                  const maxH = 100; // max scale 100s
-                  const cycleTime = s.cycle || 1; // prevent NaN
-                  const isOver = cycleTime > taktTime;
-
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center justify-end h-full group">
-                       <span className={`text-xs font-bold mb-1 ${isOver ? 'text-red-600' : 'text-slate-500'}`}>{cycleTime}s</span>
-                       <div className={`w-full max-w-[80px] flex flex-col justify-end transition-all rounded-t-md overflow-hidden border-2 ${isOver ? 'border-red-500' : 'border-transparent'}`} style={{height: `${(cycleTime/maxH)*100}%`}}>
-                          <div className="bg-red-400 w-full" style={{height: `${((s.wait || 0)/cycleTime)*100}%`}} title={`Attesa: ${s.wait || 0}s`}></div>
-                          <div className="bg-amber-400 w-full" style={{height: `${((s.nva || 0)/cycleTime)*100}%`}} title={`NVA: ${s.nva || 0}s`}></div>
-                          <div className="bg-emerald-500 w-full" style={{height: `${((s.va || 0)/cycleTime)*100}%`}} title={`VA: ${s.va || 0}s`}></div>
-                       </div>
-                       <span className="text-xs font-bold text-slate-600 mt-2 truncate w-full text-center">{s.name}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex justify-center gap-6 mt-4 text-xs font-bold text-slate-500">
-                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500 rounded-sm"></div> VA (Valore Aggiunto)</div>
-                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-400 rounded-sm"></div> NVA (Non Valore)</div>
-                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-400 rounded-sm"></div> Attesa / Spreco</div>
-              </div>
+            {/* Modules Tabs */}
+            <div className="flex bg-white border-b px-4 gap-2 overflow-x-auto z-10 shadow-sm flex-shrink-0">
+              {TABS.map(tab => {
+                const Icon = tab.icon;
+                const isAct = activeTab === tab.id;
+                return (
+                  <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 px-4 py-3 border-b-2 font-semibold text-sm transition-colors whitespace-nowrap ${isAct ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                  >
+                    <Icon className="h-4 w-4" /> {tab.label}
+                  </button>
+                )
+              })}
             </div>
 
-            {/* Sliders Area */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {stations.map((s, i) => (
-                <div key={i} className={`bg-white p-5 rounded-2xl border shadow-sm transition-colors ${s.cycle > taktTime ? 'bg-red-50/30 border-red-200' : ''}`}>
-                  <h4 className="font-bold text-slate-800 mb-4 flex justify-between">
-                    {s.name} 
-                    <span className={`font-mono ${s.cycle > taktTime ? 'text-red-600' : 'text-slate-500'}`}>{s.cycle}s</span>
-                  </h4>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-xs font-bold text-slate-500 mb-1"><span>VA (s)</span> <span className="text-emerald-600">{s.va}s</span></div>
-                      <input type="range" min="0" max="100" value={s.va} onChange={(e) => updateStation(i, 'va', parseInt(e.target.value))} className="w-full accent-emerald-500" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-xs font-bold text-slate-500 mb-1"><span>NVA (s)</span> <span className="text-amber-500">{s.nva}s</span></div>
-                      <input type="range" min="0" max="100" value={s.nva} onChange={(e) => updateStation(i, 'nva', parseInt(e.target.value))} className="w-full accent-amber-400" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-xs font-bold text-slate-500 mb-1"><span>Attesa (s)</span> <span className="text-red-500">{s.wait}s</span></div>
-                      <input type="range" min="0" max="100" value={s.wait} onChange={(e) => updateStation(i, 'wait', parseInt(e.target.value))} className="w-full accent-red-400" />
-                    </div>
-                  </div>
-                </div>
-              ))}
+            {/* Module Content */}
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+              <div className="mx-auto w-full max-w-6xl animate-in slide-in-from-bottom-2 fade-in duration-300">
+                {activeTab === 1 && <Setup project={projectData} upd={updProject} />}
+                {activeTab === 2 && <LineDesigner project={projectData} upd={updProject} />}
+                {activeTab === 3 && cr && <Yamazumi project={projectData} upd={updProject} cr={cr} />}
+              </div>
             </div>
-
-          </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <Box className="h-16 w-16 mb-4 opacity-20" />
-            <p className="text-lg font-medium">Seleziona o crea una simulazione FPES dalla libreria.</p>
+            <p className="text-lg font-medium">Seleziona o crea un progetto FPES dalla libreria a sinistra.</p>
           </div>
         )}
       </div>
