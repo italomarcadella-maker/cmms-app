@@ -174,9 +174,9 @@ export default function FpesDashboard() {
                 })}
               </div>
               <div className="flex justify-center gap-6 mt-4 text-xs font-bold text-slate-500">
-                <span className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500 rounded-sm"></div> VA (Valore Aggiunto)</span>
-                <span className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-400 rounded-sm"></div> NVA (Non Valore)</span>
-                <span className="flex items-center gap-1"><div className="w-3 h-3 bg-red-400 rounded-sm"></div> Attesa / Spreco</span>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500 rounded-sm"></div> VA (Valore Aggiunto)</div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-400 rounded-sm"></div> NVA (Non Valore)</div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-400 rounded-sm"></div> Attesa / Spreco</div>
               </div>
             </div>
 
