@@ -26,13 +26,20 @@ export default function FpesDashboard() {
 
   const handleSelectSim = (sim: any) => {
     setActiveSim(sim);
-    const loadedStations = sim.dataJson?.stations || [
+    
+    // Assicura che dataJson sia un oggetto (in produzione Prisma potrebbe ritornare stringa)
+    let parsedData = sim.dataJson;
+    if (typeof parsedData === 'string') {
+      try { parsedData = JSON.parse(parsedData); } catch (e) { parsedData = {}; }
+    }
+    
+    const loadedStations = parsedData?.stations || [
       { id: "1", name: "Taglio", cycle: 45, va: 30, nva: 10, wait: 5 },
       { id: "2", name: "Saldatura", cycle: 70, va: 50, nva: 10, wait: 10 },
       { id: "3", name: "Assemblaggio", cycle: 55, va: 40, nva: 5, wait: 10 }
     ];
     setStations(loadedStations);
-    setTaktTime(sim.dataJson?.takt || 60);
+    setTaktTime(parsedData?.takt || 60);
   };
 
   const handleNewSim = async () => {
@@ -54,8 +61,8 @@ export default function FpesDashboard() {
   };
 
   const calculateLeanScore = () => {
-    // Finta logica calcolo lean (es. penalità se supera il takt)
-    const maxCycle = Math.max(...stations.map(s => s.cycle));
+    if (stations.length === 0) return 0;
+    const maxCycle = Math.max(...stations.map(s => s.cycle || 0));
     const isOverTakt = maxCycle > taktTime;
     return isOverTakt ? 45 : 85;
   };
@@ -150,18 +157,16 @@ export default function FpesDashboard() {
 
                 {stations.map((s, i) => {
                   const maxH = 100; // max scale 100s
-                  const vaH = (s.va / maxH) * 100;
-                  const nvaH = (s.nva / maxH) * 100;
-                  const waitH = (s.wait / maxH) * 100;
-                  const isOver = s.cycle > taktTime;
+                  const cycleTime = s.cycle || 1; // prevent NaN
+                  const isOver = cycleTime > taktTime;
 
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center justify-end h-full group">
-                       <span className={`text-xs font-bold mb-1 ${isOver ? 'text-red-600' : 'text-slate-500'}`}>{s.cycle}s</span>
-                       <div className={`w-full max-w-[80px] flex flex-col justify-end transition-all rounded-t-md overflow-hidden border-2 ${isOver ? 'border-red-500' : 'border-transparent'}`} style={{height: `${(s.cycle/maxH)*100}%`}}>
-                          <div className="bg-red-400 w-full" style={{height: `${(s.wait/s.cycle)*100}%`}} title={`Attesa: ${s.wait}s`}></div>
-                          <div className="bg-amber-400 w-full" style={{height: `${(s.nva/s.cycle)*100}%`}} title={`NVA: ${s.nva}s`}></div>
-                          <div className="bg-emerald-500 w-full" style={{height: `${(s.va/s.cycle)*100}%`}} title={`VA: ${s.va}s`}></div>
+                       <span className={`text-xs font-bold mb-1 ${isOver ? 'text-red-600' : 'text-slate-500'}`}>{cycleTime}s</span>
+                       <div className={`w-full max-w-[80px] flex flex-col justify-end transition-all rounded-t-md overflow-hidden border-2 ${isOver ? 'border-red-500' : 'border-transparent'}`} style={{height: `${(cycleTime/maxH)*100}%`}}>
+                          <div className="bg-red-400 w-full" style={{height: `${((s.wait || 0)/cycleTime)*100}%`}} title={`Attesa: ${s.wait || 0}s`}></div>
+                          <div className="bg-amber-400 w-full" style={{height: `${((s.nva || 0)/cycleTime)*100}%`}} title={`NVA: ${s.nva || 0}s`}></div>
+                          <div className="bg-emerald-500 w-full" style={{height: `${((s.va || 0)/cycleTime)*100}%`}} title={`VA: ${s.va || 0}s`}></div>
                        </div>
                        <span className="text-xs font-bold text-slate-600 mt-2 truncate w-full text-center">{s.name}</span>
                     </div>
