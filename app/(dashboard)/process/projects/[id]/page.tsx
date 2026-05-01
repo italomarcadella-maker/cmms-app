@@ -150,9 +150,11 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
         if (!activeModules.includes(modName)) {
             setActiveModules([...activeModules, modName]);
         }
-        setShowModuleSelector(false);
-        setActiveTab(modName === 'FPES' ? 'FPES_SETUP' : modName);
-        toast.success(`Modulo ${modName} attivato.`);
+        if (modName === 'FPES') setActiveTab('FPES_SETUP');
+        else if (modName === 'LEAN') setActiveTab('LEAN_TW');
+        else setActiveTab(modName);
+        
+        toast.success(`Modulo attivato.`);
 
         if (modName === 'FPES' && !fpesSimId) {
             // Initialize FPES for this project
@@ -370,15 +372,23 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
                     <button onClick={() => setActiveTab("DASHBOARD")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "DASHBOARD" ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50")}>
                         <Grid className="h-4 w-4" /> Overview
                     </button>
-                    {activeModules.includes('GANTT') && (
+                    {/* GANTT MODULE */}
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 mt-4">Gestione Attività</p>
+                    {activeModules.includes('GANTT') ? (
                         <button onClick={() => setActiveTab("GANTT")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "GANTT" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50")}>
                             <Calendar className="h-4 w-4" /> Gantt & Task
                         </button>
+                    ) : (
+                        <button onClick={() => handleAddModule('GANTT')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-indigo-400 hover:text-indigo-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><Calendar className="h-4 w-4" /> Gantt & Task</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
                     )}
 
-                    {activeModules.includes('FPES') && (
+                    {/* FPES MODULE */}
+                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2 px-2 mt-4">Ingegneria di Linea</p>
+                    {activeModules.includes('FPES') ? (
                         <>
-                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2 px-2 mt-4">Ingegneria di Linea (FPES)</p>
                             <button onClick={() => setActiveTab("FPES_SETUP")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "FPES_SETUP" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
                                 <Settings className="h-4 w-4" /> Parametri
                             </button>
@@ -392,11 +402,17 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
                                 <Box className="h-4 w-4" /> Ergonomia
                             </button>
                         </>
+                    ) : (
+                        <button onClick={() => handleAddModule('FPES')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-blue-400 hover:text-blue-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><Network className="h-4 w-4" /> FPES Suite</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
                     )}
 
-                    {activeModules.includes('LEAN') && (
+                    {/* LEAN MODULE */}
+                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-2 px-2 mt-4">Miglioramento Continuo</p>
+                    {activeModules.includes('LEAN') ? (
                         <>
-                            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-2 px-2 mt-4">Miglioramento Continuo</p>
                             <button onClick={() => setActiveTab("LEAN_TW")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "LEAN_TW" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50")}>
                                 <Trash2 className="h-4 w-4" /> TIMWOODS
                             </button>
@@ -404,13 +420,25 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
                                 <Lightbulb className="h-4 w-4" /> Kaizen Board
                             </button>
                         </>
+                    ) : (
+                        <button onClick={() => handleAddModule('LEAN')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-amber-400 hover:text-amber-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><Lightbulb className="h-4 w-4" /> Kaizen & Lean</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
                     )}
-                </div>
-
-                <div className="p-4 border-t bg-slate-50">
-                    <button onClick={() => setShowModuleSelector(true)} className="w-full flex items-center justify-center gap-2 bg-slate-800 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-slate-700 transition shadow">
-                        <Plus className="h-4 w-4" /> Aggiungi Modulo
-                    </button>
+                    
+                    {/* SOP MODULE */}
+                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-2 px-2 mt-4">Standardizzazione</p>
+                    {activeModules.includes('SOP') ? (
+                        <button onClick={() => setActiveTab("SOP")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "SOP" ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <FileCheck2 className="h-4 w-4" /> SOP Builder
+                        </button>
+                    ) : (
+                        <button onClick={() => handleAddModule('SOP')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><FileCheck2 className="h-4 w-4" /> SOP Builder</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -477,37 +505,7 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
             </div>
 
             {/* MODALS */}
-            {showModuleSelector && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden animate-in zoom-in-95">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-slate-800">App Store di Progetto</h2>
-                            <button onClick={() => setShowModuleSelector(false)} className="text-slate-400 hover:bg-slate-100 p-2 rounded-full">
-                                <X className="h-6 w-6" />
-                            </button>
-                        </div>
-                        <div className="p-6 bg-slate-50 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            
-                            <div className={cn("p-5 rounded-2xl border-2 cursor-pointer transition-all bg-white relative", activeModules.includes('FPES') ? "border-blue-500 shadow-md ring-4 ring-blue-50" : "border-slate-200 hover:border-blue-300")} onClick={() => handleAddModule('FPES')}>
-                                {activeModules.includes('FPES') && <div className="absolute top-4 right-4 text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded">INSTALLATO</div>}
-                                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-4"><Network className="h-6 w-6 text-blue-600" /></div>
-                                <h3 className="font-bold text-lg text-slate-800">FPES Line Designer</h3>
-                                <p className="text-sm text-slate-500 mt-1">Motore di bilanciamento Yamazumi, layout di linea vettoriale e analisi ergonomica NIOSH.</p>
-                            </div>
-
-                            <div className={cn("p-5 rounded-2xl border-2 cursor-pointer transition-all bg-white relative", activeModules.includes('LEAN') ? "border-amber-500 shadow-md ring-4 ring-amber-50" : "border-slate-200 hover:border-amber-300")} onClick={() => handleAddModule('LEAN')}>
-                                {activeModules.includes('LEAN') && <div className="absolute top-4 right-4 text-xs font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded">INSTALLATO</div>}
-                                <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mb-4"><Lightbulb className="h-6 w-6 text-amber-600" /></div>
-                                <h3 className="font-bold text-lg text-slate-800">Kaizen & TIMWOODS</h3>
-                                <p className="text-sm text-slate-500 mt-1">Strumenti Lean per l'identificazione degli sprechi e la generazione di suggerimenti guidati dall'AI.</p>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-            )}
-            
-            {/* Keeping the ROI and Linking modals here (omitted detailed markup for brevity but same logic as before) */}
+            {/* Keeping the ROI and Linking modals here */}
             {isEditingRoi && (
                 <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl p-6 max-w-sm w-full"><h3 className="font-bold mb-4">Aggiorna ROI</h3>

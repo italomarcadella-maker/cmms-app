@@ -2,11 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { getProjects, createProject, deleteProject, getUnresolvedAnomalies, archiveProject } from "@/lib/process-actions";
-import { Plus, BarChart3, TrendingUp, GitPullRequest, Settings, ArrowRight, Trash2, ShieldAlert, FileCheck2, Archive, ListFilter, Network, Activity } from "lucide-react";
+import { Plus, BarChart3, Settings, Trash2, ShieldAlert, Archive, ListFilter, Activity, Network, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { format } from "date-fns";
-import { it } from "date-fns/locale";
 
 export default function ProcessDashboard() {
     const [projects, setProjects] = useState<any[]>([]);
@@ -19,6 +17,7 @@ export default function ProcessDashboard() {
     const [newProjTitle, setNewProjTitle] = useState("");
     const [newProjDesc, setNewProjDesc] = useState("");
     const [newProjRoi, setNewProjRoi] = useState("0");
+    const [selectedModules, setSelectedModules] = useState<string[]>(['GANTT']);
 
     const loadData = async () => {
         setLoading(true);
@@ -35,11 +34,19 @@ export default function ProcessDashboard() {
         loadData();
     }, [showArchived]);
 
+    const toggleModule = (mod: string) => {
+        if (selectedModules.includes(mod)) {
+            setSelectedModules(selectedModules.filter(m => m !== mod));
+        } else {
+            setSelectedModules([...selectedModules, mod]);
+        }
+    };
+
     const handleCreateProject = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newProjTitle) return;
         
-        await createProject({
+        const res = await createProject({
             title: newProjTitle,
             description: newProjDesc || "Progetto di miglioramento di processo",
             startDate: new Date(),
@@ -47,11 +54,21 @@ export default function ProcessDashboard() {
             roi: parseFloat(newProjRoi || "0")
         });
         
-        setIsCreateModalOpen(false);
-        setNewProjTitle("");
-        setNewProjDesc("");
-        setNewProjRoi("0");
-        loadData();
+        if (res.success && res.project) {
+            // Save selected modules to local storage for the new project
+            localStorage.setItem(`proj_modules_${res.project.id}`, JSON.stringify(selectedModules));
+            
+            setIsCreateModalOpen(false);
+            setNewProjTitle("");
+            setNewProjDesc("");
+            setNewProjRoi("0");
+            setSelectedModules(['GANTT']); // Reset
+            loadData();
+            // Option: Redirect to the new project immediately
+            // window.location.href = `/process/projects/${res.project.id}`;
+        } else {
+            alert("Errore nella creazione del progetto");
+        }
     };
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -59,7 +76,10 @@ export default function ProcessDashboard() {
         e.stopPropagation();
         if (confirm("Eliminare definitivamente questo progetto e tutti i task associati?")) {
             const res = await deleteProject(id);
-            if (res.success) loadData();
+            if (res.success) {
+                localStorage.removeItem(`proj_modules_${id}`);
+                loadData();
+            }
             else alert(res.message);
         }
     };
@@ -93,7 +113,7 @@ export default function ProcessDashboard() {
                         Ingegneria di Processo
                     </h1>
                     <p className="text-slate-500 mt-2 font-medium max-w-2xl">
-                        Hub centrale per l'ottimizzazione degli asset. Configura layout di linea, gestisci le derive di processo (Muri/Muda) e standardizza le operazioni con intelligenza artificiale.
+                        Hub centrale per la gestione dei progetti di miglioramento continuo. Crea un progetto e configura i moduli necessari per la tua analisi.
                     </p>
                 </div>
                 <button
@@ -104,51 +124,11 @@ export default function ProcessDashboard() {
                 </button>
             </div>
 
-            {/* Le Nostre Suite - Feature Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Link href="/process/fpes" className="group block bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 border border-slate-700 shadow-xl overflow-hidden relative hover:-translate-y-1 transition-transform duration-300">
-                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Network className="w-32 h-32 text-white" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="bg-white/10 w-12 h-12 rounded-xl flex items-center justify-center mb-4 backdrop-blur-md border border-white/20">
-                            <Network className="h-6 w-6 text-cyan-400" />
-                        </div>
-                        <h3 className="text-xl font-bold text-white mb-2">FPES Suite 2.0</h3>
-                        <p className="text-slate-300 text-sm leading-relaxed mb-6 line-clamp-3">
-                            FITT Process Engineering Suite. Motore vettoriale per Line Design, bilanciamento dinamico Yamazumi, Ergonomia (Golden Zone) e Kaizen Board integrata.
-                        </p>
-                        <div className="flex items-center text-cyan-400 font-semibold text-sm group-hover:text-cyan-300">
-                            Apri Suite <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                        </div>
-                    </div>
-                </Link>
-
-                <Link href="/process/sop-mes" className="group block bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-200 overflow-hidden relative hover:-translate-y-1 transition-all duration-300">
-                    <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <FileCheck2 className="w-32 h-32 text-indigo-600" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="bg-indigo-50 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-indigo-100">
-                            <FileCheck2 className="h-6 w-6 text-indigo-600" />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">SOP MES & AI Vision</h3>
-                        <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-3">
-                            Standardizzazione documentale automatizzata. Acquisisci foto dall'HMI e lascia che Cortex AI estragga automaticamente temperature, pressioni e setpoint per generare la SOP.
-                        </p>
-                        <div className="flex items-center text-indigo-600 font-semibold text-sm group-hover:text-indigo-700">
-                            Gestione SOP <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                        </div>
-                    </div>
-                </Link>
-
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 pt-4">
                 {/* Anomalie Sidebar */}
-                <div className="lg:col-span-1 bg-gradient-to-b from-amber-50 to-white p-5 rounded-2xl border border-amber-100 shadow-sm">
+                <div className="lg:col-span-1 bg-gradient-to-b from-amber-50 to-white p-5 rounded-2xl border border-amber-100 shadow-sm h-fit">
                     <div className="flex items-center gap-2 mb-4 text-amber-800 font-bold">
-                        <Activity className="h-5 w-5" /> Derive di Processo
+                        <Activity className="h-5 w-5" /> Derive Segnalate
                     </div>
                     {anomalies.length > 0 ? (
                         <div className="space-y-3">
@@ -163,17 +143,17 @@ export default function ProcessDashboard() {
                         <div className="text-center py-10">
                             <ShieldAlert className="h-10 w-10 text-emerald-200 mx-auto mb-2" />
                             <p className="text-sm font-medium text-emerald-600">Nessuna deriva segnalata.</p>
-                            <p className="text-xs text-slate-400 mt-1">Parametri di processo entro le tolleranze.</p>
+                            <p className="text-xs text-slate-400 mt-1">Processo sotto controllo.</p>
                         </div>
                     )}
                 </div>
 
                 {/* Lista Progetti */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-3">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                             <BarChart3 className="h-5 w-5 text-blue-600" />
-                            {showArchived ? 'Archivio Progetti' : 'Progetti di Miglioramento'}
+                            {showArchived ? 'Archivio Progetti Storici' : 'Progetti Aperti'}
                         </h2>
                         <button 
                             onClick={() => setShowArchived(!showArchived)}
@@ -257,10 +237,10 @@ export default function ProcessDashboard() {
             {/* Modale Nuovo Progetto */}
             {isCreateModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-slate-100 bg-slate-50">
                             <h2 className="text-lg font-bold text-slate-800">Crea Nuovo Progetto</h2>
-                            <p className="text-xs text-slate-500 mt-1">Inizializza un progetto di miglioramento processo.</p>
+                            <p className="text-xs text-slate-500 mt-1">Inizializza il contenitore per le tue attività.</p>
                         </div>
                         <form onSubmit={handleCreateProject} className="p-6 space-y-4">
                             <div>
@@ -272,25 +252,63 @@ export default function ProcessDashboard() {
                                     placeholder="Es. Ottimizzazione Linea 3"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Descrizione</label>
-                                <textarea 
-                                    value={newProjDesc} onChange={e => setNewProjDesc(e.target.value)}
-                                    className="w-full border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 min-h-[80px]" 
-                                    placeholder="Obiettivi del progetto..."
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Descrizione</label>
+                                    <textarea 
+                                        value={newProjDesc} onChange={e => setNewProjDesc(e.target.value)}
+                                        className="w-full border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 min-h-[80px]" 
+                                        placeholder="Obiettivi..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">ROI Stimato (€)</label>
+                                    <input 
+                                        type="number" min="0" step="1000"
+                                        value={newProjRoi} onChange={e => setNewProjRoi(e.target.value)}
+                                        className="w-full border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500" 
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">ROI Stimato (€)</label>
-                                <input 
-                                    type="number" min="0" step="1000"
-                                    value={newProjRoi} onChange={e => setNewProjRoi(e.target.value)}
-                                    className="w-full border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500" 
-                                />
+                            
+                            {/* SELEZIONE MODULI */}
+                            <div className="pt-2">
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 border-b pb-1">Moduli Iniziali Attivi</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <label className={cn("flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all", selectedModules.includes('GANTT') ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-200 hover:bg-slate-50')}>
+                                        <input type="checkbox" className="mt-1" checked={selectedModules.includes('GANTT')} onChange={() => toggleModule('GANTT')} />
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-800">Gantt & Task</p>
+                                            <p className="text-[10px] text-slate-500 leading-tight">Timeline delle attività</p>
+                                        </div>
+                                    </label>
+                                    <label className={cn("flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all", selectedModules.includes('FPES') ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:bg-slate-50')}>
+                                        <input type="checkbox" className="mt-1" checked={selectedModules.includes('FPES')} onChange={() => toggleModule('FPES')} />
+                                        <div>
+                                            <div className="flex gap-1 items-center">
+                                                <Network className="h-3 w-3 text-blue-600"/>
+                                                <p className="text-sm font-bold text-slate-800">FPES Suite</p>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 leading-tight">Line Design, Yamazumi, Ergo</p>
+                                        </div>
+                                    </label>
+                                    <label className={cn("flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all", selectedModules.includes('LEAN') ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200 hover:bg-slate-50')}>
+                                        <input type="checkbox" className="mt-1" checked={selectedModules.includes('LEAN')} onChange={() => toggleModule('LEAN')} />
+                                        <div>
+                                            <div className="flex gap-1 items-center">
+                                                <Lightbulb className="h-3 w-3 text-amber-600"/>
+                                                <p className="text-sm font-bold text-slate-800">Kaizen & Lean</p>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 leading-tight">Miglioramento Continuo</p>
+                                        </div>
+                                    </label>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-2">* Potrai aggiungere o rimuovere i moduli successivamente dal workspace.</p>
                             </div>
-                            <div className="pt-4 flex justify-end gap-2">
+
+                            <div className="pt-4 flex justify-end gap-2 border-t mt-4">
                                 <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Annulla</button>
-                                <button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Crea Progetto</button>
+                                <button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-md">Crea Progetto</button>
                             </div>
                         </form>
                     </div>
