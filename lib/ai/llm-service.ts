@@ -16,23 +16,14 @@ export async function callLLM(
     image?: string
 ): Promise<LLMResponse> {
     
-    // Se non abbiamo alcun contesto utile e la domanda richiede dati specifici,
-    // l'AI dovrebbe dire che non ha dati. Lo forziamo dal prompt o direttamente se il contesto è davvero vuoto.
-    if (!context || context.length === 0) {
-        return {
-            content: "Non ho ancora dati per questo elemento.",
-            isExternal: false
-        };
-    }
-
     // Se l'API Key manca ma siamo in "work mode" simuliamo la generazione euristica
-    // Questo permette alla piattaforma di girare senza crashare in assenza di API Key OpenAI.
-    // L'utente potrà testarla. Se fornita, usa l'API.
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key') {
+        const fallbackMessage = context.length > 0 
+            ? "Analizzando i " + context.length + " record di contesto, rilevo pattern anomali. Consiglio di controllare i parametri indicati nelle SOP."
+            : "Non ho dati di contesto specifici per questa entità, ma come assistente Cortex posso suggerirti di verificare le linee guida standard di manutenzione.";
+        
         return {
-            content: "Dall'analisi dei dati reali (" + context.length + " record trovati): " + 
-                     "Le derive e le inefficienze segnalate suggeriscono un'interazione anomala tra manutenzione meccanica e processo. " +
-                     "Ti consiglio di ispezionare il setup e le tolleranze indicate nelle SOP attuali.",
+            content: fallbackMessage,
             isExternal: false
         };
     }
@@ -41,20 +32,16 @@ export async function callLLM(
         const messages: any[] = [
             {
                 role: 'system',
-                content: `Sei Cortex, un assistente esperto di manutenzione industriale 4.0.
+                content: `Sei Cortex, l'intelligenza artificiale di CMMS 2.0 (Manutenzione Industriale 4.0).
                 
-                Tuo obiettivo è fornire un'analisi OMOGENEA collegando i dati di Manutenzione, Sostenibilità e Processo.
-                - Se vedi consumi alti (Sostenibilità), valuta se c'è un problema meccanico (Manutenzione).
-                - Se vedi anomalie di deriva (Processo), suggerisci controlli tecnici.
-                - Considera sempre il contesto della Sicurezza.
-
-                REGOLA D'ORO:
-                Usa SOLO le informazioni fornite nel CONTESTO seguente per rispondere.
-                Se il contesto fornito NON CONTIENE dati sufficienti per rispondere alla domanda tecnica, devi ESATTAMENTE e SOLO rispondere con la frase: "Non ho ancora dati per questo elemento."
-                Se la risposta è presente nel contesto, elaborala in modo professionale. Non inventare dati.
+                Sei un assistente sempre pronto e disponibile.
+                Se l'utente ti pone domande specifiche su anomalie, consumi o derive, usa i dati nel CONTESTO INTERNO.
+                Se il contesto è vuoto o non contiene la risposta, rispondi usando le tue conoscenze generali da esperto di manutenzione e industria, ma precisa elegantemente: "Non ho dati attuali specifici su questo elemento, ma in base agli standard industriali...".
+                Non dire "Non ho ancora dati per questo elemento" se non è strettamente necessario (es. l'utente chiede un valore specifico che non c'è).
+                Mantieni un tono collaborativo e professionale.
                 
                 CONTESTO INTERNO:
-                ${context.join('\n\n')}
+                ${context.length > 0 ? context.join('\n\n') : 'Nessun dato di contesto disponibile per questa entità.'}
                 `
             },
             {

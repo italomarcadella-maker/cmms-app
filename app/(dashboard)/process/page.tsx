@@ -142,23 +142,6 @@ export default function ProcessDashboard() {
                     </div>
                 </Link>
 
-                <Link href="/screws" className="group block bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl hover:border-amber-200 overflow-hidden relative hover:-translate-y-1 transition-all duration-300">
-                    <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Settings className="w-32 h-32 text-amber-600" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="bg-amber-50 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-amber-100">
-                            <Settings className="h-6 w-6 text-amber-600" />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">Viti & Cilindri</h3>
-                        <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-3">
-                            Digital Twin del gruppo plastificazione. Analisi usura, mescole e configurazione parametrica della geometria delle viti per ottimizzare la resa dell'estrusore.
-                        </p>
-                        <div className="flex items-center text-amber-600 font-semibold text-sm group-hover:text-amber-700">
-                            Vai a Viti <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                        </div>
-                    </div>
-                </Link>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
