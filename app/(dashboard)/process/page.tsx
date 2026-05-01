@@ -274,34 +274,25 @@ export default function ProcessDashboard() {
                             {/* SELEZIONE MODULI */}
                             <div className="pt-2">
                                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 border-b pb-1">Moduli Iniziali Attivi</label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <label className={cn("flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all", selectedModules.includes('GANTT') ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-200 hover:bg-slate-50')}>
-                                        <input type="checkbox" className="mt-1" checked={selectedModules.includes('GANTT')} onChange={() => toggleModule('GANTT')} />
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-800">Gantt & Task</p>
-                                            <p className="text-[10px] text-slate-500 leading-tight">Timeline delle attività</p>
-                                        </div>
-                                    </label>
-                                    <label className={cn("flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all", selectedModules.includes('FPES') ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:bg-slate-50')}>
-                                        <input type="checkbox" className="mt-1" checked={selectedModules.includes('FPES')} onChange={() => toggleModule('FPES')} />
-                                        <div>
-                                            <div className="flex gap-1 items-center">
-                                                <Network className="h-3 w-3 text-blue-600"/>
-                                                <p className="text-sm font-bold text-slate-800">FPES Suite</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { id: 'GANTT', label: 'Gantt & Task', icon: <BarChart3 className="h-3 w-3" /> },
+                                        { id: 'SETUP', label: 'Parametri di Linea', icon: <Settings className="h-3 w-3" /> },
+                                        { id: 'LINE_DESIGNER', label: 'Line Designer', icon: <Network className="h-3 w-3" /> },
+                                        { id: 'YAMAZUMI', label: 'Yamazumi', icon: <Activity className="h-3 w-3" /> },
+                                        { id: 'ERGO', label: 'Ergonomia', icon: <ShieldAlert className="h-3 w-3" /> },
+                                        { id: 'TIMWOODS', label: 'TIMWOODS', icon: <Trash2 className="h-3 w-3" /> },
+                                        { id: 'KAIZEN', label: 'Kaizen Board', icon: <Lightbulb className="h-3 w-3" /> },
+                                        { id: 'SOP', label: 'SOP Builder', icon: <ListFilter className="h-3 w-3" /> },
+                                    ].map(mod => (
+                                        <label key={mod.id} className={cn("flex items-center gap-2 p-2 rounded-xl border cursor-pointer transition-all", selectedModules.includes(mod.id) ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:bg-slate-50')}>
+                                            <input type="checkbox" className="mt-0.5" checked={selectedModules.includes(mod.id)} onChange={() => toggleModule(mod.id)} />
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="text-blue-600">{mod.icon}</div>
+                                                <p className="text-xs font-bold text-slate-800">{mod.label}</p>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 leading-tight">Line Design, Yamazumi, Ergo</p>
-                                        </div>
-                                    </label>
-                                    <label className={cn("flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all", selectedModules.includes('LEAN') ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200 hover:bg-slate-50')}>
-                                        <input type="checkbox" className="mt-1" checked={selectedModules.includes('LEAN')} onChange={() => toggleModule('LEAN')} />
-                                        <div>
-                                            <div className="flex gap-1 items-center">
-                                                <Lightbulb className="h-3 w-3 text-amber-600"/>
-                                                <p className="text-sm font-bold text-slate-800">Kaizen & Lean</p>
-                                            </div>
-                                            <p className="text-[10px] text-slate-500 leading-tight">Miglioramento Continuo</p>
-                                        </div>
-                                    </label>
+                                        </label>
+                                    ))}
                                 </div>
                                 <p className="text-[10px] text-slate-400 mt-2">* Potrai aggiungere o rimuovere i moduli successivamente dal workspace.</p>
                             </div>

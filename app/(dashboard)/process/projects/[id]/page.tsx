@@ -150,13 +150,13 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
         if (!activeModules.includes(modName)) {
             setActiveModules([...activeModules, modName]);
         }
-        if (modName === 'FPES') setActiveTab('FPES_SETUP');
-        else if (modName === 'LEAN') setActiveTab('LEAN_TW');
-        else setActiveTab(modName);
         
+        setActiveTab(modName);
         toast.success(`Modulo attivato.`);
 
-        if (modName === 'FPES' && !fpesSimId) {
+        // FPES data needs to be initialized if any FPES module is selected
+        const fpesModules = ['SETUP', 'LINE_DESIGNER', 'YAMAZUMI', 'ERGO', 'TIMWOODS', 'KAIZEN'];
+        if (fpesModules.includes(modName) && !fpesSimId) {
             // Initialize FPES for this project
             const initialData = newFpesProject(`PROJ_${id}`);
             try {
@@ -385,44 +385,74 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
                         </button>
                     )}
 
-                    {/* FPES MODULE */}
+                    {/* FPES ATOMIC MODULES */}
                     <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2 px-2 mt-4">Ingegneria di Linea</p>
-                    {activeModules.includes('FPES') ? (
-                        <>
-                            <button onClick={() => setActiveTab("FPES_SETUP")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "FPES_SETUP" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
-                                <Settings className="h-4 w-4" /> Parametri
-                            </button>
-                            <button onClick={() => setActiveTab("FPES_DESIGN")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "FPES_DESIGN" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
-                                <Network className="h-4 w-4" /> Line Designer
-                            </button>
-                            <button onClick={() => setActiveTab("FPES_YAMAZUMI")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "FPES_YAMAZUMI" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
-                                <BarChart2 className="h-4 w-4" /> Yamazumi
-                            </button>
-                            <button onClick={() => setActiveTab("FPES_ERGO")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "FPES_ERGO" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
-                                <Box className="h-4 w-4" /> Ergonomia
-                            </button>
-                        </>
+                    
+                    {activeModules.includes('SETUP') ? (
+                        <button onClick={() => setActiveTab("SETUP")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "SETUP" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <Settings className="h-4 w-4" /> Parametri
+                        </button>
                     ) : (
-                        <button onClick={() => handleAddModule('FPES')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-blue-400 hover:text-blue-600 transition-colors bg-slate-50">
-                            <span className="flex items-center gap-3"><Network className="h-4 w-4" /> FPES Suite</span>
+                        <button onClick={() => handleAddModule('SETUP')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-blue-400 hover:text-blue-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><Settings className="h-4 w-4" /> Parametri</span>
                             <Plus className="h-4 w-4" />
                         </button>
                     )}
 
-                    {/* LEAN MODULE */}
-                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-2 px-2 mt-4">Miglioramento Continuo</p>
-                    {activeModules.includes('LEAN') ? (
-                        <>
-                            <button onClick={() => setActiveTab("LEAN_TW")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "LEAN_TW" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50")}>
-                                <Trash2 className="h-4 w-4" /> TIMWOODS
-                            </button>
-                            <button onClick={() => setActiveTab("LEAN_KAIZEN")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "LEAN_KAIZEN" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50")}>
-                                <Lightbulb className="h-4 w-4" /> Kaizen Board
-                            </button>
-                        </>
+                    {activeModules.includes('LINE_DESIGNER') ? (
+                        <button onClick={() => setActiveTab("LINE_DESIGNER")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "LINE_DESIGNER" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <Network className="h-4 w-4" /> Line Designer
+                        </button>
                     ) : (
-                        <button onClick={() => handleAddModule('LEAN')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-amber-400 hover:text-amber-600 transition-colors bg-slate-50">
-                            <span className="flex items-center gap-3"><Lightbulb className="h-4 w-4" /> Kaizen & Lean</span>
+                        <button onClick={() => handleAddModule('LINE_DESIGNER')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-blue-400 hover:text-blue-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><Network className="h-4 w-4" /> Line Designer</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    )}
+
+                    {activeModules.includes('YAMAZUMI') ? (
+                        <button onClick={() => setActiveTab("YAMAZUMI")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "YAMAZUMI" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <BarChart2 className="h-4 w-4" /> Yamazumi
+                        </button>
+                    ) : (
+                        <button onClick={() => handleAddModule('YAMAZUMI')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-blue-400 hover:text-blue-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><BarChart2 className="h-4 w-4" /> Yamazumi</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    )}
+
+                    {activeModules.includes('ERGO') ? (
+                        <button onClick={() => setActiveTab("ERGO")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "ERGO" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <Box className="h-4 w-4" /> Ergonomia
+                        </button>
+                    ) : (
+                        <button onClick={() => handleAddModule('ERGO')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-blue-400 hover:text-blue-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><Box className="h-4 w-4" /> Ergonomia</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    )}
+
+                    {/* LEAN MODULES */}
+                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-2 px-2 mt-4">Miglioramento Continuo</p>
+                    
+                    {activeModules.includes('TIMWOODS') ? (
+                        <button onClick={() => setActiveTab("TIMWOODS")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "TIMWOODS" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <Trash2 className="h-4 w-4" /> TIMWOODS
+                        </button>
+                    ) : (
+                        <button onClick={() => handleAddModule('TIMWOODS')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-amber-400 hover:text-amber-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><Trash2 className="h-4 w-4" /> TIMWOODS</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    )}
+
+                    {activeModules.includes('KAIZEN') ? (
+                        <button onClick={() => setActiveTab("KAIZEN")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "KAIZEN" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <Lightbulb className="h-4 w-4" /> Kaizen Board
+                        </button>
+                    ) : (
+                        <button onClick={() => handleAddModule('KAIZEN')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-amber-400 hover:text-amber-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><Lightbulb className="h-4 w-4" /> Kaizen Board</span>
                             <Plus className="h-4 w-4" />
                         </button>
                     )}
@@ -483,23 +513,20 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
                     </div>
                 )}
 
-                {activeModules.includes('FPES') && fpesData && (
+                {/* ATOMIC FPES & LEAN MODULES RENDERING */}
+                {fpesData && (
                     <div className="max-w-6xl mx-auto h-full relative">
-                        {/* Auto-Save indicator for FPES */}
-                        <div className="absolute -top-4 right-0 flex gap-2">
-                             <button onClick={handleSaveFpes} className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs font-bold hover:bg-blue-200">Salva Modulo FPES</button>
-                        </div>
-                        {activeTab === "FPES_SETUP" && <Setup p={fpesData} upd={handleUpdateFpes} />}
-                        {activeTab === "FPES_DESIGN" && <LineDesigner p={fpesData} upd={handleUpdateFpes} />}
-                        {activeTab === "FPES_YAMAZUMI" && <Yamazumi p={fpesData} upd={handleUpdateFpes} />}
-                        {activeTab === "FPES_ERGO" && <Ergonomics p={fpesData} upd={handleUpdateFpes} />}
-                    </div>
-                )}
-
-                {activeModules.includes('LEAN') && fpesData && (
-                    <div className="max-w-6xl mx-auto h-full">
-                         {activeTab === "LEAN_TW" && <Timwoods p={fpesData} upd={handleUpdateFpes} />}
-                         {activeTab === "LEAN_KAIZEN" && <KaizenBoard p={fpesData} upd={handleUpdateFpes} />}
+                        {(activeTab === 'SETUP' || activeTab === 'LINE_DESIGNER' || activeTab === 'YAMAZUMI' || activeTab === 'ERGO' || activeTab === 'TIMWOODS' || activeTab === 'KAIZEN') && (
+                            <div className="absolute -top-4 right-0 flex gap-2 z-10">
+                                 <button onClick={handleSaveFpes} className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs font-bold hover:bg-blue-200 shadow-sm border border-blue-200">Salva Moduli Ing.</button>
+                            </div>
+                        )}
+                        {activeTab === "SETUP" && <Setup p={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "LINE_DESIGNER" && <LineDesigner p={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "YAMAZUMI" && <Yamazumi p={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "ERGO" && <Ergonomics p={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "TIMWOODS" && <Timwoods p={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "KAIZEN" && <KaizenBoard p={fpesData} upd={handleUpdateFpes} />}
                     </div>
                 )}
             </div>
