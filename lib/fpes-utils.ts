@@ -50,7 +50,10 @@ export function newFpesProject(nome:string) {
     nome: nome || "Nuova Simulazione", reparto: "", responsabile: "", data: new Date().toISOString().slice(0,10), tipo: "ASSEMBLY", layout: "U",
     stazioni: [s1, s2, s3],
     domandaGiorn: 500, turniGiorn: 2, hTurno: 8,
-    // Add other fields as we implement them: rack, timwoods, etc.
+    rack:{livelli:2,mxLiv:4,inclin:4,clearLat:10,gapLiv:10,hBase:15,spazioDisp:150},
+    rackCodici:[{id:uid(),nome:"COD-A",dExt:50,dInt:14,sp:20,peso:9,col:SCOLS[0],attivo:true}],
+    timwoods:{T:2,I:2,M:2,W:2,O:1,P:1,D:1,S:2},
+    kaizen:[], gantt:{phases:[],tasks:[]}
   };
 }
 
@@ -63,5 +66,50 @@ export function calcP(p: any) {
   const lineEff=bot.cicloS>0?Math.round((sumC/(n*bot.cicloS))*100):0;
   const vaAvg=Math.round(active.reduce((s:number,st:any)=>s+(st.va/Math.max(st.cicloS,1))*100,0)/n);
   
-  return { active, n, takt, bot, lineEff, vaAvg };
+  // Rack calculations
+  const cod = p.rackCodici?.find((c:any) => c.attivo) || p.rackCodici?.[0] || {dExt:50,sp:20,peso:8,dInt:14};
+  const profRack = cod.dExt + (p.rack?.clearLat || 10) * 2;
+  const bufRack = (p.rack?.livelli || 2) * (p.rack?.mxLiv || 4);
+  const consT = active.reduce((s:number,st:any)=>s+(st.consumoMin||0),0);
+  const copMin = consT>0?(bufRack/consT).toFixed(1):"∞";
+  const livelli = [];
+  let hB = p.rack?.hBase || 15;
+  for(let i=0;i<(p.rack?.livelli || 2);i++){
+    const pn=hB,pr=pn+cod.sp;
+    livelli.push({lv:i+1,piano:pn,prelievo:pr});
+    hB=pr+(p.rack?.gapLiv || 10);
+  }
+  const hTotRack=hB+10;
+  const okSp=profRack<=(p.rack?.spazioDisp || 150);
+  
+  const twTotal = TW_DEF.reduce((s,t)=>s+(p.timwoods?.[t.k]||1),0);
+  const twPct = Math.round((1-twTotal/(TW_DEF.length*5))*100);
+
+  return { active, n, takt, bot, lineEff, vaAvg, cod, profRack, bufRack, consT, copMin, livelli, hTotRack, okSp, twPct };
 }
+
+// ERGONOMICS CONSTANTS
+export const NZ=[
+  {h1:0,h2:35,c:"#b91c1c",l:"ROSSO",ok:false,desc:"Zona proibita"},
+  {h1:35,h2:75,c:"#c96500",l:"ARANCIO",ok:false,desc:"Con ausili"},
+  {h1:75,h2:125,c:"#067a52",l:"VERDE",ok:true,desc:"Ottimale"},
+  {h1:125,h2:145,c:"#c96500",l:"ARANCIO",ok:false,desc:"Con ausili"},
+  {h1:145,h2:220,c:"#b91c1c",l:"ROSSO",ok:false,desc:"Zona proibita"},
+];
+
+export function nZone(h:number){
+  for(let i=0;i<NZ.length;i++){if(h>=NZ[i].h1&&h<NZ[i].h2)return NZ[i];}
+  return NZ[NZ.length-1];
+}
+
+// TIMWOODS CONSTANTS
+export const TW_DEF=[
+  {k:"T",n:"Transport",i:"🚛",d:"Spostamento non necessario",col:"#c96500"},
+  {k:"I",n:"Inventory",i:"📦",d:"Scorte eccessive",col:"#a16207"},
+  {k:"M",n:"Motion",i:"🚶",d:"Movimenti operatore",col:"#0069a8"},
+  {k:"W",n:"Waiting",i:"⏳",d:"Attese",col:"#5b21b6"},
+  {k:"O",n:"Overproduction",i:"⚙️",d:"Produzione anticipata",col:"#0f766e"},
+  {k:"P",n:"Overprocessing",i:"🔧",d:"Lavorazioni non richieste",col:"#64748b"},
+  {k:"D",n:"Defects",i:"❌",d:"Scarti, rilavorazioni",col:"#b91c1c"},
+  {k:"S",n:"Skills",i:"🧠",d:"Talenti non valorizzati",col:"#6d28d9"},
+];

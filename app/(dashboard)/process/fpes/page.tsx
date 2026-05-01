@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Save, Box, Network, Settings, BarChart2, Plus, Factory } from "lucide-react";
+import { Play, Save, Box, Network, Settings, BarChart2, Plus, Factory, Trash2, Lightbulb, Calendar } from "lucide-react";
 import { getSimulations, createSimulation, saveSimulationSnapshot } from "@/lib/actions/fpes-actions";
 import { format } from "date-fns";
 import { newFpesProject, calcP } from "@/lib/fpes-utils";
@@ -9,11 +9,21 @@ import { newFpesProject, calcP } from "@/lib/fpes-utils";
 import Setup from "./components/Setup";
 import LineDesigner from "./components/LineDesigner";
 import Yamazumi from "./components/Yamazumi";
+import RackFlow from "./components/RackFlow";
+import Ergonomics from "./components/Ergonomics";
+import Timwoods from "./components/Timwoods";
+import KaizenBoard from "./components/KaizenBoard";
+import Gantt from "./components/Gantt";
 
 const TABS = [
   { id: 1, label: "Setup", icon: Settings },
   { id: 2, label: "Line Designer", icon: Factory },
   { id: 3, label: "Yamazumi", icon: BarChart2 },
+  { id: 4, label: "Rack & Flow", icon: Network },
+  { id: 5, label: "Ergonomia", icon: Box },
+  { id: 6, label: "TIMWOODS", icon: Trash2 },
+  { id: 7, label: "Kaizen", icon: Lightbulb },
+  { id: 8, label: "Gantt", icon: Calendar },
 ];
 
 export default function FpesDashboard() {
@@ -179,6 +189,11 @@ export default function FpesDashboard() {
                 {activeTab === 1 && <Setup project={projectData} upd={updProject} />}
                 {activeTab === 2 && <LineDesigner project={projectData} upd={updProject} />}
                 {activeTab === 3 && cr && <Yamazumi project={projectData} upd={updProject} cr={cr} />}
+                {activeTab === 4 && cr && <RackFlow project={projectData} upd={updProject} cr={cr} />}
+                {activeTab === 5 && cr && <Ergonomics project={projectData} upd={updProject} cr={cr} />}
+                {activeTab === 6 && cr && <Timwoods project={projectData} upd={updProject} cr={cr} />}
+                {activeTab === 7 && cr && <KaizenBoard project={projectData} upd={updProject} cr={cr} />}
+                {activeTab === 8 && <Gantt project={projectData} upd={updProject} />}
               </div>
             </div>
           </>
