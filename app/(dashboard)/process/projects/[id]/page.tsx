@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import { getProjectById, createProjectTask, updateTaskDates, linkTaskToMaintenance, addProjectTaskNote, updateProject, deleteProject, archiveProject } from "@/lib/process-actions";
 import { getAssets } from "@/lib/actions";
 import { getSimulations, createSimulation, saveSimulationSnapshot } from "@/lib/actions/fpes-actions";
@@ -23,6 +23,11 @@ import RackFlow from "../../fpes/components/RackFlow";
 import Ergonomics from "../../fpes/components/Ergonomics";
 import Timwoods from "../../fpes/components/Timwoods";
 import KaizenBoard from "../../fpes/components/KaizenBoard";
+import SopPro from "../../components/SopPro";
+import MuriMuda from "../../components/MuriMuda";
+import LeanScore from "../../components/LeanScore";
+import ExcelIO from "../../components/ExcelIO";
+import WhatIfSimulator from "../../components/WhatIfSimulator";
 
 interface GanttTask {
     id: string;
@@ -58,8 +63,8 @@ function DraggableTaskBar({ task, timelineStart, daysWindow, getTaskStyle, onCli
 }
 
 // ----------------- MAIN WORKSPACE PAGE -----------------
-export default function ProjectWorkspace({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = use(params);
+export default function ProjectWorkspace({ params }: { params: { id: string } }) {
+    const { id } = params;
     const [project, setProject] = useState<any>(null);
     const [assets, setAssets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -446,6 +451,17 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
                         </button>
                     )}
 
+                    {activeModules.includes('WHATIF') ? (
+                        <button onClick={() => setActiveTab("WHATIF")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "WHATIF" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <TrendingUp className="h-4 w-4" /> What-If Simulator
+                        </button>
+                    ) : (
+                        <button onClick={() => handleAddModule('WHATIF')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-amber-400 hover:text-amber-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><TrendingUp className="h-4 w-4" /> What-If Sim.</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    )}
+
                     {activeModules.includes('KAIZEN') ? (
                         <button onClick={() => setActiveTab("KAIZEN")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "KAIZEN" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50")}>
                             <Lightbulb className="h-4 w-4" /> Kaizen Board
@@ -466,6 +482,41 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
                     ) : (
                         <button onClick={() => handleAddModule('SOP')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-colors bg-slate-50">
                             <span className="flex items-center gap-3"><FileCheck2 className="h-4 w-4" /> SOP Builder</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    )}
+
+                    {activeModules.includes('MURIMUDA') ? (
+                        <button onClick={() => setActiveTab("MURIMUDA")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "MURIMUDA" ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <Box className="h-4 w-4" /> MURI·MUDA
+                        </button>
+                    ) : (
+                        <button onClick={() => handleAddModule('MURIMUDA')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><Box className="h-4 w-4" /> MURI·MUDA</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    )}
+
+                    {activeModules.includes('LEANSCORE') ? (
+                        <button onClick={() => setActiveTab("LEANSCORE")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "LEANSCORE" ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <TrendingUp className="h-4 w-4" /> Lean Score
+                        </button>
+                    ) : (
+                        <button onClick={() => handleAddModule('LEANSCORE')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><TrendingUp className="h-4 w-4" /> Lean Score</span>
+                            <Plus className="h-4 w-4" />
+                        </button>
+                    )}
+
+                    {/* DATA MODULE */}
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-4">Dati e Report</p>
+                    {activeModules.includes('EXCELIO') ? (
+                        <button onClick={() => setActiveTab("EXCELIO")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "EXCELIO" ? "bg-slate-100 text-slate-700" : "text-slate-600 hover:bg-slate-50")}>
+                            <Send className="h-4 w-4" /> Excel I/O
+                        </button>
+                    ) : (
+                        <button onClick={() => handleAddModule('EXCELIO')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-slate-400 hover:text-slate-600 transition-colors bg-slate-50">
+                            <span className="flex items-center gap-3"><Send className="h-4 w-4" /> Excel I/O</span>
                             <Plus className="h-4 w-4" />
                         </button>
                     )}
@@ -521,12 +572,17 @@ export default function ProjectWorkspace({ params }: { params: Promise<{ id: str
                                  <button onClick={handleSaveFpes} className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs font-bold hover:bg-blue-200 shadow-sm border border-blue-200">Salva Moduli Ing.</button>
                             </div>
                         )}
-                        {activeTab === "SETUP" && <Setup p={fpesData} upd={handleUpdateFpes} />}
-                        {activeTab === "LINE_DESIGNER" && <LineDesigner p={fpesData} upd={handleUpdateFpes} />}
-                        {activeTab === "YAMAZUMI" && <Yamazumi p={fpesData} upd={handleUpdateFpes} />}
-                        {activeTab === "ERGO" && <Ergonomics p={fpesData} upd={handleUpdateFpes} />}
-                        {activeTab === "TIMWOODS" && <Timwoods p={fpesData} upd={handleUpdateFpes} />}
-                        {activeTab === "KAIZEN" && <KaizenBoard p={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "SETUP" && <Setup project={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "LINE_DESIGNER" && <LineDesigner project={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "YAMAZUMI" && <Yamazumi project={fpesData} upd={handleUpdateFpes} cr={calcP(fpesData)} />}
+                        {activeTab === "ERGO" && <Ergonomics project={fpesData} upd={handleUpdateFpes} cr={calcP(fpesData)} />}
+                        {activeTab === "TIMWOODS" && <Timwoods project={fpesData} upd={handleUpdateFpes} cr={calcP(fpesData)} />}
+                        {activeTab === "KAIZEN" && <KaizenBoard project={fpesData} upd={handleUpdateFpes} cr={calcP(fpesData)} />}
+                        {activeTab === "SOP" && <SopPro project={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "MURIMUDA" && <MuriMuda project={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "LEANSCORE" && <LeanScore project={fpesData} upd={handleUpdateFpes} cr={calcP(fpesData)} />}
+                        {activeTab === "EXCELIO" && <ExcelIO project={fpesData} upd={handleUpdateFpes} />}
+                        {activeTab === "WHATIF" && <WhatIfSimulator project={fpesData} upd={handleUpdateFpes} />}
                     </div>
                 )}
             </div>

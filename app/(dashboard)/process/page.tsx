@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getProjects, createProject, deleteProject, getUnresolvedAnomalies, archiveProject } from "@/lib/process-actions";
-import { Plus, BarChart3, Settings, Trash2, ShieldAlert, Archive, ListFilter, Activity, Network, Lightbulb } from "lucide-react";
+import { Plus, BarChart3, Settings, Trash2, ShieldAlert, Archive, ListFilter, Activity, Network, Lightbulb, Box, TrendingUp, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -284,6 +284,10 @@ export default function ProcessDashboard() {
                                         { id: 'TIMWOODS', label: 'TIMWOODS', icon: <Trash2 className="h-3 w-3" /> },
                                         { id: 'KAIZEN', label: 'Kaizen Board', icon: <Lightbulb className="h-3 w-3" /> },
                                         { id: 'SOP', label: 'SOP Builder', icon: <ListFilter className="h-3 w-3" /> },
+                                        { id: 'MURIMUDA', label: 'MURI·MUDA', icon: <Box className="h-3 w-3" /> },
+                                        { id: 'LEANSCORE', label: 'Lean Score', icon: <TrendingUp className="h-3 w-3" /> },
+                                        { id: 'EXCELIO', label: 'Excel I/O', icon: <Send className="h-3 w-3" /> },
+                                        { id: 'WHATIF', label: 'What-If Sim.', icon: <TrendingUp className="h-3 w-3" /> },
                                     ].map(mod => (
                                         <label key={mod.id} className={cn("flex items-center gap-2 p-2 rounded-xl border cursor-pointer transition-all", selectedModules.includes(mod.id) ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:bg-slate-50')}>
                                             <input type="checkbox" className="mt-0.5" checked={selectedModules.includes(mod.id)} onChange={() => toggleModule(mod.id)} />
