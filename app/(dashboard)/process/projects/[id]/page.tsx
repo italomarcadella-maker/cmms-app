@@ -16,13 +16,13 @@ import { DndContext, useDraggable, DragEndEvent, MouseSensor, TouchSensor, useSe
 import { newFpesProject, calcP } from "@/lib/fpes-utils";
 
 // Import FPES Components dynamically to avoid massive bundle load, but for MVP standard import is fine
-import Setup from "../../fpes/components/Setup";
-import LineDesigner from "../../fpes/components/LineDesigner";
-import Yamazumi from "../../fpes/components/Yamazumi";
-import RackFlow from "../../fpes/components/RackFlow";
-import Ergonomics from "../../fpes/components/Ergonomics";
-import Timwoods from "../../fpes/components/Timwoods";
-import KaizenBoard from "../../fpes/components/KaizenBoard";
+import Setup from "../../components/Setup";
+import LineDesigner from "../../components/LineDesigner";
+import Yamazumi from "../../components/Yamazumi";
+import RackFlow from "../../components/RackFlow";
+import Ergonomics from "../../components/Ergonomics";
+import Timwoods from "../../components/Timwoods";
+import KaizenBoard from "../../components/KaizenBoard";
 import SopPro from "../../components/SopPro";
 import MuriMuda from "../../components/MuriMuda";
 import LeanScore from "../../components/LeanScore";
