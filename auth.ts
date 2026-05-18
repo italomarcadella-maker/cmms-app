@@ -59,13 +59,14 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             }
             return session;
         },
-        async jwt({ token }: { token: any }) {
-            if (token.sub) {
-                const user = await prisma.user.findUnique({ where: { id: token.sub } });
-                if (user) {
-                    token.role = user.role;
-                    token.mustChangePassword = user.mustChangePassword;
-                }
+        async jwt({ token, user, trigger, session }: any) {
+            if (user) {
+                token.role = user.role;
+                token.mustChangePassword = user.mustChangePassword;
+            }
+            if (trigger === "update" && session?.user) {
+                token.role = session.user.role;
+                token.mustChangePassword = session.user.mustChangePassword;
             }
             return token;
         }
