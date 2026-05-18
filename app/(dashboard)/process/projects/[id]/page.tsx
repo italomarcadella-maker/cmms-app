@@ -63,8 +63,9 @@ function DraggableTaskBar({ task, timelineStart, daysWindow, getTaskStyle, onCli
 }
 
 // ----------------- MAIN WORKSPACE PAGE -----------------
-export default function ProjectWorkspace({ params }: { params: { id: string } }) {
-    const { id } = params;
+export default function ProjectWorkspace({ params }: { params: Promise<{ id: string }> }) {
+    const resolvedParams = React.use(params);
+    const id = resolvedParams.id;
     const [project, setProject] = useState<any>(null);
     const [assets, setAssets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
