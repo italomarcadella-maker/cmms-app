@@ -7,6 +7,7 @@ import { getSimulations, createSimulation, saveSimulationSnapshot } from "@/lib/
 import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripHorizontal, TrendingUp, Edit3, Network, Box, BarChart2, Lightbulb, Grid, FileCheck2, Trash2, Archive, X, Send, User, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { format, addDays, differenceInDays } from "date-fns";
 import { it } from "date-fns/locale";
 import { toast } from "sonner";
@@ -63,9 +64,9 @@ function DraggableTaskBar({ task, timelineStart, daysWindow, getTaskStyle, onCli
 }
 
 // ----------------- MAIN WORKSPACE PAGE -----------------
-export default function ProjectWorkspace({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = React.use(params);
-    const id = resolvedParams.id;
+export default function ProjectWorkspace() {
+    const params = useParams<{ id: string }>();
+    const id = params?.id as string;
     const [project, setProject] = useState<any>(null);
     const [assets, setAssets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
