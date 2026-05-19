@@ -70,6 +70,7 @@ export default function ProjectWorkspace() {
     const [project, setProject] = useState<any>(null);
     const [assets, setAssets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [pageError, setPageError] = useState<string | null>(null);
 
     // Workspace UI State
     const [activeTab, setActiveTab] = useState("DASHBOARD");
@@ -102,6 +103,7 @@ export default function ProjectWorkspace() {
 
     const loadData = async () => {
         setLoading(true);
+        setPageError(null);
         try {
             const [projData, assetsData, simsData] = await Promise.all([
                 getProjectById(id),
@@ -113,13 +115,15 @@ export default function ProjectWorkspace() {
             if (projData) setTempRoi(projData.roi?.toString() || "0");
 
             // Check if there is an FPES Simulation linked to this Project ID
-            const linkedSim = simsData.find((s: any) => s.name === `PROJ_${id}`);
-            if (linkedSim) {
-                setFpesSimId(linkedSim.id);
-                let parsed = typeof linkedSim.dataJson === 'string' ? JSON.parse(linkedSim.dataJson) : linkedSim.dataJson;
-                setFpesData(parsed);
-                // Auto-enable FPES module if found
-                setActiveModules(prev => prev.includes('FPES') ? prev : [...prev, 'FPES']);
+            if (simsData && Array.isArray(simsData)) {
+                const linkedSim = simsData.find((s: any) => s.name === `PROJ_${id}`);
+                if (linkedSim) {
+                    setFpesSimId(linkedSim.id);
+                    let parsed = typeof linkedSim.dataJson === 'string' ? JSON.parse(linkedSim.dataJson) : linkedSim.dataJson;
+                    setFpesData(parsed);
+                    // Auto-enable FPES module if found
+                    setActiveModules(prev => prev.includes('FPES') ? prev : [...prev, 'FPES']);
+                }
             }
 
             // Load saved modules from local storage for this project
@@ -128,7 +132,9 @@ export default function ProjectWorkspace() {
                 setActiveModules(JSON.parse(savedModules));
             }
 
-        } catch (error) {
+        } catch (error: any) {
+            console.error("Load data error:", error);
+            setPageError(error?.message || "Errore sconosciuto durante il caricamento");
             toast.error("Errore caricamento dati");
         } finally {
             setLoading(false);
@@ -136,7 +142,9 @@ export default function ProjectWorkspace() {
     };
 
     useEffect(() => {
-        loadData();
+        if (id) {
+            loadData().catch(e => setPageError(e.message));
+        }
     }, [id]);
 
     useEffect(() => {
@@ -362,6 +370,18 @@ export default function ProjectWorkspace() {
     };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
+    
+    if (pageError) return (
+        <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
+            <div className="bg-red-50 text-red-700 p-6 rounded-2xl max-w-2xl text-center border border-red-200">
+                <AlertCircle className="h-10 w-10 mx-auto mb-4 text-red-500" />
+                <h2 className="text-xl font-bold mb-2">Errore Critico nel caricamento</h2>
+                <p className="text-sm">{pageError}</p>
+                <p className="text-xs mt-4 text-red-500/70">Il problema solitamente deriva dal timeout del database. Attendi qualche minuto o aggiorna la pagina (Ctrl+F5).</p>
+            </div>
+        </div>
+    );
+
     if (!project) return <div className="text-center py-20">Progetto non trovato.</div>;
 
     return (
