@@ -12,15 +12,18 @@ import { ChatWidget } from "@/components/chat/chat-widget";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { getWorkOrders, getAssets } from "@/lib/actions";
 
-export const dynamic = 'force-dynamic';
+// Removing force-dynamic to allow Next.js route caching to optimize where possible
 
 export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const workOrders = await getWorkOrders();
-    const assets = await getAssets();
+    // Parallelize data fetching to cut loading time in half
+    const [workOrders, assets] = await Promise.all([
+        getWorkOrders(),
+        getAssets()
+    ]);
 
     return (
         <AssetsProvider initialAssets={assets}>

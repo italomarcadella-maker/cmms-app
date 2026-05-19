@@ -11,7 +11,7 @@ import { WeeklyTrends } from "@/components/dashboard/server/weekly-trends";
 import { AnalyticsWrapper } from "@/components/dashboard/server/analytics-wrapper";
 import { SafetyStatus } from "@/components/dashboard/server/safety-status";
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic to enable suspense and caching
 
 export default function Home() {
   return (
