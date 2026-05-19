@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { getProjectById, createProjectTask, updateTaskDates, linkTaskToMaintenance, addProjectTaskNote, updateProject, deleteProject, archiveProject } from "@/lib/process-actions";
 import { getAssets } from "@/lib/actions";
 import { getSimulations, createSimulation, saveSimulationSnapshot } from "@/lib/actions/fpes-actions";
-import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripHorizontal, TrendingUp, Edit3, Network, Box, BarChart2, Lightbulb, Grid, FileCheck2, Trash2, Archive, X, Send, User, MessageSquare } from "lucide-react";
+import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripHorizontal, TrendingUp, Edit3, Network, Box, BarChart2, Lightbulb, Grid, FileCheck2, Trash2, Archive, X, Send, User, MessageSquare, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useParams } from "next/navigation";
