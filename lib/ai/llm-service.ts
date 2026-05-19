@@ -1,7 +1,8 @@
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || 'dummy-key',
+    apiKey: process.env.GEMINI_API_KEY || 'dummy-key',
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
     dangerouslyAllowBrowser: true // For client-side testing if needed, but better server-side
 });
 
@@ -16,8 +17,8 @@ export async function callLLM(
     image?: string
 ): Promise<LLMResponse> {
     
-    // Se l'API Key manca ma siamo in "work mode" simuliamo la generazione euristica
-    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key') {
+    // Se l'API Key manca simuliamo la generazione euristica
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'dummy-key') {
         const fallbackMessage = context.length > 0 
             ? "Analizzando i " + context.length + " record di contesto, rilevo pattern anomali. Consiglio di controllare i parametri indicati nelle SOP."
             : "Non ho dati di contesto specifici per questa entità, ma come assistente Cortex posso suggerirti di verificare le linee guida standard di manutenzione.";
@@ -37,7 +38,7 @@ export async function callLLM(
                 Sei un assistente sempre pronto e disponibile.
                 Se l'utente ti pone domande specifiche su anomalie, consumi o derive, usa i dati nel CONTESTO INTERNO.
                 Se il contesto è vuoto o non contiene la risposta, rispondi usando le tue conoscenze generali da esperto di manutenzione e industria, ma precisa elegantemente: "Non ho dati attuali specifici su questo elemento, ma in base agli standard industriali...".
-                Non dire "Non ho ancora dati per questo elemento" se non è strettamente necessario (es. l'utente chiede un valore specifico che non c'è).
+                Non dire "Non ho ancora dati per questo elemento" se non è strettamente necessario.
                 Mantieni un tono collaborativo e professionale.
                 
                 CONTESTO INTERNO:
@@ -56,7 +57,7 @@ export async function callLLM(
         ];
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gemini-1.5-flash",
             messages: messages,
             temperature: 0.1, // Più basso per renderlo fattuale ed esatto
         });

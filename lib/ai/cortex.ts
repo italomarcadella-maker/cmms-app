@@ -325,13 +325,22 @@ export class CortexEngine {
     }
 
     private async handleStatusCheck(thoughts: string[]): Promise<AICortexResponse> {
-        thoughts.push("Interrogazione sensori IoT (Simulati)...");
-        thoughts.push("Analisi carico di lavoro team...");
+        thoughts.push("Raccolta stato generale del sistema dal database...");
+        
+        const [openWOs, offlineAssets, activeAnomalies] = await Promise.all([
+            prisma.workOrder.count({ where: { status: 'OPEN' } }),
+            prisma.asset.count({ where: { status: 'OFFLINE' } }),
+            prisma.processAnomaly.count({ where: { isResolved: false } })
+        ]);
 
-        const count = await prisma.workOrder.count({ where: { status: 'OPEN' } });
+        thoughts.push("Analisi carico di lavoro e stato macchinari completata.");
+
+        let statusColor = "🟢";
+        if (offlineAssets > 0 || activeAnomalies > 5) statusColor = "🟡";
+        if (activeAnomalies > 15 || openWOs > 50) statusColor = "🔴";
 
         return {
-            message: `Il sistema è stabile. 🟢\n\n- **Carico Lavoro**: ${count} interventi aperti\n- **IoT Linea 1**: Temperatura nominale (45°C)\n- **IoT Linea 2**: Vibrazioni stabili`,
+            message: `Stato attuale del sistema ${statusColor}\n\n- **Carico Lavoro**: ${openWOs} interventi aperti\n- **Asset Offline**: ${offlineAssets} macchinari fermi\n- **Anomalie Attive**: ${activeAnomalies} segnalazioni di processo non risolte.`,
             thoughtProcess: thoughts
         };
     }
