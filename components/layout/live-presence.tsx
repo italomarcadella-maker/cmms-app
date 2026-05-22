@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { User, Clock, ShieldAlert, Sparkles, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
+import useSWR from "swr";
+import { getLivePresenceData } from "@/lib/process-actions";
 
 type OperatorStatus = "ONLINE" | "EXECUTING_TASK" | "WORKING_EWO";
 
@@ -60,6 +62,10 @@ const LIVE_OPERATORS: Operator[] = [
 
 export function LivePresence() {
     const [hoveredOp, setHoveredOp] = useState<string | null>(null);
+    const { data: operators = LIVE_OPERATORS } = useSWR("live-presence-operators", () => getLivePresenceData(), {
+        fallbackData: LIVE_OPERATORS,
+        refreshInterval: 10000, // Aggiorna ogni 10 secondi
+    });
 
     return (
         <div className="relative flex items-center gap-2 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 dark:border-zinc-800/50 shadow-sm transition-all duration-300">
@@ -76,7 +82,7 @@ export function LivePresence() {
 
             {/* Overlapping Avatars */}
             <div className="flex -space-x-2.5">
-                {LIVE_OPERATORS.map((op) => {
+                {operators.map((op) => {
                     const isHovered = hoveredOp === op.id;
                     const ringColorClass = 
                         op.status === "ONLINE" 
@@ -117,7 +123,7 @@ export function LivePresence() {
 
                             {/* Glassmorphic Popover Card */}
                             {isHovered && (
-                                <div className="absolute top-10 left-1/2 -translate-x-1/2 z-50 w-72 p-4 rounded-2xl border border-white/20 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-top-2">
+                                <div className="absolute top-10 left-1/2 -translate-x-1/2 z-[9999] w-72 p-4 rounded-2xl border border-white/20 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-top-2">
                                     {/* Card Glow */}
                                     <div 
                                         className={cn(
