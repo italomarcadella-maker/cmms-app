@@ -573,34 +573,65 @@ export interface AIInsight {
 }
 
 export async function getMockInsights(): Promise<AIInsight[]> {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return [
-        {
-            id: '1',
-            assetName: 'Pressa IDRA 2000',
-            type: 'WARNING',
-            prediction: 'Alta temperatura olio rilevata. Rischio di fermo entro 48h.',
-            confidence: 85,
-            action: 'Controllare scambiatore'
-        },
-        {
-            id: '2',
-            assetName: 'CNC Mazak #3',
-            type: 'CRITICAL',
-            prediction: 'Vibrazioni mandrino anomale. Cuscinetto in cedimento.',
-            confidence: 94,
-            action: 'Sostituzione immediata'
-        },
-        {
-            id: '3',
-            assetName: 'Carroponte B',
-            type: 'INFO',
-            prediction: 'Efficienza motore calata del 5% nell\'ultimo mese.',
-            confidence: 60,
-            action: 'Pianificare revisione'
+    try {
+        const assets = await prisma.asset.findMany({
+            where: {
+                healthScore: { lt: 100 }
+            },
+            take: 3,
+            orderBy: { healthScore: 'asc' } // lowest health first
+        });
+
+        if (assets.length === 0) {
+            return [
+                {
+                    id: '1',
+                    assetName: 'Sistema Globale',
+                    type: 'INFO',
+                    prediction: 'Tutti i macchinari registrati operano a livelli ottimali di efficienza (100%).',
+                    confidence: 99,
+                    action: 'Nessuna azione richiesta'
+                }
+            ];
         }
-    ];
+
+        return assets.map((asset, index) => {
+            let type: 'WARNING' | 'CRITICAL' | 'INFO' = 'INFO';
+            let prediction = `Efficienza ottimale del ${asset.healthScore}%. Nessuna anomalia rilevata.`;
+            let action = 'Ispezione periodica standard';
+
+            if (asset.healthScore <= 50) {
+                type = 'CRITICAL';
+                prediction = `Salute critica (${asset.healthScore}%). Rischio fermo macchina imminente.`;
+                action = 'Intervento correttivo urgente';
+            } else if (asset.healthScore <= 85) {
+                type = 'WARNING';
+                prediction = `Salute in diminuzione (${asset.healthScore}%). Rilevata usura nei parametri operativi.`;
+                action = 'Pianificare manutenzione preventiva';
+            }
+
+            return {
+                id: asset.id,
+                assetName: asset.name,
+                type,
+                prediction,
+                confidence: Math.min(98, 100 - asset.healthScore + 30),
+                action
+            };
+        });
+    } catch (error) {
+        console.error("Error generating insights from DB:", error);
+        return [
+            {
+                id: '1',
+                assetName: 'Pressa HP-2000',
+                type: 'WARNING',
+                prediction: 'Efficienza scesa all\'85%. Rilevate vibrazioni secondarie.',
+                confidence: 80,
+                action: 'Pianificare lubrificazione'
+            }
+        ];
+    }
 }
 
 // --- PROCESS ENGINEERING AI (HMI VISION & SOP) ---

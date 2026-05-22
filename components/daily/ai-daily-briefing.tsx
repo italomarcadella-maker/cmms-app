@@ -11,21 +11,46 @@ export function AiDailyBriefing({ meetingId }: { meetingId: string }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // In a real app we would call /api/daily-meetings/[id]/ai-briefing
-        // We mock the response directly here for speed
-        const mockDelay = setTimeout(() => {
-            setBriefing({
-                areas: {
-                    SAFETY: { insight: "Nessun quasi-incidente negli ultimi 5 giorni. Ottimo trend.", alertLevel: "LOW" },
-                    QUALITY: { insight: "Attenzione: Ieri segnalate Non Conformità ('scarti termoplastici') sulla Linea 2.", alertLevel: "HIGH", suggestedAction: "Chiedere agli operatori se la diramazione linea 2 fluttua." },
-                    PRODUCTION: { insight: "OEE medio stabile all'82%. La fermata di 20 min di ieri ha impattato lo 0.4%.", alertLevel: "LOW" },
-                    MAINTENANCE: { insight: "Ci sono 2 ticket aperti derivanti dai meeting scorsi assegnati al turno di notte.", alertLevel: "MEDIUM" }
+        let active = true;
+        setLoading(true);
+
+        fetch(`/api/daily-meetings/${meetingId}/ai-briefing`)
+            .then(res => res.json())
+            .then(data => {
+                if (active) {
+                    if (data && data.areas) {
+                        setBriefing(data);
+                    } else {
+                        setBriefing({
+                            areas: {
+                                SAFETY: { insight: "Dati non disponibili.", alertLevel: "LOW" },
+                                QUALITY: { insight: "Dati non disponibili.", alertLevel: "LOW" },
+                                PRODUCTION: { insight: "Dati non disponibili.", alertLevel: "LOW" },
+                                MAINTENANCE: { insight: "Dati non disponibili.", alertLevel: "LOW" }
+                            }
+                        });
+                    }
+                    setLoading(false);
+                }
+            })
+            .catch(err => {
+                console.error("Briefing Fetch Error:", err);
+                if (active) {
+                    setBriefing({
+                        areas: {
+                            SAFETY: { insight: "Impossibile recuperare il briefing in questo momento.", alertLevel: "LOW" },
+                            QUALITY: { insight: "Impossibile recuperare il briefing in questo momento.", alertLevel: "LOW" },
+                            PRODUCTION: { insight: "Impossibile recuperare il briefing in questo momento.", alertLevel: "LOW" },
+                            MAINTENANCE: { insight: "Impossibile recuperare il briefing in questo momento.", alertLevel: "LOW" }
+                        }
+                    });
+                    setLoading(false);
                 }
             });
-            setLoading(false);
-        }, 1500);
 
-        return () => clearTimeout(mockDelay);
+        return () => {
+            active = false;
+        };
     }, [meetingId]);
 
     if (loading) {
