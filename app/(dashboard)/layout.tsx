@@ -12,7 +12,7 @@ import { ChatWidget } from "@/components/chat/chat-widget";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { getWorkOrders, getAssets } from "@/lib/actions";
 
-// Removing force-dynamic to allow Next.js route caching to optimize where possible
+export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({
     children,
