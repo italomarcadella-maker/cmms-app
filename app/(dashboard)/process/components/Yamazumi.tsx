@@ -16,6 +16,11 @@ export default function Yamazumi({ project, upd, cr }: { project: any; upd: (pat
   const svgW = Math.max(560, active.length * (BW + GAP) + 80);
   const taktY = takt > 0 ? BH - (takt / maxC) * BH + 20 : null;
   const yPcts = [0, 25, 50, 75, 100];
+  
+  const lightest = active.reduce((a: any, b: any) => a.cicloS < b.cicloS ? a : b, active[0]);
+  const sumC = active.reduce((s: number, st: any) => s + st.cicloS, 0);
+  const avgC = sumC / active.length;
+  const transferSec = bot ? Math.round(bot.cicloS - avgC) : 0;
 
   return (
     <div className="w-full">
@@ -132,6 +137,50 @@ export default function Yamazumi({ project, upd, cr }: { project: any; upd: (pat
           ))}
         </div>
       </div>
+
+      {/* Lean Recommendation Engine */}
+      {active.length > 1 && lineEff < 75 && (
+        <div className="mt-6 bg-amber-50/50 backdrop-blur-sm border border-amber-200/80 rounded-xl p-5 shadow-sm animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-amber-100 rounded-xl text-amber-600">
+              <span className="text-xl">💡</span>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">
+                Lean Recommendation Engine — Ottimizzazione Bilanciamento
+              </h3>
+              <p className="text-sm text-slate-700 leading-relaxed mb-4">
+                L'efficienza attuale della linea è al <strong className="text-amber-700 font-semibold">{lineEff}%</strong>. 
+                Il forte sbilanciamento è causato dal collo di bottiglia su <strong className="text-slate-900 font-semibold">{bot?.nome}</strong> ({bot?.cicloS}s) rispetto alla postazione più scarica <strong className="text-slate-900 font-semibold">{lightest?.nome}</strong> ({lightest?.cicloS}s).
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Recommendation 1 */}
+                <div className="bg-white/80 border border-amber-100 rounded-xl p-3.5 shadow-sm">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase mb-1.5 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    Spostamento Carico Lavoro
+                  </h4>
+                  <p className="text-xs text-slate-600">
+                    Sposta circa <strong className="text-slate-800 font-semibold">{transferSec} secondi</strong> di compiti/attività MURI-MUDA da <strong className="text-slate-800 font-semibold">{bot?.nome}</strong> a <strong className="text-slate-800 font-semibold">{lightest?.nome}</strong> per livellare la linea e portare l'efficienza sopra l'85%.
+                  </p>
+                </div>
+                
+                {/* Recommendation 2 */}
+                <div className="bg-white/80 border border-amber-100 rounded-xl p-3.5 shadow-sm">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase mb-1.5 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                    Chaku-Chaku / Multi-Station Op
+                  </h4>
+                  <p className="text-xs text-slate-600">
+                    La postazione <strong className="text-slate-800 font-semibold">{lightest?.nome}</strong> ha una saturazione di valore aggiunto del <strong className="text-slate-800 font-semibold">{lightest ? Math.round((lightest.va/Math.max(lightest.cicloS,1))*100) : 0}%</strong>. Valuta di accorpare le sue attività con <strong className="text-slate-800 font-semibold">{active.find((s:any)=>s.id !== lightest?.id && s.id !== bot?.id)?.nome || 'un\'altra postazione'}</strong> per liberare un operatore.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
