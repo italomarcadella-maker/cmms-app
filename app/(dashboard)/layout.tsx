@@ -19,9 +19,15 @@ export default async function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
+    // Fetch cached data in parallel on the server to hydrate SWR client providers immediately
+    const [initialWorkOrders, initialAssets] = await Promise.all([
+        getWorkOrders().catch(() => []),
+        getAssets().catch(() => [])
+    ]);
+
     return (
-        <AssetsProvider initialAssets={[]}>
-            <WorkOrdersProvider initialWorkOrders={[]}>
+        <AssetsProvider initialAssets={initialAssets}>
+            <WorkOrdersProvider initialWorkOrders={initialWorkOrders}>
                 <InventoryProvider>
                     <ReferenceProvider>
                         <PMProvider>

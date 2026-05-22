@@ -26,9 +26,9 @@ export function AssetsProvider({
 }) {
     const { data: assets = initialAssets, mutate: swrMutate } = useSWR<Asset[]>("/api/assets", fetcher, {
         fallbackData: initialAssets,
-        refreshInterval: 60000, // Assets change rarely, poll every 60 seconds
-        revalidateOnFocus: true,
-        revalidateOnReconnect: true,
+        refreshInterval: 120000, // Assets change rarely, poll every 120 seconds
+        revalidateOnFocus: false, // Disable expensive refetches on focus
+        revalidateOnReconnect: false, // Disable reconnect spikes
     });
 
     const refreshAssets = async () => {

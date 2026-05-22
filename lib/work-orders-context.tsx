@@ -27,9 +27,9 @@ export function WorkOrdersProvider({
 }) {
     const { data, mutate: swrMutate } = useSWR<WorkOrder[]>("/api/work-orders", fetcher, {
         fallbackData: initialWorkOrders,
-        refreshInterval: 30000, // 30 seconds smart polling
-        revalidateOnFocus: true,
-        revalidateOnReconnect: true,
+        refreshInterval: 45000, // 45 seconds smart polling
+        revalidateOnFocus: false, // Disable expensive refetches on focus
+        revalidateOnReconnect: false, // Disable reconnect spikes
     });
 
     const workOrders = useMemo(() => {
