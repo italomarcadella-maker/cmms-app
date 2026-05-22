@@ -260,12 +260,17 @@ export async function resetDatabase() {
 
 export const getDashboardStats = unstable_cache(
     async () => {
-        const totalAssets = await prisma.asset.count();
-        const openWorkOrders = await prisma.workOrder.count({ where: { status: 'OPEN' } });
-        const completedWorkOrders = await prisma.workOrder.count({ where: { status: 'COMPLETED' } });
-        const lowHealthAssets = await prisma.asset.count({ where: { healthScore: { lt: 70 } } });
+        try {
+            const totalAssets = await prisma.asset.count();
+            const openWorkOrders = await prisma.workOrder.count({ where: { status: 'OPEN' } });
+            const completedWorkOrders = await prisma.workOrder.count({ where: { status: 'COMPLETED' } });
+            const lowHealthAssets = await prisma.asset.count({ where: { healthScore: { lt: 70 } } });
 
-        return { totalAssets, openWorkOrders, completedWorkOrders, lowHealthAssets };
+            return { totalAssets, openWorkOrders, completedWorkOrders, lowHealthAssets };
+        } catch (error) {
+            console.error('Failed to get dashboard stats:', error);
+            return { totalAssets: 0, openWorkOrders: 0, completedWorkOrders: 0, lowHealthAssets: 0 };
+        }
     },
     ['dashboard-stats'],
     { tags: ['dashboard-stats'], revalidate: 300 }
@@ -275,17 +280,22 @@ export const getDashboardStats = unstable_cache(
 
 export const getAssets = unstable_cache(
     async () => {
-        const assets = await prisma.asset.findMany({ 
-            include: { plant: true },
-            orderBy: { name: 'asc' } 
-        });
-        return assets.map((asset: any) => ({
-            ...asset,
-            purchaseDate: asset.purchaseDate ? asset.purchaseDate.toISOString().split('T')[0] : '',
-            lastMaintenance: asset.lastMaintenance ? asset.lastMaintenance.toISOString().split('T')[0] : null,
-            plantId: asset.plantId,
-            plant: asset.plant?.name || asset.plantId || 'Non Assegnato' // Map plant object to name for UI
-        }));
+        try {
+            const assets = await prisma.asset.findMany({ 
+                include: { plant: true },
+                orderBy: { name: 'asc' } 
+            });
+            return assets.map((asset: any) => ({
+                ...asset,
+                purchaseDate: asset.purchaseDate ? asset.purchaseDate.toISOString().split('T')[0] : '',
+                lastMaintenance: asset.lastMaintenance ? asset.lastMaintenance.toISOString().split('T')[0] : null,
+                plantId: asset.plantId,
+                plant: asset.plant?.name || asset.plantId || 'Non Assegnato' // Map plant object to name for UI
+            }));
+        } catch (error) {
+            console.error('Failed to get assets:', error);
+            return [];
+        }
     },
     ['all-assets'],
     { tags: ['assets'], revalidate: 3600 }
