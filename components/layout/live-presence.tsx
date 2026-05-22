@@ -21,51 +21,14 @@ interface Operator {
     avatarInitials: string;
 }
 
-const LIVE_OPERATORS: Operator[] = [
-    {
-        id: "1",
-        name: "Mario Rossi",
-        role: "Maintenance Technician",
-        specialty: "Meccanico Generale",
-        status: "ONLINE",
-        statusLabel: "Disponibile",
-        activeTask: "Ispezione Linea 1 (Stato OK)",
-        location: "Linea di Assemblaggio A",
-        color: "emerald",
-        avatarInitials: "MR",
-    },
-    {
-        id: "2",
-        name: "Luigi Verdi",
-        role: "Electrical Technician",
-        specialty: "Elettricista di Bordo Macchina",
-        status: "EXECUTING_TASK",
-        statusLabel: "In Attività PM",
-        activeTask: "Manutenzione Preventiva PM-09 su Estrusore E1",
-        location: "Reparto Estrusione",
-        color: "blue",
-        avatarInitials: "LV",
-    },
-    {
-        id: "3",
-        name: "Anna Bianchi",
-        role: "Automation Engineer",
-        specialty: "Specialista PLC / Kaizen",
-        status: "WORKING_EWO",
-        statusLabel: "Emergenza EWO Critico",
-        activeTask: "Risoluzione Blocco PLC EWO #102 - Linea Ferma!",
-        location: "Stazione Carroponte 3",
-        color: "red",
-        avatarInitials: "AB",
-    },
-];
-
 export function LivePresence() {
     const [hoveredOp, setHoveredOp] = useState<string | null>(null);
-    const { data: operators = LIVE_OPERATORS } = useSWR("live-presence-operators", () => getLivePresenceData(), {
-        fallbackData: LIVE_OPERATORS,
+    const { data: operators = [] } = useSWR("live-presence-operators", () => getLivePresenceData(), {
+        fallbackData: [],
         refreshInterval: 10000, // Aggiorna ogni 10 secondi
     });
+
+    if (operators.length === 0) return null;
 
     return (
         <div className="relative flex items-center gap-2 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 dark:border-zinc-800/50 shadow-sm transition-all duration-300">

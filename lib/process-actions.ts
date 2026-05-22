@@ -632,75 +632,11 @@ export async function getLivePresenceData() {
             };
         });
 
-        // Ensure we always have a gorgeous cooperative look by blending real operators
-        // with realistic shopfloor presence members if the DB has fewer than 3 entries
-        const mockStandbys = [
-            {
-                id: "standby-2",
-                name: "Luigi Verdi",
-                role: "Electrical Specialist",
-                specialty: "Elettricista di Bordo Macchina",
-                status: "EXECUTING_TASK" as const,
-                statusLabel: "In Attività PM",
-                activeTask: "Manutenzione Preventiva PM-09 su Estrusore E1",
-                location: "Reparto Estrusione",
-                color: "blue",
-                avatarInitials: "LV"
-            },
-            {
-                id: "standby-3",
-                name: "Anna Bianchi",
-                role: "Automation Engineer",
-                specialty: "Specialista PLC / Kaizen",
-                status: "WORKING_EWO" as const,
-                statusLabel: "Emergenza EWO",
-                activeTask: "Risoluzione Blocco PLC EWO #102 - Linea Ferma!",
-                location: "Stazione Carroponte 3",
-                color: "red",
-                avatarInitials: "AB"
-            }
-        ];
-
-        // Combine real and standby mock operators to ensure a premium Figma-Style team look
-        const combined = [...realOperators];
-        
-        // Add standbys if they are not already in the list by name, keeping total around 3
-        mockStandbys.forEach((standby) => {
-            if (!combined.some((op) => op.name.toLowerCase() === standby.name.toLowerCase()) && combined.length < 3) {
-                combined.push(standby);
-            }
-        });
-
-        return combined;
+        return realOperators;
     } catch (e) {
         console.error("Failed to fetch live presence data", e);
-        // Safe fallback in case of database errors
-        return [
-            {
-                id: "fallback-1",
-                name: "Mario Rossi",
-                role: "Maintenance Technician",
-                specialty: "Meccanico Generale",
-                status: "ONLINE" as const,
-                statusLabel: "Disponibile",
-                activeTask: "Ispezione Linea 1 (Stato OK)",
-                location: "Linea di Assemblaggio A",
-                color: "emerald",
-                avatarInitials: "MR"
-            },
-            {
-                id: "fallback-2",
-                name: "Luigi Verdi",
-                role: "Electrical Technician",
-                specialty: "Elettricista di Bordo Macchina",
-                status: "EXECUTING_TASK" as const,
-                statusLabel: "In Attività PM",
-                activeTask: "Manutenzione Preventiva PM-09 su Estrusore E1",
-                location: "Reparto Estrusione",
-                color: "blue",
-                avatarInitials: "LV"
-            }
-        ];
+        // Ritorna una lista vuota in caso di errore invece di dati mock
+        return [];
     }
 }
 
