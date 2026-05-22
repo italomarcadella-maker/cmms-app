@@ -14,11 +14,11 @@ import { assetSchema, workOrderSchema } from './validations';
 import { WorkOrderPriority, WorkOrderCategory } from "@prisma/client";
 // --- Cache Revalidation Helpers ---
 export async function revalidateWorkOrders() {
-    revalidateTag('work-orders');
+    (revalidateTag as any)('work-orders');
 }
 
 export async function revalidateAssets() {
-    revalidateTag('assets');
+    (revalidateTag as any)('assets');
 }
 
 // --- Authorization Helper ---

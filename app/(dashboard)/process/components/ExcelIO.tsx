@@ -13,7 +13,7 @@ export default function ExcelIO({ project: p, upd }: { project: any; upd: (patch
   const exportFull = () => {
     if (!p) return;
     try {
-      // @ts-expect-error - we dynamically import xlsx
+      // @ts-ignore - we dynamically import xlsx
       import('xlsx').then(XLSX => {
         const wb = XLSX.utils.book_new();
         const stH = ["Nome", "Operazione", "Ciclo(s)", "VA(s)", "NVA(s)", "Attesa(s)", "Operatori", "% VA", "Alt.Prelievo(cm)", "Peso(kg)"];
