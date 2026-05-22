@@ -12,6 +12,15 @@ import { WorkOrderStatus } from '@/lib/types';
 import { logAction } from './audit';
 import { assetSchema, workOrderSchema } from './validations';
 import { WorkOrderPriority, WorkOrderCategory } from "@prisma/client";
+// --- Cache Revalidation Helpers ---
+export async function revalidateWorkOrders() {
+    revalidateTag('work-orders');
+}
+
+export async function revalidateAssets() {
+    revalidateTag('assets');
+}
+
 // --- Authorization Helper ---
 
 async function requireRole(role: string | string[]): Promise<{ authorized: boolean; message?: string; session?: any }> {
@@ -373,6 +382,7 @@ export async function importAssets(assets: any[]) {
         }
     }
     revalidatePath('/assets');
+    revalidateAssets();
     return { success: true, count, errors };
 }
 
@@ -413,6 +423,7 @@ export async function addAsset(rawData: any) {
         const newAsset = await prisma.asset.create({ data: assetData });
         await logAction('CREATE_ASSET', newAsset.id, `Created asset ${newAsset.name}`);
         revalidatePath('/');
+        revalidateAssets();
         return { success: true, message: 'Asset creato con successo', data: newAsset };
     } catch (error: any) {
         return { success: false, message: 'Errore creazione asset: ' + error.message };
@@ -449,6 +460,7 @@ export async function updateAsset(id: string, rawData: any) {
         });
         await logAction('UPDATE_ASSET', id, 'Updated asset details');
         revalidatePath('/');
+        revalidateAssets();
         return { success: true, message: 'Asset aggiornato', data: updatedAsset };
     } catch (error) {
         return { success: false, message: 'Errore aggiornamento asset' };
@@ -474,6 +486,7 @@ export async function deleteAsset(id: string) {
         await prisma.asset.delete({ where: { id } });
         await logAction('DELETE_ASSET', id, 'Deleted asset');
         revalidatePath('/');
+        revalidateAssets();
         return { success: true, message: 'Asset eliminato con successo' };
     } catch (error) {
         return { success: false, message: 'Errore durante l\'eliminazione' };
@@ -493,6 +506,7 @@ export async function rescheduleWorkOrder(id: string, newDate: Date) {
         // For now, just moving the specific instance.
 
         revalidatePath('/planning/calendar');
+        revalidateWorkOrders();
         return { success: true, message: 'Data aggiornata' };
     } catch (error) {
         console.error("Reschedule Error:", error);
@@ -582,6 +596,7 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
         }
 
         revalidatePath('/');
+        revalidateWorkOrders();
         return { success: true, message: "Assegnazione completata" };
 
     } catch (error) {
@@ -671,6 +686,7 @@ export async function updateWorkOrderAssignments(workOrderId: string, technician
 
         revalidatePath("/work-orders");
         revalidatePath(`/work-orders/${workOrderId}`);
+        revalidateWorkOrders();
         return { success: true, message: "Assegnazioni aggiornate" };
     } catch (error) {
         console.error("Multi Assign Error:", error);
@@ -804,6 +820,7 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
         }
 
         revalidatePath('/planning/calendar');
+        revalidateWorkOrders();
         return { success: true, message: "Ordine creato da schedulazione" };
     } catch (error) {
         console.error("Error creating WO from Schedule:", error);
@@ -1241,49 +1258,51 @@ export async function sendChatMessage(data: { sender: string; role: string; cont
     }
 }
 
-// --- Work Orders ---
+export const getWorkOrders = unstable_cache(
+    async () => {
+        try {
+            const wos = await prisma.workOrder.findMany({
+                orderBy: { createdAt: 'desc' },
+                take: 1000,
+                include: {
+                    asset: true,
+                    timers: true,
+                    laborLogs: true,
+                    partsUsed: true,
+                    checklist: { orderBy: { id: 'asc' } },
+                    technicians: { include: { technician: true } }
+                }
+            });
 
-export async function getWorkOrders() {
-    try {
-        const wos = await prisma.workOrder.findMany({
-            orderBy: { createdAt: 'desc' },
-            take: 1000,
-            include: {
-                asset: true,
-                timers: true,
-                laborLogs: true,
-                partsUsed: true,
-                checklist: { orderBy: { id: 'asc' } },
-                technicians: { include: { technician: true } }
-            }
-        });
+            return wos.map((wo: any) => ({
+                ...wo,
+                dueDate: wo.dueDate ? wo.dueDate.toISOString() : null,
+                createdAt: wo.createdAt ? wo.createdAt.toISOString() : new Date().toISOString(),
+                partsUsed: wo.partsUsed?.map((p: any) => ({
+                    ...p,
+                    dateAdded: p.dateAdded ? p.dateAdded.toISOString() : new Date().toISOString()
+                })) || [],
+                laborLogs: wo.laborLogs?.map((l: any) => ({
+                    ...l,
+                    date: l.date ? l.date.toISOString() : new Date().toISOString()
+                })) || [],
+                checklist: wo.checklist || [],
+                timers: wo.timers?.map((t: any) => ({
+                    ...t,
+                    startTime: t.startTime.toISOString(),
+                    endTime: t.endTime ? t.endTime.toISOString() : null
+                })) || [],
+                technicians: wo.technicians ? wo.technicians.map((t: any) => ({ id: t.technician.id, name: t.technician.name })) : []
+            }));
 
-        return wos.map((wo: any) => ({
-            ...wo,
-            dueDate: wo.dueDate ? wo.dueDate.toISOString() : null,
-            createdAt: wo.createdAt ? wo.createdAt.toISOString() : new Date().toISOString(),
-            partsUsed: wo.partsUsed?.map((p: any) => ({
-                ...p,
-                dateAdded: p.dateAdded ? p.dateAdded.toISOString() : new Date().toISOString()
-            })) || [],
-            laborLogs: wo.laborLogs?.map((l: any) => ({
-                ...l,
-                date: l.date ? l.date.toISOString() : new Date().toISOString()
-            })) || [],
-            checklist: wo.checklist || [],
-            timers: wo.timers?.map((t: any) => ({
-                ...t,
-                startTime: t.startTime.toISOString(),
-                endTime: t.endTime ? t.endTime.toISOString() : null
-            })) || [],
-            technicians: wo.technicians ? wo.technicians.map((t: any) => ({ id: t.technician.id, name: t.technician.name })) : []
-        }));
-
-    } catch (error) {
-        console.error('Failed to get WOs:', error);
-        return [];
-    }
-}
+        } catch (error) {
+            console.error('Failed to get WOs:', error);
+            return [];
+        }
+    },
+    ['all-work-orders'],
+    { tags: ['work-orders'], revalidate: 3600 }
+);
 
 export async function getActiveWorkOrdersForAsset(assetId: string) {
     try {
@@ -1447,6 +1466,7 @@ export async function createWorkOrder(rawData: any) {
         revalidatePath('/work-orders');
         revalidatePath('/requests'); // Revalidate requests too
         revalidatePath('/'); // Refresh Dashboard
+        revalidateWorkOrders();
         return { success: true, message: 'Ordine creato', data: newWO };
 
     } catch (error) {
@@ -1499,6 +1519,7 @@ export async function approveRequest(id: string, technicianId: string, priority:
 
         revalidatePath('/work-orders');
         revalidatePath('/requests');
+        revalidateWorkOrders();
         return { success: true, message: 'Richiesta approvata e assegnata' };
     } catch (error) {
         return { success: false, message: 'Errore approvazione' };
@@ -1623,6 +1644,7 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
         revalidatePath('/work-orders');
         revalidatePath(`/work-orders/${id}`);
         revalidatePath('/maintenance/schedule'); // Update schedule list
+        revalidateWorkOrders();
         return { success: true, message: decision === 'APPROVE' ? 'Ordine validato e chiuso' : 'Ordine respinto al tecnico' };
     } catch (error) {
         console.error("Review Error:", error);
@@ -1659,6 +1681,7 @@ export async function updateWorkOrderStatus(id: string, status: string) {
         revalidatePath('/work-orders');
         revalidatePath('/requests');
         revalidatePath('/'); // Refresh Dashboard
+        revalidateWorkOrders();
         return { success: true };
     } catch (error) {
         return { success: false };
@@ -1674,6 +1697,7 @@ export async function deleteWorkOrder(id: string) {
         revalidatePath('/work-orders');
         revalidatePath('/maintenance');
         revalidatePath('/'); // Refresh Dashboard
+        revalidateWorkOrders();
         return { success: true };
     } catch (error) {
         return { success: false, message: "Failed to delete work order" };
@@ -1705,6 +1729,7 @@ export async function updateWorkOrderDetails(id: string, updates: any) {
         revalidatePath('/work-orders');
         revalidatePath('/maintenance');
         revalidatePath(`/work-orders/${id}`);
+        revalidateWorkOrders();
         return { success: true, message: 'Ordine aggiornato', data: updated };
     } catch (error) {
         console.error("Update WO Error:", error);
@@ -1790,6 +1815,7 @@ export async function startWorkSession(workOrderId: string) {
         });
 
         revalidatePath(`/work-orders/${workOrderId}`);
+        revalidateWorkOrders();
         return { success: true };
     } catch (error) {
         return { success: false, message: 'Errore avvio timer' };
@@ -1842,6 +1868,7 @@ export async function pauseWorkSession(workOrderId: string, note?: string) {
         });
 
         revalidatePath(`/work-orders/${workOrderId}`);
+        revalidateWorkOrders();
         return { success: true };
     } catch (error) {
         console.error("Pause Error:", error);
@@ -1900,6 +1927,7 @@ export async function stopWorkSession(workOrderId: string, note?: string) {
         });
 
         revalidatePath(`/work-orders/${workOrderId}`);
+        revalidateWorkOrders();
         return { success: true };
     } catch (error) {
         console.error("Stop Error:", error);
@@ -1950,6 +1978,7 @@ export async function completeWorkOrder(workOrderId: string, note?: string) {
 
         revalidatePath(`/work-orders/${workOrderId}`);
         revalidatePath(`/work-orders`);
+        revalidateWorkOrders();
         return { success: true, message: 'Ordine completato' };
     } catch (error) {
         return { success: false, message: 'Errore completamento' };
@@ -2482,6 +2511,7 @@ export async function addWorkOrderPart(workOrderId: string, partId: string, quan
         // Audit
         await logAction('ADD_PART_WO', workOrderId, `Aggiunto ${quantity}x ${part.name}`);
 
+        revalidateWorkOrders();
         return { success: true, message: 'Ricambio aggiunto all\'ordine' };
     } catch (error) {
         console.error(error);
@@ -2510,6 +2540,7 @@ export async function removeWorkOrderPart(id: string) {
         await prisma.workOrderPart.delete({ where: { id } });
 
         revalidatePath(`/work-orders/${woPart.workOrderId}`);
+        revalidateWorkOrders();
         return { success: true, message: 'Ricambio rimosso e giacenza ripristinata' };
     } catch (error) {
         return { success: false, message: 'Errore rimozione ricambio' };
@@ -2534,6 +2565,7 @@ export async function toggleChecklistItem(itemId: string, completed: boolean) {
         const item = await prisma.checklistItem.findUnique({ where: { id: itemId } });
         if (item) revalidatePath(`/work-orders/${item.workOrderId}`);
 
+        revalidateWorkOrders();
         return { success: true, message: 'Checklist aggiornata' };
     } catch (e) {
         return { success: false, message: 'Errore aggiornamento checklist' };
@@ -2590,6 +2622,7 @@ export async function confirmEWO(workOrderId: string) {
             data: { ewoFilled: true }
         });
         revalidatePath(`/work-orders/${workOrderId}`);
+        revalidateWorkOrders();
         return { success: true };
     } catch (error) {
         return { success: false, message: 'Errore conferma EWO' };
@@ -2713,6 +2746,7 @@ export async function submitEWO(data: any) {
 
         revalidatePath(`/work-orders/${workOrderId}`);
         revalidatePath('/requests');
+        revalidateWorkOrders();
         return { success: true, message: 'EWO registrato e archiviato.' };
     } catch (e) {
         console.error("EWO Submit Error:", e);
@@ -3055,6 +3089,7 @@ export async function assignWorkOrderToSelf(workOrderId: string) {
 
         revalidatePath('/work-orders');
         revalidatePath('/');
+        revalidateWorkOrders();
         return { success: true, message: 'Ordine preso in carico' };
     } catch (error) {
         console.error("Self Assign Error:", error);

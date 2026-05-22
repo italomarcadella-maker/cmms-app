@@ -19,15 +19,9 @@ export default async function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    // Parallelize data fetching to cut loading time in half
-    const [workOrders, assets] = await Promise.all([
-        getWorkOrders(),
-        getAssets()
-    ]);
-
     return (
-        <AssetsProvider initialAssets={assets}>
-            <WorkOrdersProvider initialWorkOrders={workOrders}>
+        <AssetsProvider initialAssets={[]}>
+            <WorkOrdersProvider initialWorkOrders={[]}>
                 <InventoryProvider>
                     <ReferenceProvider>
                         <PMProvider>
