@@ -1,0 +1,98 @@
+GUIDA ALL'INSTALLAZIONE DI UN'INTELLIGENZA ARTIFICIALE LOCALE (RESIDENTE) PER CMMS 2.0
+======================================================================================
+
+Se si desidera che i dati del CMMS non escano mai dall'azienda (privacy assoluta), 
+è possibile ospitare l'Intelligenza Artificiale su un server o un PC aziendale.
+
+--------------------------------------------------------------------------------------
+1. REQUISITI HARDWARE (Il "Cervello" Fisico)
+--------------------------------------------------------------------------------------
+L'Intelligenza Artificiale ha bisogno di memoria per "pensare". Hai due opzioni:
+- OPZIONE A (Consigliata per velocità): Un PC/Server con una scheda video dedicata 
+  (GPU). Ideale: Nvidia RTX 3060, 4070 o superiore (almeno 8GB di VRAM).
+- OPZIONE B (Economica ma più lenta): Un server normale (o PC) senza scheda video 
+  ma con un buon processore (es. i7/Ryzen 7) e molta RAM di sistema (almeno 16GB, 
+  meglio 32GB).
+
+Il PC o Server deve essere connesso a Internet (per il download iniziale) e 
+raggiungibile dalla rete (per ricevere le richieste di Vercel).
+
+--------------------------------------------------------------------------------------
+2. INSTALLAZIONE DEL SOFTWARE (Ollama)
+--------------------------------------------------------------------------------------
+Il modo più semplice in assoluto per ospitare un'AI aziendale è usare "Ollama".
+
+Passaggio 1: Scarica Ollama
+- Vai su https://ollama.com/download
+- Scarica la versione per Windows, Linux o Mac a seconda del tuo server.
+- Installalo cliccando sempre "Avanti".
+
+Passaggio 2: Scarica il Modello AI ("Il cervello")
+- Apri il Terminale o il Prompt dei Comandi sul server.
+- Digita questo comando e premi Invio:
+  ollama run llama3.1
+
+*(Nota: Llama 3.1 è l'eccellente modello gratuito di Meta/Facebook. Se il server 
+è molto potente, puoi usare "llama3.1:70b" per la massima intelligenza, ma 
+richiede ~40GB di RAM. Per iniziare, la versione base va benissimo).*
+
+- Il sistema scaricherà il modello (pesa circa 4-5 GB). Al termine, l'AI è pronta 
+  e risiede fisicamente sul tuo disco fisso!
+
+--------------------------------------------------------------------------------------
+3. ESPORRE IL SERVER (Rendere l'AI visibile al CMMS)
+--------------------------------------------------------------------------------------
+Di default, Ollama accetta richieste solo dal computer stesso (localhost). Poiché
+il nostro CMMS si trova su Vercel, Vercel deve poter comunicare con il tuo server.
+
+Passaggio 1: Configurare Ollama per ascoltare la rete
+Se usi Windows:
+- Cerca "Variabili d'ambiente" nel menù Start.
+- Clicca "Variabili d'ambiente...".
+- Crea una Nuova variabile di Sistema:
+   Nome: OLLAMA_HOST
+   Valore: 0.0.0.0
+- Riavvia il computer o il programma Ollama.
+
+Passaggio 2: Aprire la porta del Router/Firewall (Port Forwarding)
+- Sul router aziendale, devi "aprire" la porta TCP 11434 e puntarla verso 
+  l'indirizzo IP del server (es. 192.168.1.50).
+- Ti servirà anche un "IP Statico" o un servizio gratuito come "DuckDNS" per avere 
+  un indirizzo web (es. miocmms.duckdns.org) da dare a Vercel.
+
+*(Attenzione: Per motivi di sicurezza in azienda, si consiglia di far fare questa 
+configurazione al reparto IT, possibilmente aggiungendo un proxy NGINX o 
+Cloudflare Tunnels per proteggere la porta 11434).*
+
+--------------------------------------------------------------------------------------
+4. COME COLLEGARE IL CODICE DEL CMMS 2.0 ALL'AI LOCALE
+--------------------------------------------------------------------------------------
+Una volta che il server è online, basta modificare 2 righe nel codice sorgente!
+
+1. Apri il file:
+   `lib/ai/llm-service.ts`
+
+2. Trova le prime righe:
+   const openai = new OpenAI({
+       apiKey: process.env.GEMINI_API_KEY || 'dummy-key',
+       baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+       dangerouslyAllowBrowser: true
+   });
+
+3. E sostituiscile con:
+   const openai = new OpenAI({
+       apiKey: "ollama", // Ollama non ha bisogno di password!
+       baseURL: "http://IL_TUO_INDIRIZZO_IP_PUBBLICO:11434/v1", // Indirizzo del tuo Server
+       dangerouslyAllowBrowser: true
+   });
+
+4. Poco più in basso, nella funzione `callLLM`, trova:
+   model: "gemini-1.5-flash",
+
+5. E cambialo con:
+   model: "llama3.1",
+
+Fatto! Salva il file, ricaricalo su GitHub (Push) e fai il Redeploy su Vercel.
+Da quel momento in poi, ogni volta che Cortex fa un'analisi o analizza una ricetta
+FPES, i dati viaggeranno in modo criptato dal CMMS direttamente al computer fisico
+nella tua azienda, senza mai passare per i server di Google o OpenAI!

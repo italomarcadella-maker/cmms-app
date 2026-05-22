@@ -16,15 +16,17 @@ export default function PlantsPage() {
     const [newName, setNewName] = useState("");
     const [newLocation, setNewLocation] = useState("");
 
-    const loadData = async () => {
+    const loadData = React.useCallback(async () => {
         const data = await getPlants();
         setPlants(data);
         setLoading(false);
-    };
+    }, []);
 
     useEffect(() => {
-        loadData();
-    }, []);
+        Promise.resolve().then(() => {
+            loadData();
+        });
+    }, [loadData]);
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();

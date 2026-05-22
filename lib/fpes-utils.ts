@@ -29,12 +29,12 @@ export const LAYOUTS = {
 export function uid(){return "_"+Math.random().toString(36).slice(2,9);}
 export function clamp(v:number,a:number,b:number){return Math.min(b,Math.max(a,v));}
 
-export function lPos(layout:string, n:number) {
+export function lPos(layout:string, n:number): { x: number, y: number }[] {
   if(layout==="LINE")return Array.from({length:n},(_,i)=>({x:50+i*130,y:130}));
   if(layout==="L"){const t=Math.ceil(n*.6);return Array.from({length:n},(_,i)=>i<t?{x:50+i*120,y:60}:{x:50+(t-1)*120,y:60+(i-t+1)*110});}
   if(layout==="C"){const t=Math.ceil(n/2);return Array.from({length:n},(_,i)=>{if(i<t)return{x:60+i*120,y:50};if(i===Math.floor(n/2))return{x:60+(t-1)*120,y:130};return{x:60+(n-1-i)*120,y:210};});}
   if(layout==="ISLAND")return Array.from({length:n},(_,i)=>{const a=(i/n)*2*Math.PI-Math.PI/2;return{x:Math.round(280+120*Math.cos(a)),y:Math.round(160+90*Math.sin(a))};});
-  if(layout==="DU"){const h=Math.ceil(n/2);const p1=lPos("U",h);const p2=lPos("U",n-h);return[...p1,...p2.map(p=>({x:p.x+340,y:p.y}))];}
+  if(layout==="DU"){const h=Math.ceil(n/2);const p1=lPos("U",h);const p2=lPos("U",n-h);return[...p1,...p2.map((p: {x: number, y: number})=>({x:p.x+340,y:p.y}))];}
   // Default to U
   const h=Math.ceil(n/2);return Array.from({length:n},(_,i)=>i<h?{x:60+i*120,y:50}:{x:60+(n-1-i)*120,y:200});
 }

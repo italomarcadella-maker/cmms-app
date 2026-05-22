@@ -101,7 +101,7 @@ export default function ProjectWorkspace() {
 
     const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 5 } }), useSensor(TouchSensor));
 
-    const loadData = async () => {
+    const loadData = React.useCallback(async () => {
         setLoading(true);
         setPageError(null);
         try {
@@ -111,7 +111,7 @@ export default function ProjectWorkspace() {
                 getSimulations()
             ]);
             setProject(projData);
-            setAssets(assetsData);
+            setAssets(assetsData || []);
             if (projData) setTempRoi(projData.roi?.toString() || "0");
 
             // Check if there is an FPES Simulation linked to this Project ID
@@ -119,7 +119,7 @@ export default function ProjectWorkspace() {
                 const linkedSim = simsData.find((s: any) => s.name === `PROJ_${id}`);
                 if (linkedSim) {
                     setFpesSimId(linkedSim.id);
-                    let parsed = typeof linkedSim.dataJson === 'string' ? JSON.parse(linkedSim.dataJson) : linkedSim.dataJson;
+                    const parsed = typeof linkedSim.dataJson === 'string' ? JSON.parse(linkedSim.dataJson) : linkedSim.dataJson;
                     setFpesData(parsed);
                     // Auto-enable FPES module if found
                     setActiveModules(prev => prev.includes('FPES') ? prev : [...prev, 'FPES']);
@@ -139,13 +139,13 @@ export default function ProjectWorkspace() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         if (id) {
             loadData().catch(e => setPageError(e.message));
         }
-    }, [id]);
+    }, [id, loadData]);
 
     useEffect(() => {
         if (!loading) {

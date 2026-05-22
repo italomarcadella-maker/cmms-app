@@ -339,9 +339,8 @@ export async function getDailyInsights(): Promise<DailyInsight[]> {
         const mappedGlobalInsights: DailyInsight[] = dbInsights.map((g: any) => ({
             id: g.id,
             title: `[Global AI] ${g.title}`,
-            description: g.description,
-            type: g.priority === 'HIGH' ? 'CRITICAL' : (g.priority === 'MEDIUM' ? 'WARNING' : 'INFO'),
-            category: 'SYSTEM'
+            message: g.description || "",
+            type: g.priority === 'HIGH' ? 'ALERT' : (g.priority === 'MEDIUM' ? 'WARNING' : 'INFO')
         }));
         return [...mappedGlobalInsights, ...cortexInsights];
     } catch (e) {
@@ -614,7 +613,7 @@ export async function parseHmiImageToSop(imageUrl: string, assetId: string) {
     Restituisci SOLO il JSON senza testo aggiuntivo.`;
 
     let extractedParameters: any[] = [];
-    let anomalies: any[] = [];
+    const anomalies: any[] = [];
 
     try {
         // 1. AI Vision Call

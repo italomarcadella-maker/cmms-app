@@ -81,13 +81,18 @@ export default function SOPBuilder() {
         try {
             const result = await parseHmiImageToSop(imagePreview, selectedAsset);
 
-            setSopTitle(result.detectedTitle);
-            setParameters(result.parameters);
+            if (!result.success) {
+                alert(result.message || "Errore durante l'analisi dell'immagine. Riprova.");
+                return;
+            }
+
+            setSopTitle(result.detectedTitle || "");
+            setParameters(result.parameters || []);
             setAnomalies(result.anomalies || []);
             
             // Auto-expand categories with anomalies
             const initialExpanded: Record<string, boolean> = {};
-            const cats = new Set(result.parameters.map((p: any) => p.category));
+            const cats = new Set((result.parameters || []).map((p: any) => p.category));
             cats.forEach(c => {
                 initialExpanded[c as string] = true;
             });

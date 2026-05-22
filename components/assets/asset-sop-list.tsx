@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getSOPsByAsset, updateSopDocument } from "@/lib/process-actions";
 import { FileCheck2, Edit2, Save, X } from "lucide-react";
 
@@ -11,17 +11,21 @@ export function AssetSOPList({ assetId }: { assetId: string }) {
     const [editParams, setEditParams] = useState<any[]>([]);
     const [editTitle, setEditTitle] = useState("");
 
-    const loadSOPs = async () => {
-        setTimeout(() => setLoading(true), 0);
-        const data = await getSOPsByAsset(assetId);
-        setSops(data);
-        setLoading(false);
-    };
+    const loadSOPs = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await getSOPsByAsset(assetId);
+            setSops(data || []);
+        } catch (e) {
+            console.error("Error loading SOPs", e);
+        } finally {
+            setLoading(false);
+        }
+    }, [assetId]);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadSOPs();
-    }, [assetId]);
+    }, [loadSOPs]);
 
     const startEditing = (sop: typeof sops[0]) => {
         setEditingSopId(sop.id);

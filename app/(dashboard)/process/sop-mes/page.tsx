@@ -17,19 +17,7 @@ export default function SopMesDashboard() {
   // Local state for Quality
   const [qualityValue, setQualityValue] = useState("");
   
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    const data = await getRecipes();
-    setRecipes(data);
-    if (data.length > 0 && !currentRecipe) {
-      handleSelectRecipe(data[0]);
-    }
-  };
-
-  const handleSelectRecipe = (recipe: any) => {
+  const handleSelectRecipe = React.useCallback((recipe: any) => {
     setCurrentRecipe(recipe);
     // Convert prisma machines to UI machines
     const uiMachines = recipe.machines.map((m: any) => ({
@@ -45,7 +33,21 @@ export default function SopMesDashboard() {
       }))
     }));
     setMachines(uiMachines.length > 0 ? uiMachines : [{ id: 'new', title: '', params: [{}, {}, {}] }]);
-  };
+  }, []);
+
+  const loadData = React.useCallback(async () => {
+    const data = await getRecipes();
+    setRecipes(data);
+    if (data.length > 0 && !currentRecipe) {
+      handleSelectRecipe(data[0]);
+    }
+  }, [currentRecipe, handleSelectRecipe]);
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      loadData();
+    });
+  }, [loadData]);
 
   const handleNewRecipe = async () => {
     const name = prompt("Nome della nuova SOP / Ricetta Master?");

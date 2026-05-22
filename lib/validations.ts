@@ -35,6 +35,7 @@ export const workOrderSchema = z.object({
     requesterId: z.string().optional().nullable().transform(val => val || null),
     validatedById: z.string().optional().nullable().transform(val => val || null),
     assignedTechnicianId: z.string().optional().nullable().transform(val => val || null),
+    plantId: z.string().optional().nullable().transform(val => val || null),
 
     // Nested structures might be handled separately or passed as JSON, 
     // but if passed in the body we can validate basic structure

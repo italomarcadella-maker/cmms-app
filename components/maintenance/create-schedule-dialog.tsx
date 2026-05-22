@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,24 +35,25 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
     const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
     const [firstDate, setFirstDate] = useState<Date | undefined>(new Date());
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         const [assetsData, activitiesData] = await Promise.all([
             getAssets(),
             getActivities()
         ]);
-        setAssets(assetsData as Asset[]);
-        setActivities(activitiesData.map(a => ({
+        setAssets(assetsData as Asset[] || []);
+        setActivities((activitiesData || []).map(a => ({
             ...a,
             category: a.category || undefined
         })));
-    };
+    }, []);
 
     useEffect(() => {
         if (open) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            loadData();
+            Promise.resolve().then(() => {
+                loadData();
+            });
         }
-    }, [open]);
+    }, [open, loadData]);
 
     const handleFrequencyChange = (val: string) => {
         setFrequency(val);

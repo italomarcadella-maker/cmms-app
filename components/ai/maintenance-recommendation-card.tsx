@@ -10,9 +10,8 @@ interface RecommendationProps {
 
 export function MaintenanceRecommendationCard({ assetId, assetName }: RecommendationProps) {
     // In a real app, this would fetch from the AI service based on the specific asset
-    // For now, we mock a random scenario
-    // eslint-disable-next-line react-hooks/purity
-    const hasIssue = Math.random() > 0.3; // 70% chance of an issue for demo purposes
+    // We make it deterministic based on assetId to ensure a pure, idempotent render result
+    const hasIssue = assetId ? (assetId.charCodeAt(assetId.length - 1) % 2 === 0) : false;
 
     if (!hasIssue) {
         return (

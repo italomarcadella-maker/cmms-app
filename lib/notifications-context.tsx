@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { getUserNotifications, markNotificationAsRead } from "@/lib/actions";
 
 export interface Notification {
@@ -24,14 +24,14 @@ const NotificationsContext = createContext<NotificationsContextType | undefined>
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
-    const refreshNotifications = async () => {
+    const refreshNotifications = useCallback(async () => {
         try {
             const data = await getUserNotifications();
-            setNotifications(data);
+            setNotifications(data || []);
         } catch (error) {
             console.error("Failed to fetch notifications", error);
         }
-    };
+    }, []);
 
     const markAsRead = async (id: string) => {
         // Optimistic update
@@ -44,11 +44,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     };
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        refreshNotifications();
+        Promise.resolve().then(() => {
+            refreshNotifications();
+        });
         const interval = setInterval(refreshNotifications, 60000); // Poll every minute
         return () => clearInterval(interval);
-    }, []);
+    }, [refreshNotifications]);
 
     const unreadCount = notifications.filter(n => !n.read).length;
 

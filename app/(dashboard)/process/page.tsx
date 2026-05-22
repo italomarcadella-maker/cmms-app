@@ -19,20 +19,24 @@ export default function ProcessDashboard() {
     const [newProjRoi, setNewProjRoi] = useState("0");
     const [selectedModules, setSelectedModules] = useState<string[]>(['GANTT']);
 
-    const loadData = async () => {
-        setLoading(true);
+    const loadData = React.useCallback(async () => {
+        Promise.resolve().then(() => {
+            setLoading(true);
+        });
         const [projectsData, anomaliesData] = await Promise.all([
             getProjects(showArchived),
             getUnresolvedAnomalies()
         ]);
-        setProjects(projectsData);
-        setAnomalies(anomaliesData);
+        setProjects(projectsData || []);
+        setAnomalies(anomaliesData || []);
         setLoading(false);
-    };
+    }, [showArchived]);
 
     useEffect(() => {
-        loadData();
-    }, [showArchived]);
+        Promise.resolve().then(() => {
+            loadData();
+        });
+    }, [loadData]);
 
     const toggleModule = (mod: string) => {
         if (selectedModules.includes(mod)) {
