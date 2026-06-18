@@ -32,20 +32,6 @@ try {
     console.log('Generating Prisma Client...');
     execSync('npx prisma generate', { stdio: 'inherit' });
 
-    console.log('Deploying database migrations...');
-    if (process.env.DATABASE_URL) {
-        try {
-            execSync('npx prisma migrate deploy', { stdio: 'inherit' });
-        } catch (migrationError) {
-            console.warn('⚠️ Warning: Database migration deployment failed.');
-            console.warn('This might be due to legacy SQLite migrations mismatching the current PostgreSQL provider.');
-            console.warn('You can sync the database schema manually using "npx prisma db push".');
-            console.warn('Proceeding with the application build...');
-        }
-    } else {
-        console.log('Skipping migrations: DATABASE_URL not set.');
-    }
-
     console.log('Building Next.js application...');
     execSync('next build --webpack', { stdio: 'inherit' });
 } catch (error) {
