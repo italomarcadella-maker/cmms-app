@@ -410,6 +410,8 @@ model MeterReading {
   createdAt  DateTime @default(now())
   
   meter      Meter    @relation(fields: [meterId], references: [id], onDelete: Cascade)
+
+  @@index([meterId, date])
 }
 
 model SparePart {
@@ -608,6 +610,8 @@ model SopDocument {
   
   asset                 Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
   feedbacks             SopFeedback[]
+
+  @@index([assetId])
 }
 
 model SopFeedback {
@@ -635,6 +639,8 @@ model ProcessAnomaly {
   isResolved       Boolean  @default(false)
   
   asset            Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, detectedAt])
 }
 
 // --- DAILY MEETING MODELS ---

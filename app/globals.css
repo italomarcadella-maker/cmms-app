@@ -119,3 +119,94 @@ body {
   background: var(--primary);
   color: var(--primary-foreground);
 }
+
+/* Print Media Styles for clean browser/PDF exports */
+@media print {
+  /* Hide UI elements that shouldn't appear in PDF */
+  header,
+  footer,
+  aside,
+  nav,
+  [role="navigation"],
+  .bottom-nav,
+  .chat-widget,
+  .no-print,
+  .print-hidden,
+  button:not(.print-visible),
+  a[href^="/dashboard"],
+  .sidebar,
+  .sticky {
+    display: none !important;
+  }
+
+  /* Reset layout, margins and background colors for printing */
+  body, 
+  html, 
+  main,
+  div.flex.flex-col.min-h-screen,
+  div.flex-1.flex.flex-col {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Make sure columns and flex layouts work on print */
+  .grid {
+    display: grid !important;
+  }
+  .flex {
+    display: flex !important;
+  }
+
+  /* Optimize card shadows and borders for black and white printing */
+  .bg-card,
+  .border,
+  .rounded-xl {
+    box-shadow: none !important;
+    background-color: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    page-break-inside: avoid;
+  }
+
+  /* Input fields and textareas styling on print */
+  input, 
+  textarea, 
+  select {
+    border: none !important;
+    border-bottom: 1px dashed #9ca3af !important;
+    background: transparent !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    padding: 2px 0 !important;
+    appearance: none;
+    -webkit-appearance: none;
+    resize: none !important;
+  }
+
+  /* Ensure text doesn't get clipped and is fully readable */
+  textarea {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Custom print layout utilities */
+  .print-block {
+    display: block !important;
+  }
+  
+  .print-w-full {
+    width: 100% !important;
+  }
+
+  /* Avoid page break inside sections */
+  section, 
+  .page-break-avoid {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
