@@ -2,26 +2,27 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      AUTH_SECRET: dummy-auth-secret-key-for-testing-purposes-only
+      NEXTAUTH_URL: http://localhost:3000
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - name: Use Node.js
+    - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20.x'
+        node-version: 20
         cache: 'npm'
 
     - name: Install dependencies
@@ -30,13 +31,11 @@ jobs:
     - name: Generate Prisma Client
       run: npx prisma generate
 
-    - name: Linting
+    - name: Run ESLint
       run: npm run lint
-      continue-on-error: true # For now, don't block on lint errors as we fix them
 
-    # - name: Run Unit Tests
-    #   run: npm test
-    #   continue-on-error: true
+    - name: Typecheck TypeScript
+      run: npx tsc --noEmit
 
-    - name: Build Project
-      run: npm run build
+    - name: Run Unit Tests
+      run: npx vitest run

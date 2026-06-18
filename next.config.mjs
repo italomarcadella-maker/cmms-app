@@ -1,4 +1,5 @@
 import withPWAInit from "next-pwa";
+import "./lib/env.mjs";
 
 const withPWA = withPWAInit({
     dest: "public",
