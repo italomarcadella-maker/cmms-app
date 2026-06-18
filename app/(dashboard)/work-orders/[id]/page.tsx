@@ -143,9 +143,9 @@ export default function WorkOrderDetailPage() {
         const tech = technicians?.find(t => t.id === selectedTechId);
         if (!tech) return;
 
+        const logId = typeof crypto !== 'undefined' && crypto.randomUUID ? `LOG-${crypto.randomUUID()}` : `LOG-${new Date().getTime()}`;
         const newLog = {
-            // eslint-disable-next-line react-hooks/purity
-            id: `LOG-${Date.now()}`,
+            id: logId,
             technicianId: tech.id,
             technicianName: tech.name,
             hours: laborHours,

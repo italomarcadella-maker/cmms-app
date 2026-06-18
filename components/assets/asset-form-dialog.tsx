@@ -11,17 +11,20 @@ interface AssetFormDialogProps {
 
 export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDialogProps) {
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState(asset);
+    const [prevAsset, setPrevAsset] = useState(asset);
+    const [formData, setFormData] = useState(() => ({
+        ...asset,
+        plant: asset?.plantId || asset?.plant
+    }));
     const [plants, setPlants] = useState<any[]>([]);
 
-    useEffect(() => {
+    if (asset !== prevAsset) {
+        setPrevAsset(asset);
         setFormData({
             ...asset,
-            // Ensure the 'plant' field in form data is the ID, not the name, 
-            // so the <select> can match the correct <option value={p.id}>
-            plant: asset.plantId || asset.plant
+            plant: asset?.plantId || asset?.plant
         });
-    }, [asset]);
+    }
 
     useEffect(() => {
         async function loadPlants() {

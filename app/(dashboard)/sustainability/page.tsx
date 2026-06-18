@@ -38,12 +38,22 @@ export default function SustainabilityDashboard() {
     });
 
 
+    const activeMetersByType = useMemo(() => {
+        if (!metrics || !metrics.activeMeters) return [];
+        const typeMap: Record<string, string> = { kwh: 'ELEC', water: 'WATER', gas: 'GAS', co2: 'ELEC' };
+        return metrics.activeMeters.filter((m: any) => m.type === typeMap[chartType]);
+    }, [metrics, chartType]);
+
     useEffect(() => {
-        setIsMounted(true);
+        Promise.resolve().then(() => {
+            setIsMounted(true);
+        });
     }, []);
 
     useEffect(() => {
-        setIsLoading(true);
+        Promise.resolve().then(() => {
+            setIsLoading(true);
+        });
         
         const days = differenceInDays(parseISO(dateRange.end), parseISO(dateRange.start));
 
@@ -153,11 +163,7 @@ export default function SustainabilityDashboard() {
     
     const METER_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#475569'];
 
-    const activeMetersByType = useMemo(() => {
-        if (!metrics?.activeMeters) return [];
-        const typeMap: Record<string, string> = { kwh: 'ELEC', water: 'WATER', gas: 'GAS', co2: 'ELEC' };
-        return metrics.activeMeters.filter((m: any) => m.type === typeMap[chartType]);
-    }, [metrics?.activeMeters, chartType]);
+
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">

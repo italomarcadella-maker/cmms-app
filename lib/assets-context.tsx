@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext } from "react";
 import { Asset } from "@/lib/types";
 import { toast } from "sonner";
+import useSWR from "swr";
 
 interface AssetsContextType {
     assets: Asset[];
@@ -14,6 +15,8 @@ interface AssetsContextType {
 
 const AssetsContext = createContext<AssetsContextType | undefined>(undefined);
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export function AssetsProvider({
     children,
     initialAssets = []
@@ -21,18 +24,16 @@ export function AssetsProvider({
     children: React.ReactNode;
     initialAssets?: Asset[];
 }) {
-    const [assets, setAssets] = useState<Asset[]>(initialAssets);
-
-    // Initial fetch to ensure client-side hydration happens with fresh data if initial is stale
-    useEffect(() => {
-        refreshAssets();
-    }, []);
+    const { data: assets = initialAssets, mutate: swrMutate } = useSWR<Asset[]>("/api/assets", fetcher, {
+        fallbackData: initialAssets,
+        refreshInterval: 120000, // Assets change rarely, poll every 120 seconds
+        revalidateOnFocus: false, // Disable expensive refetches on focus
+        revalidateOnReconnect: false, // Disable reconnect spikes
+    });
 
     const refreshAssets = async () => {
         try {
-            const { getAssets } = await import('@/lib/actions');
-            const data = await getAssets();
-            setAssets(data as Asset[]);
+            await swrMutate();
         } catch (error) {
             console.error("Failed to fetch assets", error);
         }
@@ -45,7 +46,7 @@ export function AssetsProvider({
 
             if (result.success && result.data) {
                 toast.success("Asset creato con successo");
-                await refreshAssets(); // Re-fetch to guarantee sync
+                await swrMutate();
                 return true;
             } else {
                 toast.error(result.message || "Errore durante creazione asset");
@@ -64,7 +65,7 @@ export function AssetsProvider({
 
             if (result.success) {
                 toast.success("Asset aggiornato");
-                await refreshAssets();
+                await swrMutate();
                 return true;
             } else {
                 toast.error(result.message || "Errore aggiornamento");
@@ -82,8 +83,8 @@ export function AssetsProvider({
             const result = await deleteAssetAction(id);
 
             if (result.success) {
-                setAssets(prev => prev.filter(a => a.id !== id));
                 toast.success("Asset eliminato");
+                await swrMutate();
                 return true;
             } else {
                 toast.error(result.message || "Impossibile eliminare l'asset");

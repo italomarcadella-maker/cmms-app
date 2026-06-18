@@ -5,14 +5,14 @@ import { NotificationCenter } from "@/components/layout/notification-center";
 
 
 import { CommandMenu } from "@/components/command-menu";
-
 import { MobileMenu } from "@/components/layout/mobile-menu";
+import { LivePresence } from "@/components/layout/live-presence";
 
 export async function Header() {
     const session = await auth();
 
     return (
-        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:px-6">
+        <header className="relative z-50 flex h-14 items-center gap-4 border-b bg-background px-4 md:px-6">
             <div className="flex flex-1 items-center justify-between">
                 <div className="flex items-center gap-2 md:gap-4">
                     <MobileMenu />
@@ -21,7 +21,7 @@ export async function Header() {
                 </div>
 
                 <div className="flex items-center gap-3">
-
+                    <LivePresence />
 
                     <div className="h-6 w-px bg-muted mx-1" />
 

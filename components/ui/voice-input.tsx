@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,10 +16,13 @@ interface VoiceInputProps {
 
 export function VoiceInput({ onTranscript, placeholder = "Parla ora...", className, isListening: externalIsListening, onListeningChange }: VoiceInputProps) {
     const [listening, setListening] = useState(false);
-    const [supported, setSupported] = useState(true);
+    const [supported, setSupported] = useState(() => {
+        if (typeof window === 'undefined') return true;
+        return ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+    });
     const recognitionRef = useRef<any>(null);
 
-    const startListening = () => {
+    const startListening = useCallback(() => {
         if (recognitionRef.current && !listening) {
             try {
                 recognitionRef.current.start();
@@ -27,13 +30,13 @@ export function VoiceInput({ onTranscript, placeholder = "Parla ora...", classNa
                 console.error("Start error", e);
             }
         }
-    };
+    }, [listening]);
 
-    const stopListening = () => {
+    const stopListening = useCallback(() => {
         if (recognitionRef.current && listening) {
             recognitionRef.current.stop();
         }
-    };
+    }, [listening]);
 
     // Sync with external state if provided
     useEffect(() => {
@@ -41,7 +44,7 @@ export function VoiceInput({ onTranscript, placeholder = "Parla ora...", classNa
             if (externalIsListening) startListening();
             else stopListening();
         }
-    }, [externalIsListening]);
+    }, [externalIsListening, listening, startListening, stopListening]);
 
     useEffect(() => {
         if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -80,9 +83,6 @@ export function VoiceInput({ onTranscript, placeholder = "Parla ora...", classNa
                     toast.error("Accesso al microfono negato.");
                 }
             };
-        } else {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setSupported(false);
         }
 
         return () => {

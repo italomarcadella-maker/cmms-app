@@ -12,22 +12,22 @@ import { ChatWidget } from "@/components/chat/chat-widget";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { getWorkOrders, getAssets } from "@/lib/actions";
 
-// Removing force-dynamic to allow Next.js route caching to optimize where possible
+export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    // Parallelize data fetching to cut loading time in half
-    const [workOrders, assets] = await Promise.all([
-        getWorkOrders(),
-        getAssets()
+    // Fetch cached data in parallel on the server to hydrate SWR client providers immediately
+    const [initialWorkOrders, initialAssets] = await Promise.all([
+        getWorkOrders().catch(() => []),
+        getAssets().catch(() => [])
     ]);
 
     return (
-        <AssetsProvider initialAssets={assets}>
-            <WorkOrdersProvider initialWorkOrders={workOrders}>
+        <AssetsProvider initialAssets={initialAssets}>
+            <WorkOrdersProvider initialWorkOrders={initialWorkOrders}>
                 <InventoryProvider>
                     <ReferenceProvider>
                         <PMProvider>

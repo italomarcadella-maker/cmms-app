@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { getProjectById, createProjectTask, updateTaskDates, linkTaskToMaintenance, addProjectTaskNote, updateProject, deleteProject, archiveProject } from "@/lib/process-actions";
 import { getAssets } from "@/lib/actions";
 import { getSimulations, createSimulation, saveSimulationSnapshot } from "@/lib/actions/fpes-actions";
-import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripHorizontal, TrendingUp, Edit3, Network, Box, BarChart2, Lightbulb, Grid, FileCheck2, Trash2, Archive, X, Send, User, MessageSquare, Settings } from "lucide-react";
+import { Calendar, Plus, Link as LinkIcon, AlertCircle, Wrench, ArrowLeft, GripHorizontal, TrendingUp, Edit3, Network, Box, BarChart2, Lightbulb, Grid, FileCheck2, Trash2, Archive, X, Send, User, MessageSquare, Settings, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -29,6 +29,7 @@ import MuriMuda from "../../components/MuriMuda";
 import LeanScore from "../../components/LeanScore";
 import ExcelIO from "../../components/ExcelIO";
 import WhatIfSimulator from "../../components/WhatIfSimulator";
+import { LeanCopilot } from "@/components/process/LeanCopilot";
 
 interface GanttTask {
     id: string;
@@ -71,6 +72,7 @@ export default function ProjectWorkspace() {
     const [assets, setAssets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [pageError, setPageError] = useState<string | null>(null);
+    const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
     // Workspace UI State
     const [activeTab, setActiveTab] = useState("DASHBOARD");
@@ -101,7 +103,7 @@ export default function ProjectWorkspace() {
 
     const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 5 } }), useSensor(TouchSensor));
 
-    const loadData = async () => {
+    const loadData = React.useCallback(async () => {
         setLoading(true);
         setPageError(null);
         try {
@@ -111,7 +113,7 @@ export default function ProjectWorkspace() {
                 getSimulations()
             ]);
             setProject(projData);
-            setAssets(assetsData);
+            setAssets(assetsData || []);
             if (projData) setTempRoi(projData.roi?.toString() || "0");
 
             // Check if there is an FPES Simulation linked to this Project ID
@@ -119,7 +121,7 @@ export default function ProjectWorkspace() {
                 const linkedSim = simsData.find((s: any) => s.name === `PROJ_${id}`);
                 if (linkedSim) {
                     setFpesSimId(linkedSim.id);
-                    let parsed = typeof linkedSim.dataJson === 'string' ? JSON.parse(linkedSim.dataJson) : linkedSim.dataJson;
+                    const parsed = typeof linkedSim.dataJson === 'string' ? JSON.parse(linkedSim.dataJson) : linkedSim.dataJson;
                     setFpesData(parsed);
                     // Auto-enable FPES module if found
                     setActiveModules(prev => prev.includes('FPES') ? prev : [...prev, 'FPES']);
@@ -139,13 +141,13 @@ export default function ProjectWorkspace() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         if (id) {
             loadData().catch(e => setPageError(e.message));
         }
-    }, [id]);
+    }, [id, loadData]);
 
     useEffect(() => {
         if (!loading) {
@@ -617,6 +619,22 @@ export default function ProjectWorkspace() {
                     <input type="number" className="w-full border p-2 rounded mb-4" value={tempRoi} onChange={e=>setTempRoi(e.target.value)} />
                     <div className="flex gap-2 justify-end"><button onClick={()=>setIsEditingRoi(false)}>Annulla</button><button onClick={handleUpdateRoi} className="bg-emerald-600 text-white px-4 py-2 rounded">Salva</button></div></div>
                 </div>
+            )}
+
+            {/* LEAN COPILOT DRAWER */}
+            <LeanCopilot isOpen={isCopilotOpen} onClose={() => setIsCopilotOpen(false)} fpesData={fpesData} />
+
+            {/* FLOATING LEAN COPILOT BUTTON */}
+            {fpesData && (
+                <button
+                    onClick={() => setIsCopilotOpen(true)}
+                    className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-700 hover:to-indigo-700 text-white rounded-full shadow-lg border border-white/20 p-4 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 font-bold cursor-pointer group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)]"
+                >
+                    <Brain className="h-5 w-5 animate-pulse text-white" />
+                    <span className="text-xs tracking-wider uppercase font-black">Lean Copilot</span>
+                    <span className="h-2.5 w-2.5 rounded-full bg-cyan-400 absolute -top-0.5 -right-0.5 animate-ping"></span>
+                    <span className="h-2.5 w-2.5 rounded-full bg-cyan-400 absolute -top-0.5 -right-0.5 border border-white"></span>
+                </button>
             )}
 
         </div>

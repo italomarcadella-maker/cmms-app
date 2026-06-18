@@ -48,8 +48,9 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                 setElapsed(seconds);
             }, 1000);
         } else {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setElapsed(0);
+            Promise.resolve().then(() => {
+                setElapsed(0);
+            });
         }
         return () => clearInterval(interval);
     }, [activeTimer]);

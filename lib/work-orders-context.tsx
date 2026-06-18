@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import { WorkOrder } from "@/lib/types";
-import { updateWorkOrderStatus as updateStatusAction, createWorkOrder as createAction } from "@/lib/actions";
+import { updateWorkOrderStatus as updateStatusAction } from "@/lib/actions";
+import useSWR from "swr";
 
 interface WorkOrdersContextType {
     workOrders: WorkOrder[];
@@ -15,6 +16,8 @@ interface WorkOrdersContextType {
 
 const WorkOrdersContext = createContext<WorkOrdersContextType | undefined>(undefined);
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export function WorkOrdersProvider({
     children,
     initialWorkOrders = []
@@ -22,93 +25,89 @@ export function WorkOrdersProvider({
     children: React.ReactNode;
     initialWorkOrders?: WorkOrder[];
 }) {
-    const [workOrders, setWorkOrders] = useState<WorkOrder[]>(initialWorkOrders);
+    const { data, mutate: swrMutate } = useSWR<WorkOrder[]>("/api/work-orders", fetcher, {
+        fallbackData: initialWorkOrders,
+        refreshInterval: 45000, // 45 seconds smart polling
+        revalidateOnFocus: false, // Disable expensive refetches on focus
+        revalidateOnReconnect: false, // Disable reconnect spikes
+    });
+
+    const workOrders = useMemo(() => {
+        if (!data) return [];
+        return data.map(wo => ({
+            ...wo,
+            assetName: (wo as any).asset?.name || 'Unknown',
+        })) as WorkOrder[];
+    }, [data]);
 
     const refreshWorkOrders = async () => {
-        const { getWorkOrders } = await import('@/lib/actions');
-        const data = await getWorkOrders();
-
-        // Map DB result to Frontend Type
-        const mapped = data.map(wo => ({
-            ...wo,
-            // Dates are already strings from server action
-            assetName: (wo as any).asset?.name || 'Unknown',
-        }));
-        setWorkOrders(mapped as WorkOrder[]);
+        await swrMutate();
     };
-
-    // Load from Server on mount
-    useEffect(() => {
-        refreshWorkOrders();
-
-        // Real-time polling
-        const intervalId = setInterval(() => {
-            refreshWorkOrders();
-        }, 30000); // 30 seconds
-
-        return () => clearInterval(intervalId);
-    }, []);
 
     const addWorkOrder = async (workOrder: WorkOrder) => {
         // Optimistic update
-        setWorkOrders((prev) => [workOrder, ...prev]);
+        const updatedList = [workOrder, ...workOrders];
+        swrMutate(updatedList, false);
 
         try {
-            // Dynamic import to avoid build time circular deps if any
             const { createWorkOrder } = await import('@/lib/actions');
-
-            // Pass the workOrder object. The action handles validation/cleanup.
             const res = await createWorkOrder(workOrder);
 
             if (!res.success) {
                 throw new Error(res.message);
             }
-
-            // CORRECT FIX: Replace optimistic WO with real one from DB (with correct ID)
-            if (res.data) {
-                const realWO = res.data;
-                setWorkOrders((prev) => prev.map(w => w.id === workOrder.id ? { ...realWO, assetName: workOrder.assetName } as any : w));
-            }
-
+            await swrMutate();
         } catch (err) {
             console.error("Failed to create work order", err);
-            // Revert on failure
-            setWorkOrders((prev) => prev.filter(w => w.id !== workOrder.id));
+            await swrMutate(); // Rollback
             alert("Errore salvataggio ordine: " + err);
         }
     };
 
     const deleteWorkOrder = async (id: string) => {
-        const { deleteWorkOrder } = await import('@/lib/actions');
+        // Optimistic update
+        const updatedList = workOrders.filter(wo => wo.id !== id);
+        swrMutate(updatedList, false);
+
         try {
+            const { deleteWorkOrder } = await import('@/lib/actions');
             const res = await deleteWorkOrder(id);
-            if (res.success) {
-                setWorkOrders(prev => prev.filter(wo => wo.id !== id));
-            } else {
+            if (!res.success) {
                 alert(res.message);
             }
+            await swrMutate();
         } catch (err) {
             alert("Errore eliminazione");
+            await swrMutate();
         }
     };
 
     const updateWorkOrderStatus = async (id: string, status: WorkOrder["status"]) => {
-        setWorkOrders((prev) => prev.map(wo => wo.id === id ? { ...wo, status } : wo));
+        // Optimistic update
+        const updatedList = workOrders.map(wo => wo.id === id ? { ...wo, status } : wo);
+        swrMutate(updatedList, false);
+
         try {
             await updateStatusAction(id, status);
+            await swrMutate();
         } catch (err) {
             console.error("Failed to update status", err);
+            await swrMutate();
         }
     };
 
     const updateWorkOrder = async (id: string, updates: Partial<WorkOrder>) => {
-        setWorkOrders((prev) => prev.map(wo => wo.id === id ? { ...wo, ...updates } : wo));
+        // Optimistic update
+        const updatedList = workOrders.map(wo => wo.id === id ? { ...wo, ...updates } : wo);
+        swrMutate(updatedList, false);
 
         try {
             const { updateWorkOrderDetails } = await import('@/lib/actions');
             await updateWorkOrderDetails(id, updates);
+            await swrMutate();
         } catch (err) {
             console.error("Failed to persist WO update", err);
+            await swrMutate();
         }
     };
 

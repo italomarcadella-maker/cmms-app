@@ -20,7 +20,11 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("SAFETY");
     const [saving, setSaving] = useState(false);
-    const [meeting, setMeeting] = useState<any>(null);
+    const [meeting, setMeeting] = useState<any>(() => ({
+        id,
+        department: "Reparto 1",
+        date: new Date().toISOString()
+    }));
     const [assets, setAssets] = useState<any[]>([]);
     
     // Asset Picker State
@@ -41,9 +45,6 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
 
     useEffect(() => {
         // In real app, fetch meeting status to see if it's already DRAFT or CLOSED
-        // Mocking an initial fetch
-        const mockMeeting = { id, department: "Reparto 1", date: new Date().toISOString() };
-        setMeeting(mockMeeting);
         
         // Fetch existing action items
         async function fetchActionItems() {

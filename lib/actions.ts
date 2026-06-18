@@ -12,9 +12,66 @@ import { WorkOrderStatus } from '@/lib/types';
 import { logAction } from './audit';
 import { assetSchema, workOrderSchema } from './validations';
 import { WorkOrderPriority, WorkOrderCategory } from "@prisma/client";
+import { addAsset as newAddAsset, updateAsset as newUpdateAsset, deleteAsset as newDeleteAsset } from '@/modules/maintenance/adapters/actions/asset-actions';
+import {
+    rescheduleWorkOrder as newRescheduleWorkOrder,
+    assignWorkOrder as newAssignWorkOrder,
+    updateWorkOrderAssignments as newUpdateWorkOrderAssignments,
+    getUnassignedWorkOrders as newGetUnassignedWorkOrders,
+    getPlannerUnassignedItems as newGetPlannerUnassignedItems,
+    getActiveWorkOrdersForAsset as newGetActiveWorkOrdersForAsset,
+    createWorkOrder as newCreateWorkOrder,
+    approveRequest as newApproveRequest,
+    reviewWorkOrder as newReviewWorkOrder,
+    updateWorkOrderStatus as newUpdateWorkOrderStatus,
+    deleteWorkOrder as newDeleteWorkOrder,
+    updateWorkOrderDetails as newUpdateWorkOrderDetails,
+    createPreventiveFromEWO as newCreatePreventiveFromEWO,
+    startWorkSession as newStartWorkSession,
+    pauseWorkSession as newPauseWorkSession,
+    stopWorkSession as newStopWorkSession,
+    completeWorkOrder as newCompleteWorkOrder,
+    importWorkOrders as newImportWorkOrders,
+    assignWorkOrderToSelf as newAssignWorkOrderToSelf,
+    addWorkOrderPart as newAddWorkOrderPart,
+    removeWorkOrderPart as newRemoveWorkOrderPart,
+    toggleChecklistItem as newToggleChecklistItem,
+    confirmEWO as newConfirmEWO,
+    submitEWO as newSubmitEWO,
+    getEWO as newGetEWO
+} from '@/modules/maintenance/adapters/actions/work-order-actions';
+import { createWorkOrderFromSchedule as newCreateWorkOrderFromSchedule, getPreventiveSchedules as newGetPreventiveSchedules, getAssetSchedules as newGetAssetSchedules, createPreventiveSchedule as newCreatePreventiveSchedule, deletePreventiveSchedule as newDeletePreventiveSchedule, updatePreventiveSchedule as newUpdatePreventiveSchedule } from '@/modules/maintenance/adapters/actions/schedule-actions';
+import { addTechnician as newAddTechnician, deleteTechnician as newDeleteTechnician } from '@/modules/maintenance/adapters/actions/technician-actions';
+import {
+    getSpareParts as newGetSpareParts,
+    addSparePart as newAddSparePart,
+    updateSparePartQuantity as newUpdateSparePartQuantity,
+    deleteSparePart as newDeleteSparePart
+} from '@/modules/inventory/adapters/actions/inventory-actions';
+import {
+    getMeters as newGetMeters,
+    createMeter as newCreateMeter,
+    deleteMeter as newDeleteMeter,
+    getMeterReadings as newGetMeterReadings,
+    getEnergyStats as newGetEnergyStats,
+    addMeterReading as newAddMeterReading,
+    getAllMeterReadings as newGetAllMeterReadings
+} from '@/modules/energy/adapters/actions/energy-actions';
+
+
+
+// --- Cache Revalidation Helpers ---
+export async function revalidateWorkOrders() {
+    (revalidateTag as any)('work-orders');
+}
+
+export async function revalidateAssets() {
+    (revalidateTag as any)('assets');
+}
+
 // --- Authorization Helper ---
 
-async function requireRole(role: string | string[]): Promise<{ authorized: boolean; message?: string; session?: any }> {
+export async function requireRole(role: string | string[]): Promise<{ authorized: boolean; message?: string; session?: any }> {
     const session = await auth();
     if (!session?.user) {
         return { authorized: false, message: 'Non autenticato' };
@@ -260,12 +317,17 @@ export async function resetDatabase() {
 
 export const getDashboardStats = unstable_cache(
     async () => {
-        const totalAssets = await prisma.asset.count();
-        const openWorkOrders = await prisma.workOrder.count({ where: { status: 'OPEN' } });
-        const completedWorkOrders = await prisma.workOrder.count({ where: { status: 'COMPLETED' } });
-        const lowHealthAssets = await prisma.asset.count({ where: { healthScore: { lt: 70 } } });
+        try {
+            const totalAssets = await prisma.asset.count();
+            const openWorkOrders = await prisma.workOrder.count({ where: { status: 'OPEN' } });
+            const completedWorkOrders = await prisma.workOrder.count({ where: { status: 'COMPLETED' } });
+            const lowHealthAssets = await prisma.asset.count({ where: { healthScore: { lt: 70 } } });
 
-        return { totalAssets, openWorkOrders, completedWorkOrders, lowHealthAssets };
+            return { totalAssets, openWorkOrders, completedWorkOrders, lowHealthAssets };
+        } catch (error) {
+            console.error('Failed to get dashboard stats:', error);
+            return { totalAssets: 0, openWorkOrders: 0, completedWorkOrders: 0, lowHealthAssets: 0 };
+        }
     },
     ['dashboard-stats'],
     { tags: ['dashboard-stats'], revalidate: 300 }
@@ -275,17 +337,22 @@ export const getDashboardStats = unstable_cache(
 
 export const getAssets = unstable_cache(
     async () => {
-        const assets = await prisma.asset.findMany({ 
-            include: { plant: true },
-            orderBy: { name: 'asc' } 
-        });
-        return assets.map((asset: any) => ({
-            ...asset,
-            purchaseDate: asset.purchaseDate ? asset.purchaseDate.toISOString().split('T')[0] : '',
-            lastMaintenance: asset.lastMaintenance ? asset.lastMaintenance.toISOString().split('T')[0] : null,
-            plantId: asset.plantId,
-            plant: asset.plant?.name || asset.plantId || 'Non Assegnato' // Map plant object to name for UI
-        }));
+        try {
+            const assets = await prisma.asset.findMany({ 
+                include: { plant: true },
+                orderBy: { name: 'asc' } 
+            });
+            return assets.map((asset: any) => ({
+                ...asset,
+                purchaseDate: asset.purchaseDate ? asset.purchaseDate.toISOString().split('T')[0] : '',
+                lastMaintenance: asset.lastMaintenance ? asset.lastMaintenance.toISOString().split('T')[0] : null,
+                plantId: asset.plantId,
+                plant: asset.plant?.name || asset.plantId || 'Non Assegnato' // Map plant object to name for UI
+            }));
+        } catch (error) {
+            console.error('Failed to get assets:', error);
+            return [];
+        }
     },
     ['all-assets'],
     { tags: ['assets'], revalidate: 3600 }
@@ -363,485 +430,56 @@ export async function importAssets(assets: any[]) {
         }
     }
     revalidatePath('/assets');
+    revalidateAssets();
     return { success: true, count, errors };
 }
 
 export async function addAsset(rawData: any) {
-    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
-    if (!authorized) return { success: false, message };
-
-    try {
-        const validation = assetSchema.safeParse(rawData);
-
-        if (!validation.success) {
-            let errorMsg = "";
-            const err: any = validation.error;
-            if (err.errors && Array.isArray(err.errors)) {
-                errorMsg = err.errors.map((e: any) => e.message).join(", ");
-            } else {
-                errorMsg = "Errore di validazione sconosciuto";
-            }
-            return { success: false, message: "Dati non validi: " + errorMsg };
-        }
-        const data = validation.data;
-
-        const assetData = {
-            name: data.name,
-            model: data.model,
-            serialNumber: data.serialNumber, // Already validated as string
-            location: data.location,
-            status: data.status,
-            healthScore: data.healthScore,
-            type: data.type,
-            purchaseDate: data.purchaseDate,
-            department: data.department,
-            plantId: data.plant, // Changed 'plant' to 'plantId'
-            line: data.line,
-            cespite: data.cespite, // Updated
-            vendor: data.vendor,
-        };
-        const newAsset = await prisma.asset.create({ data: assetData });
-        await logAction('CREATE_ASSET', newAsset.id, `Created asset ${newAsset.name}`);
-        revalidatePath('/');
-        return { success: true, message: 'Asset creato con successo', data: newAsset };
-    } catch (error: any) {
-        return { success: false, message: 'Errore creazione asset: ' + error.message };
-    }
+    return newAddAsset(rawData);
 }
 
 export async function updateAsset(id: string, rawData: any) {
-    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
-    if (!authorized) return { success: false, message };
-
-    try {
-        const validation = assetSchema.partial().safeParse(rawData);
-        if (!validation.success) {
-            let errorMsg = "";
-            const err: any = validation.error;
-            if (err.errors && Array.isArray(err.errors)) {
-                errorMsg = err.errors.map((e: any) => e.message).join(", ");
-            } else {
-                errorMsg = "Dati non validi";
-            }
-            return { success: false, message: "Dati non validi: " + errorMsg };
-        }
-        const data = validation.data;
-
-        const { plant, line, ...restData } = data;
-
-        const updatePayload: any = { ...restData };
-        if (plant !== undefined) updatePayload.plantId = plant;
-        if (line !== undefined) updatePayload.line = line;
-
-        const updatedAsset = await prisma.asset.update({
-            where: { id },
-            data: updatePayload
-        });
-        await logAction('UPDATE_ASSET', id, 'Updated asset details');
-        revalidatePath('/');
-        return { success: true, message: 'Asset aggiornato', data: updatedAsset };
-    } catch (error) {
-        return { success: false, message: 'Errore aggiornamento asset' };
-    }
+    return newUpdateAsset(id, rawData);
 }
 
 export async function deleteAsset(id: string) {
-    const { authorized, message } = await requireRole('ADMIN');
-    if (!authorized) return { success: false, message };
-
-    try {
-        // Check dependencies
-        const woCount = await prisma.workOrder.count({ where: { assetId: id } });
-        if (woCount > 0) {
-            return { success: false, message: `Impossibile eliminare: L'asset ha ${woCount} ordini di lavoro associati. Archivia l'asset invece.` };
-        }
-
-        const schedCount = await prisma.preventiveSchedule.count({ where: { assetId: id } });
-        if (schedCount > 0) {
-            return { success: false, message: `Impossibile eliminare: L'asset ha ${schedCount} manutenzioni programmate.` };
-        }
-
-        await prisma.asset.delete({ where: { id } });
-        await logAction('DELETE_ASSET', id, 'Deleted asset');
-        revalidatePath('/');
-        return { success: true, message: 'Asset eliminato con successo' };
-    } catch (error) {
-        return { success: false, message: 'Errore durante l\'eliminazione' };
-    }
+    return newDeleteAsset(id);
 }
 
 export async function rescheduleWorkOrder(id: string, newDate: Date) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        await prisma.workOrder.update({
-            where: { id },
-            data: { dueDate: newDate }
-        });
-        // Also update preventive schedule nextDueDate if applicable? 
-        // For now, just moving the specific instance.
-
-        revalidatePath('/planning/calendar');
-        return { success: true, message: 'Data aggiornata' };
-    } catch (error) {
-        console.error("Reschedule Error:", error);
-        return { success: false, message: 'Errore riprogrammazione' };
-    }
+    return newRescheduleWorkOrder(id, newDate);
 }
 
 // --- Work Order Assignment (Scheduler) ---
 export async function assignWorkOrder(workOrderId: string, technicianId: string, date?: Date) {
-    try {
-        const session = await auth();
-
-        // Check if technicianId is a Technician ID or a User ID (for Supervisors)
-        let tech = await prisma.technician.findUnique({ where: { id: technicianId } });
-
-        // If not found, check if it's a User ID and create profile if needed
-        if (!tech) {
-            const user = await prisma.user.findUnique({ where: { id: technicianId } });
-            if (user && (user.role === 'SUPERVISOR' || user.role === 'MAINTAINER')) {
-                // Auto-register as Technician
-                tech = await prisma.technician.create({
-                    data: {
-                        name: user.name || 'Technician',
-                        userId: user.id,
-                        specialty: user.role === 'SUPERVISOR' ? 'Supervisor' : 'General',
-                        hourlyRate: 0
-                    }
-                });
-            }
-        }
-
-        if (!tech) return { success: false, message: "Tecnico non trovato" };
-
-        const updateData: any = {
-            assignedTechnicianId: tech.id,
-            assignedTo: tech.name,
-            status: "ASSIGNED" // Start treating as ASSIGNED
-        };
-
-        if (date) {
-            const normalizedDate = new Date(date);
-            normalizedDate.setHours(9, 0, 0, 0);
-            updateData.dueDate = normalizedDate;
-        }
-
-        const workOrder = await prisma.workOrder.update({
-            where: { id: workOrderId },
-            data: updateData
-        });
-
-        // Use the real Tech ID for the relation
-        const realTechId = tech.id;
-
-        // Maintain Many-to-Many relation
-        // Check if already assigned
-        const existingRel = await prisma.workOrderTechnician.findUnique({
-            where: {
-                workOrderId_technicianId: {
-                    workOrderId,
-                    technicianId: realTechId
-                }
-            }
-        });
-
-        if (!existingRel) {
-            await prisma.workOrderTechnician.create({
-                data: {
-                    workOrderId,
-                    technicianId: realTechId
-                }
-            });
-        }
-
-        if (tech.userId) {
-            await prisma.notification.create({
-                data: {
-                    userId: tech.userId,
-                    title: "Nuovo Incarico",
-                    message: `Ti è stato assegnato un nuovo ordine di lavoro: ${workOrder.title}`,
-                    link: `/work-orders/${workOrder.id}`
-                }
-            });
-        }
-
-        if (session?.user) {
-            await logAction("ASSIGN_WO", workOrderId, `Assigned to ${tech.name}` + (date ? ` on ${date}` : ""));
-        }
-
-        revalidatePath('/');
-        return { success: true, message: "Assegnazione completata" };
-
-    } catch (error) {
-        console.error("Assign Error:", error);
-        return { success: false, message: "Errore assegnazione" };
-    }
+    return newAssignWorkOrder(workOrderId, technicianId, date);
 }
 
 export async function updateWorkOrderAssignments(workOrderId: string, technicianIds: string[]) {
-    try {
-        const session = await auth();
-        // 1. Clear existing? Or just add/remove delta?
-        // Simple approach: Delete all for this WO and recreate.
-        // But we want to preserve history? Assignments table is simple linking.
-        // Let's use transaction or just clear and add.
-
-        await prisma.workOrderTechnician.deleteMany({
-            where: { workOrderId }
-        });
-
-        // Resolve all IDs to valid Technician IDs
-        const resolvedIds: string[] = [];
-        for (const inputId of technicianIds) {
-            let tech = await prisma.technician.findUnique({ where: { id: inputId } });
-            if (!tech) {
-                // Try User ID
-                const user = await prisma.user.findUnique({ where: { id: inputId } });
-                if (user && (user.role === 'SUPERVISOR' || user.role === 'MAINTAINER')) {
-                    tech = await prisma.technician.create({
-                        data: {
-                            name: user.name || 'Technician',
-                            userId: user.id,
-                            specialty: user.role === 'SUPERVISOR' ? 'Supervisor' : 'General',
-                            hourlyRate: 0
-                        }
-                    });
-                }
-            }
-            if (tech) resolvedIds.push(tech.id);
-        }
-
-        if (resolvedIds.length > 0) {
-            await prisma.workOrderTechnician.createMany({
-                data: resolvedIds.map(id => ({
-                    workOrderId,
-                    technicianId: id
-                }))
-            });
-
-            // Update legacy fields with the FIRST technician for backward compat
-            const firstTech = await prisma.technician.findUnique({ where: { id: resolvedIds[0] } });
-            await prisma.workOrder.update({
-                where: { id: workOrderId },
-                data: {
-                    assignedTechnicianId: resolvedIds[0],
-                    assignedTo: firstTech?.name || 'Assigned',
-                    status: 'ASSIGNED'
-                }
-            });
-
-            // Notify all new technicians
-            for (const techId of resolvedIds) {
-                const tech = await prisma.technician.findUnique({ where: { id: techId } });
-                if (tech && tech.userId) {
-                    await prisma.notification.create({
-                        data: {
-                            userId: tech.userId,
-                            title: "Nuovo Incarico (Multi)",
-                            message: "Sei stato aggiunto a un ordine di lavoro.",
-                            link: `/work-orders/${workOrderId}`
-                        }
-                    });
-                }
-            }
-
-        } else {
-            // Unassigned
-            await prisma.workOrder.update({
-                where: { id: workOrderId },
-                data: {
-                    assignedTechnicianId: null,
-                    assignedTo: 'Unassigned',
-                    status: 'OPEN'
-                }
-            });
-        }
-
-        revalidatePath("/work-orders");
-        revalidatePath(`/work-orders/${workOrderId}`);
-        return { success: true, message: "Assegnazioni aggiornate" };
-    } catch (error) {
-        console.error("Multi Assign Error:", error);
-        return { success: false, message: "Errore aggiornamento assegnazioni" };
-    }
+    return newUpdateWorkOrderAssignments(workOrderId, technicianIds);
 }
 
 export async function getUnassignedWorkOrders() {
-    try {
-        const workOrders = await prisma.workOrder.findMany({
-            where: {
-                assignedTechnicianId: null,
-                status: {
-                    in: ["OPEN"]
-                }
-            },
-            include: {
-                asset: true
-            },
-            orderBy: {
-                createdAt: 'desc'
-            }
-        });
-        return workOrders;
-    } catch (error) {
-        console.error("Error fetching unassigned WOs:", error);
-        return [];
-    }
+    return newGetUnassignedWorkOrders();
 }
 
 export async function getPlannerUnassignedItems() {
-    try {
-        // 1. Unassigned Work Orders
-        const workOrders = await prisma.workOrder.findMany({
-            where: {
-                assignedTechnicianId: null,
-                status: { in: ["OPEN", "PENDING_APPROVAL"] }
-            },
-            include: { asset: { select: { name: true } } },
-            orderBy: { createdAt: 'desc' }
-        });
-
-        const woItems = workOrders.map(wo => ({
-            id: wo.id,
-            type: 'WO',
-            title: wo.title,
-            assetName: wo.assetId, // Replaced asset with assetId for simplicity with old types
-            priority: wo.priority as string,
-            status: wo.status as string,
-            category: wo.category as string
-        }));
-
-        // 2. Upcoming Schedules (Next 14 Days)
-        const nextTwoWeeks = new Date();
-        nextTwoWeeks.setDate(nextTwoWeeks.getDate() + 14);
-
-        const schedules = await prisma.preventiveSchedule.findMany({
-            where: {
-                nextDueDate: { lte: nextTwoWeeks }
-            },
-            include: { asset: { select: { name: true } } },
-            orderBy: { nextDueDate: 'asc' }
-        });
-
-        const pmItems = schedules.map(sch => ({
-            id: sch.id,
-            type: 'PM',
-            title: sch.taskTitle,
-            assetName: sch.asset.name,
-            priority: 'MEDIUM', // Default for PM
-            status: 'SCHEDULED', // Virtual status
-            category: 'PREVENTIVE',
-            dueDate: sch.nextDueDate.toISOString()
-        }));
-
-        return [...woItems, ...pmItems];
-    } catch (error) {
-        console.error("Error fetching planner items:", error);
-        return [];
-    }
+    return newGetPlannerUnassignedItems();
 }
 
+
 export async function createWorkOrderFromSchedule(scheduleId: string, date: Date, technicianId?: string) {
-    try {
-        const schedule = await prisma.preventiveSchedule.findUnique({
-            where: { id: scheduleId },
-            include: { asset: { select: { name: true } } }
-        });
-
-        if (!schedule) return { success: false, message: "Schedulazione non trovata" };
-
-        let checklistCreate: any[] = [];
-        try {
-            const activities = schedule.activities ? JSON.parse(schedule.activities) : [];
-            if (Array.isArray(activities)) {
-                checklistCreate = activities.map((a: any) => ({
-                    label: typeof a === 'string' ? a : a.label || "Attività",
-                    completed: false
-                }));
-            }
-        } catch (e) {
-            console.error("Error parsing schedule activities", e);
-        }
-
-        const newWo = await prisma.workOrder.create({
-            data: {
-                title: schedule.taskTitle,
-                description: schedule.description,
-                assetId: schedule.assetId,
-                priority: 'MEDIUM',
-                category: 'OTHER', // Adjusted from PREVENTIVE
-                status: 'OPEN',
-                assignedTo: 'Unassigned',
-                dueDate: date,
-                checklist: {
-                    create: checklistCreate
-                }
-            }
-        });
-
-        // Update schedule next due date (simple increment)
-        const nextDate = new Date(schedule.nextDueDate);
-        nextDate.setDate(nextDate.getDate() + schedule.frequencyDays);
-        await prisma.preventiveSchedule.update({
-            where: { id: scheduleId },
-            data: { nextDueDate: nextDate }
-        });
-
-        if (technicianId) {
-            await assignWorkOrder(newWo.id, technicianId, date);
-        }
-
-        revalidatePath('/planning/calendar');
-        return { success: true, message: "Ordine creato da schedulazione" };
-    } catch (error) {
-        console.error("Error creating WO from Schedule:", error);
-        return { success: false, message: "Errore creazione ordine" };
-    }
+    return newCreateWorkOrderFromSchedule(scheduleId, date, technicianId);
 }
 
 // --- Preventive Schedules ---
 
 export async function getPreventiveSchedules() {
-    const session = await auth();
-    if (!session?.user) return [];
-    try {
-        const schedules = await prisma.preventiveSchedule.findMany({
-            include: { asset: { select: { name: true, line: true } } },
-            orderBy: { nextDueDate: 'asc' }
-        });
-        return schedules.map(s => ({
-            ...s,
-            assetName: s.asset.name,
-            assetLine: s.asset.line,
-            activities: s.activities ? JSON.parse(s.activities) : [],
-            lastRunDate: s.lastRunDate ? s.lastRunDate.toISOString() : null,
-            nextDueDate: s.nextDueDate.toISOString()
-        }));
-    } catch (error) {
-        return [];
-    }
+    return newGetPreventiveSchedules();
 }
 
 export async function getAssetSchedules(assetId: string) {
-    try {
-        const schedules = await prisma.preventiveSchedule.findMany({
-            where: { assetId },
-            include: { asset: { select: { name: true, line: true } } },
-            orderBy: { nextDueDate: 'asc' }
-        });
-        return schedules.map(s => ({
-            ...s,
-            assetName: s.asset.name,
-            assetLine: s.asset.line,
-            activities: s.activities ? JSON.parse(s.activities) : [],
-            lastRunDate: s.lastRunDate ? s.lastRunDate.toISOString() : null,
-            nextDueDate: s.nextDueDate.toISOString()
-        }));
-    } catch (error) {
-        return [];
-    }
+    return newGetAssetSchedules(assetId);
 }
 
 export async function createPreventiveSchedule(data: {
@@ -853,58 +491,15 @@ export async function createPreventiveSchedule(data: {
     activities: any[];
     firstDate: Date;
 }) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
-        return { success: false, message: 'Non autorizzato' };
-    }
-
-    try {
-        await prisma.preventiveSchedule.create({
-            data: {
-                taskTitle: data.title,
-                description: data.description,
-                assetId: data.assetId,
-                frequency: data.frequency,
-                frequencyDays: data.frequencyDays,
-                activities: JSON.stringify(data.activities),
-                nextDueDate: new Date(data.firstDate)
-            }
-        });
-        revalidatePath('/maintenance/schedule');
-        return { success: true, message: 'Schedulazione creata con successo' };
-    } catch (error) {
-        console.error("Create Sched Error:", error);
-        return { success: false, message: 'Errore creazione schedulazione' };
-    }
+    return newCreatePreventiveSchedule(data);
 }
 
 export async function deletePreventiveSchedule(id: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
-    try {
-        await prisma.preventiveSchedule.delete({ where: { id } });
-        revalidatePath('/maintenance/schedule');
-        return { success: true, message: 'Schedulazione eliminata con successo' };
-    } catch (error) {
-        return { success: false, message: 'Errore eliminazione' };
-    }
+    return newDeletePreventiveSchedule(id);
 }
 
 export async function updatePreventiveSchedule(id: string, nextDueDate: Date) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
-
-    try {
-        await prisma.preventiveSchedule.update({
-            where: { id },
-            data: { nextDueDate }
-        });
-        revalidatePath('/maintenance/schedule');
-        revalidatePath('/maintenance');
-        return { success: true, message: 'Data aggiornata' };
-    } catch (error) {
-        return { success: false, message: 'Errore aggiornamento data' };
-    }
+    return newUpdatePreventiveSchedule(id, nextDueDate);
 }
 
 // --- Technicians ---
@@ -972,52 +567,13 @@ export async function getAvailableUsersForTechnician() {
 
 
 export async function addTechnician(data: { name: string; specialty: string; hourlyRate: number; email: string }) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
-
-    try {
-        // Find User
-        const user = await prisma.user.findUnique({ where: { email: data.email } });
-        if (!user) {
-            return { success: false, message: 'Utente non trovato. Devi prima creare un account Utente con questa email.' };
-        }
-
-        // Check if user is already a technician
-        const existingTech = await prisma.technician.findUnique({ where: { userId: user.id } });
-        if (existingTech) {
-            return { success: false, message: 'Questo utente è già un tecnico.' };
-        }
-
-        const newTech = await prisma.technician.create({
-            data: {
-                name: data.name,
-                specialty: data.specialty,
-                hourlyRate: data.hourlyRate,
-                userId: user.id
-            }
-        });
-
-        // Optionally update Role to MAINTAINER if strictly needed, but let's leave it flexible or do it.
-        // if (user.role === 'USER') { await prisma.user.update({ where: {id: user.id}, data: { role: 'MAINTAINER' }})} 
-
-        revalidatePath('/settings');
-        return { success: true, message: 'Tecnico aggiunto e collegato all\'utente.', data: newTech };
-    } catch (error) {
-        console.error("Add Technician Error:", error);
-        return { success: false, message: 'Errore aggiunta tecnico: ' + (error as any).message };
-    }
+    return newAddTechnician(data);
 }
 
 export async function deleteTechnician(id: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
-    try {
-        await prisma.technician.delete({ where: { id } });
-        return { success: true, message: 'Tecnico eliminato' };
-    } catch (error) {
-        return { success: false, message: 'Errore eliminazione' };
-    }
+    return newDeleteTechnician(id);
 }
+
 
 // --- Maintenance Activities ---
 
@@ -1050,107 +606,21 @@ export async function deleteActivity(id: string) {
 // --- Inventory (Spare Parts) ---
 
 export async function getSpareParts() {
-    try {
-        const parts = await prisma.sparePart.findMany({ orderBy: { name: 'asc' } });
-        return parts.map((part: any) => ({
-            ...part,
-            lastUpdated: part.lastUpdated ? part.lastUpdated.toISOString() : new Date().toISOString()
-        }));
-    } catch (error) {
-        return [];
-    }
+    return newGetSpareParts();
 }
 
 export async function addSparePart(data: { name: string; quantity: number; category?: string; description?: string; location?: string; unitCost?: number; minQuantity?: number; warehouse?: string }) {
-    try {
-        const newPart = await prisma.sparePart.create({ data: { ...data, minQuantity: data.minQuantity || 0 } });
-        return {
-            success: true,
-            message: 'Ricambio aggiunto',
-            data: {
-                ...newPart,
-                lastUpdated: newPart.lastUpdated.toISOString()
-            }
-        };
-    } catch (error) {
-        console.error("Add Spare Part Error:", error);
-        return { success: false, message: `Errore aggiunta ricambio: ${(error as any).message}` };
-    }
-}
-
-async function checkAndCreatePurchaseRequest(partId: string) {
-    const part = await prisma.sparePart.findUnique({ where: { id: partId } });
-    if (!part || part.quantity > part.minQuantity) return;
-
-    // Check if auto-request already exists that is active
-    const existingActiveRequest = await prisma.purchaseRequest.findFirst({
-        where: {
-            partId: part.id,
-            status: { in: ["DRAFT", "SUBMITTED", "APPROVED", "ORDERED"] }
-        }
-    });
-
-    if (existingActiveRequest) return; // Wait for the active request to be fulfilled
-
-    // Suggest quantity to reorder: bring stock back up to minQuantity * 2 + 5 buffer
-    const suggestedQuantity = Math.max((part.minQuantity * 2) - part.quantity, 10);
-
-    await prisma.purchaseRequest.create({
-        data: {
-            partId: part.id,
-            quantity: suggestedQuantity,
-            status: "DRAFT",
-            reason: `Giacenza critica (${part.quantity} / ${part.minQuantity}) - Auto-riordino dal sistema`,
-            expectedCost: suggestedQuantity * (part.unitCost || 0)
-        }
-    });
-
-    // Notify admins/purchasing
-    const purchasingUsers = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'SUPERVISOR'] } } });
-    for (const u of purchasingUsers) {
-        await prisma.notification.create({
-            data: {
-                userId: u.id,
-                title: "Riordino Automatico Generato",
-                message: `Creata bozza d'acquisto per ${part.name} (${suggestedQuantity}pz).`,
-                link: "/inventory/purchase-requests"
-            }
-        });
-    }
+    return newAddSparePart(data);
 }
 
 export async function updateSparePartQuantity(id: string, quantity: number) {
-    try {
-        const updated = await prisma.sparePart.update({ where: { id }, data: { quantity, lastUpdated: new Date() } });
-
-        // Auto-reorder check
-        if (quantity <= updated.minQuantity) {
-            await checkAndCreatePurchaseRequest(id);
-        }
-
-        return {
-            success: true,
-            message: 'Quantità aggiornata',
-            data: {
-                ...updated,
-                lastUpdated: updated.lastUpdated.toISOString()
-            }
-        };
-    } catch (error) {
-        return { success: false, message: 'Errore aggiornamento' };
-    }
+    return newUpdateSparePartQuantity(id, quantity);
 }
 
 export async function deleteSparePart(id: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
-    try {
-        await prisma.sparePart.delete({ where: { id } });
-        return { success: true, message: 'Ricambio eliminato' };
-    } catch (error) {
-        return { success: false, message: 'Errore eliminazione' };
-    }
+    return newDeleteSparePart(id);
 }
+
 
 // --- Components ---
 
@@ -1231,475 +701,78 @@ export async function sendChatMessage(data: { sender: string; role: string; cont
     }
 }
 
-// --- Work Orders ---
+export const getWorkOrders = unstable_cache(
+    async () => {
+        try {
+            const wos = await prisma.workOrder.findMany({
+                orderBy: { createdAt: 'desc' },
+                take: 1000,
+                include: {
+                    asset: true,
+                    timers: true,
+                    laborLogs: true,
+                    partsUsed: true,
+                    checklist: { orderBy: { id: 'asc' } },
+                    technicians: { include: { technician: true } }
+                }
+            });
 
-export async function getWorkOrders() {
-    try {
-        const wos = await prisma.workOrder.findMany({
-            orderBy: { createdAt: 'desc' },
-            take: 1000,
-            include: {
-                asset: true,
-                timers: true,
-                laborLogs: true,
-                partsUsed: true,
-                checklist: { orderBy: { id: 'asc' } },
-                technicians: { include: { technician: true } }
-            }
-        });
+            return wos.map((wo: any) => ({
+                ...wo,
+                dueDate: wo.dueDate ? wo.dueDate.toISOString() : null,
+                createdAt: wo.createdAt ? wo.createdAt.toISOString() : new Date().toISOString(),
+                partsUsed: wo.partsUsed?.map((p: any) => ({
+                    ...p,
+                    dateAdded: p.dateAdded ? p.dateAdded.toISOString() : new Date().toISOString()
+                })) || [],
+                laborLogs: wo.laborLogs?.map((l: any) => ({
+                    ...l,
+                    date: l.date ? l.date.toISOString() : new Date().toISOString()
+                })) || [],
+                checklist: wo.checklist || [],
+                timers: wo.timers?.map((t: any) => ({
+                    ...t,
+                    startTime: t.startTime.toISOString(),
+                    endTime: t.endTime ? t.endTime.toISOString() : null
+                })) || [],
+                technicians: wo.technicians ? wo.technicians.map((t: any) => ({ id: t.technician.id, name: t.technician.name })) : []
+            }));
 
-        return wos.map((wo: any) => ({
-            ...wo,
-            dueDate: wo.dueDate ? wo.dueDate.toISOString() : null,
-            createdAt: wo.createdAt ? wo.createdAt.toISOString() : new Date().toISOString(),
-            partsUsed: wo.partsUsed?.map((p: any) => ({
-                ...p,
-                dateAdded: p.dateAdded ? p.dateAdded.toISOString() : new Date().toISOString()
-            })) || [],
-            laborLogs: wo.laborLogs?.map((l: any) => ({
-                ...l,
-                date: l.date ? l.date.toISOString() : new Date().toISOString()
-            })) || [],
-            checklist: wo.checklist || [],
-            timers: wo.timers?.map((t: any) => ({
-                ...t,
-                startTime: t.startTime.toISOString(),
-                endTime: t.endTime ? t.endTime.toISOString() : null
-            })) || [],
-            technicians: wo.technicians ? wo.technicians.map((t: any) => ({ id: t.technician.id, name: t.technician.name })) : []
-        }));
-
-    } catch (error) {
-        console.error('Failed to get WOs:', error);
-        return [];
-    }
-}
+        } catch (error) {
+            console.error('Failed to get WOs:', error);
+            return [];
+        }
+    },
+    ['all-work-orders'],
+    { tags: ['work-orders'], revalidate: 3600 }
+);
 
 export async function getActiveWorkOrdersForAsset(assetId: string) {
-    try {
-        const activeWOs = await prisma.workOrder.findMany({
-            where: {
-                assetId: assetId,
-                status: {
-                    notIn: ['COMPLETED', 'CLOSED', 'CANCELED']
-                }
-            },
-            select: {
-                id: true,
-                title: true,
-                status: true,
-                createdAt: true,
-                description: true
-            },
-            orderBy: { createdAt: 'desc' }
-        });
-
-        // Map dates
-        return activeWOs.map(wo => ({
-            ...wo,
-            createdAt: wo.createdAt.toISOString()
-        }));
-    } catch (error) {
-        console.error("Failed to get active WOs:", error);
-        return [];
-    }
-}
-
-const VIRTUAL_ASSETS: Record<string, { name: string; type: string }> = {
-    'SYS-SAFETY': { name: 'Segnalazione Sicurezza', type: 'SAFETY' },
-    'SYS-KAIZEN': { name: 'Proposta Miglioramento', type: 'KAIZEN' },
-    'SYS-WORKSHOP': { name: 'Richiesta Officina', type: 'OTHER' },
-    'SYS-PLANT': { name: 'Manutenzione Impianti', type: 'FACILITY' },
-    'SYS-OTHER': { name: 'Altro / Generico', type: 'OTHER' },
-};
-
-async function ensureVirtualAsset(id: string) {
-    if (VIRTUAL_ASSETS[id]) {
-        const info = VIRTUAL_ASSETS[id];
-        await prisma.asset.upsert({
-            where: { id },
-            update: {},
-            create: {
-                id,
-                name: info.name,
-                type: info.type as any,
-                model: 'System Virtual Asset',
-                serialNumber: id,
-                location: 'VIRTUAL',
-                status: 'OPERATIONAL',
-                purchaseDate: new Date(),
-                department: 'GENERAL'
-            }
-        });
-    }
+    return newGetActiveWorkOrdersForAsset(assetId);
 }
 
 export async function createWorkOrder(rawData: any) {
-    const session = await auth();
-    if (!session?.user) {
-        return { success: false, message: "Non autorizzato. Effettua il login." };
-    }
-
-    try {
-        console.log("createWorkOrder RAW DATA:", JSON.stringify(rawData, null, 2));
-
-        // Zod Validation
-        const validation = workOrderSchema.safeParse(rawData);
-        if (!validation.success) {
-            console.error("WO Validation Failed:", JSON.stringify(validation.error, null, 2));
-            const zError = validation.error as any;
-            const issues = zError.issues || zError.errors || [];
-            const errorMsg = issues.length > 0
-                ? issues.map((e: any) => e.message).join(", ")
-                : "Unknown Validation Error";
-            return { success: false, message: "Dati non validi: " + errorMsg };
-        }
-        const data = validation.data;
-
-        // Ensure Virtual Asset Exists if applicable
-        await ensureVirtualAsset(data.assetId);
-
-        console.log("Creating WO with data:", {
-            ...data, checklist: data.checklist ? `Array(${data.checklist.length
-                })` : 'undefined'
-        });
-
-        const newWO = await prisma.workOrder.create({
-            data: {
-                title: data.title,
-                description: data.description,
-                assetId: data.assetId,
-                priority: data.priority,
-                category: data.category,
-                status: data.status,
-                type: data.type,
-                dueDate: data.dueDate,
-
-                requesterId: data.requesterId || session.user.id, // Fallback to current user
-                validatedById: data.validatedById,
-                assignedTechnicianId: data.assignedTechnicianId,
-
-                // NEW: Better plant association
-                plantId: data.plantId || (await prisma.asset.findUnique({ where: { id: data.assetId } }))?.plantId || (session.user as any).plantId,
-
-                checklist: data.checklist && data.checklist.length > 0 ? {
-                    create: data.checklist.map((c: any) => ({
-                        label: c.label,
-                        completed: c.completed
-                    }))
-                } : undefined
-            }
-        });
-
-        await logAction('CREATE_WO', newWO.id, `Created Work Order: ${newWO.title} `);
-
-        // NOTIFICATION: Check if created with assignment
-        if (newWO.assignedTechnicianId) {
-            const tech = await prisma.technician.findUnique({ where: { id: newWO.assignedTechnicianId } });
-            if (tech && tech.userId) {
-                // Notifica il tecnico
-                await prisma.notification.create({
-                    data: {
-                        userId: tech.userId,
-                        title: "Nuovo Incarico",
-                        message: `Ti è stato assegnato un nuovo ordine di lavoro: ${newWO.title} `,
-                        link: `/ work - orders / ${newWO.id} `
-                    }
-                });
-            }
-        }
-
-        // NOTIFICATION: Critical Safety Requests -> Notify Supervisors
-        if ((newWO.category === 'SAFETY' || newWO.assetId === 'SYS-SAFETY') &&
-            (newWO.priority === 'HIGH' || newWO.priority === 'STOPPED')) {
-
-            const supervisors = await prisma.user.findMany({
-                where: { role: 'SUPERVISOR' },
-                select: { id: true }
-            });
-
-            console.log("Supervisors found:", supervisors);
-
-            if (supervisors && supervisors.length > 0) {
-                const notifications = supervisors.map(supervisor => ({
-                    userId: supervisor.id,
-                    title: "⚠️ SICUREZZA: Segnalazione Critica",
-                    message: `Nuova richiesta di sicurezza ad ALTA priorità: ${newWO.title} `,
-                    link: `/ work - orders / ${newWO.id} `
-                }));
-
-                await prisma.notification.createMany({
-                    data: notifications
-                });
-            }
-        }
-
-        revalidatePath('/work-orders');
-        revalidatePath('/requests'); // Revalidate requests too
-        revalidatePath('/'); // Refresh Dashboard
-        return { success: true, message: 'Ordine creato', data: newWO };
-
-    } catch (error) {
-        console.error("WO Create Error Detailed:", error);
-        return { success: false, message: `Errore creazione ordine: ${(error as any).message} ` };
-    }
+    return newCreateWorkOrder(rawData);
 }
 
 export async function approveRequest(id: string, technicianId: string, priority: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role === 'USER') {
-        return { success: false, message: 'Non autorizzato' };
-    }
-
-    try {
-        const tech = await prisma.technician.findUnique({ where: { id: technicianId } });
-
-        await prisma.workOrder.update({
-            where: { id },
-            data: {
-                status: 'ASSIGNED', // Changed from APPROVED to ASSIGNED to match Kanban
-                type: 'FAULT', // Convert request to standard fault
-                priority: priority as WorkOrderPriority,
-                assignedTechnicianId: technicianId,
-                assignedTo: tech?.name || 'Assigned'
-            }
-        });
-
-        // Add to join table
-        await prisma.workOrderTechnician.create({
-            data: {
-                workOrderId: id,
-                technicianId: technicianId
-            }
-        });
-
-        // Notify Technician Using User ID
-        const assignedWO = await prisma.workOrder.findUnique({ where: { id } });
-
-        if (tech && tech.userId && assignedWO) {
-            await prisma.notification.create({
-                data: {
-                    userId: tech.userId,
-                    title: "Nuovo Incarico: " + assignedWO.title,
-                    message: `È stata approvata una nuova richiesta.\nDescrizione: ${assignedWO.description.substring(0, 100)}${assignedWO.description.length > 100 ? '...' : ''} `,
-                    link: `/ work - orders / ${id} `
-                }
-            });
-        }
-
-        revalidatePath('/work-orders');
-        revalidatePath('/requests');
-        return { success: true, message: 'Richiesta approvata e assegnata' };
-    } catch (error) {
-        return { success: false, message: 'Errore approvazione' };
-    }
+    return newApproveRequest(id, technicianId, priority);
 }
 
-
 export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT', feedback?: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role === 'USER') {
-        return { success: false, message: 'Non autorizzato' };
-    }
-
-    try {
-        if (decision === 'APPROVE') {
-            // EWO Check
-            const settings = await prisma.systemSettings.findUnique({ where: { id: 'settings' } });
-            if (settings?.ewoThresholdHours && settings.ewoThresholdHours > 0) {
-                const currentWO = await prisma.workOrder.findUnique({
-                    where: { id },
-                    include: { laborLogs: true }
-                });
-
-                if (currentWO) {
-                    const totalHours = currentWO.laborLogs.reduce((acc, log) => acc + log.hours, 0);
-                    if (totalHours > settings.ewoThresholdHours && !currentWO.ewoFilled) {
-                        return {
-                            success: false,
-                            message: `Blocco EWO: L'intervento (durata ${totalHours}h) supera la soglia di ${settings.ewoThresholdHours}h. Compilare il modulo EWO prima di chiudere.`
-                        };
-                    }
-                }
-            }
-
-            const wo = await prisma.workOrder.update({
-                where: { id },
-                data: {
-                    status: 'CLOSED',
-                    validatedById: session.user.id
-                },
-                include: {
-                    originSchedule: true,
-                    ewo: true
-                }
-            });
-
-            await logAction('REVIEW_WO', id, 'Approved and Closed');
-
-            // --- SELF-LEARNING TRIGGER ---
-            try {
-                const { learnFromWorkOrder } = await import('@/lib/ai-service');
-                if (wo.ewoFilled && wo.ewo) {
-                    await learnFromWorkOrder(
-                        wo.ewo.description || wo.description,
-                        wo.ewo.solutionApplied,
-                        wo.category
-                    );
-                } else if (feedback) {
-                    // Treat feedback as solution for standard WOs
-                    await learnFromWorkOrder(wo.description, feedback, wo.category);
-                }
-            } catch (kError) {
-                console.error("Learning Trigger Failed:", kError);
-            }
-            // -----------------------------
-
-            // Auto-Regenerate Schedule if linked
-            if (wo.originScheduleId && wo.originSchedule) {
-                const sched = wo.originSchedule;
-                const nextDate = new Date(); // Start from "Now" (completion time) or keep strict schedule?
-                // Usually strict schedule means next due = prev due + freq, but if late, we might want from completion.
-                // Let's settle on: Next Due = Today + Frequency Days (Reset clock)
-
-                // Calc days based on frequency or fallback
-                const daysToAdd = sched.frequencyDays;
-                // We could look up RECURRENCE_OPTIONS map here, but frequencyDays is stored in DB for convenience.
-
-                nextDate.setDate(nextDate.getDate() + daysToAdd);
-
-                await prisma.preventiveSchedule.update({
-                    where: { id: sched.id },
-                    data: {
-                        lastRunDate: new Date(),
-                        nextDueDate: nextDate
-                    }
-                });
-            }
-
-            // Notifications Cleanup: Mark any notification about this WO as read for this user
-            try {
-                const pendingNotifs = await prisma.notification.findMany({
-                    where: {
-                        userId: session.user.id,
-                        link: { contains: `/work-orders/${id}` },
-                        read: false
-                    }
-                });
-
-                if (pendingNotifs.length > 0) {
-                    await prisma.notification.updateMany({
-                        where: {
-                            id: { in: pendingNotifs.map(n => n.id) }
-                        },
-                        data: { read: true }
-                    });
-                }
-            } catch (e) {
-                console.error("Failed to cleanup notification:", e);
-            }
-
-        } else {
-            await prisma.workOrder.update({
-                where: { id },
-                data: {
-                    status: 'IN_PROGRESS', // Send back to tech
-                    // Add feedback to comments/chat? For now just status.
-                }
-            });
-            await logAction('REVIEW_WO', id, 'Rejected and Sent Back');
-        }
-
-        revalidatePath('/work-orders');
-        revalidatePath(`/work-orders/${id}`);
-        revalidatePath('/maintenance/schedule'); // Update schedule list
-        return { success: true, message: decision === 'APPROVE' ? 'Ordine validato e chiuso' : 'Ordine respinto al tecnico' };
-    } catch (error) {
-        console.error("Review Error:", error);
-        return { success: false, message: 'Errore revisione' };
-    }
+    return newReviewWorkOrder(id, decision, feedback);
 }
 
 export async function updateWorkOrderStatus(id: string, status: string) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        // Automatically promote REQUEST to FAULT if moving out of pending
-        const wo = await prisma.workOrder.findUnique({ where: { id } });
-        let typeUpdate = {};
-
-        if (wo?.type === 'REQUEST' && status !== 'PENDING_APPROVAL' && status !== 'CANCELED') {
-            typeUpdate = { type: 'FAULT' };
-        }
-
-        const validStatus = status as WorkOrderStatus;
-
-        await prisma.workOrder.update({
-            where: { id },
-            data: {
-                status: validStatus,
-                ...typeUpdate
-            }
-        });
-
-        await logAction('UPDATE_WO_STATUS', id, `Status changed to ${status}`);
-
-        revalidatePath('/maintenance');
-        revalidatePath('/work-orders');
-        revalidatePath('/requests');
-        revalidatePath('/'); // Refresh Dashboard
-        return { success: true };
-    } catch (error) {
-        return { success: false };
-    }
+    return newUpdateWorkOrderStatus(id, status);
 }
 
 export async function deleteWorkOrder(id: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role === 'USER') return { success: false, message: "Non autorizzato" };
-    try {
-        await prisma.workOrder.delete({ where: { id } });
-        await logAction('DELETE_WO', id, 'Deleted Work Order');
-        revalidatePath('/work-orders');
-        revalidatePath('/maintenance');
-        revalidatePath('/'); // Refresh Dashboard
-        return { success: true };
-    } catch (error) {
-        return { success: false, message: "Failed to delete work order" };
-    }
+    return newDeleteWorkOrder(id);
 }
 
 export async function updateWorkOrderDetails(id: string, updates: any) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        const { dueDate, ...rest } = updates;
-        const data: any = { ...rest };
-
-        // Basic Zod check if full object was passed, but usually updates are partial.
-        // For now, keep it flexible but safe via Auth.
-
-        if (dueDate) {
-            data.dueDate = new Date(dueDate);
-        }
-
-        const updated = await prisma.workOrder.update({
-            where: { id },
-            data
-        });
-
-        await logAction('UPDATE_WO_DETAILS', id, 'Updated details');
-
-        revalidatePath('/work-orders');
-        revalidatePath('/maintenance');
-        revalidatePath(`/work-orders/${id}`);
-        return { success: true, message: 'Ordine aggiornato', data: updated };
-    } catch (error) {
-        console.error("Update WO Error:", error);
-        return { success: false, message: 'Errore aggiornamento' };
-    }
+    return newUpdateWorkOrderDetails(id, updates);
 }
 
 export async function createPreventiveFromEWO(
@@ -1710,275 +783,27 @@ export async function createPreventiveFromEWO(
     frequency: string,
     frequencyDays: number
 ) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        let actualAssetId = assetId;
-        if (assetId === 'auto-resolve-in-server') {
-            const wo = await prisma.workOrder.findUnique({ where: { id: workOrderId }, select: { assetId: true } });
-            if (wo) {
-                actualAssetId = wo.assetId;
-            } else {
-                return { success: false, message: 'Work Order non trovato per risalire all\'asset' };
-            }
-        }
-
-        const nextDueDate = new Date();
-        nextDueDate.setDate(nextDueDate.getDate() + frequencyDays);
-
-        const schedule = await prisma.preventiveSchedule.create({
-            data: {
-                taskTitle,
-                description,
-                frequency,
-                frequencyDays,
-                assetId: actualAssetId,
-                nextDueDate,
-                activities: JSON.stringify([{ label: taskTitle, completed: false }])
-            }
-        });
-
-        await logAction('CREATE_PREVENTIVE', schedule.id, `Created from EWO #${workOrderId}`);
-
-        revalidatePath('/planning/calendar');
-        revalidatePath(`/assets/${actualAssetId}`);
-        revalidatePath('/work-orders');
-
-        return { success: true, message: 'Piano Preventivo Generato con Successo!' };
-    } catch (error) {
-        console.error("Create Preventive Error:", error);
-        return { success: false, message: 'Errore durante la creazione del piano preventivo' };
-    }
+    return newCreatePreventiveFromEWO(workOrderId, assetId, taskTitle, description, frequency, frequencyDays);
 }
 
-// --- Time Tracking ---
-
 export async function startWorkSession(workOrderId: string) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        // Close any running session for this user just in case
-        await prisma.workOrderTimer.updateMany({
-            where: { workOrderId, userId: session.user.id, endTime: null },
-            data: { endTime: new Date() } // Should calc duration here too if we want precision, but usually we just close. 
-            // Better to stop cleanly.
-        });
-
-        await prisma.workOrderTimer.create({
-            data: {
-                workOrderId,
-                userId: session.user.id,
-                startTime: new Date()
-            }
-        });
-
-        await prisma.workOrder.update({
-            where: { id: workOrderId },
-            data: { status: 'IN_PROGRESS' }
-        });
-
-        revalidatePath(`/work-orders/${workOrderId}`);
-        return { success: true };
-    } catch (error) {
-        return { success: false, message: 'Errore avvio timer' };
-    }
+    return newStartWorkSession(workOrderId);
 }
 
 export async function pauseWorkSession(workOrderId: string, note?: string) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        const activeTimer = await prisma.workOrderTimer.findFirst({
-            where: { workOrderId, userId: session.user.id, endTime: null }
-        });
-
-        if (activeTimer) {
-            const end = new Date();
-            const start = new Date(activeTimer.startTime);
-            const durationArr = (end.getTime() - start.getTime()) / 1000 / 60 / 60; // Hours
-
-            // Create Labor Log automatically
-            const tech = await prisma.technician.findUnique({ where: { userId: session.user.id } });
-
-            if (tech && durationArr > 0) {
-                await prisma.laborLog.create({
-                    data: {
-                        workOrderId: workOrderId,
-                        technicianId: tech.id,
-                        technicianName: tech.name,
-                        hours: parseFloat(durationArr.toFixed(2)),
-                        date: end, // Use end date for the log
-                        note: note
-                    }
-                });
-            }
-
-            await prisma.workOrderTimer.update({
-                where: { id: activeTimer.id },
-                data: {
-                    endTime: end,
-                    duration: Math.round((end.getTime() - start.getTime()) / 1000 / 60), // Minutes stored in timer
-                    note
-                }
-            });
-        }
-
-        await prisma.workOrder.update({
-            where: { id: workOrderId },
-            data: { status: 'ON_HOLD' } // Pause implies Hold
-        });
-
-        revalidatePath(`/work-orders/${workOrderId}`);
-        return { success: true };
-    } catch (error) {
-        console.error("Pause Error:", error);
-        return { success: false, message: 'Errore pausa timer' };
-    }
+    return newPauseWorkSession(workOrderId, note);
 }
 
 export async function stopWorkSession(workOrderId: string, note?: string) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        const activeTimer = await prisma.workOrderTimer.findFirst({
-            where: { workOrderId, userId: session.user.id, endTime: null }
-        });
-
-        if (activeTimer) {
-            const end = new Date();
-            const start = new Date(activeTimer.startTime);
-            const durationMinutes = (end.getTime() - start.getTime()) / 1000 / 60;
-            const durationHours = durationMinutes / 60;
-
-            // Create Labor Log
-            const tech = await prisma.technician.findUnique({ where: { userId: session.user.id } });
-
-            if (tech && durationMinutes > 1) { // Min 1 minute to log?
-                await prisma.laborLog.create({
-                    data: {
-                        workOrderId: workOrderId,
-                        technicianId: tech.id,
-                        technicianName: tech.name,
-                        hours: parseFloat(durationHours.toFixed(2)),
-                        date: end,
-                        note: note
-                    }
-                });
-            }
-
-            await prisma.workOrderTimer.update({
-                where: { id: activeTimer.id },
-                data: {
-                    endTime: end,
-                    duration: Math.round(durationMinutes),
-                    note
-                }
-            });
-        }
-
-        // Ensure status reflects stoppage if needed? 
-        // User asked for pure "Stop", maybe implies "Assigned" or "Open" again?
-        // Or keep current status but just stop timer?
-        // Let's set to ON_HOLD to be safe, as work stopped.
-        await prisma.workOrder.update({
-            where: { id: workOrderId },
-            data: { status: 'ON_HOLD' }
-        });
-
-        revalidatePath(`/work-orders/${workOrderId}`);
-        return { success: true };
-    } catch (error) {
-        console.error("Stop Error:", error);
-        return { success: false, message: 'Errore stop timer' };
-    }
+    return newStopWorkSession(workOrderId, note);
 }
 
 export async function completeWorkOrder(workOrderId: string, note?: string) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        // 1. Verify Checklist
-        const wo = await prisma.workOrder.findUnique({
-            where: { id: workOrderId },
-            include: { checklist: true }
-        });
-
-        if (!wo) return { success: false, message: 'Ordine non trovato' };
-
-        const pendingItems = wo.checklist.filter(i => !i.completed);
-        if (pendingItems.length > 0) {
-            return { success: false, message: `Checklist incompleta: ${pendingItems.length} voci rimanenti.` };
-        }
-
-        // 2. Stop any active timer
-        // Use user note if provided, else default
-        const stopNote = note || "Ordine Completato";
-        await stopWorkSession(workOrderId, stopNote);
-
-        // 3. Update Status
-        await prisma.workOrder.update({
-            where: { id: workOrderId },
-            data: { status: 'COMPLETED' }
-        });
-
-        // 4. Notify Requester
-        if (wo.requesterId) {
-            await prisma.notification.create({
-                data: {
-                    userId: wo.requesterId,
-                    title: "Ordine Completato",
-                    message: `Il lavoro #${wo.id} è stato completato. In attesa di validazione.`,
-                    link: `/work-orders/${workOrderId}`
-                }
-            });
-        }
-
-        revalidatePath(`/work-orders/${workOrderId}`);
-        revalidatePath(`/work-orders`);
-        return { success: true, message: 'Ordine completato' };
-    } catch (error) {
-        return { success: false, message: 'Errore completamento' };
-    }
+    return newCompleteWorkOrder(workOrderId, note);
 }
 
-
-
 export async function importWorkOrders(workOrders: any[]) {
-    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
-    if (!authorized) return { success: false, message: message || "Unauthorized", count: 0, errors: ["Unauthorized"] };
-    let count = 0;
-    const errors: string[] = [];
-    for (const wo of workOrders) {
-        try {
-            if (!wo.title || !wo.assetName) continue;
-            const asset = await prisma.asset.findFirst({ where: { name: wo.assetName } });
-            if (!asset) {
-                errors.push(`Asset not found: ${wo.assetName} for WO: ${wo.title}`);
-                continue;
-            }
-            const woData = {
-                title: wo.title,
-                description: wo.description || '',
-                priority: wo.priority || 'MEDIUM',
-                status: wo.status || 'OPEN',
-                category: wo.category || 'Other',
-                assetId: asset.id,
-                dueDate: wo.dueDate ? new Date(wo.dueDate) : new Date(),
-                assignedTo: wo.assignedTo || null
-            };
-            await prisma.workOrder.create({ data: woData });
-            count++;
-        } catch (e) {
-            errors.push(`Failed to import WO: ${wo.title}`);
-        }
-    }
-    revalidatePath('/work-orders');
-    return { success: true, count, errors };
+    return newImportWorkOrders(workOrders);
 }
 
 // --- Notifications ---
@@ -2163,371 +988,43 @@ export async function generateDailySuggestions() {
 
 
 export async function getMeters() {
-    try {
-        return await prisma.meter.findMany({ orderBy: { name: 'asc' } });
-    } catch (error) {
-        console.error("Failed to fetch meters:", error);
-        return [];
-    }
+    return newGetMeters();
 }
 
 export async function createMeter(data: any) {
-    await prisma.meter.create({
-        data: {
-            name: data.name,
-            type: data.type,
-            unit: data.unit,
-            serialNumber: data.serialNumber,
-            location: data.location,
-            installationDate: data.installationDate ? new Date(data.installationDate) : undefined
-        }
-    });
-    revalidatePath('/energy');
-    revalidatePath('/energy/meters');
+    return newCreateMeter(data);
 }
 
 export async function deleteMeter(id: string) {
-    await prisma.meter.delete({ where: { id } });
-    revalidatePath('/energy');
-    revalidatePath('/energy/meters');
+    return newDeleteMeter(id);
 }
 
 export async function getMeterReadings(meterId: string) {
-    const readings = await prisma.meterReading.findMany({
-        where: { meterId },
-        orderBy: { date: 'desc' },
-        take: 50
-    });
-    return readings.map((r: any) => ({
-        ...r,
-        date: r.date.toISOString().split('T')[0]
-    }));
+    return newGetMeterReadings(meterId);
 }
 
-
-
 export async function getEnergyStats(days: number = 30) {
-    try {
-        const now = new Date();
-        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-
-        const startOfTrend = subDays(new Date(), days);
-
-        // Fetch all meters
-        const meters = await prisma.meter.findMany();
-
-        // Fetch readings
-        // Fetch a bit more history to ensure we have a "previous" reading for the start of the window
-        const readings = await prisma.meterReading.findMany({
-            where: {
-                date: { gte: subDays(new Date(), 365) }
-            },
-            include: { meter: true },
-            orderBy: { date: 'asc' }
-        });
-
-        const totals = {
-            currentMonth: { ELEC: 0, WATER: 0, GAS: 0 },
-            lastMonth: { ELEC: 0, WATER: 0, GAS: 0 }
-        };
-
-        const dailyTrends = new Map<string, { date: string, elec: number, water: number, gas: number }>();
-        const meterDailyTrends = new Map<string, Map<string, number>>();
-
-        // Initialize daily trends for requested days using date-fns for safety
-        for (let d = 0; d <= days; d++) {
-            const date = addDays(startOfTrend, d);
-            const key = format(date, 'yyyy-MM-dd');
-            dailyTrends.set(key, { date: key, elec: 0, water: 0, gas: 0 });
-        }
-
-
-        // Initialize meter specific maps
-        meters.forEach(m => meterDailyTrends.set(m.id, new Map()));
-
-        // Process readings
-        for (const meter of meters) {
-            const meterReadings = readings
-                .filter(r => r.meterId === meter.id)
-                .sort((a, b) => a.date.getTime() - b.date.getTime());
-
-            for (let i = 1; i < meterReadings.length; i++) {
-                const current = meterReadings[i];
-                const prev = meterReadings[i - 1];
-
-                let consumption = current.value - prev.value;
-
-                // Simple anomaly filter
-                if ((prev.value === 0 && consumption > 5000) || consumption < 0) {
-                    consumption = 0;
-                }
-
-                // Days diff
-                const diffTime = Math.abs(current.date.getTime() - prev.date.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                const validDays = diffDays > 0 ? diffDays : 1;
-                const dailyConsumption = consumption / validDays;
-
-                // Distribute
-                for (let d = 0; d < validDays; d++) {
-                    const targetDate = addDays(prev.date, d + 1);
-
-                    if (targetDate > current.date) break;
-
-                    const targetDateKey = format(targetDate, 'yyyy-MM-dd');
-
-                    // 1. Monthly Totals
-                    if (targetDate >= currentMonthStart && targetDate <= now) {
-                        if (totals.currentMonth[meter.type as keyof typeof totals.currentMonth] !== undefined) {
-                            totals.currentMonth[meter.type as keyof typeof totals.currentMonth] += dailyConsumption;
-                        }
-                    } else if (targetDate >= lastMonthStart && targetDate <= lastMonthEnd) {
-                        if (totals.lastMonth[meter.type as keyof typeof totals.lastMonth] !== undefined) {
-                            totals.lastMonth[meter.type as keyof typeof totals.lastMonth] += dailyConsumption;
-                        }
-                    }
-
-                    // 2. Trends
-                    if (targetDate >= startOfTrend) {
-                        // Global Trend
-                        const entry = dailyTrends.get(targetDateKey);
-                        if (entry) {
-                            if (meter.type === 'ELEC') entry.elec += dailyConsumption;
-                            if (meter.type === 'WATER') entry.water += dailyConsumption;
-                            if (meter.type === 'GAS') entry.gas += dailyConsumption;
-                        }
-
-                        // Meter Trend
-                        const mTrend = meterDailyTrends.get(meter.id);
-                        if (mTrend) {
-                            const existing = mTrend.get(targetDateKey) || 0;
-                            mTrend.set(targetDateKey, existing + dailyConsumption);
-                        }
-                    }
-                }
-            }
-        }
-
-        const trends = Array.from(dailyTrends.values())
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-        const trendDates = trends.map(t => t.date);
-
-        const meterHistory: Record<string, Array<{ date: string, consumption: number }>> = {};
-        meters.forEach(m => {
-            const mTrendMap = meterDailyTrends.get(m.id);
-            meterHistory[m.id] = trendDates.map(date => ({
-                date,
-                consumption: mTrendMap?.get(date) || 0
-            }));
-        });
-
-        return {
-            currentMonth: totals.currentMonth,
-            lastMonth: totals.lastMonth,
-            trends,
-            meterHistory,
-            meters
-        };
-
-    } catch (error) {
-        console.error("getEnergyStats Error:", error);
-        // Return empty structure to prevent UI crash
-        return {
-            currentMonth: { ELEC: 0, WATER: 0, GAS: 0 },
-            lastMonth: { ELEC: 0, WATER: 0, GAS: 0 },
-            trends: [],
-            meterHistory: {},
-            meters: []
-        };
-    }
+    return newGetEnergyStats(days);
 }
 
 export async function addMeterReading(data: { meterId: string, value: number, date: string }) {
-    const meter = await prisma.meter.findUnique({ where: { id: data.meterId } });
-    if (!meter) throw new Error("Meter not found");
-
-    const lastReadings = await prisma.meterReading.findMany({
-        where: { meterId: data.meterId },
-        orderBy: { date: 'desc' },
-        take: 5
-    });
-
-    let isAnomaly = false;
-    let aiAnalysis: string | null = null;
-
-    if (lastReadings.length > 0) {
-        const lastReading = lastReadings[0];
-        const consumption = data.value - lastReading.value;
-
-        if (consumption < 0) {
-            isAnomaly = true;
-            aiAnalysis = "Rilevato valore inferiore alla lettura precedente. Possibile errore di inserimento o sostituzione contatore.";
-        } else if (lastReadings.length >= 3) {
-            let totalCons = 0;
-            let count = 0;
-            for (let i = 0; i < lastReadings.length - 1; i++) {
-                const diff = lastReadings[i].value - lastReadings[i + 1].value;
-                if (diff > 0) {
-                    totalCons += diff;
-                    count++;
-                }
-            }
-
-            if (count > 0) {
-                const avgCons = totalCons / count;
-                const threshold = avgCons * 0.5;
-
-                if (consumption > avgCons + threshold) {
-                    isAnomaly = true;
-                    // Fixed string interpretation
-                    aiAnalysis = `Consumo rilevato (${consumption.toFixed(2)}) superiore del ${(100 * (consumption - avgCons) / avgCons).toFixed(0)}% rispetto alla media recente (${avgCons.toFixed(2)}).`;
-                }
-            }
-        }
-    }
-
-    await prisma.meterReading.create({
-        data: {
-            meterId: data.meterId,
-            value: data.value,
-            date: new Date(data.date),
-            isAnomaly,
-            aiAnalysis
-        }
-    });
-
-    revalidatePath('/energy');
-    return { success: true, isAnomaly, aiAnalysis };
+    return newAddMeterReading(data);
 }
 
 export async function getAllMeterReadings() {
-    const { authorized } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
-    if (!authorized) return [];
-    const readings = await prisma.meterReading.findMany({
-        include: { meter: true },
-        orderBy: { date: 'desc' }
-    });
-
-    return readings.map((r: any) => ({
-        ...r,
-        meterName: r.meter.name,
-        meterType: r.meter.type,
-        meterSerial: r.meter.serialNumber || 'N/A',
-        meterLocation: r.meter.location || 'N/A',
-        unit: r.meter.unit,
-        date: r.date.toISOString().split('T')[0]
-    }));
+    return newGetAllMeterReadings();
 }
 
 export async function addWorkOrderPart(workOrderId: string, partId: string, quantity: number) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        const part = await prisma.sparePart.findUnique({ where: { id: partId } });
-        if (!part) return { success: false, message: 'Ricambio non trovato' };
-
-        if (part.quantity < quantity) {
-            return { success: false, message: `Quantità insufficiente in magazzino (Disponibile: ${part.quantity})` };
-        }
-
-        // Decrement stock
-        const updatedPart = await prisma.sparePart.update({
-            where: { id: partId },
-            data: { quantity: part.quantity - quantity, lastUpdated: new Date() }
-        });
-
-        // Add to WO
-        await prisma.workOrderPart.create({
-            data: {
-                workOrderId,
-                partId,
-                partName: part.name,
-                quantity,
-                unitCost: part.unitCost || 0,
-                dateAdded: new Date()
-            }
-        });
-
-        // Low Stock Alert
-        if (updatedPart.quantity <= updatedPart.minQuantity) {
-            const supervisors = await prisma.user.findMany({ where: { role: 'SUPERVISOR' } });
-            for (const sup of supervisors) {
-                await prisma.notification.create({
-                    data: {
-                        userId: sup.id,
-                        title: "⚠️ SCORTA BASSA: " + part.name,
-                        message: `Il ricambio ${part.name} ha raggiunto la soglia minima (${updatedPart.quantity} pz). Valutare riordino.`,
-                        link: "/inventory"
-                    }
-                });
-            }
-        }
-
-        revalidatePath(`/work-orders/${workOrderId}`);
-
-        // Audit
-        await logAction('ADD_PART_WO', workOrderId, `Aggiunto ${quantity}x ${part.name}`);
-
-        return { success: true, message: 'Ricambio aggiunto all\'ordine' };
-    } catch (error) {
-        console.error(error);
-        return { success: false, message: 'Errore durante l\'aggiunta del ricambio' };
-    }
+    return newAddWorkOrderPart(workOrderId, partId, quantity);
 }
 
 export async function removeWorkOrderPart(id: string) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        const woPart = await prisma.workOrderPart.findUnique({ where: { id } });
-        if (!woPart) return { success: false, message: 'Parte non trovata' };
-
-        // Restore stock
-        const originalPart = await prisma.sparePart.findFirst({ where: { id: woPart.partId } });
-
-        if (originalPart) {
-            await prisma.sparePart.update({
-                where: { id: originalPart.id },
-                data: { quantity: originalPart.quantity + woPart.quantity, lastUpdated: new Date() }
-            });
-        }
-
-        await prisma.workOrderPart.delete({ where: { id } });
-
-        revalidatePath(`/work-orders/${woPart.workOrderId}`);
-        return { success: true, message: 'Ricambio rimosso e giacenza ripristinata' };
-    } catch (error) {
-        return { success: false, message: 'Errore rimozione ricambio' };
-    }
+    return newRemoveWorkOrderPart(id);
 }
 
 export async function toggleChecklistItem(itemId: string, completed: boolean) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        await prisma.checklistItem.update({
-            where: { id: itemId },
-            data: {
-                completed,
-                checkedBy: session.user.name,
-                checkedAt: new Date()
-            }
-        });
-
-        // Find WO to revalidate
-        const item = await prisma.checklistItem.findUnique({ where: { id: itemId } });
-        if (item) revalidatePath(`/work-orders/${item.workOrderId}`);
-
-        return { success: true, message: 'Checklist aggiornata' };
-    } catch (e) {
-        return { success: false, message: 'Errore aggiornamento checklist' };
-    }
+    return newToggleChecklistItem(itemId, completed);
 }
 
 // --- System Settings ---
@@ -2572,143 +1069,13 @@ export async function updateSystemSettings(ewoThresholdHours: number) {
 // --- EWO Actions ---
 
 export async function confirmEWO(workOrderId: string) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-    try {
-        await prisma.workOrder.update({
-            where: { id: workOrderId },
-            data: { ewoFilled: true }
-        });
-        revalidatePath(`/work-orders/${workOrderId}`);
-        return { success: true };
-    } catch (error) {
-        return { success: false, message: 'Errore conferma EWO' };
-    }
+    return newConfirmEWO(workOrderId);
 }
 
 export async function submitEWO(data: any) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autorizzato' };
-
-    try {
-        const { workOrderId, partsConsumed, ...fields } = data;
-
-        // 1. Save EWO
-        await prisma.eWO.upsert({
-            where: { workOrderId },
-            update: { ...fields, authorName: session.user.name || 'User' },
-            create: { ...fields, workOrderId, authorName: session.user.name || 'User' }
-        });
-
-        // 1b. Handle Spare Parts if provided
-        if (partsConsumed && Array.isArray(partsConsumed)) {
-            for (const p of partsConsumed) {
-                if (p.partId && p.quantity > 0) {
-                    // Reuse logic for adding parts (no re-auth needed strictly since we checked above, 
-                    // but helps to just copy logic or call function if exported. 
-                    // Since addWorkOrderPart checks auth again, it's fine to call it or copy logic.
-                    // Copying logic for atomicity warnings if I strictly need transaction, 
-                    // but here generic try/catch catches it.
-                    // Note: We won't block EWO on part failure but we should log it.
-                    try {
-                        const part = await prisma.sparePart.findUnique({ where: { id: p.partId } });
-                        if (part && part.quantity >= p.quantity) {
-                            await prisma.sparePart.update({
-                                where: { id: p.partId },
-                                data: { quantity: part.quantity - p.quantity, lastUpdated: new Date() }
-                            });
-                            await prisma.workOrderPart.create({
-                                data: {
-                                    workOrderId,
-                                    partId: p.partId,
-                                    partName: part.name,
-                                    quantity: p.quantity,
-                                    unitCost: part.unitCost || 0,
-                                    dateAdded: new Date()
-                                }
-                            });
-                        }
-                    } catch (err) {
-                        console.error("Part consumption error in EWO:", err);
-                    }
-                }
-            }
-        }
-
-        // 2. Update WO flag
-        await prisma.workOrder.update({
-            where: { id: workOrderId },
-            data: { ewoFilled: true }
-        });
-
-        // Notification for Critical Impact
-        if (fields.productionImpact === 'STOPPAGE') {
-            const supervisors = await prisma.user.findMany({ where: { role: 'SUPERVISOR' } });
-            for (const sup of supervisors) {
-                await prisma.notification.create({
-                    data: {
-                        userId: sup.id,
-                        title: "ALLARME FERMO PRODUZIONE",
-                        message: `EWO segnala FERMO IMPIANTO per ordine #${workOrderId}.`,
-                        link: `/work-orders/${workOrderId}`
-                    }
-                });
-            }
-        }
-
-        // Stock Alert Logic
-        if (partsConsumed && Array.isArray(partsConsumed)) {
-            for (const p of partsConsumed) {
-                const part = await prisma.sparePart.findUnique({ where: { id: p.partId } });
-                // Fix: minQuantity is likely 'minQuantity' based on typical schema, but check if user used 'minimumStock'.
-                // Based on error "Property 'minimumStock' does not exist... minQuantity: number...", the correct field is minQuantity.
-                if (part && part.quantity <= part.minQuantity) {
-                    // Notify Supervisors about low stock
-                    const supervisors = await prisma.user.findMany({ where: { role: 'SUPERVISOR' } });
-                    for (const sup of supervisors) {
-                        await prisma.notification.create({
-                            data: {
-                                userId: sup.id,
-                                title: "⚠️ SCORTA BASSA: " + part.name,
-                                message: `Il ricambio ${part.name} è sceso sotto la soglia minima (${part.quantity} pz disponibili). Riordinare!`,
-                                link: `/inventory`
-                            }
-                        });
-                    }
-
-                    // Generate purchase request automatically
-                    await checkAndCreatePurchaseRequest(p.partId);
-                }
-            }
-        }
-
-        // 3. Create Follow Up if needed
-        if (fields.needsFollowUp && fields.followUpDetail) {
-            const originalWO = await prisma.workOrder.findUnique({ where: { id: workOrderId } });
-            if (originalWO) {
-                await prisma.workOrder.create({
-                    data: {
-                        title: `Follow-Up EWO: ${originalWO.title.substring(0, 30)}...`,
-                        description: `[ORIGINE EWO #${workOrderId}]\n\nRichiesta: ${fields.followUpDetail}\n\nAnalisi Causa: ${fields.causeAnalysis}`,
-                        priority: 'MEDIUM',
-                        status: 'PENDING_APPROVAL',
-                        type: 'REQUEST',
-                        category: 'OTHER',
-                        assetId: originalWO.assetId,
-                        requesterId: session.user.id
-                    }
-                });
-            }
-        }
-
-        revalidatePath(`/work-orders/${workOrderId}`);
-        revalidatePath('/requests');
-        return { success: true, message: 'EWO registrato e archiviato.' };
-    } catch (e) {
-        console.error("EWO Submit Error:", e);
-        return { success: false, message: 'Errore salvataggio EWO' };
-    }
+    return newSubmitEWO(data);
 }
+
 
 export async function getAdvancedKPIs() {
     const { authorized } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
@@ -2855,11 +1222,9 @@ export async function getAssetMaintenanceEvents(start?: Date, end?: Date) {
 }
 
 export async function getEWO(workOrderId: string) {
-    try {
-        return await prisma.eWO.findUnique({ where: { workOrderId } });
-    } catch (e) {
-    }
+    return newGetEWO(workOrderId);
 }
+
 
 // Aliases for context compatibility
 export const updateQuantity = updateSparePartQuantity;
@@ -3012,45 +1377,9 @@ export async function deleteProductionLine(line: string) {
 }
 
 export async function assignWorkOrderToSelf(workOrderId: string) {
-    const session = await auth();
-    if (!session?.user) return { success: false, message: 'Non autenticato' };
-
-    try {
-        // 1. Check if user is a technician
-        const tech = await prisma.technician.findUnique({
-            where: { userId: session.user.id }
-        });
-
-        if (!tech) {
-            return { success: false, message: 'Profilo tecnico non trovato.' };
-        }
-
-        // 2. Check Work Order status
-        const wo = await prisma.workOrder.findUnique({ where: { id: workOrderId } });
-        if (!wo) return { success: false, message: 'Ordine non trovato' };
-
-        if (wo.assignedTechnicianId && wo.assignedTechnicianId !== tech.id) {
-            return { success: false, message: 'Ordine già assegnato.' };
-        }
-
-        // 3. Update WO
-        await prisma.workOrder.update({
-            where: { id: workOrderId },
-            data: {
-                assignedTechnicianId: tech.id,
-                assignedTo: tech.name,
-                status: 'ASSIGNED'
-            }
-        });
-
-        revalidatePath('/work-orders');
-        revalidatePath('/');
-        return { success: true, message: 'Ordine preso in carico' };
-    } catch (error) {
-        console.error("Self Assign Error:", error);
-        return { success: false, message: 'Errore durante la presa in carico' };
-    }
+    return newAssignWorkOrderToSelf(workOrderId);
 }
+
 
 
 

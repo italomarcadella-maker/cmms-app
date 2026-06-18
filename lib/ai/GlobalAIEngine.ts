@@ -16,14 +16,23 @@ export class GlobalAIEngine {
     try {
       const recipe = await prisma.processRecipe.findUnique({
         where: { id: recipeId },
-        include: { asset: true, parameters: true }
+        include: {
+          asset: true,
+          machines: {
+            include: {
+              parameters: true
+            }
+          }
+        }
       });
       if (!recipe) return;
 
+      const allParameters = recipe.machines?.flatMap((m: any) => m.parameters || []) || [];
+
       // Use AI to analyze deviation
-      const prompt = `Analizza questa lettura di qualità per la ricetta "${recipe.name}" (Asset: ${recipe.asset.name}).
+      const prompt = `Analizza questa lettura di qualità per la ricetta "${recipe.name}" (Asset: ${recipe.asset?.name || 'Sconosciuto'}).
       Valore registrato: ${newValue}.
-      I parametri previsti dalla ricetta sono: ${recipe.parameters.map((p: any) => `${p.name} (Min: ${p.minValue}, Max: ${p.maxValue})`).join(', ')}.
+      I parametri previsti dalla ricetta sono: ${allParameters.map((p: any) => `${p.name} (SetPoint: ${p.setPoint}, Toll: ±${p.tolerance})`).join(', ')}.
       Scrivi una breve descrizione (max 2 frasi) di cosa potrebbe indicare questa lettura (es. usura componente, parametro starato) e proponi una priorità tra LOW, MEDIUM, HIGH.
       Formatta la risposta esattamente così:
       TITOLO: [Titolo sintetico]
@@ -36,7 +45,7 @@ export class GlobalAIEngine {
       // Parse AI response (fallback to regex/substrings)
       const titleMatch = content.match(/TITOLO:\s*(.+)/i);
       const priorityMatch = content.match(/PRIORITÀ:\s*(LOW|MEDIUM|HIGH)/i);
-      const descMatch = content.match(/DESCRIZIONE:\s*(.+)/is);
+      const descMatch = content.match(/DESCRIZIONE:\s*([\s\S]+)/i);
 
       const title = titleMatch ? titleMatch[1].trim() : `Analisi Qualità - ${recipe.name}`;
       const priority = priorityMatch ? priorityMatch[1].toUpperCase() : 'MEDIUM';
@@ -85,7 +94,7 @@ export class GlobalAIEngine {
 
       const titleMatch = content.match(/TITOLO:\s*(.+)/i);
       const priorityMatch = content.match(/PRIORITÀ:\s*(LOW|MEDIUM|HIGH)/i);
-      const descMatch = content.match(/DESCRIZIONE:\s*(.+)/is);
+      const descMatch = content.match(/DESCRIZIONE:\s*([\s\S]+)/i);
 
       const title = titleMatch ? titleMatch[1].trim() : `Analisi FPES - ${sim.name}`;
       const priority = priorityMatch ? priorityMatch[1].toUpperCase() : (sim.leanScore < 50 ? 'HIGH' : 'LOW');
