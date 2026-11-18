@@ -27,17 +27,18 @@ export function PlantSwitcher({ isCollapsed }: { isCollapsed?: boolean }) {
                     role="combobox"
                     aria-expanded={open}
                     className={cn(
-                        "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-sidebar-accent/50 hover:bg-sidebar-accent text-sm font-medium transition-colors border border-sidebar-border/30",
-                        isCollapsed ? "justify-center px-0 py-3" : ""
+                        "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-sidebar-accent hover:bg-sidebar-accent/80 text-sm font-medium text-sidebar-accent-foreground transition-colors border border-sidebar-border",
+                        isCollapsed ? "justify-center px-0 py-2" : ""
                     )}
+                    title={isCollapsed ? activePlant?.name : undefined}
                 >
                     <div className="flex items-center gap-2 truncate">
-                        <div className="flex bg-primary/10 text-primary p-1.5 rounded-md">
+                        <div className="flex bg-sidebar-primary/15 text-sidebar-primary p-1.5 rounded-md">
                             <Building2 className="w-4 h-4" />
                         </div>
                         {!isCollapsed && (
                             <div className="flex flex-col items-start truncate text-left">
-                                <span className="text-xs text-muted-foreground font-mono uppercase tracking-wider">Stabilimento</span>
+                                <span className="text-[11px] uppercase tracking-wider text-sidebar-foreground/60">Stabilimento</span>
                                 <span className="truncate max-w-[130px]">{activePlant?.name || "Seleziona..."}</span>
                             </div>
                         )}

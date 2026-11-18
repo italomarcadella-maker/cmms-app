@@ -56,7 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
         items: [
             { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: NOT_BASIC_USER },
             { href: "/requests/new", label: "Nuova richiesta", icon: PlusCircle },
-            { href: "/work-orders", label: "Richieste da approvare", icon: Inbox, roles: NOT_BASIC_USER, query: { key: "tab", value: "requests" } },
+            { href: "/work-orders", label: "Richieste", icon: Inbox, roles: NOT_BASIC_USER, query: { key: "tab", value: "requests" } },
         ],
     },
     {

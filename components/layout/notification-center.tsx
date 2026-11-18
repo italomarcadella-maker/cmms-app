@@ -1,18 +1,17 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Bell, Check, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { getUserNotifications, markNotificationAsRead } from "@/lib/actions";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@/lib/auth-context";
-import { useNotifications } from "@/lib/notifications-context";
+import { Bell, Check } from "lucide-react";
 
-export function NotificationCenter({ userId }: { userId?: string }) {
-    const { user: authUser } = useAuth();
+import { cn } from "@/lib/utils";
+import { useNotifications } from "@/lib/notifications-context";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { EmptyState } from "@/components/ui/empty-state";
+
+export function NotificationCenter() {
     const { notifications, unreadCount, markAsRead } = useNotifications();
-    const [isOpen, setIsOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
+    const [open, setOpen] = useState(false);
 
     const handleMarkRead = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -20,84 +19,71 @@ export function NotificationCenter({ userId }: { userId?: string }) {
     };
 
     return (
-        <div className="relative" ref={menuRef}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            >
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-background ring-1 ring-background" />
-                )}
-            </button>
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <button
+                    type="button"
+                    aria-label={unreadCount > 0 ? `Notifiche: ${unreadCount} non lette` : "Notifiche"}
+                    className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    <Bell className="h-[18px] w-[18px]" />
+                    {unreadCount > 0 && (
+                        <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-critical" />
+                    )}
+                </button>
+            </PopoverTrigger>
 
-            {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-card border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 origin-top-right">
-                    <div className="p-3 border-b flex justify-between items-center bg-muted/30">
-                        <h3 className="font-semibold text-sm">Notifiche</h3>
-                        <span className="text-xs text-muted-foreground">{unreadCount} non lette</span>
-                    </div>
+            <PopoverContent align="end" className="w-80 overflow-hidden p-0 sm:w-96">
+                <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-3">
+                    <h3 className="text-sm font-semibold">Notifiche</h3>
+                    <span className="text-xs text-muted-foreground">{unreadCount} non lette</span>
+                </div>
 
-                    <div className="max-h-[400px] overflow-y-auto">
-                        {notifications.length === 0 ? (
-                            <div className="p-8 text-center text-muted-foreground text-sm flex flex-col items-center gap-2">
-                                <Bell className="h-8 w-8 opacity-20" />
-                                <p>Nessuna notifica</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y">
-                                {notifications.map((n) => (
-                                    <div
-                                        key={n.id}
-                                        className={cn(
-                                            "p-3 hover:bg-muted/50 transition-colors block relative group",
-                                            !n.read ? "bg-blue-50/30" : ""
-                                        )}
-                                    >
-                                        <div className="flex gap-3">
-                                            <div className={cn(
-                                                "mt-1 h-2 w-2 rounded-full shrink-0",
-                                                !n.read ? "bg-blue-500" : "bg-transparent"
-                                            )} />
-                                            <div className="flex-1 space-y-1">
-                                                <div className="flex justify-between items-start">
-                                                    <p className={cn("text-xs font-semibold", !n.read ? "text-foreground" : "text-muted-foreground")}>
-                                                        {n.title}
-                                                    </p>
-                                                    <span className="text-[10px] text-muted-foreground">
-                                                        {new Date(n.createdAt).toLocaleDateString()}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-muted-foreground leading-snug whitespace-pre-line line-clamp-3">
-                                                    {n.message}
-                                                </p>
-                                                {n.link && (
-                                                    <Link
-                                                        href={n.link}
-                                                        onClick={() => setIsOpen(false)}
-                                                        className="text-xs text-primary hover:underline mt-1.5 inline-block font-medium"
-                                                    >
-                                                        Vedi dettagli →
-                                                    </Link>
-                                                )}
+                <div className="max-h-[400px] overflow-y-auto">
+                    {notifications.length === 0 ? (
+                        <EmptyState icon={<Bell />} title="Nessuna notifica" description="Quando succede qualcosa che ti riguarda lo trovi qui." className="py-10" />
+                    ) : (
+                        <ul className="divide-y">
+                            {notifications.map((n) => (
+                                <li key={n.id} className={cn("group relative px-4 py-3 transition-colors hover:bg-muted/50", !n.read && "bg-info-soft/50")}>
+                                    <div className="flex gap-3">
+                                        <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", n.read ? "bg-transparent" : "bg-info")} />
+                                        <div className="min-w-0 flex-1 space-y-1">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <p className={cn("text-sm font-medium", n.read && "text-muted-foreground")}>{n.title}</p>
+                                                <span className="shrink-0 text-xs text-muted-foreground">
+                                                    {new Date(n.createdAt).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}
+                                                </span>
                                             </div>
-                                            {!n.read && (
-                                                <button
-                                                    onClick={(e) => handleMarkRead(n.id, e)}
-                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded shadow-sm text-muted-foreground hover:text-foreground transition-all absolute top-2 right-2"
-                                                    title="Segna come letta"
+                                            <p className="line-clamp-3 whitespace-pre-line text-sm leading-snug text-muted-foreground">{n.message}</p>
+                                            {n.link && (
+                                                <Link
+                                                    href={n.link}
+                                                    onClick={() => setOpen(false)}
+                                                    className="inline-block pt-0.5 text-xs font-medium text-primary hover:underline"
                                                 >
-                                                    <Check className="h-3 w-3" />
-                                                </button>
+                                                    Vedi dettagli
+                                                </Link>
                                             )}
                                         </div>
+                                        {!n.read && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleMarkRead(n.id, e)}
+                                                title="Segna come letta"
+                                                aria-label="Segna come letta"
+                                                className="absolute right-2 top-2 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-background hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                                            >
+                                                <Check className="h-3.5 w-3.5" />
+                                            </button>
+                                        )}
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
-            )}
-        </div>
+            </PopoverContent>
+        </Popover>
     );
 }

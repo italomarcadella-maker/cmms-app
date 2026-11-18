@@ -1,75 +1,72 @@
 "use client";
 
-import { Home, PlusCircle, ClipboardList, Box, Menu } from "lucide-react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Box, ClipboardList, Home, Menu, Plus } from "lucide-react";
+
 import { cn } from "@/lib/utils";
-import { MobileMenu } from "./mobile-menu"; // Re-use the sheet trigger? No, MobileMenu has its own trigger button.
-// I will need to refactor MobileMenu to expose the Sheet content or just use a custom trigger here. 
-// Actually simpler: MobileNav will have a "Menu" button that triggers the EXISTING MobileMenu if I can pass a prop or context.
-// Or I can just replicate the SheetTrigger here.
-
-// Let's first inspect MobileMenu imports again.
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/layout/sidebar";
-import { useState } from "react";
 
+const tabs = [
+    { href: "/", label: "Home", icon: Home },
+    { href: "/work-orders", label: "Ordini", icon: ClipboardList },
+    { href: "/assets", label: "Asset", icon: Box },
+] as const;
+
+/** Mobile bottom bar. The only entry point to the full menu on small screens. */
 export function BottomNav() {
     const pathname = usePathname();
     const [menuOpen, setMenuOpen] = useState(false);
 
-    const isActive = (path: string) => pathname === path || (path !== '/' && pathname.startsWith(path));
+    const isActive = (path: string) => (path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(path + "/"));
+
+    const tabClass = (active: boolean) =>
+        cn(
+            "flex min-w-14 flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 text-[11px] font-medium transition-colors",
+            active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+        );
 
     return (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t h-16 flex items-center justify-around px-2 z-50 shadow-[0_-1px_3px_rgba(0,0,0,0.1)] pb-safe-area">
-            <Link
-                href="/"
-                className={cn("flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-colors", isActive('/') ? "text-primary" : "text-muted-foreground hover:text-foreground")}
-            >
-                <Home className="h-5 w-5" />
-                <span className="text-[10px] font-medium">Home</span>
+        <nav
+            aria-label="Navigazione rapida"
+            className="bottom-nav fixed inset-x-0 bottom-0 z-50 flex h-16 items-center justify-around border-t bg-background px-2 md:hidden"
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+            {tabs.slice(0, 2).map(({ href, label, icon: Icon }) => (
+                <Link key={href} href={href} className={tabClass(isActive(href))} aria-current={isActive(href) ? "page" : undefined}>
+                    <Icon className="h-5 w-5" />
+                    {label}
+                </Link>
+            ))}
+
+            <Link href="/requests/new" className="-mt-5 flex flex-col items-center gap-1" aria-label="Nuova richiesta">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-background bg-primary text-primary-foreground shadow-md">
+                    <Plus className="h-6 w-6" />
+                </span>
+                <span className="text-[11px] font-medium text-primary">Nuova</span>
             </Link>
 
-            <Link
-                href="/work-orders"
-                className={cn("flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-colors", isActive('/work-orders') ? "text-primary" : "text-muted-foreground hover:text-foreground")}
-            >
-                <ClipboardList className="h-5 w-5" />
-                <span className="text-[10px] font-medium">Ordini</span>
-            </Link>
+            {tabs.slice(2).map(({ href, label, icon: Icon }) => (
+                <Link key={href} href={href} className={tabClass(isActive(href))} aria-current={isActive(href) ? "page" : undefined}>
+                    <Icon className="h-5 w-5" />
+                    {label}
+                </Link>
+            ))}
 
-            <Link
-                href="/requests/new"
-                className="flex flex-col items-center justify-center -mt-6"
-            >
-                <div className="bg-primary text-primary-foreground h-12 w-12 rounded-full flex items-center justify-center shadow-lg border-4 border-background hover:scale-105 transition-transform">
-                    <PlusCircle className="h-6 w-6" />
-                </div>
-                <span className="text-[10px] font-medium mt-1 text-primary">Nuova</span>
-            </Link>
-
-            <Link
-                href="/assets"
-                className={cn("flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-colors", isActive('/assets') ? "text-primary" : "text-muted-foreground hover:text-foreground")}
-            >
-                <Box className="h-5 w-5" />
-                <span className="text-[10px] font-medium">Asset</span>
-            </Link>
-
-            {/* Menu Trigger */}
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                 <SheetTrigger asChild>
-                    <button
-                        className={cn("flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground")}
-                    >
+                    <button type="button" className={tabClass(false)}>
                         <Menu className="h-5 w-5" />
-                        <span className="text-[10px] font-medium">Menu</span>
+                        Menu
                     </button>
                 </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-72">
-                    <Sidebar className="w-full border-none" onNavigate={() => setMenuOpen(false)} />
+                <SheetContent side="left" className="w-72 border-none bg-sidebar p-0 [&>button]:text-sidebar-foreground">
+                    <SheetTitle className="sr-only">Menu di navigazione</SheetTitle>
+                    <Sidebar mobile onNavigate={() => setMenuOpen(false)} />
                 </SheetContent>
             </Sheet>
-        </div>
+        </nav>
     );
 }

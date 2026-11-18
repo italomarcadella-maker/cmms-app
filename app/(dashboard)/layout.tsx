@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { AssetsProvider } from "@/lib/assets-context";
@@ -36,16 +37,18 @@ export default async function DashboardLayout({
 
 
                                     <div className="flex flex-1 md:flex-row">
-                                        {/* Desktop Sidebar (Hidden on mobile) */}
-                                        <div className="hidden md:block">
-                                            <Sidebar />
+                                        {/* Desktop Sidebar (Hidden on mobile): stays in view while the page scrolls */}
+                                        <div className="sidebar sticky top-0 hidden h-screen shrink-0 md:block">
+                                            <Suspense fallback={<div className="h-full w-64 bg-sidebar" />}>
+                                                <Sidebar />
+                                            </Suspense>
                                         </div>
 
-                                        <div className="flex-1 flex flex-col min-h-screen">
+                                        <div className="flex-1 flex flex-col min-h-screen min-w-0">
                                             {/* Header */}
                                             <Header />
 
-                                            <main className="flex-1 bg-muted/40 p-4 md:p-8 overflow-y-auto pb-24 md:pb-8">
+                                            <main className="flex-1 bg-canvas p-4 md:p-6 lg:p-8 overflow-y-auto pb-24 md:pb-8">
                                                 {children}
                                             </main>
                                         </div>

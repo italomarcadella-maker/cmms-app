@@ -1,15 +1,56 @@
 "use client";
 
-import { LayoutDashboard, Package, ClipboardList, Settings, ListChecks, Users, Box, BarChart3, Calendar, ReceiptEuro, Cylinder, CalendarDays, BrainCircuit, FileDown, Gauge, Inbox, PlusCircle, LucideIcon, ScanLine, Leaf, Factory } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { useWorkOrders } from '@/lib/work-orders-context';
-import { useAuth } from '@/lib/auth-context';
-import { PlantSwitcher } from './plant-switcher';
+import React, { useSyncExternalStore } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
+import { cn } from "@/lib/utils";
+import { useWorkOrders } from "@/lib/work-orders-context";
+import { useAuth } from "@/lib/auth-context";
+import { PlantSwitcher } from "./plant-switcher";
+import { NAV_GROUPS, canSee, isItemActive, type NavItem } from "./nav-config";
+
+const COLLAPSED_KEY = "cmms.sidebar.collapsed";
+const COLLAPSED_EVENT = "cmms:sidebar-collapsed";
+
+/** Collapsed/expanded preference, persisted in localStorage and readable without an effect. */
+function useCollapsedPreference() {
+    const collapsed = useSyncExternalStore(
+        (notify) => {
+            window.addEventListener("storage", notify);
+            window.addEventListener(COLLAPSED_EVENT, notify);
+            return () => {
+                window.removeEventListener("storage", notify);
+                window.removeEventListener(COLLAPSED_EVENT, notify);
+            };
+        },
+        () => {
+            try {
+                return localStorage.getItem(COLLAPSED_KEY) === "1";
+            } catch {
+                return false; // storage unavailable: stay expanded
+            }
+        },
+        () => false
+    );
+
+    const toggle = () => {
+        try {
+            localStorage.setItem(COLLAPSED_KEY, collapsed ? "0" : "1");
+        } catch {
+            /* ignore */
+        }
+        window.dispatchEvent(new Event(COLLAPSED_EVENT));
+    };
+
+    return { collapsed, toggle };
+}
+
+interface SidebarProps extends React.HTMLAttributes<HTMLElement> {
     onNavigate?: () => void;
+    /** Inside the mobile sheet: always expanded, no collapse toggle. */
     mobile?: boolean;
 }
 
@@ -17,172 +58,140 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
     const { user, isLoading } = useAuth();
     const { workOrders } = useWorkOrders();
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const { collapsed: collapsedPref, toggle: toggleCollapsed } = useCollapsedPreference();
 
-    // Count pending requests
-    const pendingRequestsCount = workOrders.filter(wo => wo.status === 'PENDING_APPROVAL').length;
+    const collapsed = !mobile && collapsedPref;
 
-    // Loading Skeleton
+    const pendingRequestsCount = workOrders.filter((wo) => wo.status === "PENDING_APPROVAL").length;
+
+    const shell = cn(
+        "flex h-full flex-col bg-sidebar text-sidebar-foreground",
+        mobile ? "w-full" : cn("border-r border-sidebar-border transition-[width] duration-200", collapsed ? "w-[72px]" : "w-64"),
+        className
+    );
+
     if (isLoading) {
         return (
-            <div className={cn("pb-12 h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border", mobile ? "w-full" : "w-64", className)}>
-                <div className="space-y-6 py-6 px-4">
-                    <div className="h-8 w-32 bg-sidebar-accent/10 animate-pulse rounded-md mb-8"></div>
-                    <div className="space-y-3">
-                        {[1, 2, 3, 4, 5, 6].map(i => (
-                            <div key={i} className="h-10 w-full bg-sidebar-accent/5 animate-pulse rounded-lg"></div>
-                        ))}
-                    </div>
+            <aside className={shell} aria-label="Navigazione principale">
+                <div className="h-14 border-b border-sidebar-border" />
+                <div className="space-y-2 p-4">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="h-9 w-full animate-pulse rounded-md bg-sidebar-accent" />
+                    ))}
                 </div>
-            </div>
+            </aside>
         );
     }
 
-    const isActive = (path: string) => pathname === path;
+    const visibleGroups = NAV_GROUPS.map((group) => ({
+        group,
+        items: group.items.filter((item) => canSee(user?.role, item, group)),
+    })).filter((g) => g.items.length > 0);
 
     return (
-        <div className={cn("pb-12 h-full bg-sidebar text-sidebar-foreground", mobile ? "w-full" : "w-64 border-r border-sidebar-border", className)}>
-            <div className="flex flex-col h-full">
-                {/* Header */}
-                <div className="h-16 flex items-center px-6 border-b border-sidebar-border/50">
-                    <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                        <Box className="w-6 h-6 text-primary" />
-                        <span>CMMS<span className="text-primary font-light">Pro</span></span>
-                    </h2>
-                </div>
-
-                <div className="px-4 py-4 pt-6">
-                    <PlantSwitcher isCollapsed={false} />
-                </div>
-
-                <div className="flex-1 overflow-y-auto py-6 px-3 space-y-6">
-
-                    {/* General Section */}
-                    <SidebarGroup title="Generale">
-                        {user?.role !== 'USER' && (
-                            <SidebarItem
-                                href="/"
-                                icon={LayoutDashboard}
-                                label="Dashboard"
-                                active={isActive('/')}
-                                onClick={onNavigate}
-                            />
-                        )}
-                        <SidebarItem
-                            href="/requests/new"
-                            icon={PlusCircle}
-                            label="Nuova Richiesta"
-                            active={isActive('/requests/new')}
-                            onClick={onNavigate}
-                        />
-                        {user?.role !== 'USER' && (
-                            <SidebarItem
-                                href="/work-orders?tab=requests"
-                                icon={Inbox}
-                                label="Richieste"
-                                active={isActive('/work-orders')}
-                                onClick={onNavigate}
-                                badge={pendingRequestsCount > 0 ? pendingRequestsCount : undefined}
-                            />
-                        )}
-                    </SidebarGroup>
-
-                    {/* Operational Section */}
-                    {(user?.role === 'MAINTAINER' || user?.role === 'SUPERVISOR' || user?.role === 'ADMIN' || user?.role === 'PROCESS_ENGINEER') && (
-                        <SidebarGroup title="Operativo">
-                            <SidebarItem href="/assets" icon={Box} label="Asset & Macchinari" active={isActive('/assets')} onClick={onNavigate} />
-                            <SidebarItem href="/mobile/scan" icon={ScanLine} label="Scanner QR" active={isActive('/mobile/scan')} onClick={onNavigate} />
-                            <SidebarItem href="/inventory" icon={Package} label="Magazzino" active={isActive('/inventory')} onClick={onNavigate} />
-                            <SidebarItem href="/screws" icon={Cylinder} label="Viti & Cilindri" active={isActive('/screws')} onClick={onNavigate} />
-                            <SidebarItem href="/planning/calendar" icon={CalendarDays} label="Planning & Calendario" active={isActive('/planning/calendar')} onClick={onNavigate} />
-                            <SidebarItem href="/maintenance/schedule" icon={Calendar} label="Pianificazione" active={isActive('/maintenance/schedule')} onClick={onNavigate} />
-                        </SidebarGroup>
-                    )}
-
-                    {/* Supervision Section */}
-                    {(user?.role === 'SUPERVISOR' || user?.role === 'ADMIN' || user?.role === 'PROCESS_ENGINEER') && (
-                        <SidebarGroup title="Supervisione">
-                            <SidebarItem href="/daily-meetings" icon={Users} label="Daily Meetings" active={isActive('/daily-meetings')} onClick={onNavigate} />
-                            <SidebarItem href="/process" icon={Settings} label="Ing. di Processo" active={isActive('/process')} onClick={onNavigate} />
-                            {(user?.role === 'SUPERVISOR' || user?.role === 'ADMIN') && (
-                                <>
-                                    <SidebarItem href="/technicians/calendar" icon={Calendar} label="Calendario Turni" active={isActive('/technicians/calendar')} onClick={onNavigate} />
-                                    <SidebarItem href="/technicians" icon={Users} label="Team Tecnico" active={isActive('/technicians')} onClick={onNavigate} />
-                                    <SidebarItem href="/activities" icon={ListChecks} label="Attività" active={isActive('/activities')} onClick={onNavigate} />
-                                    <SidebarItem href="/predictive" icon={BrainCircuit} label="AI Predittiva" active={isActive('/predictive')} onClick={onNavigate} />
-                                </>
-                            )}
-                            <SidebarItem href="/sustainability" icon={Leaf} label="Sostenibilità" active={isActive('/sustainability')} onClick={onNavigate} />
-                        </SidebarGroup>
-                    )}
-
-                    {/* Admin Section */}
-                    {(user?.role === 'ADMIN' || user?.role === 'PROCESS_ENGINEER') && (
-                        <SidebarGroup title="Amministrazione">
-                            <SidebarItem href="/kpi" icon={BarChart3} label="KPI & Report" active={isActive('/kpi')} onClick={onNavigate} />
-                            <SidebarItem href="/costs" icon={ReceiptEuro} label="Analisi Costi" active={isActive('/costs')} onClick={onNavigate} />
-                            {user?.role === 'ADMIN' && <SidebarItem href="/users" icon={Users} label="Utenti" active={isActive('/users')} onClick={onNavigate} />}
-                            <SidebarItem href="/exports" icon={FileDown} label="Export Dati" active={isActive('/exports')} onClick={onNavigate} />
-                            {user?.role === 'ADMIN' && (
-                                <>
-                                    <SidebarItem href="/plants" icon={Factory} label="Stabilimenti" active={isActive('/plants')} onClick={onNavigate} />
-                                    <SidebarItem href="/settings" icon={Settings} label="Impostazioni" active={isActive('/settings')} onClick={onNavigate} />
-                                </>
-                            )}
-                        </SidebarGroup>
-                    )}
-                </div>
+        <aside className={shell} aria-label="Navigazione principale">
+            {/* Brand */}
+            <div className={cn("flex h-14 shrink-0 items-center gap-3 border-b border-sidebar-border", collapsed ? "justify-center px-2" : "px-5")}>
+                <Image src="/brand/FITT-logo-bianco.svg" alt="FITT" width={46} height={28} unoptimized priority />
+                {!collapsed && (
+                    <span className="border-l border-sidebar-border pl-3 text-sm font-semibold tracking-wide text-sidebar-accent-foreground">
+                        CMMS
+                    </span>
+                )}
             </div>
-        </div>
+
+            <div className={cn("shrink-0", collapsed ? "px-2 pt-3" : "px-3 pt-4")}>
+                <PlantSwitcher isCollapsed={collapsed} />
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+                {visibleGroups.map(({ group, items }, index) => (
+                    <div key={group.title} className="space-y-1">
+                        {collapsed ? (
+                            index > 0 && <div className="mx-2 mb-2 border-t border-sidebar-border" />
+                        ) : (
+                            <h3 className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+                                {group.title}
+                            </h3>
+                        )}
+                        {items.map((item) => (
+                            <SidebarItem
+                                key={`${item.href}-${item.label}`}
+                                item={item}
+                                active={isItemActive(item, pathname, searchParams)}
+                                collapsed={collapsed}
+                                onClick={onNavigate}
+                                badge={item.query?.value === "requests" && pendingRequestsCount > 0 ? pendingRequestsCount : undefined}
+                            />
+                        ))}
+                    </div>
+                ))}
+            </nav>
+
+            {!mobile && (
+                <div className="shrink-0 border-t border-sidebar-border p-3">
+                    <button
+                        type="button"
+                        onClick={toggleCollapsed}
+                        aria-label={collapsed ? "Espandi il menu" : "Comprimi il menu"}
+                        title={collapsed ? "Espandi il menu" : "Comprimi il menu"}
+                        className={cn(
+                            "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                            collapsed && "justify-center px-0"
+                        )}
+                    >
+                        {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                        {!collapsed && <span>Comprimi menu</span>}
+                    </button>
+                </div>
+            )}
+        </aside>
     );
 }
 
-// --- Sub Components ---
-
-function SidebarGroup({ title, children }: { title: string, children: React.ReactNode }) {
-    return (
-        <div className="space-y-1">
-            <h3 className="px-4 text-xs font-semibold text-muted-foreground/70 uppercase tracking-widest mb-2 font-mono">
-                {title}
-            </h3>
-            <div className="space-y-0.5">
-                {children}
-            </div>
-        </div>
-    );
-}
-
-interface SidebarItemProps {
-    href: string;
-    icon: LucideIcon;
-    label: string;
-    active?: boolean;
+function SidebarItem({
+    item,
+    active,
+    collapsed,
+    onClick,
+    badge,
+}: {
+    item: NavItem;
+    active: boolean;
+    collapsed: boolean;
     onClick?: () => void;
-    badge?: number | string; // Changed to allow string for "AI" badge
-    highlight?: boolean;
-}
+    badge?: number;
+}) {
+    const Icon = item.icon;
+    const href = item.query ? `${item.href}?${item.query.key}=${item.query.value}` : item.href;
 
-function SidebarItem({ href, icon: Icon, label, active, onClick, badge, highlight }: SidebarItemProps) {
     return (
         <Link
             href={href}
             onClick={onClick}
+            title={collapsed ? item.label : undefined}
+            aria-current={active ? "page" : undefined}
             className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative overflow-hidden",
+                "group relative flex items-center gap-3 rounded-md py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                collapsed ? "justify-center px-0" : "px-3",
                 active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground",
-                highlight && !active && "bg-primary/5 text-primary hover:bg-primary/10"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
             )}
         >
-            {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1/2 w-0.5 bg-primary rounded-r-full" />}
-
-            <Icon className={cn("h-4 w-4 transition-colors", active ? "text-primary" : "text-muted-foreground/70 group-hover:text-primary")} />
-            <span className="flex-1">{label}</span>
-            {badge !== undefined && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground shadow-sm ring-1 ring-background">
-                    {badge}
-                </span>
-            )}
+            {active && <span aria-hidden className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-sidebar-primary" />}
+            <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-sidebar-primary" : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground")} />
+            {collapsed ? <span className="sr-only">{item.label}</span> : <span className="flex-1 truncate">{item.label}</span>}
+            {badge !== undefined &&
+                (collapsed ? (
+                    <span aria-label={`${badge} da approvare`} className="absolute right-3 top-1.5 h-2 w-2 rounded-full bg-critical" />
+                ) : (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-critical px-1.5 text-[11px] font-semibold text-critical-foreground">
+                        {badge}
+                    </span>
+                ))}
         </Link>
     );
 }
