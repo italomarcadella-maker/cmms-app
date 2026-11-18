@@ -1,16 +1,18 @@
 {
-    "name": "CMMS Pro",
+    "name": "FITT CMMS",
     "short_name": "CMMS",
-    "description": "Advanced Maintenance Management System",
+    "description": "Gestione della manutenzione: asset, ordini di lavoro, preventiva, magazzino e KPI",
+    "lang": "it",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#000000",
+    "background_color": "#F4F5F5",
+    "theme_color": "#101214",
     "icons": [
         {
             "src": "/icon.svg",
             "sizes": "192x192 512x512",
-            "type": "image/svg+xml"
+            "type": "image/svg+xml",
+            "purpose": "any"
         }
     ]
 }

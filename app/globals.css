@@ -1,11 +1,29 @@
 @import "tailwindcss";
+@import "./brand-palette.css";
+
+/* The app is light-only for now. Class-based dark variant: `dark:` utilities no longer follow the
+   operating system theme (which used to produce half-dark screens); add the `dark` class to <html>
+   when a real dark theme is introduced. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@font-face {
+  font-family: "Fittype";
+  src: url("/brand/Fittype-1.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 @theme {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* FITT brand: Helvetica is the official face; Arial is the fallback on Windows. */
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+  /* Fittype is the logotype face: display titles only, never body text. */
+  --font-display: "Fittype", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-canvas: var(--canvas);
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -32,6 +50,22 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* Semantic status colours: each has a solid, a soft (tinted background) and a strong (text on soft) tone. */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-success-strong: var(--success-strong);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-strong: var(--info-strong);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-strong: var(--warning-strong);
+  --color-critical: var(--critical);
+  --color-critical-foreground: var(--critical-foreground);
+  --color-critical-soft: var(--critical-soft);
+  --color-critical-strong: var(--critical-strong);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -40,64 +74,115 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Calmer shapes: large radii are capped so decorative rounding disappears everywhere at once. */
+  --radius-2xl: 0.875rem;
+  --radius-3xl: 1rem;
+
+  --shadow-xl: 0 8px 24px rgb(16 18 20 / 0.08);
+  --shadow-2xl: 0 12px 32px rgb(16 18 20 / 0.1);
 }
 
 :root {
   --background: #ffffff;
-  --foreground: #09090b;
+  --foreground: #101214;
+  --canvas: #f4f5f5;
 
   --card: #ffffff;
-  --card-foreground: #09090b;
+  --card-foreground: #101214;
 
   --popover: #ffffff;
-  --popover-foreground: #09090b;
+  --popover-foreground: #101214;
 
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
+  /* Solid actions use Azzurro 600: white text on the pure brand #0098DB is only ~3.3:1, on 600 it is ~4.8:1. */
+  --primary: #007aaf;
+  --primary-foreground: #ffffff;
 
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
+  --secondary: #eeefef;
+  --secondary-foreground: #1c1e1f;
 
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
+  --muted: #f2f3f3;
+  --muted-foreground: #6c6f70;
 
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
+  --accent: #e6f5fc;
+  --accent-foreground: #005b83;
 
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
+  --destructive: #b80065;
+  --destructive-foreground: #ffffff;
 
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #18181b;
+  --border: #e1e2e3;
+  --input: #d3d4d5;
+  --ring: #0098db;
 
-  --sidebar: #f4f4f5;
-  --sidebar-foreground: #09090b;
-  --sidebar-primary: #18181b;
-  --sidebar-primary-foreground: #fafafa;
-  --sidebar-accent: #e4e4e7;
-  --sidebar-accent-foreground: #18181b;
-  --sidebar-border: #e4e4e7;
-  --sidebar-ring: #18181b;
+  --success: #95c11f;
+  --success-foreground: #1e2706;
+  --success-soft: #eaf3d2;
+  --success-strong: #597413;
+
+  --info: #0098db;
+  --info-soft: #e6f5fc;
+  --info-strong: #005b83;
+
+  /* Amber is not a brand colour: kept as a declared functional exception for "warning / delayed" only. */
+  --warning: #f59e0b;
+  --warning-soft: #fef3c7;
+  --warning-strong: #92400e;
+
+  --critical: #e6007e;
+  --critical-foreground: #ffffff;
+  --critical-soft: #fce6f2;
+  --critical-strong: #b80065;
+
+  --sidebar: #101214;
+  --sidebar-foreground: #c6c7c8;
+  --sidebar-primary: #0098db;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1f2326;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #26292c;
+  --sidebar-ring: #0098db;
 
   --radius: 0.5rem;
 }
 
-
-
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-image: linear-gradient(to bottom right, var(--background), #f9fafb);
+/* Tailwind 4 defaults borders to currentColor (black text = black borders). Use the border token everywhere. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border);
+  }
 }
 
-/* Premium Scrollbar */
+body {
+  background-color: var(--canvas);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* FITT "Rainbow" (Verde -> Azzurro -> Fucsia). Brand rule: fixed order, thin accents only, never on small text. */
+.fitt-rainbow {
+  background: linear-gradient(135deg, #95c11f 0%, #0098db 50%, #e6007e 100%);
+}
+.fitt-rainbow-rule {
+  height: 3px;
+  background: linear-gradient(90deg, #95c11f 0%, #0098db 50%, #e6007e 100%);
+}
+
+/* Keyboard focus is always visible, even on elements without their own ring styles. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -105,19 +190,17 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
-  opacity: 0.5;
+  background: #c6c7c8;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--foreground);
+  background: #a2a4a3;
 }
 
-/* Premium Selection */
 ::selection {
-  background: var(--primary);
-  color: var(--primary-foreground);
+  background: rgb(0 152 219 / 0.25);
+  color: var(--foreground);
 }
 
 /* Print Media Styles for clean browser/PDF exports */
@@ -140,8 +223,8 @@ body {
   }
 
   /* Reset layout, margins and background colors for printing */
-  body, 
-  html, 
+  body,
+  html,
   main,
   div.flex.flex-col.min-h-screen,
   div.flex-1.flex.flex-col {
@@ -174,8 +257,8 @@ body {
   }
 
   /* Input fields and textareas styling on print */
-  input, 
-  textarea, 
+  input,
+  textarea,
   select {
     border: none !important;
     border-bottom: 1px dashed #9ca3af !important;
@@ -198,15 +281,15 @@ body {
   .print-block {
     display: block !important;
   }
-  
+
   .print-w-full {
     width: 100% !important;
   }
 
   /* Avoid page break inside sections */
-  section, 
+  section,
   .page-break-avoid {
     page-break-inside: avoid;
     break-inside: avoid;
   }
-}
+}

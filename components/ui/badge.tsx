@@ -15,6 +15,12 @@ const badgeVariants = cva(
                 destructive:
                     "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
                 outline: "text-foreground",
+                // Semantic tones: tinted background + strong text of the same hue (AA contrast).
+                success: "border-transparent bg-success-soft text-success-strong",
+                info: "border-transparent bg-info-soft text-info-strong",
+                warning: "border-transparent bg-warning-soft text-warning-strong",
+                critical: "border-transparent bg-critical-soft text-critical-strong",
+                neutral: "border-transparent bg-secondary text-secondary-foreground",
             },
         },
         defaultVariants: {
