@@ -1,30 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ShieldAlert, ArrowRight, CheckCircle2, UserPlus, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldAlert, UserPlus } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
+    DialogClose,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
-    DialogFooter,
-    DialogClose
 } from "@/components/ui/dialog";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { assignWorkOrder } from "@/lib/actions";
-import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
+import { PriorityPill } from "@/components/ui/status-badge";
+import { assignWorkOrder } from "@/lib/actions";
 
 interface SafetyWidgetProps {
     requests: any[];
@@ -56,15 +51,14 @@ export function SafetyWidget({ requests, technicians }: SafetyWidgetProps) {
     };
 
     if (requests.length === 0) {
-        // "Green State" - No issues
         return (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-6 flex flex-col items-center justify-center text-center space-y-3 animate-in fade-in duration-500">
-                <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                </div>
+            <div className="flex items-center gap-3 rounded-xl border border-success/40 bg-success-soft/50 p-4">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success-soft text-success-strong">
+                    <CheckCircle2 className="h-5 w-5" />
+                </span>
                 <div>
-                    <h3 className="font-semibold text-emerald-700 dark:text-emerald-400">Sicurezza OK</h3>
-                    <p className="text-sm text-emerald-600/80 dark:text-emerald-500/80">Nessuna segnalazione critica attiva al momento.</p>
+                    <h3 className="text-sm font-semibold text-success-strong">Sicurezza in regola</h3>
+                    <p className="text-sm text-muted-foreground">Nessuna segnalazione di sicurezza attiva al momento.</p>
                 </div>
             </div>
         );
@@ -72,101 +66,72 @@ export function SafetyWidget({ requests, technicians }: SafetyWidgetProps) {
 
     return (
         <>
-            <div className="rounded-xl border border-red-500/30 bg-red-500/5 overflow-hidden animate-in slide-in-from-top-4 duration-500 shadow-lg shadow-red-500/10">
-                <div className="p-4 border-b border-red-500/20 bg-red-500/10 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="bg-red-500 text-white p-1.5 rounded-lg animate-pulse">
+            <section aria-label="Segnalazioni di sicurezza" className="overflow-hidden rounded-xl border border-critical/40 bg-card shadow-sm">
+                <div className="flex items-center justify-between gap-3 border-b border-critical/20 bg-critical-soft px-4 py-3">
+                    <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-critical text-critical-foreground">
                             <ShieldAlert className="h-5 w-5" />
-                        </div>
+                        </span>
                         <div>
-                            <h3 className="font-bold text-red-700 dark:text-red-400 leading-none">Sicurezza Prioritaria</h3>
-                            <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">{requests.length} Segnalazioni Richiedono Attenzione</p>
+                            <h3 className="text-sm font-semibold leading-tight text-critical-strong">Sicurezza prioritaria</h3>
+                            <p className="text-xs text-critical-strong/80">
+                                {requests.length === 1 ? "1 segnalazione richiede attenzione" : `${requests.length} segnalazioni richiedono attenzione`}
+                            </p>
                         </div>
                     </div>
-                    <Button asChild size="sm" variant="destructive" className="h-8 text-xs shadow-md">
+                    <Button asChild size="sm" variant="destructive">
                         <Link href="/requests/safety">
-                            Gestisci <ArrowRight className="ml-1 h-3 w-3" />
+                            Gestisci <ArrowRight className="ml-1 h-3.5 w-3.5" />
                         </Link>
                     </Button>
                 </div>
 
-                <div className="divide-y divide-red-500/10">
+                <ul className="divide-y">
                     {requests.map((req) => (
-                        <div key={req.id} className="p-3 hover:bg-red-500/5 transition-colors flex items-center justify-between gap-3 group">
-                            <div className="flex items-start gap-3 min-w-0">
-                                <div className="mt-0.5">
-                                    {req.priority === 'HIGH' || req.priority === 'STOPPED' ? (
-                                        <AlertTriangle className="h-4 w-4 text-red-600 animate-bounce cursor-help" />
-                                    ) : (
-                                        <div className="h-2 w-2 rounded-full bg-amber-500 mt-1.5" />
-                                    )}
+                        <li key={req.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                            <div className="min-w-0 space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h4 className="truncate text-sm font-semibold">{req.title}</h4>
+                                    <PriorityPill priority={req.priority} />
                                 </div>
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <h4 className="text-sm font-semibold truncate group-hover:text-red-600 transition-colors">
-                                            {req.title}
-                                        </h4>
-                                        <span className={cn(
-                                            "text-[10px] px-1.5 py-0.5 rounded font-medium border uppercase tracking-wider",
-                                            req.priority === 'HIGH' || req.priority === 'STOPPED'
-                                                ? "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900"
-                                                : "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-900"
-                                        )}>
-                                            {req.priority === 'STOPPED' ? 'CRITICA' : req.priority}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground line-clamp-1 mb-1">
-                                        {req.description}
-                                    </p>
-                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
-                                        <span>{new Date(req.createdAt).toLocaleDateString()}</span>
-                                        <span>•</span>
-                                        <span>{req.asset?.name || 'Sistema'}</span>
-                                        {req.assignedTo && (
-                                            <>
-                                                <span>•</span>
-                                                <span className="text-emerald-600 font-medium flex items-center gap-0.5">
-                                                    Assegnato: {req.assignedTo}
-                                                </span>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
+                                <p className="line-clamp-1 text-sm text-muted-foreground">{req.description}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {new Date(req.createdAt).toLocaleDateString("it-IT")} · {req.asset?.name || "Sistema"}
+                                    {req.assignedTo && <span className="font-medium text-success-strong"> · Assegnato a {req.assignedTo}</span>}
+                                </p>
                             </div>
 
                             {!req.assignedTechnicianId && (
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 text-xs border-red-200 bg-red-50 hover:bg-red-100 hover:text-red-700 dark:bg-red-900/10 dark:hover:bg-red-900/20 dark:border-red-900 flex-shrink-0"
+                                    className="shrink-0"
                                     onClick={() => {
                                         setAssigningId(req.id);
                                         setIsDialogOpen(true);
                                     }}
                                 >
-                                    <UserPlus className="h-3 w-3 mr-1" />
+                                    <UserPlus className="mr-1.5 h-4 w-4" />
                                     Assegna
                                 </Button>
                             )}
-                        </div>
+                        </li>
                     ))}
-                </div>
-            </div>
+                </ul>
+            </section>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Assegnazione Rapida</DialogTitle>
-                        <DialogDescription>
-                            Seleziona un tecnico per prendere in carico questa segnalazione di sicurezza.
-                        </DialogDescription>
+                        <DialogTitle>Assegnazione rapida</DialogTitle>
+                        <DialogDescription>Scegli il tecnico che prende in carico questa segnalazione di sicurezza.</DialogDescription>
                     </DialogHeader>
 
-                    <div className="py-4">
-                        <label className="text-sm font-medium mb-1.5 block">Tecnico Disponibile</label>
+                    <div className="space-y-2 py-2">
+                        <Label>Tecnico</Label>
                         <Select value={selectedTech} onValueChange={setSelectedTech}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Seleziona tecnico..." />
+                                <SelectValue placeholder="Seleziona un tecnico" />
                             </SelectTrigger>
                             <SelectContent>
                                 {technicians.map((tech) => (
@@ -174,12 +139,10 @@ export function SafetyWidget({ requests, technicians }: SafetyWidgetProps) {
                                         <div className="flex items-center gap-2">
                                             <Avatar className="h-5 w-5">
                                                 <AvatarImage src={tech.image} />
-                                                <AvatarFallback className="text-[10px]">
-                                                    {tech.name?.substring(0, 2).toUpperCase()}
-                                                </AvatarFallback>
+                                                <AvatarFallback className="text-[10px]">{tech.name?.substring(0, 2).toUpperCase()}</AvatarFallback>
                                             </Avatar>
                                             {tech.name}
-                                            <span className="text-xs text-muted-foreground ml-1">({tech.specialty})</span>
+                                            <span className="ml-1 text-xs text-muted-foreground">({tech.specialty})</span>
                                         </div>
                                     </SelectItem>
                                 ))}
@@ -187,20 +150,21 @@ export function SafetyWidget({ requests, technicians }: SafetyWidgetProps) {
                         </Select>
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="gap-2 sm:gap-0">
                         <DialogClose asChild>
-                            <Button variant="outline" onClick={() => {
-                                setIsDialogOpen(false);
-                                setAssigningId(null);
-                                setSelectedTech("");
-                            }}>Annulla</Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setIsDialogOpen(false);
+                                    setAssigningId(null);
+                                    setSelectedTech("");
+                                }}
+                            >
+                                Annulla
+                            </Button>
                         </DialogClose>
-                        <Button
-                            onClick={handleAssign}
-                            disabled={!selectedTech || isLoading}
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                        >
-                            {isLoading ? "Assegnazione..." : "Conferma Assegnazione"}
+                        <Button onClick={handleAssign} disabled={!selectedTech || isLoading}>
+                            {isLoading ? "Assegnazione in corso" : "Conferma assegnazione"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

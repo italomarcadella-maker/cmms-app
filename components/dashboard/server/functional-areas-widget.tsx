@@ -1,48 +1,48 @@
-
 import { getAreaStatus } from "@/lib/dashboard-actions";
 import { getEnergyMetrics } from "@/lib/energy-actions";
 import { AreaCard } from "@/components/dashboard/area-card";
-import { Factory, Wrench, Settings, TrendingUp } from "lucide-react";
+import { Factory, Leaf, Settings, TrendingUp, Wrench } from "lucide-react";
 
 export async function FunctionalAreasWidget() {
-    const status = await getAreaStatus();
+    const [status, energy] = await Promise.all([getAreaStatus(), getEnergyMetrics()]);
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <AreaCard
-                title="Linee Produttive"
+                title="Linee produttive"
                 count={status.production}
-                icon={<Factory className="h-5 w-5" />}
+                icon={<Factory />}
                 href="/work-orders?hasLine=true"
-                color="bg-blue-500"
+                tone="info"
             />
             <AreaCard
-                title="Impianti Generali"
+                title="Impianti generali"
                 count={status.facilities}
-                icon={<Settings className="h-5 w-5" />}
+                icon={<Settings />}
                 href="/work-orders?assetType=FACILITY"
-                color="bg-slate-500"
+                tone="neutral"
             />
             <AreaCard
                 title="Officina"
                 count={status.workshop}
-                icon={<Wrench className="h-5 w-5" />}
+                icon={<Wrench />}
                 href="/work-orders?location=officina"
-                color="bg-amber-500"
+                tone="warning"
             />
             <AreaCard
                 title="Miglioramento"
                 count={status.improvement}
-                icon={<TrendingUp className="h-5 w-5" />}
+                icon={<TrendingUp />}
                 href="/work-orders?category=IMPROVEMENT"
-                color="bg-emerald-500"
+                tone="success"
             />
             <AreaCard
-                title="Sostenibilità AI"
-                count={(await getEnergyMetrics()).sustainabilityScore ?? 0}
-                icon={<TrendingUp className="h-5 w-5" />}
+                title="Sostenibilità"
+                count={energy.sustainabilityScore ?? "N/D"}
+                icon={<Leaf />}
                 href="/sustainability"
-                color="bg-indigo-600"
+                tone="success"
+                subtitle="Eco score"
             />
         </div>
     );

@@ -1,16 +1,25 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { AlertCircle, AlertTriangle, CheckCircle, Info, Sparkles } from 'lucide-react';
+
 import { getDailyInsights } from '@/lib/ai-service';
 import { DailyInsight } from '@/lib/ai/types';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { AlertTriangle, CheckCircle, Info, AlertCircle, Sparkles } from 'lucide-react'; // Changed RefreshCw to Sparkles
-import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 interface AIDailyBriefProps {
     initialInsights?: DailyInsight[];
 }
+
+const insightStyle = {
+    ALERT: { icon: AlertTriangle, iconClass: 'text-critical-strong', titleClass: 'text-critical-strong' },
+    WARNING: { icon: AlertCircle, iconClass: 'text-warning-strong', titleClass: 'text-warning-strong' },
+    SUCCESS: { icon: CheckCircle, iconClass: 'text-success-strong', titleClass: 'text-success-strong' },
+    INFO: { icon: Info, iconClass: 'text-info-strong', titleClass: 'text-info-strong' },
+} as const;
 
 export function AIDailyBrief({ initialInsights = [] }: AIDailyBriefProps) {
     const [insights, setInsights] = useState<DailyInsight[]>(initialInsights);
@@ -26,55 +35,44 @@ export function AIDailyBrief({ initialInsights = [] }: AIDailyBriefProps) {
     }, [initialInsights]);
 
     if (loading) return (
-        <div className="rounded-xl border bg-card p-6 space-y-4">
-            <div className="h-6 w-32 bg-muted rounded animate-pulse" />
-            <div className="space-y-2">
-                <div className="h-12 w-full bg-muted/50 rounded animate-pulse" />
-                <div className="h-12 w-full bg-muted/50 rounded animate-pulse" />
-            </div>
+        <div className="space-y-3 rounded-xl border bg-card p-5">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-14 w-full" />
         </div>
     );
 
     if (insights.length === 0) return null;
 
     return (
-        <Card className="border-none shadow-sm bg-gradient-to-br from-violet-50 via-white to-white dark:from-violet-950/20 dark:to-background border-l-4 border-l-violet-500 overflow-hidden relative">
-            {/* Decoration */}
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Sparkles className="h-24 w-24 text-violet-500" />
-            </div>
-
-            <CardHeader className="pb-2 relative z-10">
-                <CardTitle className="text-lg flex items-center gap-2 text-violet-700 dark:text-violet-400">
-                    <Sparkles className="h-5 w-5" />
-                    AI Daily Briefing
+        <Card>
+            <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-info-soft text-info-strong">
+                        <Sparkles className="h-4 w-4" />
+                    </span>
+                    Briefing giornaliero
                 </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-3 relative z-10">
-                {insights.map(insight => (
-                    <div key={insight.id} className="flex items-start gap-3 p-3 rounded-lg bg-white/60 dark:bg-card/60 backdrop-blur-sm border hover:bg-white dark:hover:bg-card transition-all shadow-sm">
-                        <div className="mt-0.5 shrink-0">
-                            {insight.type === 'ALERT' && <AlertTriangle className="h-5 w-5 text-red-500" />}
-                            {insight.type === 'WARNING' && <AlertCircle className="h-5 w-5 text-amber-500" />}
-                            {insight.type === 'SUCCESS' && <CheckCircle className="h-5 w-5 text-emerald-500" />}
-                            {insight.type === 'INFO' && <Info className="h-5 w-5 text-blue-500" />}
+            <CardContent className="grid gap-2">
+                {insights.map(insight => {
+                    const style = insightStyle[insight.type as keyof typeof insightStyle] ?? insightStyle.INFO;
+                    const Icon = style.icon;
+                    return (
+                        <div key={insight.id} className="flex items-start gap-3 rounded-lg border bg-background p-3">
+                            <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', style.iconClass)} />
+                            <div className="flex-1">
+                                <h4 className={cn('text-sm font-semibold', style.titleClass)}>{insight.title}</h4>
+                                <p className="text-sm leading-relaxed text-muted-foreground">{insight.message}</p>
+                                {insight.actionLabel && (
+                                    <Link href={insight.actionUrl || '#'} className="mt-1.5 inline-block text-xs font-medium text-primary hover:underline">
+                                        {insight.actionLabel}
+                                    </Link>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex-1">
-                            <h4 className={cn("font-semibold text-sm",
-                                insight.type === 'ALERT' && "text-red-700 dark:text-red-400",
-                                insight.type === 'WARNING' && "text-amber-700 dark:text-amber-400",
-                                insight.type === 'SUCCESS' && "text-emerald-700 dark:text-emerald-400",
-                                insight.type === 'INFO' && "text-blue-700 dark:text-blue-400"
-                            )}>{insight.title}</h4>
-                            <p className="text-sm text-muted-foreground leading-relaxed">{insight.message}</p>
-                            {insight.actionLabel && (
-                                <Link href={insight.actionUrl || '#'} className="text-xs font-medium text-primary hover:underline mt-2 inline-flex items-center gap-1">
-                                    {insight.actionLabel} →
-                                </Link>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </CardContent>
         </Card>
     );

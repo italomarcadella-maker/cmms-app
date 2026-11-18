@@ -97,7 +97,7 @@ export function AssetStatusPill({ status, className }: { status: string; classNa
 }
 
 /** Tone for a 0-100 health score: used for bars and numbers so colour means the same everywhere. */
-export function healthTone(score: number): Tone {
+export function healthTone(score: number): "success" | "warning" | "critical" {
     if (score >= 80) return "success"
     if (score >= 50) return "warning"
     return "critical"

@@ -2,7 +2,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from "recharts";
-import { Activity, Clock, EuroIcon, TrendingDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { chartColors } from "@/lib/chart-colors";
 
 interface AnalyticsChartsProps {
     data: {
@@ -14,83 +15,59 @@ interface AnalyticsChartsProps {
     };
 }
 
+const tooltipStyle = { borderRadius: 8, border: `1px solid ${chartColors.grid}`, fontSize: 12 };
+
 export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
     if (!data || data.trend.length === 0) return null;
 
+    const mttrGood = data.mttr < 4;
+    const mtbfGood = data.mtbf > 720;
+
     return (
-        <div className="space-y-6 mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <div className="space-y-4">
+            <div className="grid gap-4 lg:grid-cols-7">
                 {/* MTTR/MTBF Chart */}
-                <Card className="col-span-4">
+                <Card className="lg:col-span-4">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Activity className="h-5 w-5 text-blue-500" />
-                            Efficienza Manutenzione
-                        </CardTitle>
-                        <CardDescription>
-                            MTTR (Ore Riparazione) vs MTBF (Ore tra Guasti)
-                        </CardDescription>
+                        <CardTitle>Efficienza manutenzione</CardTitle>
+                        <CardDescription>MTTR (ore di riparazione) e MTBF (ore tra i guasti)</CardDescription>
                     </CardHeader>
-                    <CardContent className="pl-2">
-                        <ResponsiveContainer width="100%" height={300}>
+                    <CardContent>
+                        <ResponsiveContainer width="100%" height={280}>
                             <AreaChart data={data.trend}>
                                 <defs>
                                     <linearGradient id="colorMtbf" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        <stop offset="5%" stopColor={chartColors.success} stopOpacity={0.45} />
+                                        <stop offset="95%" stopColor={chartColors.success} stopOpacity={0} />
                                     </linearGradient>
                                     <linearGradient id="colorMttr" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                                        <stop offset="5%" stopColor={chartColors.critical} stopOpacity={0.35} />
+                                        <stop offset="95%" stopColor={chartColors.critical} stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: 'var(--background)', borderRadius: '8px', border: '1px solid var(--border)' }}
-                                    itemStyle={{ color: 'var(--foreground)' }}
-                                />
-                                <Legend />
-                                <Area type="monotone" dataKey="mtbf" name="MTBF (h)" stroke="#10b981" fillOpacity={1} fill="url(#colorMtbf)" />
-                                <Area type="monotone" dataKey="mttr" name="MTTR (h)" stroke="#f43f5e" fillOpacity={1} fill="url(#colorMttr)" />
+                                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
+                                <XAxis dataKey="name" stroke={chartColors.axis} fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke={chartColors.axis} fontSize={12} tickLine={false} axisLine={false} />
+                                <Tooltip contentStyle={tooltipStyle} />
+                                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                                <Area type="monotone" dataKey="mtbf" name="MTBF (h)" stroke={chartColors.success} strokeWidth={2} fill="url(#colorMtbf)" />
+                                <Area type="monotone" dataKey="mttr" name="MTTR (h)" stroke={chartColors.critical} strokeWidth={2} fill="url(#colorMttr)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
 
-                {/* KPI Cards */}
-                <Card className="col-span-3">
+                {/* Key metrics */}
+                <Card className="lg:col-span-3">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Clock className="h-5 w-5 text-amber-500" />
-                            Metriche Chiave
-                        </CardTitle>
+                        <CardTitle>Metriche chiave</CardTitle>
                         <CardDescription>Ultimi 6 mesi</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="flex items-center justify-between border-b pb-4">
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">MTTR Medio</p>
-                                <p className="text-2xl font-bold">{data.mttr} h</p>
-                            </div>
-                            <div className={`h-3 w-3 rounded-full ${data.mttr < 4 ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-4">
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">MTBF Medio</p>
-                                <p className="text-2xl font-bold">{data.mtbf} h</p>
-                            </div>
-                            <div className={`h-3 w-3 rounded-full ${data.mtbf > 720 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                        </div>
+                    <CardContent className="space-y-5">
+                        <Metric label="MTTR medio" value={`${data.mttr} h`} good={mttrGood} />
+                        <Metric label="MTBF medio" value={`${data.mtbf} h`} good={mtbfGood} />
                         {data.avgCost !== undefined && (
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Costo Medio Intervento</p>
-                                    <p className="text-2xl font-bold">€ {data.avgCost}</p>
-                                </div>
-                                <EuroIcon className="h-4 w-4 text-muted-foreground" />
-                            </div>
+                            <Metric label="Costo medio intervento" value={`€ ${data.avgCost.toLocaleString("it-IT")}`} />
                         )}
                     </CardContent>
                 </Card>
@@ -99,36 +76,45 @@ export function AnalyticsCharts({ data }: AnalyticsChartsProps) {
             {/* Cost Chart */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <EuroIcon className="h-5 w-5 text-purple-500" />
-                        Analisi Costi Manutenzione
-                    </CardTitle>
-                    <CardDescription>Andamento costi globali (Materiali + Manodopera)</CardDescription>
+                    <CardTitle>Analisi costi di manutenzione</CardTitle>
+                    <CardDescription>Andamento dei costi globali (materiali e manodopera)</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="h-[250px] w-full">
+                    <div className="h-[240px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={data.trend}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis
-                                    stroke="#888888"
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickFormatter={(value) => `€${value}`}
-                                />
+                                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} vertical={false} />
+                                <XAxis dataKey="name" stroke={chartColors.axis} fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke={chartColors.axis} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `€${value}`} />
                                 <Tooltip
-                                    cursor={{ fill: 'var(--muted)', opacity: 0.1 }}
-                                    formatter={(value) => [`€ ${value}`, 'Costo Totale']}
-                                    contentStyle={{ backgroundColor: 'var(--background)', borderRadius: '8px', border: '1px solid var(--border)' }}
+                                    cursor={{ fill: chartColors.grid, opacity: 0.4 }}
+                                    formatter={(value) => [`€ ${value}`, 'Costo totale']}
+                                    contentStyle={tooltipStyle}
                                 />
-                                <Bar dataKey="cost" name="Costo (€)" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={60} />
+                                <Bar dataKey="cost" name="Costo (€)" fill={chartColors.primary} radius={[4, 4, 0, 0]} maxBarSize={56} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </CardContent>
             </Card>
+        </div>
+    );
+}
+
+function Metric({ label, value, good }: { label: string; value: string; good?: boolean }) {
+    return (
+        <div className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+            <div>
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="text-2xl font-semibold tabular-nums">{value}</p>
+            </div>
+            {good !== undefined && (
+                <span
+                    role="img"
+                    aria-label={good ? "Valore nella norma" : "Valore da migliorare"}
+                    className={cn("h-2.5 w-2.5 rounded-full", good ? "bg-success" : "bg-warning")}
+                />
+            )}
         </div>
     );
 }
