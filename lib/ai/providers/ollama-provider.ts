@@ -11,7 +11,7 @@ export class OllamaProvider implements ILlmProvider {
         this.openai = new OpenAI({
             apiKey: "ollama",
             baseURL: baseUrl,
-            dangerouslyAllowBrowser: true
+            timeout: 20_000
         });
     }
 

@@ -55,46 +55,6 @@ interface ComponentsContextType {
 
 const ComponentsContext = createContext<ComponentsContextType | undefined>(undefined);
 
-// Mock Data
-const MOCK_COMPONENTS: ComponentItem[] = [
-    {
-        id: 'C-101',
-        code: 'VITE-050-A',
-        type: 'SCREW',
-        model: 'Vite Ø50mm PVC',
-        nominalDiameter: 50,
-        manufacturer: 'Bausano',
-        usageType: 'SOTTOSTRATO',
-        warehouse: 'RETINATO',
-        location: 'Scaffale A1',
-        status: 'OPTIMAL',
-        referenceDrawing: 'DWG-2024-001',
-        lifecycle: {},
-        isScrapped: false,
-        measurements: [{ date: '2024-01-01', value1: 49.95, operator: 'M. Rossi' }],
-        purchaseDate: '2023-01-01',
-    },
-    {
-        id: 'C-102',
-        code: 'CIL-050-A',
-        type: 'BARREL',
-        model: 'Cilindro Ø50mm',
-        nominalDiameter: 50,
-        manufacturer: 'Bausano',
-        usageType: 'COPERTURA',
-        warehouse: 'MAGLIATO',
-        location: 'Scaffale B2',
-        status: 'WARNING',
-        lifecycle: {
-            nitriding1: '2023-01-15'
-        },
-        isScrapped: false,
-        measurements: [{ date: '2023-06-01', value1: 50.05, operator: 'M. Rossi' }],
-        purchaseDate: '2022-06-01',
-        // assignedAssetId removed to make it available in warehouse
-    }
-];
-
 export function ComponentsProvider({ children }: { children: React.ReactNode }) {
     const [components, setComponents] = useState<ComponentItem[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);

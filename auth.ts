@@ -10,8 +10,10 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig,
     adapter: PrismaAdapter(prisma) as any,
     session: { strategy: "jwt" },
-    // Security Hardening: Enforce AUTH_SECRET in production with robust fallback
-    secret: process.env.AUTH_SECRET || "a_very_long_random_secret_string_for_testing_purposes_only",
+    // AUTH_SECRET is required and validated at startup by lib/env.mjs (imported from next.config.mjs).
+    // No fallback here on purpose: a hardcoded fallback would silently sign JWTs with a known
+    // secret if the env validation were ever bypassed.
+    secret: process.env.AUTH_SECRET,
     debug: process.env.NODE_ENV === 'development',
     providers: [
         Credentials({
@@ -41,7 +43,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                         return user;
                     }
                 }
-                console.log('Invalid credentials');
                 return null;
             },
         }),

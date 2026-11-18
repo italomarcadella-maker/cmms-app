@@ -10,7 +10,7 @@ export class GeminiProvider implements ILlmProvider {
         this.openai = new OpenAI({
             apiKey: this.apiKey,
             baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
-            dangerouslyAllowBrowser: true
+            timeout: 20_000
         });
     }
 

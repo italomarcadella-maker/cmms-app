@@ -7,7 +7,6 @@ export const authConfig = {
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
             const isLoggedIn = !!auth?.user;
-            console.log(`[AUTH-DEBUG] Path: ${nextUrl.pathname}, LoggedIn: ${isLoggedIn}`);
 
             // Allow static files and API auth routes explicitly
             if (nextUrl.pathname.startsWith('/_next') ||
@@ -22,7 +21,6 @@ export const authConfig = {
 
             if (isLoginPage) {
                 if (isLoggedIn) {
-                    console.log(`[AUTH-DEBUG] Redirecting logged in user from login to /`);
                     return Response.redirect(new URL('/', nextUrl));
                 }
                 return true;
@@ -30,7 +28,6 @@ export const authConfig = {
 
             // Require login for all other routes
             if (!isLoggedIn) {
-                console.log(`[AUTH-DEBUG] Redirecting unauthenticated user to /login`);
                 return false; // Redirect to login
             }
 

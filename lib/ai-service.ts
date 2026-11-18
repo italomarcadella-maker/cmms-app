@@ -407,6 +407,37 @@ export async function chatWithAsset(assetId: string, message: string, history: a
         return { role: 'assistant', content: `Se ${asset.name} è bloccata, verifica:\n1. Pulsante emergenza premuto?\n2. Protezioni chiuse correttamente?\n3. Alimentazione aria compressa (se pneumatica).` };
     }
 
+    // Intent: Create a real Work Order from the conversation
+    if (q.includes("crea un ticket") || q.includes("crea ticket") || q.includes("apri un intervento") || q.includes("apri intervento") || q.includes("segnala guasto") || q.includes("crea richiesta") || q.includes("crea ordine")) {
+        return {
+            role: 'assistant',
+            content: `Posso creare un ordine di lavoro per ${asset.name} con la descrizione che mi hai dato. Confermi?`,
+            actions: [{
+                type: 'CREATE_TICKET',
+                label: 'Crea Ordine di Lavoro',
+                payload: { assetId: asset.id, title: `Segnalazione da chat: ${asset.name}`, description: message }
+            }]
+        };
+    }
+
+    // Intent: Order a spare part - point to the real inventory page (no fake "order placed" state)
+    if (q.includes("ordina") || q.includes("ricambio") || q.includes("pezzo di ricambio")) {
+        const parts = await prisma.sparePart.findMany({ select: { id: true, name: true }, take: 200 });
+        const words = q.split(/\s+/).filter(w => w.length > 3);
+        const match = parts.find(p => words.some(w => p.name.toLowerCase().includes(w)));
+        return {
+            role: 'assistant',
+            content: match
+                ? `Ho trovato "${match.name}" a magazzino. Ti porto alla pagina ricambi per completare la richiesta d'acquisto.`
+                : `Non ho trovato un ricambio corrispondente a magazzino. Ti porto alla pagina Ricambi per cercarlo manualmente.`,
+            actions: [{
+                type: 'ORDER_PART',
+                label: 'Vai a Magazzino Ricambi',
+                payload: { partName: match?.name || message }
+            }]
+        };
+    }
+
     // Default Fallback
     return {
         role: 'assistant',
@@ -559,78 +590,6 @@ export async function suggestActivitiesForDowntime(lineName: string, durationHou
     } catch (error) {
         console.error("Downtime Suggestion Error:", error);
         return { message: "Errore durante l'analisi.", suggestions: [] };
-    }
-}
-
-// --- Mock AI Service for Widget ---
-export interface AIInsight {
-    id: string;
-    assetName: string;
-    type: 'WARNING' | 'CRITICAL' | 'INFO';
-    prediction: string;
-    confidence: number;
-    action: string;
-}
-
-export async function getMockInsights(): Promise<AIInsight[]> {
-    try {
-        const assets = await prisma.asset.findMany({
-            where: {
-                healthScore: { lt: 100 }
-            },
-            take: 3,
-            orderBy: { healthScore: 'asc' } // lowest health first
-        });
-
-        if (assets.length === 0) {
-            return [
-                {
-                    id: '1',
-                    assetName: 'Sistema Globale',
-                    type: 'INFO',
-                    prediction: 'Tutti i macchinari registrati operano a livelli ottimali di efficienza (100%).',
-                    confidence: 99,
-                    action: 'Nessuna azione richiesta'
-                }
-            ];
-        }
-
-        return assets.map((asset, index) => {
-            let type: 'WARNING' | 'CRITICAL' | 'INFO' = 'INFO';
-            let prediction = `Efficienza ottimale del ${asset.healthScore}%. Nessuna anomalia rilevata.`;
-            let action = 'Ispezione periodica standard';
-
-            if (asset.healthScore <= 50) {
-                type = 'CRITICAL';
-                prediction = `Salute critica (${asset.healthScore}%). Rischio fermo macchina imminente.`;
-                action = 'Intervento correttivo urgente';
-            } else if (asset.healthScore <= 85) {
-                type = 'WARNING';
-                prediction = `Salute in diminuzione (${asset.healthScore}%). Rilevata usura nei parametri operativi.`;
-                action = 'Pianificare manutenzione preventiva';
-            }
-
-            return {
-                id: asset.id,
-                assetName: asset.name,
-                type,
-                prediction,
-                confidence: Math.min(98, 100 - asset.healthScore + 30),
-                action
-            };
-        });
-    } catch (error) {
-        console.error("Error generating insights from DB:", error);
-        return [
-            {
-                id: '1',
-                assetName: 'Pressa HP-2000',
-                type: 'WARNING',
-                prediction: 'Efficienza scesa all\'85%. Rilevate vibrazioni secondarie.',
-                confidence: 80,
-                action: 'Pianificare lubrificazione'
-            }
-        ];
     }
 }
 
