@@ -1,14 +1,12 @@
 'use server';
 
-import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
 import { PrismaMeterRepository } from '../db/prisma-meter-repository';
 import { PrismaMeterReadingRepository } from '../db/prisma-meter-reading-repository';
 import { Meter } from '../../domain/entities/meter';
-import { MeterReading } from '../../domain/entities/meter-reading';
-import { requireRole } from '@/lib/actions';
+import { makeRecordMeterReading } from '../../domain/use-cases/record-meter-reading';
+import { requireRole, getSystemSettings } from '@/lib/actions';
 
 import { format, subDays, addDays, parseISO, differenceInDays } from "date-fns";
 import { it } from "date-fns/locale";
@@ -77,60 +75,8 @@ export async function getMeterReadings(meterId: string) {
 }
 
 export async function addMeterReading(data: { meterId: string, value: number, date: string }) {
-    const meterRepo = getMeterRepo();
-    const readingRepo = getReadingRepo();
-
-    const meter = await meterRepo.findById(data.meterId);
-    if (!meter) throw new Error("Meter not found");
-
-    const lastReadings = await prisma.meterReading.findMany({
-        where: { meterId: data.meterId },
-        orderBy: { date: 'desc' },
-        take: 5
-    });
-
-    let isAnomaly = false;
-    let aiAnalysis: string | null = null;
-
-    if (lastReadings.length > 0) {
-        const lastReading = lastReadings[0];
-        const consumption = data.value - lastReading.value;
-
-        if (consumption < 0) {
-            isAnomaly = true;
-            aiAnalysis = "Rilevato valore inferiore alla lettura precedente. Possibile errore di inserimento o sostituzione contatore.";
-        } else if (lastReadings.length >= 3) {
-            let totalCons = 0;
-            let count = 0;
-            for (let i = 0; i < lastReadings.length - 1; i++) {
-                const diff = lastReadings[i].value - lastReadings[i + 1].value;
-                if (diff > 0) {
-                    totalCons += diff;
-                    count++;
-                }
-            }
-
-            if (count > 0) {
-                const avgCons = totalCons / count;
-                const threshold = avgCons * 0.5;
-
-                if (consumption > avgCons + threshold) {
-                    isAnomaly = true;
-                    aiAnalysis = `Consumo rilevato (${consumption.toFixed(2)}) superiore del ${(100 * (consumption - avgCons) / avgCons).toFixed(0)}% rispetto alla media recente (${avgCons.toFixed(2)}).`;
-                }
-            }
-        }
-    }
-
-    const readingEntity = new MeterReading({
-        meterId: data.meterId,
-        value: data.value,
-        date: new Date(data.date),
-        isAnomaly,
-        aiAnalysis
-    });
-
-    await readingRepo.save(readingEntity);
+    const recordMeterReading = makeRecordMeterReading(getMeterRepo(), getReadingRepo());
+    const { isAnomaly, aiAnalysis } = await recordMeterReading(data);
 
     revalidatePath('/energy');
     return { success: true, isAnomaly, aiAnalysis };
@@ -139,20 +85,19 @@ export async function addMeterReading(data: { meterId: string, value: number, da
 export async function getAllMeterReadings() {
     const { authorized } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
     if (!authorized) return [];
-    const readings = await prisma.meterReading.findMany({
-        include: { meter: true },
-        orderBy: { date: 'desc' }
-    });
+    const readings = await getReadingRepo().findWithMeter();
 
-    return readings.map((r: any) => ({
-        ...r,
-        meterName: r.meter.name,
-        meterType: r.meter.type,
-        meterSerial: r.meter.serialNumber || 'N/A',
-        meterLocation: r.meter.location || 'N/A',
-        unit: r.meter.unit,
-        date: r.date.toISOString().split('T')[0]
-    }));
+    return readings
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .map((r) => ({
+            ...r,
+            meterName: r.meter.name,
+            meterType: r.meter.type,
+            meterSerial: r.meter.serialNumber || 'N/A',
+            meterLocation: r.meter.location || 'N/A',
+            unit: r.meter.unit,
+            date: r.date.toISOString().split('T')[0]
+        }));
 }
 
 export async function getEnergyStats(days: number = 30) {
@@ -164,15 +109,9 @@ export async function getEnergyStats(days: number = 30) {
 
         const startOfTrend = subDays(new Date(), days);
 
-        const meters = await prisma.meter.findMany();
+        const meters = (await getMeterRepo().findAll()).map(m => m.toJSON());
 
-        const readings = await prisma.meterReading.findMany({
-            where: {
-                date: { gte: subDays(new Date(), 365) }
-            },
-            include: { meter: true },
-            orderBy: { date: 'asc' }
-        });
+        const readings = await getReadingRepo().findWithMeter({ from: subDays(new Date(), 365) });
 
         const totals = {
             currentMonth: { ELEC: 0, WATER: 0, GAS: 0 },
@@ -188,7 +127,7 @@ export async function getEnergyStats(days: number = 30) {
             dailyTrends.set(key, { date: key, elec: 0, water: 0, gas: 0 });
         }
 
-        meters.forEach(m => meterDailyTrends.set(m.id, new Map()));
+        meters.forEach(m => meterDailyTrends.set(m.id!, new Map()));
 
         for (const meter of meters) {
             const meterReadings = readings
@@ -235,7 +174,7 @@ export async function getEnergyStats(days: number = 30) {
                             if (meter.type === 'GAS') entry.gas += dailyConsumption;
                         }
 
-                        const mTrend = meterDailyTrends.get(meter.id);
+                        const mTrend = meterDailyTrends.get(meter.id!);
                         if (mTrend) {
                             const existing = mTrend.get(targetDateKey) || 0;
                             mTrend.set(targetDateKey, existing + dailyConsumption);
@@ -252,8 +191,8 @@ export async function getEnergyStats(days: number = 30) {
 
         const meterHistory: Record<string, Array<{ date: string, consumption: number }>> = {};
         meters.forEach(m => {
-            const mTrendMap = meterDailyTrends.get(m.id);
-            meterHistory[m.id] = trendDates.map(date => ({
+            const mTrendMap = meterDailyTrends.get(m.id!);
+            meterHistory[m.id!] = trendDates.map(date => ({
                 date,
                 consumption: mTrendMap?.get(date) || 0
             }));
@@ -292,13 +231,7 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
         }
 
         const daysInRange = differenceInDays(endDate, startDate);
-        const meterReadings = await prisma.meterReading.findMany({
-            where: { 
-                date: { lte: endDate },
-            },
-            include: { meter: true },
-            orderBy: { date: 'asc' }
-        });
+        const meterReadings = await getReadingRepo().findWithMeter({ to: endDate });
 
         const hasAnyReadings = meterReadings.length > 0;
         
@@ -371,26 +304,60 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
         const chartData = Array.from(readingPoints.values())
             .sort((a, b) => a.date.localeCompare(b.date));
 
-        const totalCo2 = totalKwh * 0.44;
+        const settings = await getSystemSettings();
+        const co2Factor = settings?.co2FactorPerKwh ?? 0.44;
+        const electricityPrice = settings?.electricityPricePerKwh ?? 0.22;
+        const waterPrice = settings?.waterPricePerM3 ?? 0.85;
+
+        const totalCo2 = totalKwh * co2Factor;
+
+        // Compare against the immediately preceding period of equal length to get a real
+        // savings % and sustainability score, instead of a fixed value. If there isn't enough
+        // history before `startDate`, both are null so the UI can show an honest "N/D".
+        const rangeMs = endDate.getTime() - startDate.getTime();
+        const prevStart = new Date(startDate.getTime() - rangeMs);
+        const prevEnd = startDate;
+
+        let previousTotalKwh = 0;
+        let hasPreviousPeriodData = false;
+        meterGroups.forEach((readings, meterId) => {
+            const meter = readings[0].meter;
+            if (meter.type !== 'ELEC') return;
+            for (let i = 1; i < readings.length; i++) {
+                const cur = readings[i];
+                const prev = readings[i - 1];
+                if (cur.date >= prevStart && cur.date <= prevEnd) {
+                    previousTotalKwh += Math.max(0, cur.value - prev.value);
+                    hasPreviousPeriodData = true;
+                }
+            }
+        });
+
+        const savingsPercent = hasPreviousPeriodData && previousTotalKwh > 0
+            ? Math.round(100 * (previousTotalKwh - totalKwh) / previousTotalKwh)
+            : null;
+        const sustainabilityScore = savingsPercent !== null
+            ? Math.max(0, Math.min(100, Math.round(50 + savingsPercent)))
+            : null;
 
         const hasSteepSlope = chartData.length > 2 && (totalKwh / (daysInRange || 1)) > 50;
 
         const aiInsights = [
             {
                 title: "Analisi Pattern di Consumo",
-                content: hasSteepSlope 
+                content: hasSteepSlope
                     ? `Attenzione: rilevata pendenza elevata nell'assorbimento elettrico (${(totalKwh/(daysInRange || 1)).toFixed(1)} kWh/giorno).`
                     : `Andamento regolare. Il consumo progressivo mostra un carico costante coerente con i benchmark.`,
                 type: hasSteepSlope ? "warning" : "success",
                 suggestion: "Controlla eventuali dimenticanze di spegnimento a fine turno",
-                savings: "-12% con gestione carichi"
+                savings: savingsPercent !== null ? `${savingsPercent > 0 ? '-' : '+'}${Math.abs(savingsPercent)}% rispetto al periodo precedente` : "Dati insufficienti per un confronto"
             },
             {
                 title: "Impatto Green",
                 content: `Emissioni totali di ${totalCo2.toFixed(0)} kg CO2 nel periodo. Compensazione equivalente: ${Math.round(totalCo2 / 20)} alberi.`,
                 type: "info",
                 suggestion: "Pianifica interventi di efficientamento sui motori più vecchi",
-                savings: "Zero emissioni nette"
+                savings: `Fattore emissione: ${co2Factor} kg/kWh`
             }
         ];
 
@@ -402,12 +369,12 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
             totalWater,
             totalGas,
             averageKwh: daysInRange > 0 ? totalKwh / daysInRange : totalKwh,
-            savingsPercent: 0,
-            sustainabilityScore: totalKwh > 0 ? 85 : 0,
-            estimatedCosts: { 
-                electricity: totalKwh * 0.22, 
-                water: totalWater * 0.85, 
-                total: (totalKwh * 0.22) + (totalWater * 0.85) 
+            savingsPercent,
+            sustainabilityScore,
+            estimatedCosts: {
+                electricity: totalKwh * electricityPrice,
+                water: totalWater * waterPrice,
+                total: (totalKwh * electricityPrice) + (totalWater * waterPrice)
             },
             aiInsights,
             hasReadingsHistory: hasAnyReadings
@@ -421,8 +388,8 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
             totalWater: 0,
             totalGas: 0,
             averageKwh: 0,
-            savingsPercent: 0,
-            sustainabilityScore: 0,
+            savingsPercent: null,
+            sustainabilityScore: null,
             estimatedCosts: { electricity: 0, water: 0, total: 0 },
             hasReadingsHistory: false
         };

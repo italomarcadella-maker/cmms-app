@@ -1,13 +1,12 @@
 'use server';
 
-import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
 import { PrismaSparePartRepository } from '../db/prisma-spare-part-repository';
 import { PrismaPurchaseRequestRepository } from '../db/prisma-purchase-request-repository';
 import { PurchaseRequest } from '../../domain/entities/purchase-request';
 import { SparePart } from '../../domain/entities/spare-part';
+import { makeFulfillPurchaseRequest } from '../../domain/use-cases/fulfill-purchase-request';
 
 // Register dependencies if not registered
 try {
@@ -26,10 +25,7 @@ const getRequestRepo = () => ServiceLocator.resolve<PrismaPurchaseRequestReposit
 
 export async function getPurchaseRequests() {
     try {
-        return await prisma.purchaseRequest.findMany({
-            include: { part: true },
-            orderBy: { requestedAt: "desc" }
-        });
+        return await getRequestRepo().findAllWithPart();
     } catch (e) {
         console.error("Failed to fetch purchase requests:", e);
         return [];
@@ -60,26 +56,14 @@ export async function updatePurchaseRequestStatus(id: string, status: string) {
 
 export async function fulfillPurchaseRequest(id: string) {
     try {
-        const reqRepo = getRequestRepo();
-        const partRepo = getPartRepo();
+        const fulfillPurchaseRequest = makeFulfillPurchaseRequest(getRequestRepo(), getPartRepo());
+        const result = await fulfillPurchaseRequest(id);
 
-        const req = await reqRepo.findById(id);
-        if (!req) return { success: false, message: "Richiesta non trovata" };
-
-        if (req.status === "RECEIVED") return { success: false, message: "Già ricevuta" };
-
-        const part = await partRepo.findById(req.partId);
-        if (part) {
-            part.adjustQuantity(req.quantity);
-            await partRepo.save(part);
+        if (result.success) {
+            revalidatePath("/inventory/purchase-requests");
+            revalidatePath("/inventory");
         }
-
-        req.updateStatus("RECEIVED");
-        await reqRepo.save(req);
-
-        revalidatePath("/inventory/purchase-requests");
-        revalidatePath("/inventory");
-        return { success: true, message: "Merce ricevuta e giacenza aggiornata" };
+        return result;
     } catch (e) {
         console.error("Failed to fulfill request:", e);
         return { success: false, message: "Errore durante la chiusura automatica" };

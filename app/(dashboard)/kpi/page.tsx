@@ -111,7 +111,9 @@ export default function KPIPage() {
                             </span>
                         </div>
                     )}
-                    <p className="text-xs text-muted-foreground">Basato su 100€/min di mancata produzione</p>
+                    <p className="text-xs text-muted-foreground">
+                        Basato su {advancedStats?.downtimeCostPerMinute ?? 100}€/min di mancata produzione (configurabile in Impostazioni)
+                    </p>
                 </div>
 
                 <div className="p-6 bg-card border rounded-xl shadow-sm space-y-2">
@@ -119,10 +121,16 @@ export default function KPIPage() {
                         <span className="text-sm font-medium">Efficienza Risoluzione</span>
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                     </div>
-                    <div className="flex items-end gap-2">
-                        <span className="text-3xl font-bold">94%</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">+2% rispetto al mese scorso</p>
+                    {loading ? <Skeleton className="h-8 w-24" /> : (
+                        <div className="flex items-end gap-2">
+                            <span className="text-3xl font-bold">
+                                {advancedStats?.resolutionEfficiency === null || advancedStats?.resolutionEfficiency === undefined
+                                    ? "N/D"
+                                    : `${advancedStats.resolutionEfficiency}%`}
+                            </span>
+                        </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">% EWO risolti senza necessità di ulteriore intervento (first-time-fix rate)</p>
                 </div>
 
                 <div className="p-6 bg-card border rounded-xl shadow-sm space-y-2">

@@ -16,6 +16,10 @@ export class PrismaWorkOrderRepository implements IWorkOrderRepository {
         return raws.map(WorkOrderMapper.toDomain);
     }
 
+    async countByAssetId(assetId: string): Promise<number> {
+        return prisma.workOrder.count({ where: { assetId } });
+    }
+
     async save(wo: WorkOrder): Promise<WorkOrder> {
         const prismaData = WorkOrderMapper.toPrisma(wo);
         let saved;

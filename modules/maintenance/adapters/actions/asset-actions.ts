@@ -6,18 +6,32 @@ import { assetSchema } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
 import { PrismaAssetRepository } from '../db/prisma-asset-repository';
+import { PrismaWorkOrderRepository } from '../db/prisma-work-order-repository';
+import { PrismaScheduleRepository } from '../db/prisma-schedule-repository';
 import { makeCreateAsset } from '../../domain/use-cases/create-asset';
+import { makeDeleteAsset } from '../../domain/use-cases/delete-asset';
 import { Asset, AssetProps } from '../../domain/entities/asset';
-import { prisma } from '@/lib/prisma';
 
-// Register dependency if not already registered (idempotent for dev reload)
+// Register dependencies if not already registered (idempotent for dev reload)
 try {
     ServiceLocator.resolve('IAssetRepository');
 } catch {
     ServiceLocator.register('IAssetRepository', new PrismaAssetRepository());
 }
+try {
+    ServiceLocator.resolve('IWorkOrderRepository');
+} catch {
+    ServiceLocator.register('IWorkOrderRepository', new PrismaWorkOrderRepository());
+}
+try {
+    ServiceLocator.resolve('IScheduleRepository');
+} catch {
+    ServiceLocator.register('IScheduleRepository', new PrismaScheduleRepository());
+}
 
 const getAssetRepo = () => ServiceLocator.resolve<PrismaAssetRepository>('IAssetRepository');
+const getWorkOrderRepo = () => ServiceLocator.resolve<PrismaWorkOrderRepository>('IWorkOrderRepository');
+const getScheduleRepo = () => ServiceLocator.resolve<PrismaScheduleRepository>('IScheduleRepository');
 
 export async function addAsset(rawData: any) {
     const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
@@ -118,24 +132,15 @@ export async function deleteAsset(id: string) {
     if (!authorized) return { success: false, message };
 
     try {
-        // Business dependencies validation
-        const woCount = await prisma.workOrder.count({ where: { assetId: id } });
-        if (woCount > 0) {
-            return { success: false, message: `Impossibile eliminare: L'asset ha ${woCount} ordini di lavoro associati. Archivia l'asset invece.` };
+        const deleteAssetUseCase = makeDeleteAsset(getAssetRepo(), getWorkOrderRepo(), getScheduleRepo());
+        const result = await deleteAssetUseCase(id);
+
+        if (result.success) {
+            await logAction('DELETE_ASSET', id, 'Deleted asset');
+            revalidatePath('/');
+            revalidateAssets();
         }
-
-        const schedCount = await prisma.preventiveSchedule.count({ where: { assetId: id } });
-        if (schedCount > 0) {
-            return { success: false, message: `Impossibile eliminare: L'asset ha ${schedCount} manutenzioni programmate.` };
-        }
-
-        const assetRepo = getAssetRepo();
-        await assetRepo.delete(id);
-
-        await logAction('DELETE_ASSET', id, 'Deleted asset');
-        revalidatePath('/');
-        revalidateAssets();
-        return { success: true, message: 'Asset eliminato con successo' };
+        return result;
     } catch (error) {
         return { success: false, message: 'Errore durante l\'eliminazione' };
     }

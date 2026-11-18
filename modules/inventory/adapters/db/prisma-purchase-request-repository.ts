@@ -1,4 +1,4 @@
-import { IPurchaseRequestRepository } from '../../domain/ports/purchase-request-repository';
+import { IPurchaseRequestRepository, PurchaseRequestListItem } from '../../domain/ports/purchase-request-repository';
 import { PurchaseRequest } from '../../domain/entities/purchase-request';
 import { PurchaseRequestMapper } from './purchase-request-mapper';
 import { prisma } from '@/lib/prisma';
@@ -16,6 +16,30 @@ export class PrismaPurchaseRequestRepository implements IPurchaseRequestReposito
             orderBy: { requestedAt: 'desc' }
         });
         return raws.map(PurchaseRequestMapper.toDomain);
+    }
+
+    async findAllWithPart(): Promise<PurchaseRequestListItem[]> {
+        const raws = await prisma.purchaseRequest.findMany({
+            include: { part: true },
+            orderBy: { requestedAt: 'desc' }
+        });
+        return raws.map((r) => ({
+            id: r.id,
+            partId: r.partId,
+            quantity: r.quantity,
+            status: r.status,
+            reason: r.reason,
+            expectedCost: r.expectedCost,
+            requestedAt: r.requestedAt,
+            orderedAt: r.orderedAt,
+            receivedAt: r.receivedAt,
+            part: {
+                id: r.part.id,
+                name: r.part.name,
+                category: r.part.category,
+                unitCost: r.part.unitCost,
+            },
+        }));
     }
 
     async save(request: PurchaseRequest): Promise<PurchaseRequest> {

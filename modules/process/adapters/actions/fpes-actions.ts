@@ -4,7 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
 import { PrismaLineSimulationRepository } from '../db/prisma-line-simulation-repository';
+import { PrismaSimulationVersionRepository } from '../db/prisma-simulation-version-repository';
 import { LineSimulation } from '../../domain/entities/line-simulation';
+import { makeSaveSimulationSnapshot } from '../../domain/use-cases/save-simulation-snapshot';
 import { GlobalAIEngine } from '@/lib/ai/GlobalAIEngine';
 
 try {
@@ -12,8 +14,14 @@ try {
 } catch {
     ServiceLocator.register('ILineSimulationRepository', new PrismaLineSimulationRepository());
 }
+try {
+    ServiceLocator.resolve('ISimulationVersionRepository');
+} catch {
+    ServiceLocator.register('ISimulationVersionRepository', new PrismaSimulationVersionRepository());
+}
 
 const getSimulationRepo = () => ServiceLocator.resolve<PrismaLineSimulationRepository>('ILineSimulationRepository');
+const getVersionRepo = () => ServiceLocator.resolve<PrismaSimulationVersionRepository>('ISimulationVersionRepository');
 
 export async function getSimulations() {
     try {
@@ -65,28 +73,8 @@ export async function createSimulation(data: { name: string, layout: string, ass
 }
 
 export async function saveSimulationSnapshot(simulationId: string, versionData: { label: string, leanScore: number, lineEff: number, dataJson: any }) {
-    const currentVersions = await prisma.lineSimulationVersion.count({ where: { simulationId } });
-    
-    const snap = await prisma.lineSimulationVersion.create({
-        data: {
-            simulationId,
-            version: currentVersions + 1,
-            label: versionData.label,
-            leanScore: versionData.leanScore,
-            lineEff: versionData.lineEff,
-            dataJson: versionData.dataJson
-        }
-    });
-
-    await prisma.lineSimulation.update({
-        where: { id: simulationId },
-        data: {
-            leanScore: versionData.leanScore,
-            lineEff: versionData.lineEff,
-            updatedAt: new Date(),
-            dataJson: versionData.dataJson
-        }
-    });
+    const saveSnapshot = makeSaveSimulationSnapshot(getSimulationRepo(), getVersionRepo());
+    const snap = await saveSnapshot({ simulationId, ...versionData });
 
     await GlobalAIEngine.analyzeSimulationBottleneck(simulationId);
 

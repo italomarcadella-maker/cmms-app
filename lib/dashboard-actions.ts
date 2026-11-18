@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { cookies } from "next/headers";
 import { subDays, format, startOfDay, endOfDay } from "date-fns";
 import { it } from "date-fns/locale";
+import { getSystemSettings } from "@/lib/actions";
 
 const getDetailedDashboardStatsCached = unstable_cache(
     async (plantId?: string) => {
@@ -336,24 +337,35 @@ export const getMaintenanceMetrics = unstable_cache(
                 },
                 include: {
                     partsUsed: true,
-                    laborLogs: true // Removed invalid include
-                }
+                    laborLogs: true
+                },
+                orderBy: { createdAt: 'asc' }
             });
+
+            const [technicians, settings] = await Promise.all([
+                prisma.technician.findMany(),
+                getSystemSettings()
+            ]);
+            const techRateMap = new Map(technicians.map(t => [t.id, t.hourlyRate]));
+            const defaultHourlyRate = settings?.defaultLaborHourlyRate ?? 30;
 
             let totalRepairTimeHours = 0;
             let repairCount = 0;
             let totalCost = 0;
 
-            const monthlyDataMap = new Map<string, { mttrSum: number, mtbfCount: number, cost: number, count: number }>();
-
-            const defaultHourlyRate = 30; // Hardcoded fallback or fetch from settings if available
+            const monthlyDataMap = new Map<string, { mttrSum: number, mtbfSum: number, mtbfCount: number, cost: number, count: number }>();
 
             // Initialize months
             for (let i = 5; i >= 0; i--) {
                 const d = subDays(new Date(), i * 30);
                 const monthName = format(d, 'MMM', { locale: it });
-                monthlyDataMap.set(monthName, { mttrSum: 0, mtbfCount: 0, cost: 0, count: 0 });
+                monthlyDataMap.set(monthName, { mttrSum: 0, mtbfSum: 0, mtbfCount: 0, cost: 0, count: 0 });
             }
+
+            // MTBF (real): for assets with 2+ faults in the window, average the time between
+            // consecutive faults. Diffs are attributed to the month of the later fault, so the
+            // monthly trend reflects actual failure intervals instead of a fixed-hours/count guess.
+            const faultsByAsset = new Map<string, { createdAt: Date }[]>();
 
             for (const woItem of completedFaults) {
                 const wo = woItem as any;
@@ -364,15 +376,14 @@ export const getMaintenanceMetrics = unstable_cache(
                 if (wo.laborLogs.length > 0) {
                     woHours = wo.laborLogs.reduce((sum: number, log: any) => sum + log.hours, 0);
                 } else {
-                    woHours = 4; // Fallback
+                    woHours = 4; // Fallback when no labor log was recorded for this WO
                 }
                 totalRepairTimeHours += woHours;
                 repairCount++;
 
                 // Cost
                 const partsCost = wo.partsUsed.reduce((sum: number, part: any) => sum + (part.quantity * part.unitCost), 0);
-                // Fix: LaborLog doesn't have technician relation, use default rate
-                const laborCost = wo.laborLogs.reduce((sum: number, log: any) => sum + (log.hours * defaultHourlyRate), 0);
+                const laborCost = wo.laborLogs.reduce((sum: number, log: any) => sum + (log.hours * (techRateMap.get(log.technicianId) ?? defaultHourlyRate)), 0);
                 const woCost = partsCost + laborCost;
                 totalCost += woCost;
 
@@ -383,13 +394,34 @@ export const getMaintenanceMetrics = unstable_cache(
                     entry.count++;
                     monthlyDataMap.set(monthName, entry);
                 }
+
+                const arr = faultsByAsset.get(wo.assetId) || [];
+                arr.push({ createdAt: wo.createdAt });
+                faultsByAsset.set(wo.assetId, arr);
+            }
+
+            const allMtbfSamplesHours: number[] = [];
+            for (const faults of faultsByAsset.values()) {
+                for (let i = 1; i < faults.length; i++) {
+                    const diffHours = (faults[i].createdAt.getTime() - faults[i - 1].createdAt.getTime()) / (1000 * 60 * 60);
+                    allMtbfSamplesHours.push(diffHours);
+
+                    const monthName = format(faults[i].createdAt, 'MMM', { locale: it });
+                    if (monthlyDataMap.has(monthName)) {
+                        const entry = monthlyDataMap.get(monthName)!;
+                        entry.mtbfSum += diffHours;
+                        entry.mtbfCount++;
+                        monthlyDataMap.set(monthName, entry);
+                    }
+                }
             }
 
             const mttr = repairCount > 0 ? Math.round((totalRepairTimeHours / repairCount) * 10) / 10 : 0;
-            // MTBF Global (Simplified)
-            const totalHours = months * 30 * 24;
-            const failureCount = completedFaults.length || 1;
-            const mtbf = Math.round(totalHours / failureCount);
+            // MTBF Global: average interval between consecutive faults on the same asset.
+            // 0 means not enough data yet (no asset had 2+ faults in the window).
+            const mtbf = allMtbfSamplesHours.length > 0
+                ? Math.round(allMtbfSamplesHours.reduce((a, b) => a + b, 0) / allMtbfSamplesHours.length)
+                : 0;
 
             // Cost Stats
             const avgCost = repairCount > 0 ? Math.round(totalCost / repairCount) : 0;
@@ -397,8 +429,7 @@ export const getMaintenanceMetrics = unstable_cache(
             // Monthly Trend Data
             const monthlyData = Array.from(monthlyDataMap.entries()).map(([name, data]) => {
                 const monthMttr = data.count > 0 ? Math.round((data.mttrSum / data.count) * 10) / 10 : 0;
-                // MTBF per month: 720h / count
-                const monthMtbf = data.count > 0 ? Math.round(720 / data.count) : 720;
+                const monthMtbf = data.mtbfCount > 0 ? Math.round(data.mtbfSum / data.mtbfCount) : mtbf;
 
                 return {
                     name,

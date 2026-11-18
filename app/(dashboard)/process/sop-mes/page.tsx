@@ -230,16 +230,21 @@ export default function SopMesDashboard() {
             <div className="bg-white p-6 rounded-2xl border shadow-sm flex-1 flex flex-col">
                <h3 className="text-lg font-bold text-slate-800 mb-4">Trend Qualità: {currentRecipe?.name || "Nessuna ricetta"}</h3>
                <div className="flex-1 min-h-[300px]">
-                  {/* Fake Chart for demo purposes to simulate the Vanilla Chart.js */}
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={currentRecipe?.readings || [{value: 50.1}, {value: 50.2}, {value: 50.8}, {value: 51.5}]}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="id" hide />
-                      <YAxis domain={['auto', 'auto']} tick={{fontSize: 12, fill: '#64748b'}} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={4} dot={{r: 6, fill: '#fff', strokeWidth: 2}} activeDot={{r: 8}} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {currentRecipe?.readings && currentRecipe.readings.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={currentRecipe.readings}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="id" hide />
+                        <YAxis domain={['auto', 'auto']} tick={{fontSize: 12, fill: '#64748b'}} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={4} dot={{r: 6, fill: '#fff', strokeWidth: 2}} activeDot={{r: 8}} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-sm text-slate-400 italic">
+                      Nessuna lettura di qualità registrata per questa ricetta.
+                    </div>
+                  )}
                </div>
             </div>
           </div>

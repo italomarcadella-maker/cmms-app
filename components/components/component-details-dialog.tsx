@@ -16,6 +16,7 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
     const [drawingUrl, setDrawingUrl] = useState(component.drawingUrl || "");
     const [isScrapped, setIsScrapped] = useState(component.isScrapped || false);
     const [lifecycle, setLifecycle] = useState<ComponentLifecycle>(component.lifecycle || {});
+    const [isUploading, setIsUploading] = useState(false);
 
     const handleSave = () => {
         updateComponent(component.id, {
@@ -28,14 +29,24 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
         setOpen(false);
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            // Simulate upload
-            setDrawingUrl(URL.createObjectURL(file));
-            // In a real app, this would upload to server and return a URL
-            // specific for the file name for display:
-            // setDrawingUrl(file.name); 
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const { uploadComponentDrawing } = await import("@/lib/actions");
+            const formData = new FormData();
+            formData.append("file", file);
+            const res = await uploadComponentDrawing(formData);
+            if (res.success && res.url) {
+                setDrawingUrl(res.url);
+            } else {
+                alert(res.message || "Errore durante il caricamento del file");
+            }
+        } finally {
+            setIsUploading(false);
+            e.target.value = "";
         }
     };
 
@@ -151,15 +162,16 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                                     </div>
                                                 ) : (
                                                     <div className="flex-1">
-                                                        <label className="flex items-center justify-center w-full p-2 border-2 border-dashed rounded-md cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors group">
+                                                        <label className={cn("flex items-center justify-center w-full p-2 border-2 border-dashed rounded-md cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors group", isUploading && "opacity-50 pointer-events-none")}>
                                                             <div className="flex items-center gap-2 text-muted-foreground group-hover:text-primary">
                                                                 <Upload className="h-4 w-4" />
-                                                                <span className="text-xs font-medium">Carica PDF</span>
+                                                                <span className="text-xs font-medium">{isUploading ? "Caricamento..." : "Carica PDF"}</span>
                                                             </div>
                                                             <input
                                                                 type="file"
                                                                 accept=".pdf"
                                                                 className="hidden"
+                                                                disabled={isUploading}
                                                                 onChange={handleFileUpload}
                                                             />
                                                         </label>

@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -174,35 +175,8 @@ export default function SettingsPage() {
                 <TabsContent value="system" className="space-y-6 mt-6">
                     <SchedulerTriggerSection />
                     <EWOSettingsSection />
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Plug className="h-5 w-5" /> Integrazioni</CardTitle>
-                            <CardDescription>Connessioni con sistemi esterni.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid gap-4">
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-emerald-50/50 border-emerald-100">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-emerald-100 p-2 rounded-full"><Server className="h-4 w-4 text-emerald-600" /></div>
-                                    <div>
-                                        <div className="font-medium">ERP Corporate</div>
-                                        <div className="text-xs text-emerald-600 font-medium">CONNESSO</div>
-                                    </div>
-                                </div>
-                                <Button variant="outline" size="sm" disabled>Configura</Button>
-                            </div>
-                            <div className="flex items-center justify-between p-4 border rounded-lg opacity-60">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-gray-100 p-2 rounded-full"><Smartphone className="h-4 w-4 text-gray-600" /></div>
-                                    <div>
-                                        <div className="font-medium">IoT Gateway</div>
-                                        <div className="text-xs text-muted-foreground">NON CONNESSO</div>
-                                    </div>
-                                </div>
-                                <Button variant="outline" size="sm">Connetti</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <CostSettingsSection />
+                    <IntegrationsSection />
                 </TabsContent>
 
                 {/* --- ADVANCED TAB --- */}
@@ -254,7 +228,7 @@ function EWOSettingsSection() {
 
     const handleSave = async () => {
         const { updateSystemSettings } = await import("@/lib/actions");
-        const res = await updateSystemSettings(threshold);
+        const res = await updateSystemSettings({ ewoThresholdHours: threshold });
         toast.success(res.message);
     };
 
@@ -286,6 +260,169 @@ function EWOSettingsSection() {
                         </Button>
                     </div>
                 </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+function CostSettingsSection() {
+    const [values, setValues] = useState({
+        downtimeCostPerMinute: 100,
+        defaultLaborHourlyRate: 30,
+        electricityPricePerKwh: 0.22,
+        waterPricePerM3: 0.85,
+        co2FactorPerKwh: 0.44,
+    });
+
+    useEffect(() => {
+        import("@/lib/actions").then(async (mod) => {
+            const s = await mod.getSystemSettings();
+            if (s) setValues({
+                downtimeCostPerMinute: s.downtimeCostPerMinute,
+                defaultLaborHourlyRate: s.defaultLaborHourlyRate,
+                electricityPricePerKwh: s.electricityPricePerKwh,
+                waterPricePerM3: s.waterPricePerM3,
+                co2FactorPerKwh: s.co2FactorPerKwh,
+            });
+        });
+    }, []);
+
+    const handleSave = async () => {
+        const { updateSystemSettings } = await import("@/lib/actions");
+        const res = await updateSystemSettings(values);
+        toast.success(res.message);
+    };
+
+    const field = (key: keyof typeof values, label: string, unit: string, step = "0.01") => (
+        <div className="grid gap-2">
+            <Label>{label}</Label>
+            <div className="flex gap-2 items-center">
+                <Input
+                    type="number"
+                    min="0"
+                    step={step}
+                    value={values[key]}
+                    onChange={(e) => setValues(v => ({ ...v, [key]: Number(e.target.value) }))}
+                    className="w-32"
+                />
+                <span className="text-sm text-muted-foreground">{unit}</span>
+            </div>
+        </div>
+    );
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-indigo-600">
+                    <Server className="h-5 w-5" /> Costi &amp; Tariffe
+                </CardTitle>
+                <CardDescription>Valori usati per stimare costi di fermo macchina, manodopera e sostenibilità. Sostituiscono le costanti fisse usate finora nei KPI.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {field('downtimeCostPerMinute', 'Costo Fermo Macchina', '€/min', '1')}
+                    {field('defaultLaborHourlyRate', 'Tariffa Manodopera (fallback)', '€/h', '1')}
+                    {field('electricityPricePerKwh', 'Tariffa Elettricità', '€/kWh')}
+                    {field('waterPricePerM3', 'Tariffa Acqua', '€/m³')}
+                    {field('co2FactorPerKwh', 'Fattore Emissione CO2', 'kg/kWh')}
+                </div>
+                <Button onClick={handleSave} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                    Salva Costi &amp; Tariffe
+                </Button>
+            </CardContent>
+        </Card>
+    );
+}
+
+function IntegrationsSection() {
+    const [erpUrl, setErpUrl] = useState("");
+    const [iotUrl, setIotUrl] = useState("");
+    const [saved, setSaved] = useState({ erp: "", iot: "" });
+
+    useEffect(() => {
+        import("@/lib/actions").then(async (mod) => {
+            const s = await mod.getSystemSettings();
+            if (s) {
+                setErpUrl(s.erpEndpointUrl || "");
+                setIotUrl(s.iotGatewayUrl || "");
+                setSaved({ erp: s.erpEndpointUrl || "", iot: s.iotGatewayUrl || "" });
+            }
+        });
+    }, []);
+
+    const handleSave = async (key: 'erpEndpointUrl' | 'iotGatewayUrl', value: string) => {
+        const { updateSystemSettings } = await import("@/lib/actions");
+        const res = await updateSystemSettings({ [key]: value || null });
+        if (res.success) {
+            setSaved(s => ({ ...s, [key === 'erpEndpointUrl' ? 'erp' : 'iot']: value }));
+        }
+        toast.success(res.message);
+    };
+
+    const integration = (
+        icon: React.ReactNode,
+        title: string,
+        description: string,
+        value: string,
+        setValue: (v: string) => void,
+        savedValue: string,
+        onSave: () => void
+    ) => {
+        const isConfigured = savedValue.trim().length > 0;
+        return (
+            <div className="p-4 border rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={cn("p-2 rounded-full", isConfigured ? "bg-emerald-100" : "bg-gray-100")}>
+                            {icon}
+                        </div>
+                        <div>
+                            <div className="font-medium">{title}</div>
+                            <div className={cn("text-xs font-medium", isConfigured ? "text-emerald-600" : "text-muted-foreground")}>
+                                {isConfigured ? "CONFIGURATO" : "NON CONFIGURATO"}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p className="text-xs text-muted-foreground">{description}</p>
+                <div className="flex gap-2">
+                    <Input
+                        placeholder="https://..."
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        className="flex-1"
+                    />
+                    <Button variant="outline" size="sm" onClick={onSave}>Salva</Button>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Plug className="h-5 w-5" /> Integrazioni</CardTitle>
+                <CardDescription>Connessioni con sistemi esterni. Lo stato riflette solo se un endpoint è stato configurato qui — non testa una connessione live.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+                {integration(
+                    <Server className="h-4 w-4 text-emerald-600" />,
+                    "ERP Corporate",
+                    "Endpoint dell'ERP aziendale per la sincronizzazione di costi e fermi macchina. Nessuna chiamata reale è ancora collegata: salvare qui prepara il campo per la futura integrazione.",
+                    erpUrl,
+                    setErpUrl,
+                    saved.erp,
+                    () => handleSave('erpEndpointUrl', erpUrl)
+                )}
+                {integration(
+                    <Smartphone className="h-4 w-4 text-gray-600" />,
+                    "IoT Gateway",
+                    "Endpoint del gateway IoT per l'acquisizione automatica di letture sensori/contatori. Nessuna chiamata reale è ancora collegata.",
+                    iotUrl,
+                    setIotUrl,
+                    saved.iot,
+                    () => handleSave('iotGatewayUrl', iotUrl)
+                )}
             </CardContent>
         </Card>
     );

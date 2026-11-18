@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useInventory } from "@/lib/inventory-context";
 import { Plus, Box, AlertTriangle, Trash2 } from "lucide-react";
 import { BackToDashboardButton } from "@/components/ui/back-button";
@@ -11,6 +12,7 @@ import Link from "next/link";
 export default function InventoryPage() {
     const { parts, addPart, updateQuantity, removePart } = useInventory();
     const [isAdding, setIsAdding] = useState(false);
+    const searchParams = useSearchParams();
 
     // New part state
     const [newName, setNewName] = useState("");
@@ -20,7 +22,7 @@ export default function InventoryPage() {
     const [newMinQty, setNewMinQty] = useState(5);
     const [newLocation, setNewLocation] = useState("Shelf A");
 
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(() => searchParams.get("search") || "");
 
     const filteredParts = parts.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||

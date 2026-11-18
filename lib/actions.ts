@@ -653,6 +653,29 @@ export async function updateComponent(id: string, updates: any) {
     }
 }
 
+export async function uploadComponentDrawing(formData: FormData) {
+    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    if (!authorized) return { success: false, message };
+
+    const file = formData.get('file') as File | null;
+    if (!file) return { success: false, message: 'Nessun file ricevuto' };
+
+    try {
+        const { ServiceLocator } = await import('@/modules/shared/infrastructure/registry/service-locator');
+        await import('@/modules/shared/infrastructure/storage/supabase-storage'); // ensures IFileStorageService is registered
+        const storage = ServiceLocator.resolve<{ uploadFile: (buf: Buffer, name: string, mime: string, bucket?: string) => Promise<string> }>('IFileStorageService');
+
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const safeName = `components/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+        const url = await storage.uploadFile(buffer, safeName, file.type || 'application/octet-stream', 'documents');
+
+        return { success: true, message: 'Disegno caricato', url };
+    } catch (error) {
+        console.error('uploadComponentDrawing error:', error);
+        return { success: false, message: 'Errore durante il caricamento del file' };
+    }
+}
+
 export async function addMeasurement(componentId: string, measurement: { date: string | Date; value1: number; value2?: number; operator: string }) {
     const { authorized } = await requireRole(['ADMIN', 'PROCESS_ENGINEER', 'MAINTAINER']);
     if (!authorized) return { success: false, message: 'Non autorizzato' };
@@ -1034,10 +1057,7 @@ export async function getSystemSettings() {
         let settings = await prisma.systemSettings.findUnique({ where: { id: "settings" } });
         if (!settings) {
             settings = await prisma.systemSettings.create({
-                data: {
-                    id: "settings",
-                    ewoThresholdHours: 0
-                }
+                data: { id: "settings" } // all fields fall back to their Prisma @default(...)
             });
         }
         return settings;
@@ -1046,20 +1066,30 @@ export async function getSystemSettings() {
     }
 }
 
-export async function updateSystemSettings(ewoThresholdHours: number) {
+type SystemSettingsInput = Partial<{
+    ewoThresholdHours: number;
+    downtimeCostPerMinute: number;
+    defaultLaborHourlyRate: number;
+    electricityPricePerKwh: number;
+    waterPricePerM3: number;
+    co2FactorPerKwh: number;
+    erpEndpointUrl: string | null;
+    iotGatewayUrl: string | null;
+}>;
+
+export async function updateSystemSettings(input: SystemSettingsInput) {
     const { authorized, message } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
 
     try {
         await prisma.systemSettings.upsert({
             where: { id: "settings" },
-            update: { ewoThresholdHours },
-            create: {
-                id: "settings",
-                ewoThresholdHours
-            }
+            update: input,
+            create: { id: "settings", ...input }
         });
         revalidatePath('/settings');
+        revalidatePath('/kpi');
+        revalidatePath('/sustainability');
         return { success: true, message: 'Impostazioni aggiornate' };
     } catch (error) {
         return { success: false, message: 'Errore salvataggio impostazioni' };
@@ -1112,14 +1142,23 @@ export async function getAdvancedKPIs() {
             .sort((a, b) => b.minutes - a.minutes)
             .slice(0, 5);
 
-        // 3. Estimated Cost (Simulated 100€/min downtime + Part costs could be added later)
-        const estimatedCost = totalDowntime * 100;
+        // 3. Estimated Cost (downtime minutes * configurable €/min from SystemSettings)
+        const settings = await getSystemSettings();
+        const downtimeCostPerMinute = settings?.downtimeCostPerMinute ?? 100;
+        const estimatedCost = totalDowntime * downtimeCostPerMinute;
+
+        // 4. Resolution Efficiency = first-time-fix rate (EWOs closed without needing a follow-up)
+        const resolutionEfficiency = typedEwos.length > 0
+            ? Math.round(100 * typedEwos.filter(e => !e.needsFollowUp).length / typedEwos.length)
+            : null; // null = not enough data, render as "N/D" instead of a fake number
 
         return {
             mttr,
             totalDowntime,
             topAssets,
             estimatedCost,
+            downtimeCostPerMinute,
+            resolutionEfficiency,
             totalEWOs: ewos.length
         };
     } catch (e) {

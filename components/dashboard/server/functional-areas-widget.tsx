@@ -39,7 +39,7 @@ export async function FunctionalAreasWidget() {
             />
             <AreaCard
                 title="Sostenibilità AI"
-                count={(await getEnergyMetrics()).sustainabilityScore}
+                count={(await getEnergyMetrics()).sustainabilityScore ?? 0}
                 icon={<TrendingUp className="h-5 w-5" />}
                 href="/sustainability"
                 color="bg-indigo-600"

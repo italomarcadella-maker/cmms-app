@@ -286,8 +286,15 @@ model EWO {
 }
 
 model SystemSettings {
-  id                String @id @default("settings")
-  ewoThresholdHours Float  @default(0) // 0 means disabled
+  id                     String @id @default("settings")
+  ewoThresholdHours      Float  @default(0) // 0 means disabled
+  downtimeCostPerMinute  Float  @default(100) // EUR/min, used to estimate downtime cost in KPIs
+  defaultLaborHourlyRate Float  @default(30)  // EUR/h, fallback when a technician has no hourlyRate set
+  electricityPricePerKwh Float  @default(0.22) // EUR/kWh, used in sustainability cost estimates
+  waterPricePerM3        Float  @default(0.85) // EUR/m3, used in sustainability cost estimates
+  co2FactorPerKwh        Float  @default(0.44) // kg CO2/kWh, grid emission factor
+  erpEndpointUrl         String? // ERP integration endpoint; unset = not connected, no real call is made yet
+  iotGatewayUrl          String? // IoT gateway endpoint; unset = not connected, no real call is made yet
 }
 
 model ChecklistItem {

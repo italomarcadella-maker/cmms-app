@@ -153,9 +153,9 @@ export default function SustainabilityDashboard() {
 
     const formattedCosts = metrics?.estimatedCosts?.total?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0";
     const formattedTotalCo2 = metrics?.totalCo2?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0";
-    const savings = metrics?.savingsPercent?.toFixed(1) || "0.0";
+    const hasScore = metrics?.sustainabilityScore !== null && metrics?.sustainabilityScore !== undefined;
 
-    const scoreValue = metrics?.sustainabilityScore || 0;
+    const scoreValue = metrics?.sustainabilityScore ?? 0;
     const scoreData = [
         { name: 'Score', value: scoreValue, fill: (scoreValue > 80 ? '#10b981' : scoreValue > 60 ? '#f59e0b' : '#ef4444') },
         { name: 'Remaining', value: 100 - scoreValue, fill: '#f1f5f9' }
@@ -231,7 +231,7 @@ export default function SustainabilityDashboard() {
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-5xl font-black text-slate-900 tracking-tighter">{metrics?.sustainabilityScore ?? 0}</span>
+                                <span className="text-5xl font-black text-slate-900 tracking-tighter">{hasScore ? metrics.sustainabilityScore : "N/D"}</span>
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Sostenibilità</span>
                             </div>
                         </div>

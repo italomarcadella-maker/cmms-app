@@ -58,14 +58,22 @@ export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
         }
     };
 
-    const handleAction = (action: ChatAction) => {
+    const handleAction = async (action: ChatAction) => {
         if (action.type === 'CREATE_TICKET') {
-            toast.success("Ticket creato automaticamente (Simulazione)", { description: action.payload.title });
-            // In real app, call server action to create WO
+            const { createWorkOrder } = await import("@/lib/actions");
+            const res = await createWorkOrder({
+                assetId: action.payload.assetId,
+                title: action.payload.title,
+                description: action.payload.description,
+            });
+            if (res.success) {
+                toast.success("Ordine di lavoro creato", { description: action.payload.title });
+            } else {
+                toast.error("Impossibile creare l'ordine di lavoro", { description: res.message });
+            }
         } else if (action.type === 'ORDER_PART') {
-            toast.success("Richiesta ordine inviata", { description: action.payload.partName });
+            router.push(`/inventory?search=${encodeURIComponent(action.payload.partName)}`);
         } else if (action.type === 'NAVIGATE') {
-            // Scroll to or navigate
             const el = document.querySelector(action.payload);
             if (el) el.scrollIntoView({ behavior: 'smooth' });
         }

@@ -295,10 +295,8 @@ export async function createSopDocument(data: { title: string, assetId: string, 
 
 export async function getSOPsByAsset(assetId: string) {
     try {
-        return await prisma.sopDocument.findMany({
-            where: { assetId, isApproved: true },
-            orderBy: { createdAt: 'desc' }
-        });
+        const sops = await getSopRepo().findByAssetId(assetId);
+        return sops.map(s => s.toJSON());
     } catch (e) {
         return [];
     }
