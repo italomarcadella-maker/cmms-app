@@ -1,21 +1,26 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { CheckCircle2, AlertTriangle, Camera, Plus, Calendar } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Camera, ClipboardList, Calendar } from "lucide-react";
 
 export default async function MobileDashboardPage() {
     const session = await auth();
     const userRole = session?.user?.role || "USER";
 
     // Fetch My Active Task
-    const myTasks = await prisma.workOrder.findMany({
-        where: {
-            assignedTo: session?.user?.name, // Fallback filtering
-            status: { in: ['OPEN', 'IN_PROGRESS'] }
-        },
-        take: 3,
-        orderBy: { priority: 'desc' }
-    });
+    const myActiveWhere = {
+        assignedTo: session?.user?.name, // Fallback filtering
+        status: { in: ['OPEN', 'IN_PROGRESS'] as ('OPEN' | 'IN_PROGRESS')[] }
+    };
+    const [myTasks, myTotalCount, myUrgentCount] = await Promise.all([
+        prisma.workOrder.findMany({
+            where: myActiveWhere,
+            take: 3,
+            orderBy: { priority: 'desc' }
+        }),
+        prisma.workOrder.count({ where: myActiveWhere }),
+        prisma.workOrder.count({ where: { ...myActiveWhere, priority: { in: ['HIGH', 'STOPPED'] } } }),
+    ]);
 
     return (
         <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
@@ -25,11 +30,11 @@ export default async function MobileDashboardPage() {
                 <p className="opacity-90 text-sm mb-4">Pronto per il turno di oggi?</p>
                 <div className="flex gap-3">
                     <div className="bg-white/20 p-2 rounded-lg flex-1 text-center">
-                        <div className="text-xl font-bold">{myTasks.length}</div>
+                        <div className="text-xl font-bold">{myTotalCount}</div>
                         <div className="text-xs opacity-80 uppercase">Da Fare</div>
                     </div>
                     <div className="bg-white/20 p-2 rounded-lg flex-1 text-center">
-                        <div className="text-xl font-bold">0</div>
+                        <div className="text-xl font-bold">{myUrgentCount}</div>
                         <div className="text-xs opacity-80 uppercase">Urgenti</div>
                     </div>
                 </div>
@@ -56,12 +61,12 @@ export default async function MobileDashboardPage() {
                     </div>
                     <span className="font-medium text-sm">Turni & Ferie</span>
                 </Link>
-                <button className="bg-white p-4 rounded-xl shadow-sm border flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors h-32 active:scale-95 duration-200 opacity-50 cursor-not-allowed">
+                <Link href="/work-orders" className="bg-white p-4 rounded-xl shadow-sm border flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors h-32 active:scale-95 duration-200">
                     <div className="h-10 w-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center">
-                        <Plus className="h-6 w-6" />
+                        <ClipboardList className="h-6 w-6" />
                     </div>
-                    <span className="font-medium text-sm">Altro</span>
-                </button>
+                    <span className="font-medium text-sm">Ordini di lavoro</span>
+                </Link>
             </div>
 
             {/* My Task List */}

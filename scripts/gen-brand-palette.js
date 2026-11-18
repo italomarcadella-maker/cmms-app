@@ -26,6 +26,9 @@ for (const [name, shades] of Object.entries(scales)) {
 }
 for (const [scale, names] of Object.entries(remap)) {
   for (const n of names) {
+    // A Tailwind name that is also a brand scale name (green, fuchsia, neutral) is already defined above:
+    // aliasing it to itself would create a circular variable and make the colour invalid.
+    if (n === scale) continue;
     css += `  /* ${n} -> ${scale} */\n`;
     for (const k of Object.keys(scales[scale])) css += `  --color-${n}-${k}: var(--color-${scale}-${k});\n`;
   }

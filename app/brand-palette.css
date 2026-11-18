@@ -133,18 +133,6 @@
   --color-emerald-800: var(--color-green-800);
   --color-emerald-900: var(--color-green-900);
   --color-emerald-950: var(--color-green-950);
-  /* green -> green */
-  --color-green-50: var(--color-green-50);
-  --color-green-100: var(--color-green-100);
-  --color-green-200: var(--color-green-200);
-  --color-green-300: var(--color-green-300);
-  --color-green-400: var(--color-green-400);
-  --color-green-500: var(--color-green-500);
-  --color-green-600: var(--color-green-600);
-  --color-green-700: var(--color-green-700);
-  --color-green-800: var(--color-green-800);
-  --color-green-900: var(--color-green-900);
-  --color-green-950: var(--color-green-950);
   /* lime -> green */
   --color-lime-50: var(--color-green-50);
   --color-lime-100: var(--color-green-100);
@@ -193,18 +181,6 @@
   --color-pink-800: var(--color-fuchsia-800);
   --color-pink-900: var(--color-fuchsia-900);
   --color-pink-950: var(--color-fuchsia-950);
-  /* fuchsia -> fuchsia */
-  --color-fuchsia-50: var(--color-fuchsia-50);
-  --color-fuchsia-100: var(--color-fuchsia-100);
-  --color-fuchsia-200: var(--color-fuchsia-200);
-  --color-fuchsia-300: var(--color-fuchsia-300);
-  --color-fuchsia-400: var(--color-fuchsia-400);
-  --color-fuchsia-500: var(--color-fuchsia-500);
-  --color-fuchsia-600: var(--color-fuchsia-600);
-  --color-fuchsia-700: var(--color-fuchsia-700);
-  --color-fuchsia-800: var(--color-fuchsia-800);
-  --color-fuchsia-900: var(--color-fuchsia-900);
-  --color-fuchsia-950: var(--color-fuchsia-950);
   /* slate -> neutral */
   --color-slate-50: var(--color-neutral-50);
   --color-slate-100: var(--color-neutral-100);
@@ -241,18 +217,6 @@
   --color-gray-800: var(--color-neutral-800);
   --color-gray-900: var(--color-neutral-900);
   --color-gray-950: var(--color-neutral-950);
-  /* neutral -> neutral */
-  --color-neutral-50: var(--color-neutral-50);
-  --color-neutral-100: var(--color-neutral-100);
-  --color-neutral-200: var(--color-neutral-200);
-  --color-neutral-300: var(--color-neutral-300);
-  --color-neutral-400: var(--color-neutral-400);
-  --color-neutral-500: var(--color-neutral-500);
-  --color-neutral-600: var(--color-neutral-600);
-  --color-neutral-700: var(--color-neutral-700);
-  --color-neutral-800: var(--color-neutral-800);
-  --color-neutral-900: var(--color-neutral-900);
-  --color-neutral-950: var(--color-neutral-950);
   /* stone -> neutral */
   --color-stone-50: var(--color-neutral-50);
   --color-stone-100: var(--color-neutral-100);

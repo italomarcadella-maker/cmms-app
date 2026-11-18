@@ -113,11 +113,14 @@ export default async function AndonPage() {
 
             <style>{`
                 .animate-pulse-slow {
-                    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+                    animation: andon-pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
                 }
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; border-color: rgba(127, 29, 29, 0.5); }
-                    50% { opacity: .95; border-color: rgba(220, 38, 38, 0.8); }
+                @keyframes andon-pulse {
+                    0%, 100% { opacity: 1; border-color: rgba(138, 0, 76, 0.5); }
+                    50% { opacity: .95; border-color: rgba(230, 0, 126, 0.8); }
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .animate-pulse-slow { animation: none; }
                 }
             `}</style>
         </div>
