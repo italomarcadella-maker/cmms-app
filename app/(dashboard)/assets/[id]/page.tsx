@@ -1,27 +1,42 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAssets } from "@/lib/assets-context";
-import { useWorkOrders } from "@/lib/work-orders-context"; // Assuming this path for work orders context
-import { AssetStatusBadge } from "@/components/assets/asset-status-badge"; // Assuming this path for AssetStatusBadge
-import { WOStatusBadge } from "@/components/work-orders/wo-status-badge"; // Assuming this path for WOStatusBadge
-import { ArrowLeft, QrCode, FileText, AlertCircle, Activity } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import QRCode from "react-qr-code";
+import { Activity, ArrowLeft, FileText, Printer, QrCode } from "lucide-react";
+
+import { useAssets } from "@/lib/assets-context";
+import { useWorkOrders } from "@/lib/work-orders-context";
+import { AssetStatusBadge } from "@/components/assets/asset-status-badge";
+import { WOStatusBadge } from "@/components/work-orders/wo-status-badge";
 import { AssetMaintenancePlan } from "@/components/assets/asset-maintenance-plan";
 import { AssetAIChat } from "@/components/assets/asset-ai-chat";
 import { TagGeneratorDialog } from "@/components/assets/tag-generator-dialog";
 import { AssetSOPList } from "@/components/assets/asset-sop-list";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { healthTone } from "@/components/ui/status-badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+function Field({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
+    return (
+        <div>
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className={mono ? "font-mono text-sm" : "text-sm font-medium"}>{value || "N/D"}</dd>
+        </div>
+    );
+}
 
 export default function AssetDetailsPage() {
     const params = useParams();
     const { assets, updateAsset } = useAssets();
-    const { workOrders } = useWorkOrders(); // Keeping context for history fallbacks
+    const { workOrders } = useWorkOrders();
 
-    const asset = assets.find(a => a.id === params.id) || assets.find(a => a.id === decodeURIComponent(params.id as string));
-
-
+    const asset = assets.find((a) => a.id === params.id) || assets.find((a) => a.id === decodeURIComponent(params.id as string));
 
     const [activeWOs, setActiveWOs] = useState<any[]>([]);
     const [showTagGenerator, setShowTagGenerator] = useState(false);
@@ -34,281 +49,225 @@ export default function AssetDetailsPage() {
         }
     }, [asset?.id]);
 
-    const assetWorkOrders = workOrders.filter(wo => wo.assetId === asset?.id);
-    const assetUrl = typeof window !== 'undefined' ? `${window.location.origin}/assets/${asset?.id}` : '';
+    const assetWorkOrders = workOrders.filter((wo) => wo.assetId === asset?.id);
+    const closedWorkOrders = assetWorkOrders.filter((wo) => ["CLOSED", "COMPLETED", "CANCELED"].includes(wo.status));
+    const assetUrl = typeof window !== "undefined" ? `${window.location.origin}/assets/${asset?.id}` : "";
 
     if (!asset) {
         return (
-            <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-                <h2 className="text-xl font-semibold">Asset Non Trovato</h2>
-                <p className="text-muted-foreground">L'asset con ID {params.id} non è stato trovato.</p>
-                <Link href="/assets" className="text-primary hover:underline flex items-center gap-1"><ArrowLeft className="h-4 w-4" /> Torna alla lista</Link>
-            </div>
-        )
+            <EmptyState
+                title="Asset non trovato"
+                description={`L'asset con ID ${params.id} non esiste o non è visibile nello stabilimento selezionato.`}
+                action={
+                    <Button asChild variant="outline">
+                        <Link href="/assets">
+                            <ArrowLeft className="mr-1.5 h-4 w-4" /> Torna alla lista
+                        </Link>
+                    </Button>
+                }
+            />
+        );
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-            <div className="flex items-center gap-4">
-                <Link href="/assets" className="p-2 rounded-full hover:bg-muted text-muted-foreground">
-                    <ArrowLeft className="h-5 w-5" />
-                </Link>
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-                        {asset.name}
-                    </h1>
-                    <div className="flex items-center gap-2 text-muted-foreground mt-1">
-                        <span className="font-mono bg-muted px-2 rounded text-sm">{asset.id}</span>
-                        <span>•</span>
-                        <span>{asset.vendor} {asset.model}</span>
-                    </div>
-                </div>
-            </div>
+        <div className="space-y-6 pb-10">
+            <PageHeader
+                title={asset.name}
+                description={[asset.vendor, asset.model].filter(Boolean).join(" · ")}
+                breadcrumb={[{ label: "Asset e macchinari", href: "/assets" }, { label: asset.name }]}
+                actions={
+                    <Button variant="outline" onClick={() => setShowTagGenerator(true)}>
+                        <Printer className="mr-1.5 h-4 w-4" /> Stampa etichetta
+                    </Button>
+                }
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                {/* Main Info Column */}
-                <div className="md:col-span-2 space-y-6">
-                    {/* Status & Health */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="rounded-xl border bg-card p-6 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground font-medium">Stato</p>
-                                <AssetStatusBadge status={asset.status} />
-                            </div>
-                            <div className="h-10 w-10 text-muted-foreground rounded-full bg-muted/50 flex items-center justify-center">
-                                <AlertCircle className="h-5 w-5" />
-                            </div>
-                        </div>
-                        <div className="rounded-xl border bg-card p-6 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground font-medium">Indice di Salute</p>
-                                <div className="text-2xl font-bold">{asset.healthScore}%</div>
-                            </div>
-                            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${asset.healthScore > 80 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                                <Activity className="h-5 w-5" />
-                            </div>
-                        </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Main column */}
+                <div className="space-y-6 lg:col-span-2">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <StatCard label="Stato" value={<AssetStatusBadge status={asset.status} className="text-sm" />} tone="neutral" icon={<Activity />} />
+                        <StatCard label="Indice di salute" value={`${asset.healthScore}%`} tone={healthTone(asset.healthScore)} icon={<Activity />} />
                     </div>
 
-                    {/* Active Work Orders (Fresh Data) */}
-                    <div className="rounded-xl border bg-card p-6 shadow-sm border-l-4 border-l-blue-500">
-                        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                            <Activity className="h-5 w-5 text-blue-500" />
-                            Ordini e Richieste Attive
-                        </h3>
-                        {activeWOs.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-6 text-center">
-                                <p className="text-muted-foreground italic text-sm">Nessun lavoro in corso al momento.</p>
-                                <p className="text-xs text-muted-foreground/60">Tutto procede regolarmente.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {activeWOs.map(wo => (
-                                    <Link href={`/work-orders/${wo.id}`} key={wo.id} className="flex items-center justify-between p-3 rounded-lg border bg-blue-50/50 hover:bg-blue-50 transition-colors">
-                                        <div>
-                                            <div className="font-medium text-blue-900">{wo.title}</div>
-                                            <div className="text-xs text-blue-700/80">{new Date(wo.createdAt).toLocaleDateString()} • {wo.id}</div>
-                                        </div>
-                                        <WOStatusBadge status={wo.status} />
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    <Tabs defaultValue="overview">
+                        <TabsList>
+                            <TabsTrigger value="overview">Panoramica</TabsTrigger>
+                            <TabsTrigger value="history">Storico interventi</TabsTrigger>
+                            <TabsTrigger value="docs">Documenti e SOP</TabsTrigger>
+                        </TabsList>
 
-                    {/* Maintenance Plan (AI Enabled) */}
-                    <div className="rounded-xl border bg-card p-6 shadow-sm">
-                        <AssetMaintenancePlan assetId={asset.id} />
-                    </div>
+                        <TabsContent value="overview" className="mt-4 space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Ordini e richieste attive</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {activeWOs.length === 0 ? (
+                                        <EmptyState title="Nessun lavoro in corso" description="Non ci sono ordini di lavoro aperti su questo asset." className="py-8" />
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {activeWOs.map((wo) => (
+                                                <li key={wo.id}>
+                                                    <Link href={`/work-orders/${wo.id}`} className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-accent">
+                                                        <div className="min-w-0">
+                                                            <div className="truncate text-sm font-medium">{wo.title}</div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {new Date(wo.createdAt).toLocaleDateString("it-IT")} · {wo.id.substring(0, 10)}
+                                                            </div>
+                                                        </div>
+                                                        <WOStatusBadge status={wo.status} />
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </CardContent>
+                            </Card>
 
-                    {/* Closed History (From Context/Props) */}
-                    <div className="rounded-xl border bg-card p-6 shadow-sm">
-                        <h3 className="font-semibold text-lg mb-4">Storico Interventi Chiusi</h3>
-                        {assetWorkOrders.filter(wo => ['CLOSED', 'COMPLETED', 'CANCELED'].includes(wo.status)).length === 0 ? (
-                            <p className="text-muted-foreground italic text-sm">Nessun storico disponibile.</p>
-                        ) : (
-                            <div className="space-y-3">
-                                {assetWorkOrders
-                                    .filter(wo => ['CLOSED', 'COMPLETED', 'CANCELED'].includes(wo.status))
-                                    .map(wo => (
-                                        <div key={wo.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/20 opacity-80">
-                                            <div>
-                                                <div className="font-medium">{wo.title}</div>
-                                                <div className="text-xs text-muted-foreground">{new Date(wo.createdAt).toLocaleDateString()}</div>
-                                            </div>
-                                            <WOStatusBadge status={wo.status} />
-                                        </div>
-                                    ))}
-                            </div>
-                        )}
-                    </div>
-                    {/* Documents */}
-                    <div className="rounded-xl border bg-card p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold text-lg">Documenti Tecnici</h3>
-                            <button
-                                onClick={() => {
-                                    const docName = prompt("Nome del documento (es. Manuale Uso):");
-                                    if (docName) {
-                                        const docType = prompt("Tipo (PDF, DOCX, IMG):", "PDF") || "PDF";
-                                        const newDoc = {
-                                            name: docName,
-                                            type: docType,
-                                            url: "#",
-                                            date: new Date().toISOString()
-                                        };
-                                        const currentDocs = asset.documents || [];
-                                        updateAsset(asset.id, { documents: [...currentDocs, newDoc] });
-                                    }
-                                }}
-                                className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-md hover:bg-primary/20 font-medium transition-colors"
-                            >
-                                + Carica Documento
-                            </button>
-                        </div>
+                            <Card>
+                                <CardContent className="pt-5">
+                                    <AssetMaintenancePlan assetId={asset.id} />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
 
-                        {(!asset.documents || asset.documents.length === 0) ? (
-                            <div className="text-center py-8 border-2 border-dashed rounded-lg bg-muted/10">
-                                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                                <p className="text-muted-foreground italic text-sm">Nessun documento allegato.</p>
-                                <p className="text-xs text-muted-foreground/60 mt-1">Carica manuali, schemi o certificazioni.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {asset.documents.map((doc, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded bg-white flex items-center justify-center border shadow-sm">
-                                                <FileText className="h-5 w-5 text-blue-500" />
-                                            </div>
-                                            <div>
-                                                <div className="font-medium group-hover:text-primary transition-colors">{doc.name}</div>
-                                                <div className="text-xs text-muted-foreground">{doc.type} • {new Date(doc.date || Date.now()).toLocaleDateString()}</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="text-xs bg-background text-foreground border px-2 py-1 rounded hover:bg-muted">Vedi</button>
-                                            <button className="text-xs bg-background text-destructive border border-destructive/20 px-2 py-1 rounded hover:bg-destructive/10">Elimina</button>
-                                        </div>
+                        <TabsContent value="history" className="mt-4">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Storico interventi chiusi</CardTitle>
+                                    <CardDescription>Ordini completati, chiusi o annullati su questo asset.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {closedWorkOrders.length === 0 ? (
+                                        <EmptyState title="Nessuno storico disponibile" className="py-8" />
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {closedWorkOrders.map((wo) => (
+                                                <li key={wo.id}>
+                                                    <Link href={`/work-orders/${wo.id}`} className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-accent">
+                                                        <div className="min-w-0">
+                                                            <div className="truncate text-sm font-medium">{wo.title}</div>
+                                                            <div className="text-xs text-muted-foreground">{new Date(wo.createdAt).toLocaleDateString("it-IT")}</div>
+                                                        </div>
+                                                        <WOStatusBadge status={wo.status} />
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="docs" className="mt-4 space-y-6">
+                            <Card>
+                                <CardHeader className="flex-row items-start justify-between space-y-0">
+                                    <div className="space-y-1.5">
+                                        <CardTitle>Documenti tecnici</CardTitle>
+                                        <CardDescription>Manuali, schemi e certificazioni.</CardDescription>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                            const docName = prompt("Nome del documento (es. Manuale uso):");
+                                            if (docName) {
+                                                const docType = prompt("Tipo (PDF, DOCX, IMG):", "PDF") || "PDF";
+                                                const newDoc = { name: docName, type: docType, url: "#", date: new Date().toISOString() };
+                                                updateAsset(asset.id, { documents: [...(asset.documents || []), newDoc] });
+                                            }
+                                        }}
+                                    >
+                                        Aggiungi documento
+                                    </Button>
+                                </CardHeader>
+                                <CardContent>
+                                    {!asset.documents || asset.documents.length === 0 ? (
+                                        <EmptyState icon={<FileText />} title="Nessun documento allegato" description="Aggiungi manuali, schemi o certificazioni." className="py-8" />
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {asset.documents.map((doc, idx) => (
+                                                <li key={idx} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-info-soft text-info-strong">
+                                                            <FileText className="h-4 w-4" />
+                                                        </span>
+                                                        <div>
+                                                            <div className="text-sm font-medium">{doc.name}</div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {doc.type} · {new Date(doc.date || Date.now()).toLocaleDateString("it-IT")}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </CardContent>
+                            </Card>
 
-                    {/* SOP / Ricette Standard */}
-                    <div className="rounded-xl border bg-card p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 className="font-semibold text-lg">SOP & Ricette Macchina</h3>
-                                <p className="text-xs text-muted-foreground mt-1">Parametri di processo standard estratti da HMI tramite AI.</p>
-                            </div>
-                        </div>
-                        <AssetSOPList assetId={asset.id} />
-                    </div>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>SOP e ricette macchina</CardTitle>
+                                    <CardDescription>Parametri di processo standard estratti da HMI tramite AI.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <AssetSOPList assetId={asset.id} />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
                 </div>
 
-                {/* Sidebar Info */}
+                {/* Side column */}
                 <div className="space-y-6">
-                    {/* QR Code Card */}
-                    <div className="rounded-xl border bg-card p-6 shadow-sm flex flex-col items-center text-center space-y-4">
-                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                            <QrCode className="h-4 w-4" /> Etichetta Asset
-                        </h3>
-                        <div className="bg-white p-4 rounded-lg shadow-sm border">
-                            <QRCode value={assetUrl} size={150} />
-                        </div>
-                        <p className="text-xs text-muted-foreground max-w-[200px]">
-                            Scansiona per vedere dettagli, cronologia e segnalare problemi.
-                        </p>
-                        <button
-                            onClick={() => setShowTagGenerator(true)}
-                            className="w-full text-xs flex items-center justify-center gap-2 bg-slate-900 text-white py-2 rounded-md hover:bg-slate-800 transition-colors font-medium"
-                        >
-                            Stampa Etichetta
-                        </button>
-                    </div>
+                    <Card>
+                        <CardHeader className="items-center pb-3 text-center">
+                            <CardTitle className="flex items-center gap-2 text-sm">
+                                <QrCode className="h-4 w-4 text-muted-foreground" /> Etichetta asset
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col items-center gap-3 text-center">
+                            <div className="rounded-lg border bg-white p-3">
+                                <QRCode value={assetUrl} size={140} />
+                            </div>
+                            <p className="max-w-[220px] text-xs text-muted-foreground">Scansiona per vedere dettagli, cronologia e segnalare problemi.</p>
+                        </CardContent>
+                    </Card>
 
-                    <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Ubicazione</h3>
-                        <div className="space-y-3">
-                            <div>
-                                <label className="text-xs text-muted-foreground">Stabilimento</label>
-                                <div className="font-medium">{asset.plant}</div>
-                            </div>
-                            <div>
-                                <label className="text-xs text-muted-foreground">Dipartimento</label>
-                                <div className="font-medium">{asset.department || 'N/A'}</div>
-                            </div>
-                            <div>
-                                <label className="text-xs text-muted-foreground">Linea</label>
-                                <div className="font-medium">{asset.line || 'N/A'}</div>
-                            </div>
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm">Ubicazione</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <dl className="space-y-3">
+                                <Field label="Stabilimento" value={asset.plant} />
+                                <Field label="Reparto" value={asset.department} />
+                                <Field label="Linea" value={asset.line} />
+                            </dl>
+                        </CardContent>
+                    </Card>
 
-                        </div>
-                    </div>
-
-                    <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Dettagli</h3>
-                        <div className="space-y-3">
-                            <div>
-                                <label className="text-xs text-muted-foreground">Numero Seriale</label>
-                                <div className="font-mono text-sm">{asset.serialNumber}</div>
-                            </div>
-                            <div>
-                                <label className="text-xs text-muted-foreground">Costruttore</label>
-                                <div className="font-medium">{asset.vendor}</div>
-                            </div>
-                            <div>
-                                <label className="text-xs text-muted-foreground">Codice Cespite</label>
-                                <div className="font-mono text-sm">{asset.cespite || 'N/A'}</div>
-                            </div>
-                            <div>
-                                <label className="text-xs text-muted-foreground">Data Acquisto</label>
-                                <div className="text-sm">{asset.purchaseDate}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Footer / Legend */}
-                    <div className="rounded-xl border bg-muted/30 p-4 shadow-sm text-xs space-y-2">
-                        <h4 className="font-semibold text-muted-foreground">Legenda & Info</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                                <span>Operativo</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-amber-500"></span>
-                                <span>In Attenzione</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-red-500"></span>
-                                <span>In Fermo</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                                <span>Lavoro Attivo</span>
-                            </div>
-                        </div>
-                        <p className="text-muted-foreground mt-2 border-t pt-2">
-                            Contattare il supervisore per modifiche ai dati sensibili.
-                        </p>
-                    </div>
-
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm">Dettagli</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <dl className="space-y-3">
+                                <Field label="Numero seriale" value={asset.serialNumber} mono />
+                                <Field label="Costruttore" value={asset.vendor} />
+                                <Field label="Codice cespite" value={asset.cespite} mono />
+                                <Field label="Data di acquisto" value={asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString("it-IT") : null} />
+                            </dl>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
-            {/* AI Chat Bot */}
+
             <AssetAIChat assetId={asset.id} assetName={asset.name} />
 
-            {showTagGenerator && (
-                <TagGeneratorDialog
-                    assetId={asset.id}
-                    assetName={asset.name}
-                    onClose={() => setShowTagGenerator(false)}
-                />
-            )}
+            {showTagGenerator && <TagGeneratorDialog assetId={asset.id} assetName={asset.name} onClose={() => setShowTagGenerator(false)} />}
         </div>
     );
 }

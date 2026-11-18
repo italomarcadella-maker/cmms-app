@@ -55,7 +55,7 @@ export default function InventoryPage() {
                         <Box className="h-6 w-6" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                             Magazzino Ricambi
                         </h1>
                         <p className="text-muted-foreground text-sm">Monitora scorte e posizioni dei materiali.</p>

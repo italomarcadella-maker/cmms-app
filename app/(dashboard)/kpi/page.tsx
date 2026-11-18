@@ -1,25 +1,42 @@
 "use client";
 
-import { useWorkOrders } from "@/lib/work-orders-context";
-import { useAssets } from "@/lib/assets-context";
+import { useEffect, useState } from "react";
 import {
-    BarChart,
     Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    Legend,
+    Pie,
+    PieChart,
+    ResponsiveContainer,
+    Tooltip,
     XAxis,
     YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell
-} from 'recharts';
-import { BackToDashboardButton } from "@/components/ui/back-button";
-import { useEffect, useState } from "react";
+} from "recharts";
+import { AlertOctagon, Euro, Timer, TrendingUp } from "lucide-react";
+
+import { useWorkOrders } from "@/lib/work-orders-context";
+import { useAssets } from "@/lib/assets-context";
 import { getAdvancedKPIs } from "@/lib/actions";
-import { Timer, TrendingUp, AlertOctagon, Euro, ArrowDown, ArrowUp } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { categoryColor, chartColors } from "@/lib/chart-colors";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+
+const tooltipStyle = { borderRadius: 8, border: `1px solid ${chartColors.grid}`, fontSize: 12 };
+
+const CATEGORY_LABELS: Record<string, string> = {
+    MECHANICAL: "Meccanica",
+    ELECTRICAL: "Elettrica",
+    HYDRAULIC: "Idraulica",
+    PNEUMATIC: "Pneumatica",
+    PLANT: "Impianti",
+    SAFETY: "Sicurezza",
+    IMPROVEMENT: "Miglioramento",
+    OTHER: "Altro",
+};
 
 export default function KPIPage() {
     const { workOrders } = useWorkOrders();
@@ -28,213 +45,188 @@ export default function KPIPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getAdvancedKPIs().then(data => {
+        getAdvancedKPIs().then((data) => {
             setAdvancedStats(data);
             setLoading(false);
         });
     }, []);
 
-    // --- 1. Monthly Activities by Department (Opened vs Closed) ---
-    const departmentStats = new Map<string, { opened: number, closed: number }>();
-    workOrders.forEach(wo => {
-        const asset = assets.find(a => a.id === wo.assetId);
-        const dept = asset?.department || 'Unknown';
-        if (!departmentStats.has(dept)) {
-            departmentStats.set(dept, { opened: 0, closed: 0 });
-        }
-        const stats = departmentStats.get(dept)!;
+    // 1. Opened vs closed work orders by department
+    const departmentStats = new Map<string, { opened: number; closed: number }>();
+    workOrders.forEach((wo) => {
+        const asset = assets.find((a) => a.id === wo.assetId);
+        const dept = asset?.department || "Non assegnato";
+        const stats = departmentStats.get(dept) ?? { opened: 0, closed: 0 };
         stats.opened += 1;
-        if (wo.status === 'COMPLETED') stats.closed += 1;
+        if (wo.status === "COMPLETED") stats.closed += 1;
+        departmentStats.set(dept, stats);
     });
+    const barChartData = Array.from(departmentStats.entries()).map(([name, s]) => ({ name, Richiesti: s.opened, Completati: s.closed }));
 
-    const barChartData = Array.from(departmentStats.entries()).map(([name, stats]) => ({
-        name, Requested: stats.opened, Closed: stats.closed
-    }));
-
-    // --- 2. Overall Status ---
-    const totalClosed = workOrders.filter(wo => wo.status === 'COMPLETED').length;
+    // 2. Overall status
+    const totalClosed = workOrders.filter((wo) => wo.status === "COMPLETED").length;
     const totalOpen = workOrders.length - totalClosed;
     const overallData = [
-        { name: 'Completed', value: totalClosed, color: '#10b981' },
-        { name: 'Open/In Progress', value: totalOpen, color: '#f59e0b' }
+        { name: "Completati", value: totalClosed, color: chartColors.success },
+        { name: "Aperti o in corso", value: totalOpen, color: chartColors.warning },
     ];
 
-    // --- 3. Activities by Category ---
+    // 3. Work orders by category
     const categoryStats = new Map<string, number>();
-    workOrders.forEach(wo => {
-        const cat = wo.category || 'OTHER';
+    workOrders.forEach((wo) => {
+        const cat = wo.category || "OTHER";
         categoryStats.set(cat, (categoryStats.get(cat) || 0) + 1);
     });
-
-    const CATEGORY_COLORS: Record<string, string> = {
-        'MECHANICAL': '#3b82f6', 'ELECTRICAL': '#eab308', 'HYDRAULIC': '#ec4899', 'PNEUMATIC': '#06b6d4', 'OTHER': '#6b7280', 'PLANT': '#84cc16'
-    };
-    const pieChartData = Array.from(categoryStats.entries()).map(([name, value]) => ({
-        name, value, color: CATEGORY_COLORS[name] || CATEGORY_COLORS['OTHER']
+    const pieChartData = Array.from(categoryStats.entries()).map(([key, value]) => ({
+        name: CATEGORY_LABELS[key] ?? key,
+        value,
+        color: categoryColor(key),
     }));
 
+    const efficiency = advancedStats?.resolutionEfficiency;
+    const currency = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+
     return (
-        <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-            <BackToDashboardButton />
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-                    KPI & Analisi Performance
-                </h1>
-                <p className="text-muted-foreground mt-1">Dashboard direzionale per manutenzione predittiva e costi.</p>
+        <div className="space-y-6 pb-10">
+            <PageHeader
+                title="KPI e analisi delle prestazioni"
+                description="Fermi macchina, tempi di riparazione, costi e carico di lavoro."
+                breadcrumb={[{ label: "Amministrazione" }, { label: "KPI e report" }]}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    label="MTTR (tempo medio di riparazione)"
+                    value={
+                        <>
+                            {advancedStats?.mttr || 0}
+                            <span className="ml-1 text-base font-normal text-muted-foreground">min</span>
+                        </>
+                    }
+                    hint={`Media su ${advancedStats?.totalEWOs || 0} EWO`}
+                    icon={<Timer />}
+                    tone="info"
+                    loading={loading}
+                />
+                <StatCard
+                    label="Costo stimato dei fermi"
+                    value={currency.format(advancedStats?.estimatedCost || 0)}
+                    hint={`${advancedStats?.downtimeCostPerMinute ?? 100} €/min di mancata produzione (configurabile in Impostazioni)`}
+                    icon={<Euro />}
+                    tone="critical"
+                    loading={loading}
+                />
+                <StatCard
+                    label="Efficienza di risoluzione"
+                    value={efficiency === null || efficiency === undefined ? "N/D" : `${efficiency}%`}
+                    hint="EWO risolti senza un ulteriore intervento"
+                    icon={<TrendingUp />}
+                    tone="success"
+                    loading={loading}
+                />
+                <StatCard
+                    label="Asset più critico"
+                    value={<span className="text-xl">{advancedStats?.topAssets?.[0]?.name || "Nessun dato"}</span>}
+                    hint="Maggiore causa di fermo"
+                    icon={<AlertOctagon />}
+                    tone="warning"
+                    loading={loading}
+                />
             </div>
 
-            {/* --- NEW: ADVANCED METRICS CARDS --- */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div className="p-6 bg-card border rounded-xl shadow-sm space-y-2">
-                    <div className="flex items-center justify-between text-muted-foreground">
-                        <span className="text-sm font-medium">MTTR (Tempo Medio Riparazione)</span>
-                        <Timer className="h-4 w-4" />
-                    </div>
-                    {loading ? <Skeleton className="h-8 w-24" /> : (
-                        <div className="flex items-end gap-2">
-                            <span className="text-3xl font-bold">{advancedStats?.mttr || 0}</span>
-                            <span className="text-sm mb-1">min</span>
-                        </div>
-                    )}
-                    <p className="text-xs text-muted-foreground">Media su {advancedStats?.totalEWOs || 0} EWO</p>
-                </div>
-
-                <div className="p-6 bg-card border rounded-xl shadow-sm space-y-2">
-                    <div className="flex items-center justify-between text-muted-foreground">
-                        <span className="text-sm font-medium">Costo Stimato Fermo</span>
-                        <Euro className="h-4 w-4" />
-                    </div>
-                    {loading ? <Skeleton className="h-8 w-24" /> : (
-                        <div className="flex items-end gap-2">
-                            <span className="text-3xl font-bold text-red-600">
-                                {new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(advancedStats?.estimatedCost || 0)}
-                            </span>
-                        </div>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                        Basato su {advancedStats?.downtimeCostPerMinute ?? 100}€/min di mancata produzione (configurabile in Impostazioni)
-                    </p>
-                </div>
-
-                <div className="p-6 bg-card border rounded-xl shadow-sm space-y-2">
-                    <div className="flex items-center justify-between text-muted-foreground">
-                        <span className="text-sm font-medium">Efficienza Risoluzione</span>
-                        <TrendingUp className="h-4 w-4 text-emerald-500" />
-                    </div>
-                    {loading ? <Skeleton className="h-8 w-24" /> : (
-                        <div className="flex items-end gap-2">
-                            <span className="text-3xl font-bold">
-                                {advancedStats?.resolutionEfficiency === null || advancedStats?.resolutionEfficiency === undefined
-                                    ? "N/D"
-                                    : `${advancedStats.resolutionEfficiency}%`}
-                            </span>
-                        </div>
-                    )}
-                    <p className="text-xs text-muted-foreground">% EWO risolti senza necessità di ulteriore intervento (first-time-fix rate)</p>
-                </div>
-
-                <div className="p-6 bg-card border rounded-xl shadow-sm space-y-2">
-                    <div className="flex items-center justify-between text-muted-foreground">
-                        <span className="text-sm font-medium">Asset Critici</span>
-                        <AlertOctagon className="h-4 w-4 text-amber-500" />
-                    </div>
-                    {loading ? <Skeleton className="h-8 w-24" /> : (
-                        <div className="text-sm font-medium">
-                            {advancedStats?.topAssets?.[0]?.name || "Nessun dato"}
-                        </div>
-                    )}
-                    <p className="text-xs text-muted-foreground">Maggiore causa di downtime</p>
-                </div>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {/* Top 5 Worst Assets Chart */}
-                <div className="rounded-xl border bg-card p-6 shadow-sm col-span-1 md:col-span-2 lg:col-span-1">
-                    <div className="mb-4">
-                        <h3 className="text-lg font-semibold">Top 5 Asset per Fermo Macchina</h3>
-                        <p className="text-sm text-muted-foreground">Macchinari con più minuti di inattività (Downtime)</p>
-                    </div>
-                    <div className="h-[300px] w-full">
-                        {loading ? <div className="h-full flex items-center justify-center text-muted-foreground">Caricamento dati...</div> : (
-                            advancedStats?.topAssets?.length > 0 ? (
+            <div className="grid gap-4 lg:grid-cols-3">
+                <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle>Top 5 asset per fermo macchina</CardTitle>
+                        <CardDescription>Macchinari con più minuti di inattività</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px] w-full">
+                            {loading ? (
+                                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Caricamento dati...</div>
+                            ) : advancedStats?.topAssets?.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={advancedStats.topAssets} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                                        <XAxis type="number" />
-                                        <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ color: 'black' }} />
-                                        <Bar dataKey="minutes" fill="#ef4444" radius={[0, 4, 4, 0]} name="Minuti Fermo" />
+                                    <BarChart data={advancedStats.topAssets} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={chartColors.grid} />
+                                        <XAxis type="number" stroke={chartColors.axis} fontSize={12} />
+                                        <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} stroke={chartColors.axis} />
+                                        <Tooltip cursor={{ fill: chartColors.grid, opacity: 0.4 }} contentStyle={tooltipStyle} />
+                                        <Bar dataKey="minutes" fill={chartColors.critical} radius={[0, 4, 4, 0]} name="Minuti di fermo" />
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-full flex items-center justify-center text-muted-foreground italic">
-                                    Nessun dato di fermo registrato.
-                                </div>
-                            )
-                        )}
-                    </div>
-                </div>
+                                <EmptyState title="Nessun fermo registrato" description="I fermi compaiono quando vengono compilati gli EWO." className="h-full" />
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
 
-                {/* Status Chart */}
-                <div className="rounded-xl border bg-card p-6 shadow-sm">
-                    <div className="mb-4">
-                        <h3 className="text-lg font-semibold">Stato Ordini di Lavoro</h3>
-                        <p className="text-sm text-muted-foreground">Distribuzione per stato attuale</p>
-                    </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Stato degli ordini di lavoro</CardTitle>
+                        <CardDescription>Distribuzione per stato attuale</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie data={overallData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={3} dataKey="value">
+                                        {overallData.map((entry) => (
+                                            <Cell key={entry.name} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={tooltipStyle} />
+                                    <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Tipologia degli interventi</CardTitle>
+                        <CardDescription>Ripartizione per categoria</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie data={pieChartData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={3} dataKey="value">
+                                        {pieChartData.map((entry) => (
+                                            <Cell key={entry.name} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={tooltipStyle} />
+                                    <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Attività per reparto</CardTitle>
+                    <CardDescription>Volume di lavoro per area: ordini richiesti e completati</CardDescription>
+                </CardHeader>
+                <CardContent>
                     <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie data={overallData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                                    {overallData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                                </Pie>
-                                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }} itemStyle={{ color: 'hsl(var(--foreground))' }} />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Category Chart */}
-                <div className="rounded-xl border bg-card p-6 shadow-sm">
-                    <div className="mb-4">
-                        <h3 className="text-lg font-semibold">Tipologia Interventi</h3>
-                        <p className="text-sm text-muted-foreground">Breakdown per categoria</p>
-                    </div>
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie data={pieChartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                                    {pieChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} stroke="white" strokeWidth={2} />)}
-                                </Pie>
-                                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }} itemStyle={{ color: 'hsl(var(--foreground))' }} />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Department Activity - Full Width */}
-                <div className="rounded-xl border bg-card p-6 shadow-sm md:col-span-2 lg:col-span-3">
-                    <div className="mb-4">
-                        <h3 className="text-lg font-semibold">Attività per Reparto</h3>
-                        <p className="text-sm text-muted-foreground">Volume di lavoro per area (Richiesti vs Chiusi)</p>
-                    </div>
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={barChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} contentStyle={{ color: 'black' }} />
-                                <Legend />
-                                <Bar dataKey="Requested" fill="#3b82f6" name="Richiesti" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="Closed" fill="#10b981" name="Completati" radius={[4, 4, 0, 0]} />
+                            <BarChart data={barChartData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                                <XAxis dataKey="name" stroke={chartColors.axis} fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke={chartColors.axis} fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                                <Tooltip cursor={{ fill: chartColors.grid, opacity: 0.4 }} contentStyle={tooltipStyle} />
+                                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                                <Bar dataKey="Richiesti" fill={chartColors.primary} radius={[4, 4, 0, 0]} maxBarSize={48} />
+                                <Bar dataKey="Completati" fill={chartColors.success} radius={[4, 4, 0, 0]} maxBarSize={48} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
-

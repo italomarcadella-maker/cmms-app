@@ -30,6 +30,9 @@ import { StatusStepper } from "@/components/work-orders/status-stepper";
 import { PrintButton, PrintableWO } from "@/components/work-orders/wo-printable";
 import { TimerControls } from "@/components/work-orders/timer-controls";
 import { AISuggestions } from "@/components/work-orders/ai-suggestions";
+import { PageHeader } from "@/components/ui/page-header";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 export default function WorkOrderDetailPage() {
     const params = useParams();
@@ -38,6 +41,7 @@ export default function WorkOrderDetailPage() {
     const { workOrders, updateWorkOrder } = useWorkOrders();
     const { parts } = useInventory(); // Removed updateQuantity
     const { technicians } = useReference();
+    const { confirm, dialog: confirmDialog } = useConfirm();
 
     const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'MAINTAINER';
 
@@ -88,12 +92,12 @@ export default function WorkOrderDetailPage() {
         e.preventDefault();
         const part = parts?.find(p => p.id === selectedPartId);
         if (!part) {
-            alert("Errore: Articolo non trovato o inventario non caricato.");
+            toast.error("Articolo non trovato o inventario non caricato");
             return;
         }
 
         if (part.quantity < partQty) {
-            alert("Quantità insufficiente in magazzino!");
+            toast.error("Quantità insufficiente in magazzino");
             return;
         }
 
@@ -116,25 +120,31 @@ export default function WorkOrderDetailPage() {
                 // We might need to manually trigger reload in context or just reload page.
                 router.refresh(); // Quickest consistent way for now, slightly jarring but safe.
             } else {
-                alert("Errore: " + result.message);
+                toast.error("Impossibile aggiungere il ricambio", { description: result.message });
             }
         } catch (error) {
-            alert("Si è verificato un errore.");
+            toast.error("Si è verificato un errore");
         }
     };
 
     const handleRemovePart = async (partLinkId: string) => {
-        if (!confirm("Rimuovere ricambio e ripristinare la giacenza?")) return;
+        const ok = await confirm({
+            title: "Rimuovere il ricambio?",
+            description: "La giacenza verrà ripristinata in magazzino.",
+            confirmLabel: "Rimuovi",
+            variant: "destructive",
+        });
+        if (!ok) return;
 
         try {
             const result = await removeWorkOrderPart(partLinkId);
             if (result.success) {
                 router.refresh();
             } else {
-                alert("Errore: " + result.message);
+                toast.error("Impossibile rimuovere il ricambio", { description: result.message });
             }
         } catch (error) {
-            alert("Errore di sistema.");
+            toast.error("Errore di sistema");
         }
     };
 
@@ -162,24 +172,16 @@ export default function WorkOrderDetailPage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex items-center gap-4">
-                <Link href="/work-orders" className="p-2 rounded-full hover:bg-muted text-muted-foreground">
-                    <ArrowLeft className="h-5 w-5" />
-                </Link>
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-                        Dettaglio Ordine di Lavoro
-                    </h1>
-                    <div className="flex items-center gap-2 text-muted-foreground mt-1">
-                        <span className="font-mono bg-muted px-2 rounded text-sm">{wo.id}</span>
-                        <span>•</span>
-                        <span>Creato il {new Date(wo.createdAt).toLocaleDateString()}</span>
+            <PageHeader
+                title={wo.title}
+                description={`Ordine ${wo.id.substring(0, 10)} · creato il ${new Date(wo.createdAt).toLocaleDateString("it-IT")}`}
+                breadcrumb={[{ label: "Ordini di lavoro", href: "/work-orders" }, { label: wo.title }]}
+                actions={
+                    <div className="hidden sm:block">
+                        <PrintButton contentRef={{ current: typeof document !== 'undefined' ? document.getElementById('printable-content') as HTMLDivElement : null }} />
                     </div>
-                </div>
-                <div className="ml-auto hidden sm:block">
-                    <PrintButton contentRef={{ current: typeof document !== 'undefined' ? document.getElementById('printable-content') as HTMLDivElement : null }} />
-                </div>
-            </div>
+                }
+            />
 
             <StatusStepper status={wo.status} />
 
@@ -199,19 +201,13 @@ export default function WorkOrderDetailPage() {
 
                     {/* Status & Priority Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="rounded-xl border bg-card p-6 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground font-medium">Stato</p>
-                                <WOStatusBadge status={wo.status} />
-                            </div>
-                            {/* ... icon ... */}
+                        <div className="rounded-xl border bg-card p-4 shadow-sm">
+                            <p className="mb-2 text-sm font-medium text-muted-foreground">Stato</p>
+                            <WOStatusBadge status={wo.status} className="text-sm" />
                         </div>
-                        <div className="rounded-xl border bg-card p-6 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground font-medium">Priorità</p>
-                                <WOPriorityBadge priority={wo.priority} />
-                            </div>
-                            {/* ... icon ... */}
+                        <div className="rounded-xl border bg-card p-4 shadow-sm">
+                            <p className="mb-2 text-sm font-medium text-muted-foreground">Priorità</p>
+                            <WOPriorityBadge priority={wo.priority} className="text-sm" />
                         </div>
                     </div>
 
@@ -309,7 +305,8 @@ export default function WorkOrderDetailPage() {
                                 <>
                                     <button
                                         onClick={async () => {
-                                            if (!confirm("Confermi la validazione e chiusura dell'ordine?")) return;
+                                            const ok = await confirm({ title: "Validare e chiudere l'ordine?", description: "L'ordine verrà archiviato nello storico.", confirmLabel: "Valida e chiudi" });
+                                            if (!ok) return;
                                             await reviewWorkOrder(wo.id, 'APPROVE');
                                         }}
                                         className="w-full text-left px-4 py-3 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-3 shadow-sm"
@@ -324,7 +321,8 @@ export default function WorkOrderDetailPage() {
                                     </button>
                                     <button
                                         onClick={async () => {
-                                            if (!confirm("Rifiutare il lavoro e rimandare al tecnico?")) return;
+                                            const ok = await confirm({ title: "Rifiutare il lavoro?", description: "L'ordine torna al tecnico nello stato In corso.", confirmLabel: "Rifiuta", variant: "destructive" });
+                                            if (!ok) return;
                                             await reviewWorkOrder(wo.id, 'REJECT');
                                         }}
                                         className="w-full text-left px-4 py-3 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-lg text-sm font-medium transition-colors flex items-center gap-3 shadow-sm"
@@ -651,6 +649,7 @@ export default function WorkOrderDetailPage() {
                 currentTechnicianId={wo.assignedTechnicianId}
                 onClose={() => setAssigning(false)}
             />
+            {confirmDialog}
         </div>
     );
 }

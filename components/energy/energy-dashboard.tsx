@@ -99,7 +99,7 @@ export function EnergyDashboard({
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                         Monitoraggio Consumi
                     </h1>
                     <p className="text-muted-foreground mt-1">Gestione energetica e rilevamento anomalie.</p>

@@ -82,7 +82,7 @@ export default function CalendarPage() {
             <BackToDashboardButton />
             <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                         Calendario Manutenzione
                     </h1>
                     <p className="text-muted-foreground mt-1">Pianificazione mensile degli interventi.</p>

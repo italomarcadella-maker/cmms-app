@@ -60,7 +60,7 @@ export function DashboardUI({ stats, trends, recentWOs, overdueWOs, dailyInsight
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-10 bg-background/50 backdrop-blur-lg -mx-6 px-6 py-4 border-b border-border/50">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                         Control Room
                     </h1>
                     <p className="text-muted-foreground mt-1">Monitoraggio in tempo reale delle operazioni.</p>

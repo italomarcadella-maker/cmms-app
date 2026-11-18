@@ -22,7 +22,7 @@ export default function ActivitiesPage() {
         <div className="space-y-6 animate-in fade-in duration-500">
             <BackToDashboardButton />
             <div>
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                     Attività di Manutenzione
                 </h1>
                 <p className="text-muted-foreground mt-1">Gestisci le attività standard per le checklist degli ordini di lavoro.</p>
