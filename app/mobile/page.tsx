@@ -1,97 +1,120 @@
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { CheckCircle2, AlertTriangle, Camera, ClipboardList, Calendar } from "lucide-react";
+import { redirect } from "next/navigation";
+import { AlertTriangle, CheckCircle2, ClipboardList, ScanLine, Sparkles, TriangleAlert } from "lucide-react";
 
-export default async function MobileDashboardPage() {
-    const session = await auth();
-    const userRole = session?.user?.role || "USER";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ClaimButton } from "@/components/mobile/claim-button";
+import { OrderCard } from "@/components/mobile/order-card";
+import { loadMobileHome } from "@/lib/mobile-data";
+import { cn } from "@/lib/utils";
 
-    // Fetch My Active Task
-    const myActiveWhere = {
-        assignedTo: session?.user?.name, // Fallback filtering
-        status: { in: ['OPEN', 'IN_PROGRESS'] as ('OPEN' | 'IN_PROGRESS')[] }
-    };
-    const [myTasks, myTotalCount, myUrgentCount] = await Promise.all([
-        prisma.workOrder.findMany({
-            where: myActiveWhere,
-            take: 3,
-            orderBy: { priority: 'desc' }
-        }),
-        prisma.workOrder.count({ where: myActiveWhere }),
-        prisma.workOrder.count({ where: { ...myActiveWhere, priority: { in: ['HIGH', 'STOPPED'] } } }),
-    ]);
+export const dynamic = "force-dynamic";
+
+function Counter({ label, value, tone }: { label: string; value: number; tone?: "critical" | "info" }) {
+    return (
+        <div className="flex-1 rounded-lg border bg-card p-3 text-center">
+            <div className={cn("text-2xl font-bold tabular-nums", tone === "critical" && value > 0 && "text-critical-strong", tone === "info" && value > 0 && "text-info-strong")}>{value}</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+        </div>
+    );
+}
+
+export default async function MobileHomePage() {
+    const home = await loadMobileHome();
+    if (!home) redirect("/login");
+
+    const firstName = home.userName.trim().split(/\s+/)[0] || "";
+    const mineTitle = home.isMaintainer ? "Le mie attività" : "Attività in corso";
 
     return (
-        <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
-            {/* Welcome Card */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
-                <h1 className="text-2xl font-bold mb-1">Ciao, {session?.user?.name?.split(' ')[0]}!</h1>
-                <p className="opacity-90 text-sm mb-4">Pronto per il turno di oggi?</p>
-                <div className="flex gap-3">
-                    <div className="bg-white/20 p-2 rounded-lg flex-1 text-center">
-                        <div className="text-xl font-bold">{myTotalCount}</div>
-                        <div className="text-xs opacity-80 uppercase">Da Fare</div>
-                    </div>
-                    <div className="bg-white/20 p-2 rounded-lg flex-1 text-center">
-                        <div className="text-xl font-bold">{myUrgentCount}</div>
-                        <div className="text-xs opacity-80 uppercase">Urgenti</div>
-                    </div>
+        <div className="space-y-6">
+            {/* Saluto e contatori */}
+            <section aria-label="Riepilogo" className="space-y-3">
+                <div>
+                    <h1 className="text-2xl font-bold">{firstName ? `Ciao, ${firstName}` : "Ciao"}</h1>
+                    <p className="text-sm text-muted-foreground">
+                        {home.isMaintainer ? "Ecco le attività assegnate a te." : "Ecco le attività in corso nel tuo stabilimento."}
+                    </p>
                 </div>
-            </div>
+                <div className="flex gap-2">
+                    <Counter label="Da fare" value={home.counts.todo} />
+                    <Counter label="Urgenti" value={home.counts.urgent} tone="critical" />
+                    <Counter label="Nuove" value={home.counts.fresh} tone="info" />
+                </div>
+            </section>
 
-            {/* Quick Actions Grid */}
-            <h2 className="font-semibold text-lg px-1">Azioni Rapide</h2>
-            <div className="grid grid-cols-2 gap-4">
-                <Link href="/mobile/scan" className="bg-white p-4 rounded-xl shadow-sm border flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors h-32 active:scale-95 duration-200">
-                    <div className="h-10 w-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
-                        <Camera className="h-6 w-6" />
-                    </div>
-                    <span className="font-medium text-sm">Scan Asset</span>
-                </Link>
-                <Link href="/work-orders/new?mobile=true" className="bg-white p-4 rounded-xl shadow-sm border flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors h-32 active:scale-95 duration-200">
-                    <div className="h-10 w-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
-                        <AlertTriangle className="h-6 w-6" />
-                    </div>
-                    <span className="font-medium text-sm">Segnala Guasto</span>
-                </Link>
-                <Link href="/technicians/calendar" className="bg-white p-4 rounded-xl shadow-sm border flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors h-32 active:scale-95 duration-200">
-                    <div className="h-10 w-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
-                        <Calendar className="h-6 w-6" />
-                    </div>
-                    <span className="font-medium text-sm">Turni & Ferie</span>
-                </Link>
-                <Link href="/work-orders" className="bg-white p-4 rounded-xl shadow-sm border flex flex-col items-center justify-center gap-2 hover:bg-slate-50 transition-colors h-32 active:scale-95 duration-200">
-                    <div className="h-10 w-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center">
-                        <ClipboardList className="h-6 w-6" />
-                    </div>
-                    <span className="font-medium text-sm">Ordini di lavoro</span>
-                </Link>
-            </div>
+            {home.missingTechnician && (
+                <Card className="flex items-start gap-3 border-warning p-4" role="alert">
+                    <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-warning-strong" aria-hidden />
+                    <p className="text-sm">
+                        Il tuo profilo di tecnico non è ancora configurato: non puoi ricevere né prendere in carico ordini. Chiedi al supervisore di completarlo.
+                    </p>
+                </Card>
+            )}
 
-            {/* My Task List */}
-            <h2 className="font-semibold text-lg px-1 mt-4">I tuoi Ordini</h2>
-            <div className="space-y-3 pb-8">
-                {myTasks.length === 0 ? (
-                    <div className="text-center py-8 bg-white border border-dashed rounded-xl">
-                        <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-2" />
-                        <p className="text-muted-foreground">Tutto pulito! Nessun ordine assegnato.</p>
-                    </div>
+            {/* Azioni rapide */}
+            <section aria-label="Azioni rapide" className="grid grid-cols-2 gap-3">
+                <Link
+                    href="/mobile/scan"
+                    className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-xl border bg-card p-3 text-center text-sm font-medium transition-colors active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary"><ScanLine className="h-6 w-6" aria-hidden /></span>
+                    Scansiona QR
+                </Link>
+                <Link
+                    href="/work-orders/new?mobile=true"
+                    className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-xl border bg-card p-3 text-center text-sm font-medium transition-colors active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-critical-soft text-critical-strong"><AlertTriangle className="h-6 w-6" aria-hidden /></span>
+                    Segnala guasto
+                </Link>
+            </section>
+
+            {/* Le mie attività */}
+            <section aria-label={mineTitle} className="space-y-3">
+                <h2 className="flex items-center gap-2 text-lg font-semibold">
+                    {mineTitle}
+                    {home.counts.fresh > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                            <Sparkles className="h-3 w-3" aria-hidden />{home.counts.fresh} {home.counts.fresh === 1 ? "nuova" : "nuove"}
+                        </span>
+                    )}
+                </h2>
+                {home.mine.length === 0 ? (
+                    <Card>
+                        <EmptyState
+                            icon={<CheckCircle2 />}
+                            title={home.isMaintainer ? "Nessuna attività assegnata" : "Nessuna attività in corso"}
+                            description={home.claimable.length > 0 ? "Puoi prendere in carico uno degli ordini qui sotto." : "Quando te ne verrà assegnata una, la trovi qui."}
+                            className="py-8"
+                        />
+                    </Card>
                 ) : (
-                    myTasks.map(task => (
-                        <Link href={`/work-orders/${task.id}`} key={task.id} className="block bg-white p-4 rounded-xl border shadow-sm active:bg-slate-50">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${task.priority === 'HIGH' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                                    {task.priority}
-                                </span>
-                                <span className="text-xs text-muted-foreground">{new Date(task.createdAt).toLocaleDateString('it-IT')}</span>
-                            </div>
-                            <h3 className="font-bold text-slate-800 mb-1">{task.title}</h3>
-                            <p className="text-xs text-muted-foreground line-clamp-1">{task.description}</p>
-                        </Link>
-                    ))
+                    <ul className="space-y-3">
+                        {home.mine.map(order => <OrderCard key={order.id} order={order} />)}
+                    </ul>
                 )}
-            </div>
+            </section>
+
+            {/* Da prendere in carico */}
+            <section aria-label="Da prendere in carico" className="space-y-3 pb-4">
+                <h2 className="flex items-center gap-2 text-lg font-semibold">
+                    <ClipboardList className="h-5 w-5 text-muted-foreground" aria-hidden /> Da prendere in carico
+                    {home.claimable.length > 0 && <span className="text-sm font-normal text-muted-foreground">({home.claimable.length})</span>}
+                </h2>
+                {home.claimable.length === 0 ? (
+                    <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">Nessun ordine libero al momento.</p>
+                ) : (
+                    <ul className="space-y-3">
+                        {home.claimable.map(order => (
+                            <OrderCard key={order.id} order={order}>
+                                <ClaimButton orderId={order.id} disabled={home.missingTechnician} />
+                            </OrderCard>
+                        ))}
+                    </ul>
+                )}
+            </section>
         </div>
     );
 }

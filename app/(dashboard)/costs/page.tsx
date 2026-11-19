@@ -2,6 +2,9 @@
 
 import { useWorkOrders } from "@/lib/work-orders-context";
 import { useAssets } from "@/lib/assets-context";
+import { useReference } from "@/lib/reference-context";
+import { getEffectiveSettings } from "@/lib/actions";
+import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Euro, TrendingUp, TrendingDown, Hammer, Component } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,16 +16,20 @@ export default function CostsPage() {
     const { workOrders } = useWorkOrders();
     const { assets } = useAssets();
 
-    // Configuration
-    const HOURLY_RATE = 45; // €/hr (Average)
+    const { technicians } = useReference();
+
+    // Tariffa del tecnico; se non l'ha, quella predefinita nelle impostazioni dello stabilimento (la stessa usata da dashboard e ordini)
+    const [defaultRate, setDefaultRate] = useState(0);
+    useEffect(() => {
+        getEffectiveSettings().then(st => { if (st?.defaultLaborHourlyRate) setDefaultRate(st.defaultLaborHourlyRate); }).catch(() => { });
+    }, []);
+    const rateOf = (technicianId: string) => technicians.find(t => t.id === technicianId)?.hourlyRate || defaultRate;
+    const laborCostOf = (logs: { hours: number; technicianId: string }[] | undefined) =>
+        (logs || []).reduce((sum, log) => sum + log.hours * rateOf(log.technicianId), 0);
 
     // Calculate Global Costs
-    const totalLaborHours = workOrders.reduce((total, wo) => {
-        const woHours = (wo.laborLogs || []).reduce((sum, log) => sum + log.hours, 0);
-        return total + woHours;
-    }, 0);
-
-    const totalLaborCost = totalLaborHours * HOURLY_RATE;
+    const totalLaborCost = workOrders.reduce((total, wo) => total + laborCostOf(wo.laborLogs), 0);
+    const totalLaborHours = workOrders.reduce((total, wo) => total + (wo.laborLogs || []).reduce((sum, log) => sum + log.hours, 0), 0);
 
     const totalPartsCost = workOrders.reduce((total, wo) => {
         const woParts = (wo.partsUsed || []).reduce((sum, part) => sum + (part.quantity * part.unitCost), 0);
@@ -33,7 +40,7 @@ export default function CostsPage() {
 
     // Charts Data Preparation
 
-    // 1. Costs by Asset (Top 5)
+    // 1. Costs by Asset (Top 10)
     // Group costs by Asset ID
     const assetCostMap = new Map<string, { name: string; labor: number; parts: number; total: number }>();
 
@@ -43,8 +50,7 @@ export default function CostsPage() {
         const current = assetCostMap.get(wo.assetId) || { name: wo.assetName || 'Unknown', labor: 0, parts: 0, total: 0 };
 
         // Labor
-        const laborHours = (wo.laborLogs || []).reduce((sum, log) => sum + log.hours, 0);
-        const laborCost = laborHours * HOURLY_RATE;
+        const laborCost = laborCostOf(wo.laborLogs);
 
         // Parts
         const partsCost = (wo.partsUsed || []).reduce((sum, part) => sum + (part.quantity * part.unitCost), 0);
@@ -64,7 +70,7 @@ export default function CostsPage() {
             total: Math.round(item.total)
         }))
         .sort((a, b) => b.total - a.total)
-        .slice(0, 5);
+        .slice(0, 10);
 
     // 2. Costs Trend (Last 6 Months)
     const last6Months = Array.from({ length: 6 }).map((_, i) => {
@@ -73,15 +79,13 @@ export default function CostsPage() {
 
         const wosInMonth = workOrders.filter(wo => isSameMonth(new Date(wo.createdAt), date));
 
-        const monthLaborHours = wosInMonth.reduce((acc, wo) =>
-            acc + (wo.laborLogs || []).reduce((sum, log) => sum + log.hours, 0), 0
-        );
+        const monthLaborCost = wosInMonth.reduce((acc, wo) => acc + laborCostOf(wo.laborLogs), 0);
 
         const monthPartsCost = wosInMonth.reduce((acc, wo) =>
             acc + (wo.partsUsed || []).reduce((sum, part) => sum + (part.quantity * part.unitCost), 0), 0
         );
 
-        const total = (monthLaborHours * HOURLY_RATE) + monthPartsCost;
+        const total = monthLaborCost + monthPartsCost;
 
         return {
             name: monthName,
@@ -89,6 +93,11 @@ export default function CostsPage() {
         };
     });
 
+
+    // Variazione reale rispetto al mese precedente (non un valore fisso)
+    const prevMonth = last6Months[4]?.cost ?? 0;
+    const thisMonth = last6Months[5]?.cost ?? 0;
+    const monthTrend = prevMonth > 0 ? `${thisMonth >= prevMonth ? "+" : ""}${Math.round(((thisMonth - prevMonth) / prevMonth) * 100)}% vs mese scorso` : undefined;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -106,7 +115,7 @@ export default function CostsPage() {
                     title="Costo Totale"
                     value={`€ ${totalMaintenanceCost.toLocaleString('it-IT')}`}
                     icon={Euro}
-                    trend="+5% vs mese scorso"
+                    trend={monthTrend}
                     color="text-emerald-600"
                 />
                 <KPICard
@@ -134,8 +143,8 @@ export default function CostsPage() {
             <div className="grid lg:grid-cols-2 gap-6">
                 {/* Cost by Asset Chart */}
                 <div className="bg-card border rounded-xl shadow-sm p-6">
-                    <h3 className="font-semibold mb-6">Top 5 Asset per Costo Manutenzione</h3>
-                    <div className="h-[300px] w-full">
+                    <h3 className="font-semibold mb-6">Primi 10 asset per costo di manutenzione</h3>
+                    <div className="h-[420px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={assetCosts} layout="vertical" margin={{ left: 40 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -184,7 +193,7 @@ function KPICard({ title, value, icon: Icon, sub, trend, color }: any) {
             </div>
             {(sub || trend) && (
                 <div className="mt-2 text-xs text-muted-foreground flex gap-2">
-                    {trend && <span className="text-emerald-600 font-medium">{trend}</span>}
+                    {trend && <span className="text-muted-foreground font-medium">{trend}</span>}
                     {sub && <span>{sub}</span>}
                 </div>
             )}

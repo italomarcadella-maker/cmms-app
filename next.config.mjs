@@ -37,6 +37,9 @@ const nextConfig = {
             { source: '/references/activities', destination: '/activities', permanent: false },
             { source: '/assets/new', destination: '/assets', permanent: false },
             { source: '/assets/qr', destination: '/assets', permanent: false },
+            { source: '/predictive', destination: '/maintenance/predictive', permanent: false },
+            { source: '/reports/costs', destination: '/costs', permanent: false },
+            { source: '/inventory/shopping-list', destination: '/inventory?lowStock=1', permanent: false },
         ];
     },
     experimental: {

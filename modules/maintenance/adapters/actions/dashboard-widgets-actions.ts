@@ -6,6 +6,8 @@ import { requireRole } from '@/lib/auth-guard';
 import { getPlantScope, runUnscoped } from '@/lib/plant-scope';
 import { DEFAULT_TIMEZONE, dayKeyInZone, shiftOf, type ShiftId } from '../../domain/shifts';
 import { contractState, isInForce } from '../../domain/contractors';
+import { getMaintainerIdentity } from '@/lib/maintainer-scope';
+import { isPlanItemVisibleToMaintainer, isAssignedToMaintainer, maintainerWorkOrderWhere, withMaintainerFilter } from '../../domain/maintainer-visibility';
 
 /**
  * Dati per i widget della dashboard: guasti per reparto e turno, piano settimanale degli interventi.
@@ -152,18 +154,21 @@ export async function getWeekPlan(anyDay?: string): Promise<WeekPlan> {
     const { authorized } = await requireRole(VIEWERS);
     if (!authorized) return result;
 
+    // Manutentore: solo le voci sue o ancora da assegnare, e nessun nome di colleghi (vedi domain/maintainer-visibility.ts)
+    const who = await getMaintainerIdentity();
+
     // Intervallo largo (fuso e ora legale): poi si assegna ogni voce al suo giorno nel fuso del plant
     const from = new Date(`${addDaysKey(weekStart, -1)}T00:00:00Z`);
     const to = new Date(`${addDaysKey(weekStart, 8)}T00:00:00Z`);
 
-    const [orders, schedules, meters, contractorActivities] = await Promise.all([
+    const [orders, allSchedules, allMeters, contractorActivities] = await Promise.all([
         prisma.workOrder.findMany({
-            where: { dueDate: { gte: from, lt: to }, status: { notIn: ['CANCELED'] } },
+            where: withMaintainerFilter({ dueDate: { gte: from, lt: to }, status: { notIn: ['CANCELED'] } }, who ? maintainerWorkOrderWhere(who) : null),
             select: {
                 id: true, title: true, type: true, priority: true, status: true, dueDate: true, assignedTo: true, assignedTechnicianId: true, plantId: true,
                 asset: { select: { name: true, department: true } },
                 assignedTechnician: { select: { name: true } },
-                technicians: { select: { technician: { select: { name: true } } } },
+                technicians: { select: { technicianId: true, technician: { select: { name: true } } } },
             },
             orderBy: { dueDate: 'asc' },
         }),
@@ -188,6 +193,10 @@ export async function getWeekPlan(anyDay?: string): Promise<WeekPlan> {
         }),
     ]);
 
+    // Voci con un solo assegnatario (piani, letture): per il manutentore solo quelle sue o libere
+    const schedules = who ? allSchedules.filter(s => isPlanItemVisibleToMaintainer(s.assignedToId, who)) : allSchedules;
+    const meters = who ? allMeters.filter(m => isPlanItemVisibleToMaintainer(m.readingAssigneeId, who)) : allMeters;
+
     const planners = [
         ...schedules.map(s => s.assignedToId),
         ...meters.map(m => m.readingAssigneeId),
@@ -208,9 +217,15 @@ export async function getWeekPlan(anyDay?: string): Promise<WeekPlan> {
             ...o.technicians.map(t => t.technician.name),
         ];
         if (names.length === 0 && o.assignedTo && o.assignedTo !== 'Unassigned') names.push(o.assignedTo);
-        const assignees = [...new Set(names)];
+        let assignees = [...new Set(names)];
         const open = !DONE.includes(o.status);
+        // "Libero" si decide prima di nascondere i nomi
         const unassigned = open && assignees.length === 0;
+        // Un manutentore non vede chi lavora su cosa: se l'ordine e' suo compare solo lui, se e' di altri (visibile perche' richiesto da lui) nessun nome
+        if (who) {
+            const mine = isAssignedToMaintainer({ assignedTechnicianId: o.assignedTechnicianId, technicianIds: o.technicians.map(t => t.technicianId) }, who);
+            assignees = mine && who.name ? [who.name] : [];
+        }
         day.items.push({
             kind: 'WO', type: o.type === 'FAULT' ? 'FAULT' : o.type === 'ROUTINE' ? 'PROGRAMMED' : 'REQUEST', id: o.id, title: o.title, assetName: o.asset?.name ?? '-', department: o.asset?.department ?? null, plantId: o.plantId,
             priority: o.priority, status: o.status, assignees, unassigned, href: `/work-orders/${o.id}`,

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useInventory } from "@/lib/inventory-context";
+import { requestPurchase } from "@/modules/inventory/adapters/actions/inventory-actions";
 import { Plus, Box, AlertTriangle, Trash2 } from "lucide-react";
 import { BackToDashboardButton } from "@/components/ui/back-button";
 import { QRCodeDialog } from "@/components/inventory/qr-code-dialog";
@@ -29,10 +30,15 @@ export default function InventoryPage() {
 
     const [search, setSearch] = useState(() => searchParams.get("search") || "");
 
+    const [lowOnly, setLowOnly] = useState(() => searchParams.get("lowStock") === "1");
+    const lowCount = parts.filter(p => p.quantity <= p.minQuantity).length;
+
     const filteredParts = parts.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.category.toLowerCase().includes(search.toLowerCase()) ||
-        (p.warehouse || "").toLowerCase().includes(search.toLowerCase())
+        (!lowOnly || p.quantity <= p.minQuantity) && (
+            p.name.toLowerCase().includes(search.toLowerCase()) ||
+            p.category.toLowerCase().includes(search.toLowerCase()) ||
+            (p.warehouse || "").toLowerCase().includes(search.toLowerCase())
+        )
     );
 
     const handleAdd = (e: React.FormEvent) => {
@@ -97,6 +103,20 @@ export default function InventoryPage() {
                     </button>
                 </div>
             </div>
+
+            {!isAdding && (
+                <div className="flex flex-wrap items-center gap-2 print:hidden">
+                    <button
+                        type="button"
+                        onClick={() => setLowOnly(v => !v)}
+                        aria-pressed={lowOnly}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${lowOnly ? "border-destructive bg-destructive/10 text-destructive" : "text-muted-foreground hover:bg-muted"}`}
+                    >
+                        Sotto scorta minima ({lowCount})
+                    </button>
+                    {lowOnly && <button type="button" onClick={() => window.print()} className="text-xs text-primary hover:underline">Stampa l&apos;elenco</button>}
+                </div>
+            )}
 
             {/* Search Bar */}
             {!isAdding && (
@@ -231,6 +251,22 @@ export default function InventoryPage() {
                                                 <div className="flex items-center justify-center gap-1 text-xs text-destructive mt-1 font-medium animate-pulse">
                                                     <AlertTriangle className="h-3 w-3" /> Scorta Bassa
                                                 </div>
+                                            )}
+                                            {part.quantity <= part.minQuantity && (
+                                                <button
+                                                    type="button"
+                                                    className="mt-1 block w-full text-xs font-medium text-primary hover:underline"
+                                                    onClick={async () => {
+                                                        const raw = await ask({ title: "Richiesta d'acquisto", description: `${part.name} · giacenza ${part.quantity}, minimo ${part.minQuantity}`, label: "Quanti pezzi servono?", inputType: "number", required: true, confirmLabel: "Invia richiesta" });
+                                                        if (raw === null) return;
+                                                        const qty = Number(raw.replace(",", "."));
+                                                        if (!Number.isInteger(qty) || qty <= 0) { toast.warning("Inserisci un numero intero maggiore di zero."); return; }
+                                                        const res = await requestPurchase(part.id, qty);
+                                                        if (res.success) toast.success(res.message); else toast.error(res.message);
+                                                    }}
+                                                >
+                                                    Richiedi
+                                                </button>
                                             )}
                                             {part.quantity <= part.minQuantity && (
                                                 <Link href={`/inventory/availability?search=${encodeURIComponent(part.name)}`} className="mt-1 block text-xs font-medium text-primary hover:underline">

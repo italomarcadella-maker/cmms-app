@@ -14,6 +14,8 @@ import { isRole } from '@/lib/roles';
 import { validatePassword } from '@/lib/password-policy';
 import { PlantScopeError, resolveWritePlantId, runUnscoped, invalidatePlantListCache, getPlantScope, userScopeWhere } from '@/lib/plant-scope';
 import { WorkOrderStatus } from '@/lib/types';
+import { getMaintainerWorkOrderFilter } from '@/lib/maintainer-scope';
+import { withMaintainerFilter } from '@/modules/maintenance/domain/maintainer-visibility';
 
 import { logAction } from './audit';
 import { assetSchema, workOrderSchema } from './validations';
@@ -882,12 +884,14 @@ export async function sendChatMessage(data: { sender: string; role: string; cont
     }
 }
 
-export const getWorkOrders = scopedCache(
-    async () => {
+// `visibility`: filtro del manutentore (vedi lib/maintainer-scope.ts), null per gli altri ruoli. Fa parte degli argomenti,
+// quindi anche della chiave di cache: ogni manutentore ha la sua copia e non vede mai quella di un altro.
+const getWorkOrdersCached = scopedCache(
+    async (visibility: Record<string, unknown> | null) => {
         try {
             const wos = await prisma.workOrder.findMany({
                 // Gli ordini aperti non devono sparire perche' vecchi: si prendono tutti, piu' lo storico degli ultimi 6 mesi
-                where: { OR: [{ status: { in: ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PENDING_APPROVAL', 'APPROVED', 'ON_HOLD', 'PENDING_REVIEW'] } }, { createdAt: { gte: new Date(Date.now() - 183 * 86_400_000) } }] },
+                where: withMaintainerFilter({ OR: [{ status: { in: ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PENDING_APPROVAL', 'APPROVED', 'ON_HOLD', 'PENDING_REVIEW'] } }, { createdAt: { gte: new Date(Date.now() - 183 * 86_400_000) } }] }, visibility),
                 orderBy: { createdAt: 'desc' },
                 take: 2000,
                 include: {
@@ -929,6 +933,11 @@ export const getWorkOrders = scopedCache(
     ['all-work-orders'],
     { tags: ['work-orders'], revalidate: 3600 }
 );
+
+/** Ordini di lavoro visibili all'utente: un manutentore riceve solo i suoi, quelli che ha richiesto e quelli ancora da assegnare. */
+export async function getWorkOrders() {
+    return getWorkOrdersCached(await getMaintainerWorkOrderFilter());
+}
 
 export async function getActiveWorkOrdersForAsset(assetId: string) {
     return newGetActiveWorkOrdersForAsset(assetId);
@@ -1355,13 +1364,13 @@ export async function getAdvancedKPIs() {
     }
 }
 
-const getAssetMaintenanceEventsCached = async (start: Date, end: Date) => {
+const getAssetMaintenanceEventsCached = async (start: Date, end: Date, visibility: Record<string, unknown> | null) => {
     return scopedCache(
-        async (s: Date, e: Date) => {
+        async (s: Date, e: Date, vis: Record<string, unknown> | null) => {
             try {
-                // 1. Fetch Work Orders in Range
+                // 1. Fetch Work Orders in Range (un manutentore vede solo i propri ordini, quelli richiesti da lui e quelli liberi)
                 const workOrders = await prisma.workOrder.findMany({
-                    where: {
+                    where: withMaintainerFilter({
                         status: { not: 'CANCELED' },
                         OR: [
                             { dueDate: { gte: s, lte: e } },
@@ -1371,7 +1380,7 @@ const getAssetMaintenanceEventsCached = async (start: Date, end: Date) => {
                                 createdAt: { gte: s, lte: e }
                             }
                         ]
-                    },
+                    }, vis),
                     include: {
                         asset: {
                             select: { name: true, line: true }
@@ -1434,7 +1443,7 @@ const getAssetMaintenanceEventsCached = async (start: Date, end: Date) => {
         },
         ['calendar-events-date-range', start.toISOString(), end.toISOString()], // Cache key dependent on dates
         { revalidate: 60, tags: ['work-orders', 'calendar', 'schedules'] }
-    )(start, end);
+    )(start, end, visibility);
 };
 
 export async function getAssetMaintenanceEvents(start?: Date, end?: Date) {
@@ -1445,7 +1454,7 @@ export async function getAssetMaintenanceEvents(start?: Date, end?: Date) {
     const s = start || new Date(new Date().setDate(new Date().getDate() - 30));
     const e = end || new Date(new Date().setDate(new Date().getDate() + 30));
 
-    return getAssetMaintenanceEventsCached(s, e);
+    return getAssetMaintenanceEventsCached(s, e, await getMaintainerWorkOrderFilter());
 }
 
 export async function getEWO(workOrderId: string) {

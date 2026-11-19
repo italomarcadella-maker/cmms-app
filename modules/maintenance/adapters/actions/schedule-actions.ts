@@ -71,13 +71,23 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
         schedEntity.run(new Date());
         await schedRepo.save(schedEntity);
 
-        if (technicianId) {
-            await assignWorkOrder(newWo.id, technicianId, date);
+        // Il tecnico indicato, altrimenti quello gia' assegnato alla schedulazione (e' un utente: si cerca il suo profilo tecnico)
+        let techToAssign = technicianId;
+        if (!techToAssign) {
+            const sched = await prisma.preventiveSchedule.findUnique({ where: { id: scheduleId }, select: { assignedToId: true } });
+            if (sched?.assignedToId) {
+                const profile = await prisma.technician.findFirst({ where: { userId: sched.assignedToId }, select: { id: true } });
+                techToAssign = profile?.id;
+            }
+        }
+        if (techToAssign) {
+            await assignWorkOrder(newWo.id, techToAssign, date);
         }
 
         revalidatePath('/planning/calendar');
+        revalidatePath('/');
         revalidateWorkOrders();
-        return { success: true, message: "Ordine creato da schedulazione" };
+        return { success: true, message: "Ordine creato da schedulazione", id: newWo.id };
     } catch (error) {
         console.error("Error creating WO from Schedule:", error);
         return { success: false, message: "Errore creazione ordine" };

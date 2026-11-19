@@ -23,6 +23,7 @@ import { WOApproveDialog } from "@/components/work-orders/wo-approve-dialog";
 import { updateWorkOrderStatus, reviewWorkOrder, addWorkOrderPart, removeWorkOrderPart, getEffectiveSettings } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { SUPERVISION, hasRole } from "@/lib/roles";
 import { WOPriorityBadge } from "@/components/work-orders/wo-priority-badge";
 import { WOStatusBadge } from "@/components/work-orders/wo-status-badge";
 import { WorkOrderChecklist } from "@/components/work-orders/wo-checklist";
@@ -44,6 +45,8 @@ export default function WorkOrderDetailPage() {
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'PLANT_MANAGER' || user?.role === 'MAINTAINER';
+    // Riassegnare il tecnico spetta a chi coordina il lavoro (il server rifiuta gli altri ruoli)
+    const canAssign = hasRole(user?.role, SUPERVISION);
 
     // Tariffa oraria di riferimento (impostazioni del plant) per i tecnici che non hanno una tariffa propria
     const [defaultRate, setDefaultRate] = useState(0);
@@ -356,7 +359,7 @@ export default function WorkOrderDetailPage() {
                             )}
 
                             {/* Tech Assignment (Only for Open/InProgress) */}
-                            {canManage && (wo.status === 'OPEN' || wo.status === 'IN_PROGRESS') && (
+                            {canAssign && (wo.status === 'OPEN' || wo.status === 'IN_PROGRESS') && (
                                 <button
                                     onClick={() => setAssigning(true)}
                                     className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm font-medium transition-colors flex items-center gap-2 text-muted-foreground mt-2"

@@ -7,6 +7,8 @@ import { auth } from "@/auth";
 import { subDays, format, startOfDay, endOfDay } from "date-fns";
 import { it } from "date-fns/locale";
 import { getEffectiveSettings } from "@/lib/actions";
+import { getMaintainerIdentity, getMaintainerWorkOrderFilter } from "@/lib/maintainer-scope";
+import { maintainerWorkOrderWhere, withMaintainerFilter } from "@/modules/maintenance/domain/maintainer-visibility";
 
 const getDetailedDashboardStatsCached = scopedCache(
     async () => {
@@ -216,9 +218,10 @@ export const getWorkOrderTrends = scopedCache(
 );
 
 const getRecentWorkOrdersCached = scopedCache(
-    async (limit = 5) => {
+    async (limit = 5, visibility: Record<string, unknown> | null = null) => {
         try {
             const wos = await prisma.workOrder.findMany({
+                where: withMaintainerFilter({}, visibility),
                 take: limit,
                 orderBy: { createdAt: 'desc' },
                 include: { asset: true }
@@ -239,18 +242,18 @@ const getRecentWorkOrdersCached = scopedCache(
 );
 
 export async function getRecentWorkOrders(limit = 5) {
-    return getRecentWorkOrdersCached(limit);
+    return getRecentWorkOrdersCached(limit, await getMaintainerWorkOrderFilter());
 }
 
 const getOverdueWorkOrdersCached = scopedCache(
-    async (limit = 5) => {
+    async (limit = 5, visibility: Record<string, unknown> | null = null) => {
         try {
             const wos = await prisma.workOrder.findMany({
                 take: limit,
-                where: {
+                where: withMaintainerFilter({
                     dueDate: { lt: new Date() },
                     status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] }
-                },
+                }, visibility),
                 orderBy: { dueDate: 'asc' }, // Most overdue first
                 include: { asset: true }
             });
@@ -270,22 +273,22 @@ const getOverdueWorkOrdersCached = scopedCache(
 );
 
 export async function getOverdueWorkOrders(limit = 5) {
-    return getOverdueWorkOrdersCached(limit);
+    return getOverdueWorkOrdersCached(limit, await getMaintainerWorkOrderFilter());
 }
 
 const getHighPrioritySafetyRequestsCached = scopedCache(
-    async (limit = 5) => {
+    async (limit = 5, visibility: Record<string, unknown> | null = null) => {
         try {
             const requests = await prisma.workOrder.findMany({
                 take: limit,
-                where: {
+                where: withMaintainerFilter({
                     OR: [
                         { category: 'SAFETY' },
                         { assetId: 'SYS-SAFETY' }
                     ],
                     priority: { in: ['HIGH', 'MEDIUM', 'STOPPED', 'LOW', 'WORKING'] },
                     status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] }
-                },
+                }, visibility),
                 orderBy: [
                     { createdAt: 'desc' }
                 ],
@@ -307,7 +310,7 @@ const getHighPrioritySafetyRequestsCached = scopedCache(
 );
 
 export async function getHighPrioritySafetyRequests(limit = 5) {
-    return getHighPrioritySafetyRequestsCached(limit);
+    return getHighPrioritySafetyRequestsCached(limit, await getMaintainerWorkOrderFilter());
 }
 
 export const getMaintenanceMetrics = scopedCache(
@@ -558,25 +561,27 @@ export async function getTechnicianPresence() {
 }
 
 const getUpcomingScheduleCached = scopedCache(
-    async (days = 3) => {
+    async (days = 3, visibility: Record<string, unknown> | null = null, planIds: string[] | null = null) => {
         try {
             const startDate = startOfDay(new Date());
             const endDate = endOfDay(new Date(new Date().setDate(new Date().getDate() + days)));
 
             // 1. Fetch WorkOrders due in range
             const wos = await prisma.workOrder.findMany({
-                where: {
+                where: withMaintainerFilter({
                     dueDate: { gte: startDate, lte: endDate },
                     status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL', 'ASSIGNED'] }
-                },
+                }, visibility),
                 include: { asset: true },
                 orderBy: { dueDate: 'asc' }
             });
 
             // 2. Fetch Planned Schedules due in range
+            // Un manutentore (planIds = id utente e tecnico) vede i piani suoi o ancora senza assegnatario
             const schedules = await prisma.preventiveSchedule.findMany({
                 where: {
-                    nextDueDate: { gte: startDate, lte: endDate }
+                    nextDueDate: { gte: startDate, lte: endDate },
+                    ...(planIds ? { OR: [{ assignedToId: null }, { assignedToId: { in: planIds } }] } : {}),
                 },
                 include: { asset: true },
                 orderBy: { nextDueDate: 'asc' }
@@ -620,5 +625,6 @@ const getUpcomingScheduleCached = scopedCache(
 );
 
 export async function getUpcomingSchedule(days = 3) {
-    return getUpcomingScheduleCached(days);
+    const who = await getMaintainerIdentity();
+    return getUpcomingScheduleCached(days, who ? maintainerWorkOrderWhere(who) : null, who ? [who.userId, ...(who.technicianId ? [who.technicianId] : [])] : null);
 }

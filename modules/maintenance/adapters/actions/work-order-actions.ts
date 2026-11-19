@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { logAction } from '@/lib/audit';
 import { usersToNotify } from '@/lib/plant-users';
 import { runUnscoped } from '@/lib/plant-scope';
+import { canSeeWorkOrder, scopeWorkOrderWhere } from '@/lib/maintainer-scope';
 import { workOrderSchema } from '@/lib/validations';
 import { WorkOrderPriority, WorkOrderCategory, WorkOrderStatus } from '@prisma/client';
 
@@ -332,13 +333,14 @@ export async function getPlannerUnassignedItems() {
 
 export async function getActiveWorkOrdersForAsset(assetId: string) {
     try {
+        // Un manutentore vede solo i propri ordini, quelli richiesti da lui e quelli ancora da assegnare
         const activeWOs = await prisma.workOrder.findMany({
-            where: {
+            where: await scopeWorkOrderWhere({
                 assetId: assetId,
                 status: {
                     notIn: ['COMPLETED', 'CLOSED', 'CANCELED']
                 }
-            },
+            }),
             select: {
                 id: true,
                 title: true,
@@ -621,6 +623,7 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
 export async function updateWorkOrderStatus(id: string, status: string) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (!(await canSeeWorkOrder(id))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -676,6 +679,7 @@ export async function deleteWorkOrder(id: string) {
 export async function updateWorkOrderDetails(id: string, updates: any) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (!(await canSeeWorkOrder(id))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -766,6 +770,7 @@ export async function createPreventiveFromEWO(
 export async function startWorkSession(workOrderId: string) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (!(await canSeeWorkOrder(workOrderId))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -800,6 +805,7 @@ export async function startWorkSession(workOrderId: string) {
 export async function pauseWorkSession(workOrderId: string, note?: string) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (!(await canSeeWorkOrder(workOrderId))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -855,6 +861,7 @@ export async function pauseWorkSession(workOrderId: string, note?: string) {
 export async function stopWorkSession(workOrderId: string, note?: string) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (!(await canSeeWorkOrder(workOrderId))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -911,6 +918,7 @@ export async function stopWorkSession(workOrderId: string, note?: string) {
 export async function completeWorkOrder(workOrderId: string, note?: string) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (!(await canSeeWorkOrder(workOrderId))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -1037,6 +1045,7 @@ export async function assignWorkOrderToSelf(workOrderId: string) {
 export async function addWorkOrderPart(workOrderId: string, partId: string, quantity: number) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (!(await canSeeWorkOrder(workOrderId))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -1096,6 +1105,8 @@ export async function addWorkOrderPart(workOrderId: string, partId: string, quan
 export async function removeWorkOrderPart(id: string) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    const __row = await prisma.workOrderPart.findUnique({ where: { id }, select: { workOrderId: true } });
+    if (__row && !(await canSeeWorkOrder(__row.workOrderId))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -1126,6 +1137,8 @@ export async function removeWorkOrderPart(id: string) {
 export async function toggleChecklistItem(itemId: string, completed: boolean) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    const __row = await prisma.checklistItem.findUnique({ where: { id: itemId }, select: { workOrderId: true } });
+    if (__row && !(await canSeeWorkOrder(__row.workOrderId))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -1153,6 +1166,7 @@ export async function toggleChecklistItem(itemId: string, completed: boolean) {
 export async function confirmEWO(workOrderId: string) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (!(await canSeeWorkOrder(workOrderId))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
     try {
@@ -1199,6 +1213,7 @@ const EWO_FIELDS = [
 export async function submitEWO(data: any) {
     const __guard = await requireRole(OPERATIVE);
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (data?.workOrderId && !(await canSeeWorkOrder(data.workOrderId))) return { success: false, message: 'Ordine non trovato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -1313,6 +1328,8 @@ export async function submitEWO(data: any) {
 
 export async function getEWO(workOrderId: string) {
     try {
+        // Il modulo EWO di un ordine che il manutentore non puo' vedere e' "non trovato" come l'ordine stesso
+        if (!(await canSeeWorkOrder(workOrderId))) return null;
         return await prisma.eWO.findUnique({ where: { workOrderId } });
     } catch (e) {
         console.error('[work-order-actions]', e);

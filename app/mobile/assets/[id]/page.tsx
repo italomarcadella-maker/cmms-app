@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { scopeWorkOrderWhere } from "@/lib/maintainer-scope";
 import { notFound } from "next/navigation";
 import { AssetConsoleClient } from "@/components/mobile/asset-console-client";
 
@@ -33,13 +34,14 @@ export default async function MobileAssetPage({ params }: MobileAssetPageProps) 
     }
 
     // Fetch Active Work Orders for this Asset
+    // (un manutentore vede solo i propri ordini, quelli richiesti da lui e quelli ancora da assegnare)
     const activeWorkOrders = await prisma.workOrder.findMany({
-        where: {
+        where: await scopeWorkOrderWhere({
             assetId: id,
             status: {
                 in: ["OPEN", "PENDING_APPROVAL", "APPROVED", "ASSIGNED", "IN_PROGRESS", "ON_HOLD", "PENDING_REVIEW"],
             },
-        },
+        }),
         select: {
             id: true,
             title: true,

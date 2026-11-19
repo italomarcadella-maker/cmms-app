@@ -25,6 +25,7 @@ const DIRECT: Record<string, string> = {
     ProductionLine: 'plantId',
     SafetyEvent: 'plantId',
     ContractorContract: 'plantId',
+    MaterialRequest: 'plantId',
 };
 
 /** Modelli che ereditano il plant da un padre (percorso di relazione fino a una colonna plantId). */
@@ -50,6 +51,7 @@ const VIA: Record<string, string[]> = {
     SopFeedback: ['sop', 'asset'],
     ContractorActivity: ['contract'],
     ContractorExecution: ['activity', 'contract'],
+    MaterialRequestItem: ['request'],
 };
 
 /** Come VIA, ma il padre e' facoltativo: i record senza padre restano visibili a tutti (conoscenza condivisa). */
@@ -90,6 +92,10 @@ export function plantFilter(model: string, ids: string[], forWrite = false): Rec
             ],
         };
     }
+    if (model === 'TechnicianQualification' || model === 'TechnicianSkill') {
+        // Un'abilitazione e' visibile dove e' visibile il tecnico: stessi stabilimenti dell'utente
+        return { technician: { user: { OR: [{ plantId: { in: ids } }, { plants: { some: { plantId: { in: ids } } } }] } } };
+    }
     if (model === 'TechnicianAvailability') {
         return { user: { OR: [{ plantId: { in: ids } }, { plants: { some: { plantId: { in: ids } } } }] } };
     }
@@ -101,7 +107,7 @@ export function plantFilter(model: string, ids: string[], forWrite = false): Rec
 
 /** Modelli soggetti a scope (usato anche dal test che verifica la copertura). */
 export const SCOPED_MODELS = [
-    ...Object.keys(DIRECT), ...Object.keys(VIA), ...Object.keys(VIA_OPTIONAL), 'Technician', 'TechnicianAvailability', 'PartTransferRequest', 'TechnicianLoan',
+    ...Object.keys(DIRECT), ...Object.keys(VIA), ...Object.keys(VIA_OPTIONAL), 'Technician', 'TechnicianQualification', 'TechnicianSkill', 'TechnicianAvailability', 'PartTransferRequest', 'TechnicianLoan',
 ];
 
 function mergeWhere(where: any, filter: Record<string, unknown>) {
@@ -149,6 +155,7 @@ const PARENT: Record<string, ParentRule> = {
     ProjectTaskNote: { fk: 'taskId', table: 'projectTask', via: ['project'] },
     SopFeedback: { fk: 'sopId', table: 'sopDocument', via: ['asset'] },
     ContractorExecution: { fk: 'activityId', table: 'contractorActivity', via: ['contract'] },
+    MaterialRequestItem: { fk: 'requestId', table: 'materialRequest' },
 };
 
 /** Plant del padre (null = padre condiviso, undefined = padre inesistente). Lettura con il client grezzo. */

@@ -3,6 +3,8 @@
 import { requireRole } from '@/lib/auth-guard';
 import { SUPERVISION, OPERATIVE } from '@/lib/roles';
 import { revalidatePath } from 'next/cache';
+import { prisma } from '@/lib/prisma';
+import { usersToNotify } from '@/lib/plant-users';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
 import { PrismaSparePartRepository } from '../db/prisma-spare-part-repository';
 import { PrismaPurchaseRequestRepository } from '../db/prisma-purchase-request-repository';
@@ -24,6 +26,49 @@ try {
 
 const getPartRepo = () => ServiceLocator.resolve<PrismaSparePartRepository>('ISparePartRepository');
 const getRequestRepo = () => ServiceLocator.resolve<PrismaPurchaseRequestRepository>('IPurchaseRequestRepository');
+
+/** Richiesta d'acquisto fatta da una persona (la quantita' la sceglie chi la fa). Parte come "Inviata per approvazione". */
+export async function requestPurchase(partId: string, quantity: number, reason?: string) {
+    const guard = await requireRole(OPERATIVE);
+    if (!guard.authorized) return { success: false, message: guard.message ?? 'Non autorizzato' };
+    if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 100000) return { success: false, message: 'Indica una quantità intera maggiore di zero.' };
+    try {
+        const part = await prisma.sparePart.findUnique({ where: { id: partId } }); // filtrato per stabilimento
+        if (!part) return { success: false, message: 'Ricambio non trovato.' };
+
+        const open = await prisma.purchaseRequest.findFirst({
+            where: { partId, status: { in: ['DRAFT', 'SUBMITTED', 'APPROVED', 'ORDERED'] } },
+            select: { status: true, quantity: true },
+        });
+        if (open) {
+            return { success: false, message: `C'è già una richiesta aperta per questo ricambio (${open.quantity} pz). La trovi in Richieste d'acquisto.` };
+        }
+
+        const note = reason?.trim().slice(0, 300);
+        await prisma.purchaseRequest.create({
+            data: {
+                partId,
+                quantity,
+                status: 'SUBMITTED',
+                reason: `Richiesta da ${guard.session.user.name ?? 'utente'}${note ? `: ${note}` : ''} (giacenza ${part.quantity}, minimo ${part.minQuantity})`,
+                expectedCost: part.unitCost ? quantity * part.unitCost : null,
+            },
+        });
+
+        const approvers = await usersToNotify(part.plantId, ['ADMIN', 'SUPERVISOR', 'PLANT_MANAGER']);
+        for (const u of approvers) {
+            if (u.id === guard.session.user.id) continue;
+            await prisma.notification.create({
+                data: { userId: u.id, title: 'Nuova richiesta d\'acquisto', message: `${part.name}: ${quantity} pz da approvare.`, link: '/inventory/purchase-requests' },
+            });
+        }
+        revalidatePath('/inventory/purchase-requests');
+        return { success: true, message: 'Richiesta inviata per approvazione.' };
+    } catch (error) {
+        console.error('[inventory-actions] requestPurchase', error);
+        return { success: false, message: 'Richiesta non riuscita.' };
+    }
+}
 
 export async function getPurchaseRequests() {
     try {

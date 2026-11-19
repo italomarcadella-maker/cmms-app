@@ -7,27 +7,27 @@ import Link from "next/link";
 import { PredictiveRiskPie } from "@/components/dashboard/predictive-risk-pie";
 
 export default async function PredictiveMaintenancePage() {
-    const assets = await getPredictiveInsights();
+    const ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'];
+    const assets = [...(await getPredictiveInsights())].sort((a, b) => ORDER.indexOf(a.riskLevel) - ORDER.indexOf(b.riskLevel));
 
     const criticalCount = assets.filter(a => a.riskLevel === 'CRITICAL').length;
     const highCount = assets.filter(a => a.riskLevel === 'HIGH').length;
     const safeCount = assets.filter(a => a.riskLevel === 'LOW' || a.riskLevel === 'MEDIUM').length;
+    const unknownCount = assets.filter(a => a.riskLevel === 'UNKNOWN').length;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
             <div className="flex flex-col md:flex-row justify-between gap-8">
                 <div className="flex-1 space-y-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            Predictive Maintenance AI
-                        </h1>
+                        <h1 className="text-2xl font-semibold tracking-tight">Manutenzione predittiva</h1>
                         <p className="text-muted-foreground mt-1">
-                            Analisi predittiva dei guasti basata su MTBF e storico interventi.
+                            Stima del prossimo guasto dall&apos;intervallo medio (MTBF) tra i guasti già chiusi di ogni asset. Servono almeno due guasti per poter stimare.
                         </p>
                     </div>
 
                     {/* KPI Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                         <Card className="bg-gradient-to-br from-red-50 to-white border-red-100 shadow-sm">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
@@ -60,7 +60,19 @@ export default async function PredictiveMaintenancePage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-4xl font-bold text-emerald-700">{safeCount}</div>
-                                <p className="text-xs text-emerald-500 mt-1">Asset stabili secondo le proiezioni</p>
+                                <p className="text-xs text-emerald-500 mt-1">Asset stabili secondo lo storico</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                    <Timer className="h-4 w-4" /> Dati insufficienti
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold">{unknownCount}</div>
+                                <p className="text-xs text-muted-foreground mt-1">Asset con meno di due guasti: nessuna stima</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -94,7 +106,7 @@ export default async function PredictiveMaintenancePage() {
                                 }>
                                     {asset.riskLevel === 'CRITICAL' ? 'CRITICO' :
                                         asset.riskLevel === 'HIGH' ? 'ATTENZIONE' :
-                                            asset.riskLevel === 'MEDIUM' ? 'MODERATO' : 'OTTIMALE'}
+                                            asset.riskLevel === 'MEDIUM' ? 'MODERATO' : asset.riskLevel === 'UNKNOWN' ? 'NON VALUTABILE' : 'OTTIMALE'}
                                 </Badge>
                             </div>
 

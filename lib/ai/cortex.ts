@@ -170,9 +170,10 @@ export class CortexEngine {
                 const faults = asset.workOrders;
 
                 if (faults.length < 2) {
+                    // Meno di 2 guasti: non c'e' un intervallo da cui stimare. Non si dichiara "basso rischio" senza dati.
                     return {
                         id: asset.id,
-                        riskLevel: 'LOW',
+                        riskLevel: 'UNKNOWN',
                         name: asset.name,
                         healthScore: asset.healthScore,
                         mtbf: null,
@@ -196,12 +197,8 @@ export class CortexEngine {
                 const timeSinceLast = now - lastFaultDate.getTime();
                 const percentUsed = timeSinceLast / avgDiffMs;
 
-                // NEW: Energy Factor in Risk
-                // In a real system we would query EnergyLogs for this asset
-                // and see if consumption is rising vs baseline.
-                // For MVP, we simulate a slight increase in risk if healthScore < 80
-                const energyRiskMultiplier = asset.healthScore < 80 ? 1.2 : 1.0;
-                const adjustedUsage = percentUsed * energyRiskMultiplier;
+                // Solo l'intervallo reale tra i guasti: nessun fattore simulato
+                const adjustedUsage = percentUsed;
 
                 let riskLevel = 'LOW';
                 if (adjustedUsage > 1.1) riskLevel = 'CRITICAL';

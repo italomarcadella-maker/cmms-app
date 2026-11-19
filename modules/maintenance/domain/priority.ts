@@ -14,3 +14,13 @@ export function priorityRank(priority: string): number {
 export function byUrgency<T extends { priority: string; createdAt: Date }>(a: T, b: T): number {
     return priorityRank(a.priority) - priorityRank(b.priority) || a.createdAt.getTime() - b.createdAt.getTime();
 }
+
+/** Comparatore per le liste di lavoro: priorita' piu' urgente, poi scadenza piu' vicina (senza scadenza in fondo), poi l'ordine piu' vecchio. */
+export function byUrgencyThenDue<T extends { priority: string; createdAt: Date; dueDate?: Date | null }>(a: T, b: T): number {
+    const rank = priorityRank(a.priority) - priorityRank(b.priority);
+    if (rank !== 0) return rank;
+    const da = a.dueDate ? a.dueDate.getTime() : Number.POSITIVE_INFINITY;
+    const db = b.dueDate ? b.dueDate.getTime() : Number.POSITIVE_INFINITY;
+    if (da !== db) return da < db ? -1 : 1;
+    return a.createdAt.getTime() - b.createdAt.getTime();
+}

@@ -111,6 +111,7 @@ model User {
   
   // AI & FPES
   simulationSnapshots LineSimulationVersion[]
+  materialRequests MaterialRequest[] @relation("MaterialRequestRequester")
 }
 
 model Account {
@@ -364,6 +365,8 @@ model Technician {
   assignments          WorkOrderTechnician[]
   workOrders           WorkOrder[] // Legacy Relation kept for compatibility
   loans                TechnicianLoan[]
+  qualifications TechnicianQualification[]
+  skillLevels TechnicianSkill[]
 }
 
 model WorkOrderTechnician {
@@ -402,6 +405,92 @@ model PreventiveSchedule {
 
   @@index([nextDueDate])
   @@index([assetId])
+}
+
+// --- RICHIESTE DI MATERIALE AL MAGAZZINO MANUTENZIONE (dai reparti) ---
+model MaterialRequest {
+  id            String    @id @default(cuid())
+  plantId       String
+  plant         Plant     @relation(fields: [plantId], references: [id])
+  requesterId   String?   // null se l'utente e' stato eliminato: la richiesta resta
+  requester     User?     @relation("MaterialRequestRequester", fields: [requesterId], references: [id], onDelete: SetNull)
+  requesterName String
+  department    String?
+  status        String    @default("REQUESTED") // REQUESTED, READY, DELIVERED, REJECTED, CANCELED
+  note          String?
+  neededBy      DateTime?
+  handledById   String?
+  handledByName String?
+  handledAt     DateTime?
+  responseNote  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  items         MaterialRequestItem[]
+
+  @@index([plantId, status])
+  @@index([requesterId, createdAt])
+}
+
+model MaterialRequestItem {
+  id          String          @id @default(cuid())
+  requestId   String
+  request     MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  partId      String?         // articolo del magazzino manutenzione; vuoto = descrizione libera
+  part        SparePart?      @relation(fields: [partId], references: [id], onDelete: SetNull)
+  description String
+  quantity    Int
+  deliveredQty Int?
+
+  @@index([requestId])
+  @@index([partId])
+}
+
+// --- MATRICE DELLE COMPETENZE (livello 0-4 per ogni competenza) ---
+model SkillType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+
+  technicians TechnicianSkill[]
+}
+
+model TechnicianSkill {
+  id           String     @id @default(cuid())
+  technicianId String
+  technician   Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  skillId      String
+  skill        SkillType  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  level        Int        // 1 base, 2 autonomo, 3 esperto, 4 puo' formare altri (0 = nessuna riga)
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([technicianId, skillId])
+  @@index([skillId])
+}
+
+// --- ABILITAZIONI DEI MANUTENTORI (PLE, lavori in quota, carrello elevatore...) ---
+model QualificationType {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+
+  technicians TechnicianQualification[]
+}
+
+model TechnicianQualification {
+  id           String    @id @default(cuid())
+  technicianId String
+  technician   Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  typeId       String
+  type         QualificationType @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime? // scadenza dell'abilitazione, se prevista
+  notes        String?
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([technicianId, typeId])
+  @@index([typeId])
 }
 
 model Notification {
@@ -487,6 +576,7 @@ model SparePart {
 
   @@index([plantId])
   @@index([catalogId])
+  materialItems MaterialRequestItem[]
 }
 
 /// Catalogo ricambi di gruppo: un articolo logico, riconosciuto dalla descrizione normalizzata.
@@ -890,6 +980,7 @@ model Plant {
   sharedTemplates SharedTemplate[]
   safetyEvents SafetyEvent[]
   contractorContracts ContractorContract[]
+  materialRequests MaterialRequest[]
 }
 
 /// Registro degli eventi di sicurezza di uno stabilimento. Serve al contatore "giorni senza infortuni".

@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth-guard';
 import { getContractorsOverview } from './contractor-actions';
 import { getWeekPlan } from './dashboard-widgets-actions';
+import { getMaintainerIdentity } from '@/lib/maintainer-scope';
+import { maintainerWorkOrderWhere, withMaintainerFilter } from '../../domain/maintainer-visibility';
 
 /**
  * "Richiede attenzione": le poche cose da guardare subito, in ordine di gravita'.
@@ -35,19 +37,24 @@ export async function getAttentionItems(limit = 6): Promise<AttentionItem[]> {
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const items: AttentionItem[] = [];
 
+    // Un manutentore vede solo gli ordini che lo riguardano (suoi, richiesti da lui, ancora da assegnare): gli altri non sono nemmeno nei conteggi
+    const who = await getMaintainerIdentity();
+    const visible = who ? maintainerWorkOrderWhere(who) : null;
+    const meterMine = who ? { OR: [{ readingAssigneeId: null }, { readingAssigneeId: { in: [who.userId, ...(who.technicianId ? [who.technicianId] : [])] } }] } : {};
+
     const [stopped, safety, overdue, lateReadings, contractors, week] = await Promise.all([
         prisma.workOrder.findMany({
-            where: { priority: 'STOPPED', status: { in: [...OPEN] } },
+            where: withMaintainerFilter({ priority: 'STOPPED', status: { in: [...OPEN] } }, visible),
             orderBy: { createdAt: 'desc' }, take: 3,
             select: { id: true, title: true, asset: { select: { name: true } } },
         }),
         prisma.workOrder.findMany({
-            where: { OR: [{ category: 'SAFETY' }, { assetId: 'SYS-SAFETY' }], status: { in: [...OPEN] }, priority: { in: ['STOPPED', 'HIGH', 'MALFUNCTIONING'] } },
+            where: withMaintainerFilter({ OR: [{ category: 'SAFETY' }, { assetId: 'SYS-SAFETY' }], status: { in: [...OPEN] }, priority: { in: ['STOPPED', 'HIGH', 'MALFUNCTIONING'] } }, visible),
             orderBy: { createdAt: 'desc' }, take: 2,
             select: { id: true, title: true },
         }),
-        prisma.workOrder.count({ where: { status: { in: [...OPEN] }, dueDate: { lt: now } } }),
-        prisma.meter.count({ where: { nextReadingDue: { lt: startOfToday } } }),
+        prisma.workOrder.count({ where: withMaintainerFilter({ status: { in: [...OPEN] }, dueDate: { lt: now } }, visible) }),
+        prisma.meter.count({ where: { nextReadingDue: { lt: startOfToday }, ...meterMine } }),
         getContractorsOverview().catch(() => null),
         getWeekPlan().catch(() => null),
     ]);
@@ -66,7 +73,7 @@ export async function getAttentionItems(limit = 6): Promise<AttentionItem[]> {
         items.push({
             id: 'unassigned-today', severity: 'warning',
             title: `${plural(today.unassignedCount, 'intervento di oggi', 'interventi di oggi')} senza assegnatario`,
-            detail: 'Assegnali dal calendario', href: '#week-calendar',
+            detail: who ? 'Guarda il calendario' : 'Assegnali dal calendario', href: '#week-calendar',
         });
     }
     if (lateReadings > 0) {

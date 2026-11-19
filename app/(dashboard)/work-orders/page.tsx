@@ -2,7 +2,7 @@
 
 import { Plus, Search, LayoutList, Kanban, Trash2, X } from "lucide-react";
 import { PlantBadge } from "@/components/ui/plant-badge";
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { WorkOrderKanban } from "@/components/work-orders/wo-kanban";
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { useWorkOrders } from "@/lib/work-orders-context";
 import { useAuth } from "@/lib/auth-context";
 import { deleteWorkOrder } from "@/lib/actions";
+import { getCurrentTechnicianId } from "@/modules/maintenance/adapters/actions/mobile-actions";
+import { SUPERVISION, hasRole } from "@/lib/roles";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -73,6 +75,16 @@ function WorkOrdersContent() {
 
     const [assigningWo, setAssigningWo] = useState<{ id: string; techId?: string } | null>(null);
     const canManage = user?.role === "ADMIN" || user?.role === "SUPERVISOR" || user?.role === "PLANT_MANAGER" || user?.role === "MAINTAINER";
+    // Assegnare a un tecnico e' un compito di chi coordina: il manutentore puo' solo prendere in carico (vedi il Kanban e la scheda mobile)
+    const canAssign = hasRole(user?.role, SUPERVISION);
+
+    // L'id del tecnico non e' l'id dell'utente: gli ordini portano l'id del profilo tecnico, che si chiede al server
+    const [myTechId, setMyTechId] = useState<string | null>(null);
+    useEffect(() => {
+        let alive = true;
+        getCurrentTechnicianId().then(id => { if (alive) setMyTechId(id); }).catch(() => { });
+        return () => { alive = false; };
+    }, [user?.id]);
 
     const pendingCount = workOrders.filter((w) => w.status === "PENDING_APPROVAL").length;
 
@@ -105,7 +117,7 @@ function WorkOrdersContent() {
 
         const matchesStatus = statusFilter === "ALL" || wo.status === statusFilter;
         const matchesTechnician = technicianFilter === "ALL" || wo.assignedTo === technicianFilter;
-        const matchesMine = onlyMyTasks ? (user ? wo.assignedTechnicianId === user.id || wo.assignedTo === user.name : false) : true;
+        const matchesMine = onlyMyTasks ? (!!myTechId && (wo.assignedTechnicianId === myTechId || (wo.technicians ?? []).some((t: { id: string }) => t.id === myTechId))) : true;
 
         if (categoryParam && wo.category !== categoryParam) return false;
         if (locationParam && wo.asset?.location && !wo.asset.location.toLowerCase().includes(locationParam.toLowerCase())) return false;
@@ -307,15 +319,15 @@ function WorkOrdersContent() {
                                                 <div
                                                     className={cn(
                                                         "flex w-fit items-center gap-2 rounded-md px-1.5 py-1",
-                                                        canManage && "cursor-pointer hover:bg-accent"
+                                                        canAssign && "cursor-pointer hover:bg-accent"
                                                     )}
                                                     onClick={(e) => {
-                                                        if (canManage) {
+                                                        if (canAssign) {
                                                             e.stopPropagation();
                                                             setAssigningWo({ id: wo.id, techId: wo.assignedTechnicianId });
                                                         }
                                                     }}
-                                                    title={canManage ? "Clicca per assegnare" : undefined}
+                                                    title={canAssign ? "Clicca per assegnare" : undefined}
                                                 >
                                                     <Assignee assignedTo={wo.assignedTo} />
                                                 </div>

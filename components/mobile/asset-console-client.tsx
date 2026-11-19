@@ -264,7 +264,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
 
                             return (
                                 <Link 
-                                    href={`/work-orders/${wo.id}`}
+                                    href={`/mobile/orders/${wo.id}`}
                                     key={wo.id}
                                     className="block p-3.5 rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-900/20 active:bg-zinc-100/50 transition-colors"
                                 >

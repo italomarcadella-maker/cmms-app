@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CalendarDays, ChevronLeft, ChevronRight, Gauge, UserCheck, Wrench } from "lucide-react";
@@ -12,7 +13,11 @@ import { PriorityPill } from "@/components/ui/status-badge";
 import { PlantBadge } from "@/components/ui/plant-badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePlant } from "@/lib/plant-context";
+import { useAuth } from "@/lib/auth-context";
+import { SUPERVISION, hasRole } from "@/lib/roles";
 import { assignWorkOrder, getTechnicians } from "@/lib/actions";
+import { createWorkOrderFromSchedule } from "@/modules/maintenance/adapters/actions/schedule-actions";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { getTechnicianPresence } from "@/lib/dashboard-actions";
 import { assignReading } from "@/modules/energy/adapters/actions/reading-plan-actions";
 import { ReadingEntryForm } from "@/components/energy/reading-entry-form";
@@ -41,6 +46,9 @@ interface TechOption { id: string; userId: string | null; name: string }
 /** Piano della settimana: un clic su un giorno mostra gli interventi, a chi sono assegnati e quelli ancora da assegnare. */
 export function WeekCalendar() {
     const { selected } = usePlant();
+    const { user } = useAuth();
+    // Assegnare e' un compito di chi coordina: un manutentore vede il calendario ma non ha i controlli di assegnazione
+    const canAssign = hasRole(user?.role, SUPERVISION);
     const [anchor, setAnchor] = useState<string | undefined>(undefined);
     const [plan, setPlan] = useState<WeekPlan | null>(null);
     const [picked, setPicked] = useState<string | null>(null);
@@ -66,12 +74,13 @@ export function WeekCalendar() {
     }, [anchor, selected]);
 
     useEffect(() => {
+        if (!canAssign) return;
         let alive = true;
         getTechnicians().then(t => {
             if (alive) setTechs((t as TechOption[]).map(x => ({ id: x.id, userId: x.userId ?? null, name: x.name })));
         });
         return () => { alive = false; };
-    }, [selected]);
+    }, [selected, canAssign]);
 
     useEffect(() => {
         let alive = true;
@@ -192,7 +201,7 @@ export function WeekCalendar() {
                 </div>
             </div>
 
-            {day && <DayPanel day={day} items={day.items.filter(visible)} techs={techs} onChanged={() => reload(anchor)} />}
+            {day && <DayPanel day={day} items={day.items.filter(visible)} techs={canAssign ? techs : []} onChanged={() => reload(anchor)} />}
         </Card>
     );
 }
@@ -221,7 +230,7 @@ function DayPanel({ day, items, techs, onChanged }: { day: WeekDay; items: WeekI
                         Da assegnare <Badge variant="critical">{unassigned.length}</Badge>
                     </p>
                     <ul className="space-y-2">
-                        {unassigned.map(item => <ItemRow key={`${item.kind}-${item.id}`} item={item} techs={techs} onChanged={onChanged} />)}
+                        {unassigned.map(item => <ItemRow key={`${item.kind}-${item.id}`} item={item} date={day.date} techs={techs} onChanged={onChanged} />)}
                     </ul>
                 </section>
             )}
@@ -235,7 +244,7 @@ function DayPanel({ day, items, techs, onChanged }: { day: WeekDay; items: WeekI
                         <div key={person} className="space-y-1.5">
                             <p className="text-sm font-medium">{person} <span className="text-xs font-normal text-muted-foreground">({list.length})</span></p>
                             <ul className="space-y-1.5">
-                                {list.map(item => <ItemRow key={`${person}-${item.kind}-${item.id}`} item={item} onChanged={onChanged} />)}
+                                {list.map(item => <ItemRow key={`${person}-${item.kind}-${item.id}`} item={item} date={day.date} onChanged={onChanged} />)}
                             </ul>
                         </div>
                     ))}
@@ -245,11 +254,24 @@ function DayPanel({ day, items, techs, onChanged }: { day: WeekDay; items: WeekI
     );
 }
 
-function ItemRow({ item, techs, onChanged }: { item: WeekItem; techs?: TechOption[]; onChanged: () => void }) {
+function ItemRow({ item, date, techs, onChanged }: { item: WeekItem; date: string; techs?: TechOption[]; onChanged: () => void }) {
     const style = TYPE_STYLE[item.type];
+    const router = useRouter();
+    const { confirm, dialog } = useConfirm();
+    const [opening, setOpening] = useState(false);
+
+    // Manutenzione programmata: la scheda di lavoro esiste solo dopo averla generata (la scadenza successiva si sposta in avanti)
+    const openSheet = async () => {
+        const ok = await confirm({ title: "Generare la scheda di lavoro?", description: `Per «${item.title}» verrà creato l'ordine di lavoro con la sua checklist, e la prossima scadenza del piano si sposterà in avanti.`, confirmLabel: "Genera e apri" });
+        if (!ok) return;
+        setOpening(true);
+        const res = await createWorkOrderFromSchedule(item.id, new Date(`${date}T12:00:00`));
+        setOpening(false);
+        if (res.success && res.id) { router.push(`/work-orders/${res.id}`); } else { toast.error(res.message ?? "Operazione non riuscita"); onChanged(); }
+    };
     const [tech, setTech] = useState("");
     const [busy, setBusy] = useState(false);
-    const canAssign = !!techs && (item.kind === "WO" || (item.kind === "READ" && techs.some(t => t.userId)));
+    const canAssign = !!techs && techs.length > 0 && (item.kind === "WO" || (item.kind === "READ" && techs.some(t => t.userId)));
     const options = item.kind === "READ" ? techs?.filter(t => t.userId) : techs;
 
     const assign = async () => {
@@ -262,13 +284,14 @@ function ItemRow({ item, techs, onChanged }: { item: WeekItem; techs?: TechOptio
     };
 
     return (
-        <li className={cn("space-y-2 rounded-lg border border-l-4 bg-card px-3 py-2", style.bar)}>
+        <li className={cn("relative space-y-2 rounded-lg border border-l-4 bg-card px-3 py-2", item.kind !== "PM" && "transition-colors hover:bg-muted/40", style.bar)}>
+            {dialog}
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                         <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold", style.badge)}>{style.label}</span>
                         {item.priority && item.kind === "WO" && <PriorityPill priority={item.priority} />}
-                        <Link href={item.href} className="truncate text-sm font-medium hover:text-primary">{item.title}</Link>
+                        <Link href={item.href} className="truncate text-sm font-medium after:absolute after:inset-0 hover:text-primary">{item.title}</Link>
                         <PlantBadge plantId={item.plantId} />
                     </div>
                     <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
@@ -277,7 +300,7 @@ function ItemRow({ item, techs, onChanged }: { item: WeekItem; techs?: TechOptio
                     </p>
                 </div>
                 {canAssign && options && (
-                    <div className="flex items-center gap-2">
+                    <div className="relative z-10 flex items-center gap-2">
                         <Select value={tech} onValueChange={setTech}>
                             <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue placeholder="Assegna a..." /></SelectTrigger>
                             <SelectContent>{options.map(t => <SelectItem key={t.id} value={item.kind === "READ" ? (t.userId as string) : t.id}>{t.name}</SelectItem>)}</SelectContent>
@@ -286,10 +309,13 @@ function ItemRow({ item, techs, onChanged }: { item: WeekItem; techs?: TechOptio
                     </div>
                 )}
                 {item.kind === "CTR" && (
-                    <Link href={item.href} className="text-xs font-medium text-primary hover:underline">Registra intervento</Link>
+                    <Link href={item.href} className="relative z-10 text-xs font-medium text-primary hover:underline">Registra intervento</Link>
                 )}
-                {item.kind === "PM" && item.unassigned && (
-                    <Link href="/maintenance/schedule" className="text-xs font-medium text-primary hover:underline">Assegna dal piano</Link>
+                {item.kind === "PM" && (
+                    <div className="relative z-10 flex items-center gap-3">
+                        <Button size="sm" variant="outline" onClick={openSheet} disabled={opening}>{opening ? "..." : "Apri scheda di lavoro"}</Button>
+                        <Link href={item.href} className="text-xs font-medium text-primary hover:underline">Piano</Link>
+                    </div>
                 )}
             </div>
 

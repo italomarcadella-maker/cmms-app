@@ -5,6 +5,7 @@ import { requireRole } from '@/lib/auth-guard';
 import { ENGINEERING } from '@/lib/roles';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { scopeWorkOrderWhere, getMaintainerIdentity } from '@/lib/maintainer-scope';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
 import { PrismaProjectRepository } from '../db/prisma-project-repository';
@@ -331,13 +332,14 @@ export async function searchCMMS(query: string) {
             },
             take: 5
         });
+        // Un manutentore trova solo gli ordini che puo' vedere (suoi, richiesti da lui, ancora da assegnare)
         const workOrders = await prisma.workOrder.findMany({
-            where: {
+            where: await scopeWorkOrderWhere({
                 OR: [
                     { title: { contains: q, mode: 'insensitive' } },
                     { description: { contains: q, mode: 'insensitive' } }
                 ]
-            },
+            }),
             take: 5
         });
         const projects = await prisma.project.findMany({
@@ -601,7 +603,11 @@ export async function getLivePresenceData() {
             }
         });
 
-        const realOperators = technicians.map((tech) => {
+        // Un manutentore non vede chi lavora su cosa: nell'elenco compare solo lui, gli altri non vengono nemmeno restituiti
+        const me = await getMaintainerIdentity();
+        const visibleTechnicians = me ? technicians.filter(t => t.id === me.technicianId) : technicians;
+
+        const realOperators = visibleTechnicians.map((tech) => {
             const activeAssignment = tech.assignments[0];
             
             let status: "ONLINE" | "EXECUTING_TASK" | "WORKING_EWO" = "ONLINE";
