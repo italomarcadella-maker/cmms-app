@@ -5,6 +5,7 @@ import { requireRole } from '@/lib/auth-guard';
 import { ENGINEERING } from '@/lib/roles';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { safeRefreshAssetHealth } from '@/lib/asset-health-sync';
 import { scopeWorkOrderWhere, getMaintainerIdentity } from '@/lib/maintainer-scope';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
@@ -245,6 +246,7 @@ export async function linkTaskToMaintenance(taskId: string, assetId: string, des
             where: { id: taskId },
             data: { linkedWorkOrderId: wo.id }
         });
+        await safeRefreshAssetHealth(assetId);
 
         revalidatePath(`/process/projects/${projectId}`);
         revalidatePath(`/work-orders`);
@@ -547,6 +549,8 @@ export async function createQuickWorkOrder(data: {
                 data: { status: "MAINTENANCE" }
             });
         }
+
+        await safeRefreshAssetHealth(data.assetId);
 
         try {
             await prisma.auditLog.create({

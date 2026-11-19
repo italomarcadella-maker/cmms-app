@@ -2,6 +2,8 @@ import { VectorMemory } from "./memory";
 import { AICortexResponse, AIIntent } from "./types";
 import { prisma } from "@/lib/prisma";
 import { callLLM } from "./llm-service";
+import { getLineOpportunities } from "@/modules/maintenance/adapters/actions/line-opportunity-actions";
+import { summarizeTotals } from "@/modules/maintenance/domain/line-opportunities";
 
 export class CortexEngine {
     private memory: VectorMemory;
@@ -141,6 +143,24 @@ export class CortexEngine {
                     actionLabel: 'Piano Manutenzione',
                     actionUrl: '/assets'
                 });
+            }
+
+            // 5. Linee senza calendario di produzione: nessun vincolo, si possono fare le attivita' pendenti e le manutenzioni programmate.
+            // Mai un motivo per far fallire gli altri suggerimenti; per chi non e' supervisione la funzione restituisce vuoto.
+            try {
+                const { lines, totals } = await getLineOpportunities();
+                if (lines.length > 0) {
+                    insights.push({
+                        id: 'lines-no-calendar',
+                        type: 'INFO',
+                        title: 'Linee senza calendario di produzione',
+                        message: summarizeTotals(totals),
+                        actionLabel: 'Vedi i suggerimenti',
+                        actionUrl: '/planning/line-suggestions'
+                    });
+                }
+            } catch (lineError) {
+                console.error("Cortex line opportunities error", lineError);
             }
         } catch (e: any) {
             console.error("Cortex Insights Error", e);

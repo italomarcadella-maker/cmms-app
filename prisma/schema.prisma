@@ -190,6 +190,7 @@ model Asset {
   @@index([name])
   @@index([plantId])
   @@index([vendor, model])
+  createdAt       DateTime @default(now()) // quando e' stato inserito: serve a sapere quanta storia c'e' per valutarlo
 }
 
 model AssetDocument {
@@ -266,6 +267,7 @@ model WorkOrder {
   @@index([plantId])
   @@index([plantId, status])
   @@index([plantId, createdAt])
+  completedAt          DateTime? // quando l'ordine e' stato chiuso (serve a sapere se un intervento programmato e' stato fatto in tempo)
 }
 
 
@@ -309,6 +311,7 @@ model SystemSettings {
   co2FactorPerKwh        Float  @default(0.44) // kg CO2/kWh, grid emission factor
   erpEndpointUrl         String? // ERP integration endpoint; unset = not connected, no real call is made yet
   iotGatewayUrl          String? // IoT gateway endpoint; unset = not connected, no real call is made yet
+  healthConfig            Json?   // pesi e soglie del punteggio di salute degli asset (vuoto = valori predefiniti del codice)
 }
 
 model ChecklistItem {

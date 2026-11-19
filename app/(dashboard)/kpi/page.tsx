@@ -23,6 +23,7 @@ import { categoryColor, chartColors } from "@/lib/chart-colors";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { AssetPareto } from "@/components/kpi/asset-pareto";
 import { StatCard } from "@/components/ui/stat-card";
 
 const tooltipStyle = { borderRadius: 8, border: `1px solid ${chartColors.grid}`, fontSize: 12 };
@@ -227,6 +228,8 @@ export default function KPIPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <AssetPareto />
         </div>
     );
 }

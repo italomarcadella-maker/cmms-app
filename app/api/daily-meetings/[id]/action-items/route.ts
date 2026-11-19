@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth-guard";
 import { SUPERVISION } from "@/lib/roles";
 import { WorkOrderCategory, WorkOrderPriority } from "@prisma/client";
 import { ensureSystemAsset, isSystemAssetId } from "@/lib/system-assets";
+import { safeRefreshAssetHealth } from "@/lib/asset-health-sync";
 
 export async function POST(
     request: Request,
@@ -40,6 +41,8 @@ export async function POST(
                 // Optional logic based on real app state
             }
         });
+
+        await safeRefreshAssetHealth(targetAssetId);
 
         // 2. Create the Meeting Action Item to link them
         const actionItem = await prisma.meetingActionItem.create({

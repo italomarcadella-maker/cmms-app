@@ -62,7 +62,7 @@ export default function ExportsPage() {
                 filename = "template_magazzino.csv";
                 break;
             case 'assets':
-                headers = "name,model,serialNumber,location,status,healthScore,department,purchaseDate,vendor,plant";
+                headers = "name,model,serialNumber,location,status,department,purchaseDate,vendor,plant";
                 filename = "template_asset.csv";
                 break;
             case 'screws':

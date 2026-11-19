@@ -9,6 +9,7 @@ import { useAssets } from "@/lib/assets-context";
 import { useAuth } from "@/lib/auth-context";
 import { deleteAsset } from "@/lib/actions";
 import { getAssetsStoppedByFault } from "@/modules/maintenance/adapters/actions/asset-reliability-actions";
+import { getAssetsHealth, type AssetHealthSummary } from "@/modules/maintenance/adapters/actions/asset-health-actions";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AssetStatusBadge } from "@/components/assets/asset-status-badge";
@@ -39,6 +40,9 @@ export default function AssetsPage() {
     const [showGenerics, setShowGenerics] = useState(false);
     // Asset con un guasto aperto che li ferma: una sola query per tutta la lista
     const [stoppedIds, setStoppedIds] = useState<Set<string>>(new Set());
+    // Salute calcolata (guasti, richieste, manutenzione programmata): una sola chiamata per tutta la lista
+    const [healthById, setHealthById] = useState<Record<string, AssetHealthSummary>>({});
+    const assetIdsKey = (assets ?? []).map((a) => a.id).filter((id) => !id.startsWith("SYS-")).join(",");
 
     useEffect(() => {
         let alive = true;
@@ -50,10 +54,21 @@ export default function AssetsPage() {
         };
     }, []);
 
+    useEffect(() => {
+        if (!assetIdsKey) return;
+        let alive = true;
+        getAssetsHealth(assetIdsKey.split(",")).then((r) => {
+            if (alive && r.success) setHealthById(r.byAsset);
+        });
+        return () => {
+            alive = false;
+        };
+    }, [assetIdsKey]);
+
     const canManage = user?.role === "ADMIN" || user?.role === "SUPERVISOR" || user?.role === "PLANT_MANAGER";
 
     const defaultAsset = {
-        name: "", model: "", serialNumber: "", vendor: "", plant: "", department: "", location: "", line: "", purchaseDate: "", status: "OPERATIONAL", healthScore: 100, lastMaintenance: "", cespite: ""
+        name: "", model: "", serialNumber: "", vendor: "", plant: "", department: "", location: "", line: "", purchaseDate: "", status: "OPERATIONAL", lastMaintenance: "", cespite: ""
     };
 
     const filteredAssets = (() => {
@@ -199,7 +214,9 @@ export default function AssetsPage() {
                                 </TableRow>
                             ) : (
                                 filteredAssets.map((asset) => {
-                                    const tone = healthTone(asset.healthScore);
+                                    const health = healthById[asset.id];
+                                    const score = health?.score ?? null;
+                                    const tone = score === null ? null : healthTone(score);
                                     return (
                                         <TableRow key={asset.id} onClick={() => router.push(`/assets/${asset.id}`)} className="group cursor-pointer">
                                             <TableCell>
@@ -236,11 +253,14 @@ export default function AssetsPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex items-center gap-2" title={`Salute ${asset.healthScore}%`}>
+                                                <div
+                                                    className="flex items-center gap-2"
+                                                    title={score === null ? (health?.reason ? `Salute non valutabile: ${health.reason}` : "Salute non valutabile") : `Salute ${score}%`}
+                                                >
                                                     <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-                                                        <div className={cn("h-full rounded-full", toneBarClass[tone])} style={{ width: `${asset.healthScore}%` }} />
+                                                        {tone && score !== null && <div className={cn("h-full rounded-full", toneBarClass[tone])} style={{ width: `${score}%` }} />}
                                                     </div>
-                                                    <span className="text-xs font-medium tabular-nums">{asset.healthScore}%</span>
+                                                    <span className={cn("text-xs font-medium tabular-nums", score === null && "text-muted-foreground")}>{score === null ? "n.d." : `${score}%`}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right">

@@ -13,6 +13,8 @@ import { prisma } from '@/lib/prisma';
 import { logAction } from '@/lib/audit';
 import { usersToNotify } from '@/lib/plant-users';
 import { runUnscoped } from '@/lib/plant-scope';
+import { safeRefreshAssetHealth, safeRefreshHealthOfOrder } from '@/lib/asset-health-sync';
+import { syncCompletedAt } from '@/lib/work-order-completion';
 import { ensureSystemAsset } from '@/lib/system-assets';
 import { canSeeWorkOrder, scopeWorkOrderWhere } from '@/lib/maintainer-scope';
 import { workOrderSchema } from '@/lib/validations';
@@ -139,6 +141,7 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
                     assignedTechnicianId: tech.id!,
                     assignedTo: tech.name,
                     status: 'ASSIGNED',
+                    completedAt: null, // se era chiuso, e' stato riaperto
                     ...(date ? { dueDate: date } : {}),
                 },
             });
@@ -160,6 +163,8 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
                 }
             });
         }
+
+        await safeRefreshHealthOfOrder(workOrderId);
 
         if (session?.user) {
             await logAction("ASSIGN_WO", workOrderId, `Assigned to ${tech.name}` + (date ? ` on ${date}` : ""));
@@ -199,7 +204,7 @@ export async function updateWorkOrderAssignments(workOrderId: string, technician
                 await tx.workOrderTechnician.createMany({ data: techs.map(t => ({ workOrderId, technicianId: t.id! })) });
                 await tx.workOrder.update({
                     where: { id: workOrderId },
-                    data: { assignedTechnicianId: techs[0].id!, assignedTo: techs.map(t => t.name).join(', '), status: 'ASSIGNED' },
+                    data: { assignedTechnicianId: techs[0].id!, assignedTo: techs.map(t => t.name).join(', '), status: 'ASSIGNED', completedAt: null },
                 });
             } else {
                 await tx.workOrder.update({
@@ -208,6 +213,8 @@ export async function updateWorkOrderAssignments(workOrderId: string, technician
                 });
             }
         });
+
+        await safeRefreshHealthOfOrder(workOrderId);
 
         const userIds = techs.map(t => t.userId).filter((x): x is string => !!x);
         if (userIds.length > 0) {
@@ -385,6 +392,7 @@ export async function createWorkOrder(rawData: any) {
         });
 
         await logAction('CREATE_WO', newWO.id, `Created Work Order: ${newWO.title}`);
+        await safeRefreshAssetHealth(newWO.assetId);
 
         if (newWO.assignedTechnicianId) {
             const tech = await prisma.technician.findUnique({ where: { id: newWO.assignedTechnicianId } });
@@ -444,6 +452,7 @@ export async function approveRequest(id: string, technicianId: string, priority:
             where: { id },
             data: {
                 status: 'ASSIGNED',
+                completedAt: null,
                 type: 'FAULT',
                 priority: priority as WorkOrderPriority,
                 assignedTechnicianId: technicianId,
@@ -459,6 +468,7 @@ export async function approveRequest(id: string, technicianId: string, priority:
         });
 
         const assignedWO = await prisma.workOrder.findUnique({ where: { id } });
+        await safeRefreshAssetHealth(assignedWO?.assetId);
 
         if (tech && tech.userId && assignedWO) {
             await prisma.notification.create({
@@ -520,6 +530,7 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
             });
 
             await logAction('REVIEW_WO', id, 'Approved and Closed');
+            await syncCompletedAt(id, 'CLOSED');
 
             try {
                 const { learnFromWorkOrder } = await import('@/lib/ai-service');
@@ -550,6 +561,7 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
                     }
                 });
             }
+            await safeRefreshAssetHealth(wo.assetId); // dopo la data del piano: chiusura e scadenza pesano insieme
 
             try {
                 const pendingNotifs = await prisma.notification.findMany({
@@ -577,9 +589,11 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
                 where: { id },
                 data: {
                     status: 'IN_PROGRESS',
+                    completedAt: null,
                 }
             });
             await logAction('REVIEW_WO', id, 'Rejected and Sent Back');
+            await safeRefreshHealthOfOrder(id);
         }
 
         revalidatePath('/work-orders');
@@ -618,7 +632,9 @@ export async function updateWorkOrderStatus(id: string, status: string) {
             }
         });
 
+        await syncCompletedAt(id, validStatus);
         await logAction('UPDATE_WO_STATUS', id, `Status changed to ${status}`);
+        await safeRefreshAssetHealth(wo?.assetId);
 
         revalidatePath('/maintenance');
         revalidatePath('/work-orders');
@@ -636,7 +652,9 @@ export async function deleteWorkOrder(id: string) {
     const session = await auth();
     if (!session?.user || !hasRole((session.user as any).role, SUPERVISION)) return { success: false, message: "Non autorizzato" };
     try {
+        const doomed = await prisma.workOrder.findUnique({ where: { id }, select: { assetId: true } });
         await prisma.workOrder.delete({ where: { id } });
+        await safeRefreshAssetHealth(doomed?.assetId);
         await logAction('DELETE_WO', id, 'Deleted Work Order');
         revalidatePath('/work-orders');
         revalidatePath('/maintenance');
@@ -676,6 +694,7 @@ export async function updateWorkOrderDetails(id: string, updates: any) {
         });
 
         await logAction('UPDATE_WO_DETAILS', id, 'Updated details');
+        if (data.priority !== undefined) await safeRefreshAssetHealth(updated.assetId); // la priorita' STOPPED pesa sul punteggio
 
         revalidatePath('/work-orders');
         revalidatePath('/maintenance');
@@ -728,6 +747,7 @@ export async function createPreventiveFromEWO(
         });
 
         await logAction('CREATE_PREVENTIVE', schedule.id, `Created from EWO #${workOrderId}`);
+        await safeRefreshAssetHealth(actualAssetId);
 
         revalidatePath('/planning/calendar');
         revalidatePath(`/assets/${actualAssetId}`);
@@ -763,8 +783,9 @@ export async function startWorkSession(workOrderId: string) {
 
         await prisma.workOrder.update({
             where: { id: workOrderId },
-            data: { status: 'IN_PROGRESS' }
+            data: { status: 'IN_PROGRESS', completedAt: null }
         });
+        await safeRefreshHealthOfOrder(workOrderId);
 
         revalidatePath(`/work-orders/${workOrderId}`);
         revalidateWorkOrders();
@@ -819,7 +840,7 @@ export async function pauseWorkSession(workOrderId: string, note?: string) {
 
         await prisma.workOrder.update({
             where: { id: workOrderId },
-            data: { status: 'ON_HOLD' }
+            data: { status: 'ON_HOLD', completedAt: null }
         });
 
         revalidatePath(`/work-orders/${workOrderId}`);
@@ -876,7 +897,7 @@ export async function stopWorkSession(workOrderId: string, note?: string) {
 
         await prisma.workOrder.update({
             where: { id: workOrderId },
-            data: { status: 'ON_HOLD' }
+            data: { status: 'ON_HOLD', completedAt: null }
         });
 
         revalidatePath(`/work-orders/${workOrderId}`);
@@ -915,6 +936,8 @@ export async function completeWorkOrder(workOrderId: string, note?: string) {
             where: { id: workOrderId },
             data: { status: 'COMPLETED' }
         });
+        await syncCompletedAt(workOrderId, 'COMPLETED');
+        await safeRefreshAssetHealth(wo.assetId);
 
         if (wo.requesterId) {
             await prisma.notification.create({
@@ -943,6 +966,7 @@ export async function importWorkOrders(workOrders: any[]) {
     if (!Array.isArray(workOrders) || workOrders.length === 0) return { success: false, message: 'Nessuna riga da importare.', count: 0, errors: [] };
     if (workOrders.length > 1000) return { success: false, message: 'Si possono importare al massimo 1000 righe per volta.', count: 0, errors: [] };
     let count = 0;
+    const importedAssets = new Set<string>();
     const errors: string[] = [];
     const priorities = Object.values(WorkOrderPriority) as string[];
     const categories = Object.values(WorkOrderCategory) as string[];
@@ -969,13 +993,16 @@ export async function importWorkOrders(workOrders: any[]) {
                 dueDate: due,
                 assignedTo: wo.assignedTo || null
             };
+            // completedAt resta vuoto anche per gli ordini importati gia' chiusi: la data reale di chiusura non e' nota e non si inventa
             await prisma.workOrder.create({ data: woData as any });
+            importedAssets.add(asset.id);
             count++;
         } catch (e) {
             console.error('importWorkOrders', label, e);
             errors.push(`${label}: errore nei dati`);
         }
     }
+    for (const assetId of importedAssets) await safeRefreshAssetHealth(assetId);
     revalidatePath('/work-orders');
     return { success: count > 0, message: count > 0 ? undefined : 'Nessuna riga importata.', count, errors };
 }
@@ -1001,9 +1028,10 @@ export async function assignWorkOrderToSelf(workOrderId: string) {
         // Controllo e scrittura insieme: se due tecnici lo prendono in carico nello stesso istante, vince uno solo
         const claimed = await prisma.workOrder.updateMany({
             where: { id: workOrderId, OR: [{ assignedTechnicianId: null }, { assignedTechnicianId: tech.id }] },
-            data: { assignedTechnicianId: tech.id, assignedTo: tech.name, status: 'ASSIGNED' },
+            data: { assignedTechnicianId: tech.id, assignedTo: tech.name, status: 'ASSIGNED', completedAt: null },
         });
         if (claimed.count !== 1) return { success: false, message: 'Ordine già assegnato.' };
+        await safeRefreshAssetHealth(wo.assetId);
 
         revalidatePath('/work-orders');
         revalidatePath('/');
@@ -1281,6 +1309,7 @@ export async function submitEWO(data: any) {
                         requesterId: session.user.id
                     }
                 });
+                await safeRefreshAssetHealth(originalWO.assetId);
             }
         }
 

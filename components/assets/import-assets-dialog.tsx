@@ -33,7 +33,6 @@ export function ImportAssetsDialog() {
 
                     // Default fields for required properties
                     status: "OPERATIONAL",
-                    healthScore: 100,
                     purchaseDate: new Date().toISOString().split('T')[0],
                     plant: "Main Plant",
                     department: "Production",

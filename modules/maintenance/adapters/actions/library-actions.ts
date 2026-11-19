@@ -4,6 +4,7 @@ import { addDays } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth-guard';
+import { safeRefreshAssetHealth } from '@/lib/asset-health-sync';
 import { getPlantScope, runUnscoped } from '@/lib/plant-scope';
 import { normalizeKey } from '../../../shared/domain/text-matching';
 
@@ -157,6 +158,7 @@ export async function adoptTemplate(templateId: string, assetId: string) {
                     sourceTemplateId: template.id,
                 },
             });
+            await safeRefreshAssetHealth(asset.id);
             revalidatePath('/maintenance/schedule');
         } else {
             await prisma.sopDocument.create({

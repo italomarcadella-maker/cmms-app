@@ -1,6 +1,6 @@
 "use client";
 
-import { Save, User, Globe, AlertTriangle, Download, Trash2, Bell, Shield, Server, Plug, Smartphone, Calendar } from "lucide-react";
+import { Save, User, Globe, AlertTriangle, Download, Trash2, Bell, Shield, Server, Plug, Smartphone, Calendar, Activity } from "lucide-react";
 import { useState, useEffect } from "react";
 import { resetDatabase } from "@/lib/actions";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { BackToDashboardButton } from "@/components/ui/back-button";
 import { cn } from "@/lib/utils";
 import { usePrompt } from "@/components/ui/prompt-dialog";
+import { getHealthConfig, updateHealthConfig } from "@/modules/maintenance/adapters/actions/asset-health-actions";
+import { defaultHealthConfig, type HealthConfig } from "@/modules/maintenance/domain/asset-health";
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -179,6 +181,7 @@ export default function SettingsPage() {
                     <SchedulerTriggerSection />
                     <EWOSettingsSection />
                     <CostSettingsSection />
+                    <HealthSettingsSection />
                     <IntegrationsSection />
                 </TabsContent>
 
@@ -333,6 +336,134 @@ function CostSettingsSection() {
                 <Button onClick={handleSave} className="bg-indigo-600 hover:bg-indigo-700 text-white">
                     Salva Costi &amp; Tariffe
                 </Button>
+            </CardContent>
+        </Card>
+    );
+}
+
+/** Campi modificabili del punteggio di salute, come testo (per accettare la virgola decimale). */
+type HealthForm = {
+    wCurrent: string; wFrequency: string; wSchedule: string;
+    noPlanCap: string;
+    pFault: string; pStopping: string; pRequest: string;
+    windowMonths: string;
+};
+
+function healthToForm(c: HealthConfig): HealthForm {
+    const t = (n: number) => String(n).replace('.', ',');
+    return {
+        wCurrent: t(c.weights.current), wFrequency: t(c.weights.frequency), wSchedule: t(c.weights.schedule),
+        noPlanCap: t(c.noPlanCap),
+        pFault: t(c.eventPoints.fault), pStopping: t(c.eventPoints.stoppingFault), pRequest: t(c.eventPoints.request),
+        windowMonths: t(c.windowMonths),
+    };
+}
+
+function HealthSettingsSection() {
+    const [base, setBase] = useState<HealthConfig>(defaultHealthConfig());
+    const [form, setForm] = useState<HealthForm>(healthToForm(defaultHealthConfig()));
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        getHealthConfig().then(r => {
+            if (r.success) { setBase(r.config); setForm(healthToForm(r.config)); }
+        });
+    }, []);
+
+    const n = (v: string) => (v.trim() === '' ? NaN : Number(v.trim().replace(',', '.')));
+
+    const handleSave = async () => {
+        const values = {
+            weights: { current: n(form.wCurrent), frequency: n(form.wFrequency), schedule: n(form.wSchedule) },
+            noPlanCap: n(form.noPlanCap),
+            eventPoints: { fault: n(form.pFault), stoppingFault: n(form.pStopping), request: n(form.pRequest) },
+            windowMonths: n(form.windowMonths),
+        };
+        const flat = [...Object.values(values.weights), values.noPlanCap, ...Object.values(values.eventPoints), values.windowMonths];
+        if (flat.some(v => !Number.isFinite(v) || v < 0)) { toast.error("Inserisci solo numeri maggiori o uguali a zero."); return; }
+        if (values.weights.current + values.weights.frequency + values.weights.schedule <= 0) { toast.error("La somma dei pesi deve essere maggiore di zero."); return; }
+        if (values.noPlanCap > 100) { toast.error("Il tetto deve essere tra 0 e 100."); return; }
+        if (!Number.isInteger(values.windowMonths) || values.windowMonths < 1 || values.windowMonths > 60) { toast.error("La finestra deve essere un numero intero di mesi, da 1 a 60."); return; }
+        setSaving(true);
+        try {
+            const res = await updateHealthConfig({ ...base, ...values });
+            if (res.success && res.config) { setBase(res.config); setForm(healthToForm(res.config)); toast.success(res.message); }
+            else toast.error(res.message ?? "Errore salvataggio.");
+        } finally { setSaving(false); }
+    };
+
+    const handleReset = async () => {
+        setSaving(true);
+        try {
+            const res = await updateHealthConfig(null);
+            if (res.success && res.config) { setBase(res.config); setForm(healthToForm(res.config)); toast.success(res.message); }
+            else toast.error(res.message ?? "Errore ripristino.");
+        } finally { setSaving(false); }
+    };
+
+    const field = (key: keyof HealthForm, label: string, unit: string, hint?: string) => (
+        <div className="grid gap-2">
+            <Label>{label}</Label>
+            <div className="flex gap-2 items-center">
+                <Input
+                    inputMode="decimal"
+                    value={form[key]}
+                    onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))}
+                    className="w-28"
+                />
+                <span className="text-sm text-muted-foreground">{unit}</span>
+            </div>
+            {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        </div>
+    );
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-indigo-600">
+                    <Activity className="h-5 w-5" /> Salute degli asset
+                </CardTitle>
+                <CardDescription>
+                    Il punteggio 0-100 di ogni macchina è calcolato, non inserito a mano: media pesata di tre componenti. Regola con i valori predefiniti:
+                    Stato attuale: 100 senza guasti aperti, 50 con un guasto aperto, 0 se il guasto ferma la macchina.
+                    Frequenza: punti-evento degli ultimi mesi (guasto, guasto che ferma la macchina, richiesta), a gradini: 0 punti = 100, fino a 1 = 80, fino a 2 = 60, fino a 3 = 40, oltre = 20.
+                    Manutenzione programmata: 25 punti in meno per ogni piano in ritardo, limitato dalla quota di interventi chiusi entro la scadenza.
+                    Senza piani di manutenzione il terzo componente non è valutabile e il punteggio non supera il tetto. Se i dati non bastano, la macchina risulta "n.d.".
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div>
+                    <div className="text-sm font-medium mb-3">Pesi dei componenti</div>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        {field('wCurrent', 'Stato attuale', 'peso')}
+                        {field('wFrequency', 'Frequenza degli eventi', 'peso')}
+                        {field('wSchedule', 'Manutenzione programmata', 'peso', 'I pesi si leggono in proporzione: non serve che sommino 100.')}
+                    </div>
+                </div>
+                <div>
+                    <div className="text-sm font-medium mb-3">Punti-evento e finestra</div>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {field('pFault', 'Guasto', 'punti')}
+                        {field('pStopping', 'Guasto che ferma la macchina', 'punti')}
+                        {field('pRequest', 'Richiesta', 'punti')}
+                        {field('windowMonths', 'Finestra di osservazione', 'mesi', 'Predefinita: 12.')}
+                    </div>
+                </div>
+                <div>
+                    <div className="text-sm font-medium mb-3">Senza piano di manutenzione</div>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {field('noPlanCap', 'Tetto del punteggio', 'su 100', 'Predefinito: 70.')}
+                    </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                    <Button onClick={handleSave} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                        Salva
+                    </Button>
+                    <Button onClick={handleReset} disabled={saving} variant="outline">
+                        Ripristina valori predefiniti
+                    </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Dopo il salvataggio i punteggi di tutte le macchine vengono ricalcolati.</p>
             </CardContent>
         </Card>
     );

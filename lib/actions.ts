@@ -540,7 +540,7 @@ export async function importAssets(assets: any[]) {
                 serialNumber: asset.serialNumber ? String(asset.serialNumber) : `SN-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
                 location: asset.location || 'Non indicata',
                 status,
-                healthScore: Math.min(100, Math.max(0, parseInt(asset.healthScore) || 100)),
+                // healthScore non si importa: e' calcolato dal sistema (guasti, richieste, piani) e un import non deve sovrascriverlo
                 type,
                 purchaseDate,
                 department: asset.department || asset.category || null,

@@ -59,7 +59,7 @@ export async function addAsset(rawData: any) {
             serialNumber: data.serialNumber,
             location: data.location,
             status: data.status as any,
-            healthScore: data.healthScore,
+            // healthScore non si inserisce: lo calcola il sistema (lib/asset-health-sync.ts) da guasti, richieste e piani
             type: data.type as any,
             purchaseDate: data.purchaseDate,
             department: data.department || null,
@@ -108,7 +108,8 @@ export async function updateAsset(id: string, rawData: any) {
 
         // Apply modifications on the Domain Entity
         const props = existingAsset.toJSON();
-        const { plant, line, ...restData } = data;
+        // La salute e' calcolata: un valore arrivato dal browser (es. quello vecchio di una lista) non deve sovrascriverla
+        const { plant, line, healthScore: _ignoredHealth, ...restData } = data;
         
         const updatedProps = {
             ...props,

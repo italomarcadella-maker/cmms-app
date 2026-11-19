@@ -12,6 +12,7 @@ import { WorkOrder } from '../../domain/entities/work-order';
 import { auth } from '@/auth';
 import { assignWorkOrder } from './work-order-actions';
 import { prisma } from '@/lib/prisma';
+import { safeRefreshAssetHealth } from '@/lib/asset-health-sync';
 
 try {
     ServiceLocator.resolve('IScheduleRepository');
@@ -74,6 +75,7 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
         const schedEntity = new PreventiveSchedule(schedule.toJSON());
         schedEntity.run(new Date());
         await schedRepo.save(schedEntity);
+        await safeRefreshAssetHealth(schedule.assetId);
 
         // Il tecnico indicato, altrimenti quello gia' assegnato alla schedulazione (e' un utente: si cerca il suo profilo tecnico)
         let techToAssign = technicianId;
@@ -165,6 +167,7 @@ export async function createPreventiveSchedule(data: {
             nextDueDate: new Date(data.firstDate)
         });
         await schedRepo.save(schedule);
+        await safeRefreshAssetHealth(data.assetId);
         revalidatePath('/maintenance/schedule');
         return { success: true, message: 'Schedulazione creata con successo' };
     } catch (error) {
@@ -178,7 +181,9 @@ export async function deletePreventiveSchedule(id: string) {
     if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     try {
         const schedRepo = getSchedRepo();
+        const doomed = await schedRepo.findById(id);
         await schedRepo.delete(id);
+        await safeRefreshAssetHealth(doomed?.assetId);
         revalidatePath('/maintenance/schedule');
         return { success: true, message: 'Schedulazione eliminata con successo' };
     } catch (error) {
@@ -201,6 +206,7 @@ export async function updatePreventiveSchedule(id: string, nextDueDate: Date) {
             nextDueDate
         });
         await schedRepo.save(updated);
+        await safeRefreshAssetHealth(schedule.assetId);
 
         revalidatePath('/maintenance/schedule');
         revalidatePath('/maintenance');

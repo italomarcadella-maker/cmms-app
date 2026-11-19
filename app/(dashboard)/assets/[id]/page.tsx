@@ -14,6 +14,7 @@ import { WOStatusBadge } from "@/components/work-orders/wo-status-badge";
 import { AssetMaintenancePlan } from "@/components/assets/asset-maintenance-plan";
 import { AssetReliabilityPanel, AssetStoppedBanner } from "@/components/assets/asset-reliability-panel";
 import { AssetHistory } from "@/components/assets/asset-history";
+import { AssetHealthCard } from "@/components/assets/asset-health-card";
 import { AssetAIChat } from "@/components/assets/asset-ai-chat";
 import { TagGeneratorDialog } from "@/components/assets/tag-generator-dialog";
 import { AssetSOPList } from "@/components/assets/asset-sop-list";
@@ -23,7 +24,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
-import { healthTone } from "@/components/ui/status-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function Field({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
@@ -48,6 +48,8 @@ export default function AssetDetailsPage() {
     const [reliability, setReliability] = useState<AssetReliability | null>(null);
     const [reliabilityLoading, setReliabilityLoading] = useState(true);
     const [createPlanSignal, setCreatePlanSignal] = useState(0);
+    // Cambia quando i dati dell'asset si ricaricano (es. un piano creato): la scheda Salute si ricalcola
+    const [healthReload, setHealthReload] = useState(0);
     // Come lato server: i piani li creano solo amministratori e responsabili di plant
     const canManagePlans = user?.role === "ADMIN" || user?.role === "PLANT_MANAGER";
 
@@ -66,6 +68,7 @@ export default function AssetDetailsPage() {
         const data = await getAssetReliability(assetId);
         setReliability(data);
         setReliabilityLoading(false);
+        setHealthReload((n) => n + 1);
     }, [assetId]);
 
     useEffect(() => {
@@ -106,15 +109,11 @@ export default function AssetDetailsPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Main column */}
                 <div className="space-y-6 lg:col-span-2">
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid items-start gap-4 md:grid-cols-3">
                         <StatCard label="Stato" value={<AssetStatusBadge status={asset.status} className="text-sm" />} tone="neutral" icon={<Activity />} />
-                        <StatCard
-                            label="Indice di salute (inserito a mano)"
-                            value={`${asset.healthScore}%`}
-                            tone={healthTone(asset.healthScore)}
-                            icon={<Activity />}
-                            hint="Non si aggiorna da solo con guasti e interventi: cambia solo se lo modifichi nell'anagrafica dell'asset."
-                        />
+                        <div className="md:col-span-2">
+                            <AssetHealthCard assetId={asset.id} reloadKey={healthReload} />
+                        </div>
                     </div>
 
                     <AssetStoppedBanner data={reliability} />
