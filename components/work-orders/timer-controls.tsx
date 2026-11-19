@@ -273,7 +273,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                         {workOrder.laborLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log) => (
                             <div key={log.id} className="flex justify-between items-start text-sm p-2 bg-muted/40 rounded-md">
                                 <div>
-                                    <div className="font-medium">{new Date(log.date).toLocaleDateString()} {new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                    <div className="font-medium">{new Date(log.date).toLocaleDateString('it-IT')} {new Date(log.date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</div>
                                     {(log as any).note && <div className="text-xs text-muted-foreground mt-1 italic">"{(log as any).note}"</div>}
                                 </div>
                                 <div className="text-right">

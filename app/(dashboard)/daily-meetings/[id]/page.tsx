@@ -299,7 +299,7 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                                                 ${item.status === 'OPEN' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-emerald-100 text-emerald-700 border-emerald-200'}`}>
                                                 {item.status}
                                             </span>
-                                            <span className="text-[10px] text-slate-400">{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span className="text-[10px] text-slate-400">{new Date(item.createdAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
                                         <p className="text-xs font-medium text-slate-700 line-clamp-2">{item.description}</p>
                                         {item.linkedWorkOrderId && (

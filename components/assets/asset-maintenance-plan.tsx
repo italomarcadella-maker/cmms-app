@@ -1,10 +1,12 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Calendar, Wand2, Plus, Trash2, Check, ExternalLink, AlertCircle } from "lucide-react";
 import { getAssetSchedules, createPreventiveSchedule, deletePreventiveSchedule } from "@/lib/actions";
 import { generatePreventiveSuggestions } from "@/lib/ai-service";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 // Define interfaces locally if not exported
 interface Schedule {
@@ -32,6 +34,7 @@ export function AssetMaintenancePlan({ assetId }: { assetId: string }) {
     const [loading, setLoading] = useState(true);
     const [aiLoading, setAiLoading] = useState(false);
     const router = useRouter();
+    const { confirm, dialog } = useConfirm();
 
     const fetchSchedules = async () => {
         try {
@@ -56,18 +59,18 @@ export function AssetMaintenancePlan({ assetId }: { assetId: string }) {
             const data = await generatePreventiveSuggestions(assetId);
             setSuggestions(data);
             if (!data || data.length === 0) {
-                alert("Nessun suggerimento disponibile. Lo storico interventi potrebbe essere insufficiente.");
+                toast.warning("Nessun suggerimento disponibile. Lo storico interventi potrebbe essere insufficiente.");
             }
         } catch (error) {
             console.error(error);
-            alert("Errore generazione suggerimenti");
+            toast.error("Errore generazione suggerimenti");
         } finally {
             setAiLoading(false);
         }
     };
 
     const handleApplySuggestion = async (s: Suggestion) => {
-        if (!confirm(`Vuoi creare il piano "${s.title}" con frequenza ${s.frequency}?`)) return;
+        if (!(await confirm({ title: "Creare il piano di manutenzione?", description: `Piano "${s.title}" con frequenza ${s.frequency}.`, confirmLabel: "Crea piano" }))) return;
 
         try {
             await createPreventiveSchedule({
@@ -79,16 +82,16 @@ export function AssetMaintenancePlan({ assetId }: { assetId: string }) {
                 activities: [], // Empty generic checklist for now
                 firstDate: new Date()
             });
-            alert("Piano creato con successo!");
+            toast.success("Piano creato con successo!");
             setSuggestions(prev => prev.filter(x => x.title !== s.title)); // Remove applied
             fetchSchedules(); // Refresh list
         } catch (error) {
-            alert("Errore creazione piano");
+            toast.error("Errore creazione piano");
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Eliminare questa schedulazione?")) return;
+        if (!(await confirm({ title: "Eliminare questa schedulazione?", confirmLabel: "Elimina", variant: "destructive" }))) return;
         await deletePreventiveSchedule(id);
         fetchSchedules();
     };
@@ -165,7 +168,7 @@ export function AssetMaintenancePlan({ assetId }: { assetId: string }) {
                                 <div className="font-medium">{sched.taskTitle}</div>
                                 <div className="text-xs text-muted-foreground mt-1">
                                     Frequenza: <span className="font-semibold">{sched.frequency}</span> •
-                                    Prossima: {new Date(sched.nextDueDate).toLocaleDateString()}
+                                    Prossima: {new Date(sched.nextDueDate).toLocaleDateString('it-IT')}
                                 </div>
                             </div>
                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -181,6 +184,7 @@ export function AssetMaintenancePlan({ assetId }: { assetId: string }) {
                     ))}
                 </div>
             )}
+            {dialog}
         </div>
     );
 }

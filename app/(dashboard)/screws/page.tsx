@@ -188,7 +188,7 @@ export default function ScrewsPage() {
                                                         <div className="flex flex-col gap-1 items-start">
                                                             <span className="text-muted-foreground text-sm">{lastMeasurement.value1} mm</span>
                                                             <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-medium whitespace-nowrap", colorClass)}>
-                                                                {mDate.toLocaleDateString()}
+                                                                {mDate.toLocaleDateString('it-IT')}
                                                             </span>
                                                         </div>
                                                     );

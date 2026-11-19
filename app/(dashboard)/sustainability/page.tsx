@@ -151,8 +151,8 @@ export default function SustainabilityDashboard() {
 
     if (!metrics) return null;
 
-    const formattedCosts = metrics?.estimatedCosts?.total?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0";
-    const formattedTotalCo2 = metrics?.totalCo2?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0";
+    const formattedCosts = metrics?.estimatedCosts?.total?.toLocaleString('it-IT', { maximumFractionDigits: 0 }) || "0";
+    const formattedTotalCo2 = metrics?.totalCo2?.toLocaleString('it-IT', { maximumFractionDigits: 0 }) || "0";
     const hasScore = metrics?.sustainabilityScore !== null && metrics?.sustainabilityScore !== undefined;
 
     const scoreValue = metrics?.sustainabilityScore ?? 0;
@@ -269,7 +269,7 @@ export default function SustainabilityDashboard() {
                             </div>
                             <div>
                                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Equivalenza Green</p>
-                                <p className="text-sm font-medium">Circa <strong>{((metrics?.totalCo2 || 0) / 21).toFixed(0)} alberi</strong> piantati.</p>
+                                <p className="text-sm font-medium">Circa <strong>{((metrics?.totalCo2 || 0) / 21).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} alberi</strong> piantati.</p>
                             </div>
                         </div>
                     </div>
@@ -285,7 +285,7 @@ export default function SustainabilityDashboard() {
                     <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Media Giornaliera ({rangeDays}d)</p>
                         <div className="flex items-baseline gap-2">
-                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{metrics?.averageKwh?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0"}</div>
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{metrics?.averageKwh?.toLocaleString('it-IT', { maximumFractionDigits: 0 }) || "0"}</div>
                             <span className="text-[10px] font-bold text-slate-400">kWh/d</span>
                         </div>
                     </div>
@@ -297,7 +297,7 @@ export default function SustainabilityDashboard() {
                     <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Energia Totale</p>
                         <div className="flex items-baseline gap-2">
-                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{(metrics.totalKwh || 0).toLocaleString()}</div>
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{(metrics.totalKwh || 0).toLocaleString('it-IT')}</div>
                             <span className="text-[10px] font-bold text-slate-400 font-mono">kWh</span>
                         </div>
                     </div>
@@ -309,7 +309,7 @@ export default function SustainabilityDashboard() {
                     <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Gas Totale</p>
                         <div className="flex items-baseline gap-2">
-                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{(metrics.totalGas || 0).toLocaleString()}</div>
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{(metrics.totalGas || 0).toLocaleString('it-IT')}</div>
                             <span className="text-[10px] font-bold text-slate-400 font-mono">m³</span>
                         </div>
                     </div>

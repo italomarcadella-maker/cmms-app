@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState } from "react";
 import { useComponents, ComponentItem, ComponentLifecycle } from "@/lib/components-context";
 import { X, Save, Calendar, FileText, Activity, AlertTriangle, Trash2, Upload, File } from "lucide-react";
@@ -42,7 +43,7 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
             if (res.success && res.url) {
                 setDrawingUrl(res.url);
             } else {
-                alert(res.message || "Errore durante il caricamento del file");
+                toast.error(res.message || "Errore durante il caricamento del file");
             }
         } finally {
             setIsUploading(false);

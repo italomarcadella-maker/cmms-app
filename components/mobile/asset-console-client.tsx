@@ -278,7 +278,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                                             {wo.priority}
                                         </span>
                                         <span className="text-[10px] text-zinc-400 font-mono">
-                                            {new Date(wo.createdAt).toLocaleDateString()}
+                                            {new Date(wo.createdAt).toLocaleDateString('it-IT')}
                                         </span>
                                     </div>
                                     <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-200 line-clamp-1">

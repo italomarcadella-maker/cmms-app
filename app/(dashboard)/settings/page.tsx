@@ -15,9 +15,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { BackToDashboardButton } from "@/components/ui/back-button";
 import { cn } from "@/lib/utils";
+import { usePrompt } from "@/components/ui/prompt-dialog";
 
 export default function SettingsPage() {
     const router = useRouter();
+    const { ask, dialog } = usePrompt();
 
     const handleExport = () => {
         const data = {
@@ -40,7 +42,7 @@ export default function SettingsPage() {
     };
 
     const handleReset = async () => {
-        const typed = window.prompt("Questa azione è irreversibile e cancella Ordini, Asset, Tecnici e Utenti non-admin.\n\nPer confermare scrivi: ELIMINA TUTTO");
+        const typed = await ask({ title: "Reset totale del database", description: "Questa azione è irreversibile e cancella Ordini, Asset, Tecnici e Utenti non-admin.", label: "Per confermare scrivi: ELIMINA TUTTO", mustType: "ELIMINA TUTTO", confirmLabel: "Elimina tutto", variant: "destructive" });
         if (typed !== null) {
             try {
                 const result = await resetDatabase(typed);
@@ -213,6 +215,7 @@ export default function SettingsPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+            {dialog}
         </div>
     );
 }

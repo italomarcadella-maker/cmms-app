@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, AlertTriangle, FileText, CheckCircle2, Wand2, Printer, Wrench, Microscope, Camera, Timer, Factory, Box, Trash2, Users, Settings, Package, BookOpen, Ruler, ThermometerSun, PlusCircle, MinusCircle, Calculator, CalendarPlus } from "lucide-react";
@@ -7,6 +8,7 @@ import { getEWO, submitEWO, getSpareParts, createPreventiveFromEWO } from "@/lib
 import { generateEWOAnalysis } from "@/lib/ai-service";
 import { cn } from "@/lib/utils";
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 // --- PREDEFINED OPTIONS ---
 const ISHIKAWA_CATEGORIES = [
@@ -37,6 +39,7 @@ const IMPACT_LEVELS = [
 
 export default function EWOFormPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params);
+    const { confirm, dialog } = useConfirm();
     const [loading, setLoading] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
@@ -220,7 +223,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
 
     const handleAIAnalysis = async () => {
         if (!formData.description) {
-            alert("Inserisci una descrizione del guasto per avviare l'analisi AI.");
+            toast.warning("Inserisci una descrizione del guasto per avviare l'analisi AI.");
             return;
         }
         setAiLoading(true);
@@ -260,7 +263,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
             }));
         } catch (e) {
             console.error(e);
-            alert("Errore AI.");
+            toast.error("Errore AI.");
         } finally {
             setAiLoading(false);
         }
@@ -304,7 +307,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
             solutionDetails
         ].filter(Boolean).join(", ");
 
-        if (!confirm("Confermi la registrazione dell'EWO?")) return;
+        if (!(await confirm({ title: "Confermi la registrazione dell'EWO?", confirmLabel: "Registra" }))) return;
 
         setLoading(true);
         try {
@@ -318,15 +321,15 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
             });
 
             if (res.success) {
-                alert(res.message);
+                toast.error(res.message);
                 router.push(`/work-orders/${id}`);
                 router.refresh();
             } else {
-                alert("Errore: " + res.message);
+                toast.error("Errore: " + res.message);
             }
         } catch (error) {
             console.error(error);
-            alert("Errore imprevisto.");
+            toast.error("Errore imprevisto.");
         } finally {
             setLoading(false);
         }
@@ -335,7 +338,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
     // Auto-generate preventive action
     const handleCreatePreventive = async () => {
         if (!formData.preventiveActions) {
-            alert("Scrivi prima l'azione preventiva da generare.");
+            toast.warning("Scrivi prima l'azione preventiva da generare.");
             return;
         }
 
@@ -357,13 +360,13 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
             );
 
             if (res.success) {
-                alert("Piano preventivo creato con successo!");
+                toast.success("Piano preventivo creato con successo!");
             } else {
-                alert("Errore: " + res.message);
+                toast.error("Errore: " + res.message);
             }
         } catch (e) {
             console.error(e);
-            alert("Errore creazione piano preventivo.");
+            toast.error("Errore creazione piano preventivo.");
         } finally {
             setGeneratingPreventive(false);
         }
@@ -407,7 +410,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
             <div className="hidden print:block mb-8 border-b pb-4">
                 <h1 className="text-3xl font-bold mb-2">EWO - Rapporto Emergenza</h1>
                 <p className="text-lg">Riferimento Ordine: #{id}</p>
-                <p className="text-sm">Stampato il: {new Date().toLocaleDateString()}</p>
+                <p className="text-sm">Stampato il: {new Date().toLocaleDateString('it-IT')}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -477,15 +480,15 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                                 <div className="flex flex-col gap-1 text-sm">
                                     <div className="flex justify-between text-slate-500">
                                         <span>Costo Ricambi:</span>
-                                        <span>€ {calculateTotalCost().parts.toFixed(2)}</span>
+                                        <span>€ {calculateTotalCost().parts.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="flex justify-between text-slate-500">
                                         <span>Costo Manodopera ({technicianHourlyRate}€/h):</span>
-                                        <span>€ {calculateTotalCost().labor.toFixed(2)}</span>
+                                        <span>€ {calculateTotalCost().labor.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="flex justify-between font-bold text-slate-800 mt-1 pt-1 border-t">
                                         <span className="flex items-center gap-1"><Calculator className="h-4 w-4" /> Costo Evento Totale:</span>
-                                        <span className="text-red-600">€ {calculateTotalCost().total.toFixed(2)}</span>
+                                        <span className="text-red-600">€ {calculateTotalCost().total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
                             </div>
@@ -851,6 +854,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                     </div>
                 )}
             </form>
+            {dialog}
         </div>
     );
 }

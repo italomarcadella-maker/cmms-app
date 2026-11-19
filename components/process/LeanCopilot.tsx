@@ -250,7 +250,7 @@ export function LeanCopilot({ isOpen, onClose, fpesData }: LeanCopilotProps) {
                                 <p className="text-xs leading-relaxed">{m.text}</p>
                             )}
                             <div className={`text-[9px] mt-1.5 text-right ${m.sender === "user" ? "text-indigo-200" : "text-slate-400"}`}>
-                                {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {m.timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                         </div>
                     </div>

@@ -124,6 +124,37 @@ export function ContractFormDialog({ contractorId, contract, trigger, onSaved }:
     );
 }
 
+/** Nuovo contratto creato dall'elenco generale: prima si sceglie la ditta, poi si compila il contratto. */
+export function NewContractDialog({ contractors, trigger, onSaved }: {
+    contractors: { id: string; name: string }[];
+    trigger: ReactNode;
+    onSaved: () => void;
+}) {
+    return (
+        <FormDialog trigger={trigger} title="Nuovo contratto" description="Il contratto vale per un solo stabilimento.">
+            {(close) => <PickContractor contractors={contractors} onDone={() => { close(); onSaved(); }} />}
+        </FormDialog>
+    );
+}
+
+function PickContractor({ contractors, onDone }: { contractors: { id: string; name: string }[]; onDone: () => void }) {
+    const [contractorId, setContractorId] = useState(contractors.length === 1 ? contractors[0].id : "");
+    if (contractors.length === 0) {
+        return <p className="text-sm text-muted-foreground">Prima registra almeno una ditta con «Nuova ditta», poi potrai creare il suo contratto.</p>;
+    }
+    return (
+        <div className="grid gap-3">
+            <Field label="Ditta">
+                <Select value={contractorId} onValueChange={setContractorId}>
+                    <SelectTrigger><SelectValue placeholder="Scegli la ditta" /></SelectTrigger>
+                    <SelectContent>{contractors.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+            </Field>
+            {contractorId && <ContractForm key={contractorId} contractorId={contractorId} onDone={onDone} />}
+        </div>
+    );
+}
+
 function ContractForm({ contractorId, contract, onDone }: { contractorId: string; contract?: ContractRow; onDone: () => void }) {
     const { plants, activePlant } = usePlant();
     const [plantId, setPlantId] = useState(contract?.plantId ?? activePlant?.id ?? plants[0]?.id ?? "");

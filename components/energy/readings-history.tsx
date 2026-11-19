@@ -79,7 +79,7 @@ export function ReadingsHistory({ meters }: { meters: any[] }) {
 
                                     return (
                                         <tr key={r.id} className="hover:bg-muted/50 transition-colors">
-                                            <td className="px-4 py-3 font-medium">{new Date(r.date).toLocaleDateString()}</td>
+                                            <td className="px-4 py-3 font-medium">{new Date(r.date).toLocaleDateString('it-IT')}</td>
                                             <td className="px-4 py-3 text-muted-foreground">{meter?.serialNumber || '-'}</td>
                                             <td className="px-4 py-3 text-muted-foreground">{meter?.location || '-'}</td>
                                             <td className="px-4 py-3">

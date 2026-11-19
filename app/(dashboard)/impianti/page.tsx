@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CalendarClock, ClipboardCheck, Cog, Gauge, HardHat, Wrench } from "lucide-react";
+import { CalendarClock, ClipboardCheck, Cog, Gauge, HardHat, Plus, Wrench } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { PlantBadge } from "@/components/ui/plant-badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePlant } from "@/lib/plant-context";
 import { healthTone } from "@/components/ui/status-badge";
+import { ImpiantoFormDialog } from "@/components/impianti/impianto-form-dialog";
 import { ReadingEntryForm } from "@/components/energy/reading-entry-form";
 import { ActivityStateBadge } from "@/components/contractors/state-badges";
 import { frequencyLabel } from "@/modules/energy/domain/reading-plan";
@@ -53,6 +54,9 @@ export default function ImpiantiPage() {
             <PageHeader
                 title="Impianti"
                 description="Aria compressa, elettrico, acqua e gli altri impianti tecnologici: stato, ordini, manutenzioni, ditte esterne e letture da fare, in un unico posto."
+                actions={data?.canCreate && (
+                    <ImpiantoFormDialog existingNames={data.impianti.map(i => i.name)} onSaved={reload} trigger={<Button><Plus className="h-4 w-4" /> Nuovo impianto</Button>} />
+                )}
             />
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -86,13 +90,15 @@ export default function ImpiantiPage() {
                         <EmptyState
                             icon={<Cog />}
                             title="Nessun impianto registrato"
-                            description="Gli impianti sono gli asset di tipo «impianto» (compressori, cabine, caldaie...). Raggruppali con la stessa linea, per esempio «Aria compressa»."
-                            action={<Button asChild variant="outline"><Link href="/assets">Vai agli asset</Link></Button>}
+                            description="Crea il primo impianto (aria compressa, cabina elettrica, caldaia...) e aggiungi i suoi componenti. Le ditte a contratto e le letture si collegano poi dall'impianto."
+                            action={data.canCreate
+                                ? <ImpiantoFormDialog existingNames={[]} onSaved={reload} trigger={<Button><Plus className="h-4 w-4" /> Nuovo impianto</Button>} />
+                                : <p className="text-xs text-muted-foreground">Chiedi a un responsabile di plant o a un amministratore di crearlo.</p>}
                         />
                     </Card>
                 ) : (
                     <div className="grid gap-4 lg:grid-cols-2">
-                        {data.impianti.map(i => <ImpiantoCard key={i.key} impianto={i} onChanged={reload} />)}
+                        {data.impianti.map(i => <ImpiantoCard key={i.key} impianto={i} onChanged={reload} canCreate={data.canCreate} existingNames={data.impianti.map(x => x.name)} />)}
                     </div>
                 )}
             </section>
@@ -151,7 +157,7 @@ function RoundRow({ item, onDone }: { item: RoundItem; onDone: () => void }) {
     );
 }
 
-function ImpiantoCard({ impianto: i, onChanged }: { impianto: Impianto; onChanged: () => void }) {
+function ImpiantoCard({ impianto: i, onChanged, canCreate, existingNames }: { impianto: Impianto; onChanged: () => void; canCreate: boolean; existingNames: string[] }) {
     const tone = healthTone(i.avgHealth);
     return (
         <Card>
@@ -206,6 +212,9 @@ function ImpiantoCard({ impianto: i, onChanged }: { impianto: Impianto; onChange
                     {i.assets.slice(0, 3).map(a => (
                         <Button key={a.id} asChild size="sm" variant="ghost"><Link href={`/assets/${a.id}`}>{a.name}</Link></Button>
                     ))}
+                    {canCreate && (
+                        <ImpiantoFormDialog existingNames={existingNames} defaultImpianto={i.name} onSaved={onChanged} trigger={<Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5" /> Componente</Button>} />
+                    )}
                 </div>
             </CardContent>
         </Card>

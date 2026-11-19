@@ -55,12 +55,13 @@ export interface ImpiantiOverview {
     round: RoundItem[];
     kpis: { impianti: number; readingsDue: number; openOrders: number; contractorOverdue: number };
     canPlan: boolean;
+    canCreate: boolean;
     facilityAssets: { id: string; name: string }[];
 }
 
 export async function getImpiantiOverview(): Promise<ImpiantiOverview> {
     const { authorized, session } = await requireRole(VIEWERS);
-    const empty: ImpiantiOverview = { impianti: [], looseMeters: [], round: [], kpis: { impianti: 0, readingsDue: 0, openOrders: 0, contractorOverdue: 0 }, canPlan: false, facilityAssets: [] };
+    const empty: ImpiantiOverview = { impianti: [], looseMeters: [], round: [], kpis: { impianti: 0, readingsDue: 0, openOrders: 0, contractorOverdue: 0 }, canPlan: false, canCreate: false, facilityAssets: [] };
     if (!authorized) return empty;
 
     const now = new Date();
@@ -159,6 +160,7 @@ export async function getImpiantiOverview(): Promise<ImpiantiOverview> {
             contractorOverdue: impianti.reduce((s, i) => s + i.contractors.filter(c => c.state === 'OVERDUE').length, 0),
         },
         canPlan: PLANNERS.includes(session.user.role),
+        canCreate: ['ADMIN', 'PLANT_MANAGER', 'PROCESS_ENGINEER'].includes(session.user.role),
         facilityAssets: assets.map(a => ({ id: a.id, name: a.name })),
     };
 }

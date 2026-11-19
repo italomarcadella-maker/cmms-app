@@ -1,12 +1,15 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { useState, useEffect } from "react";
 import { getProjects, createProject, deleteProject, getUnresolvedAnomalies, archiveProject } from "@/lib/process-actions";
 import { Plus, BarChart3, Settings, Trash2, ShieldAlert, Archive, ListFilter, Activity, Network, Lightbulb, Box, TrendingUp, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export default function ProcessDashboard() {
+    const { confirm, dialog } = useConfirm();
     const [projects, setProjects] = useState<any[]>([]);
     const [anomalies, setAnomalies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -71,30 +74,30 @@ export default function ProcessDashboard() {
             // Option: Redirect to the new project immediately
             // window.location.href = `/process/projects/${res.project.id}`;
         } else {
-            alert("Errore nella creazione del progetto");
+            toast.error("Errore nella creazione del progetto");
         }
     };
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (confirm("Eliminare definitivamente questo progetto e tutti i task associati?")) {
+        if (await confirm({ title: "Eliminare definitivamente questo progetto?", description: "Verranno eliminati anche tutti i task associati.", confirmLabel: "Elimina", variant: "destructive" })) {
             const res = await deleteProject(id);
             if (res.success) {
                 localStorage.removeItem(`proj_modules_${id}`);
                 loadData();
             }
-            else alert(res.message);
+            else toast.error(res.message);
         }
     };
 
     const handleArchive = async (id: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (confirm("Archiviare questo progetto?")) {
+        if (await confirm({ title: "Archiviare questo progetto?", confirmLabel: "Archivia" })) {
             const res = await archiveProject(id);
             if (res.success) loadData();
-            else alert(res.message);
+            else toast.error(res.message);
         }
     };
 
@@ -313,6 +316,7 @@ export default function ProcessDashboard() {
                     </div>
                 </div>
             )}
+            {dialog}
         </div>
     );
 }

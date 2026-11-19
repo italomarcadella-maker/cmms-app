@@ -13,6 +13,7 @@ import { useState } from "react";
 import { CreateScheduleDialog } from "@/components/maintenance/create-schedule-dialog";
 import { Button } from "@/components/ui/button";
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export default function PMSchedulePage() {
     const { schedules, generateDueWorkOrders, deleteSchedule } = usePM(); // pm-context might need refresh logic eventually
@@ -20,6 +21,7 @@ export default function PMSchedulePage() {
     const { assets } = useAssets();
     const { user } = useAuth();
     const router = useRouter();
+    const { confirm, dialog } = useConfirm();
 
     const activeWOs = workOrders.filter(wo => wo.status === 'OPEN' || wo.status === 'IN_PROGRESS');
 
@@ -155,7 +157,7 @@ export default function PMSchedulePage() {
                                         <Calendar className="h-3 w-3" /> Data Target:
                                     </span>
                                     <span className={`font-mono font-medium ${statusInfo.text}`}>
-                                        {new Date(item.date).toLocaleDateString()}
+                                        {new Date(item.date).toLocaleDateString('it-IT')}
                                     </span>
                                 </div>
 
@@ -163,9 +165,9 @@ export default function PMSchedulePage() {
                                 {item.type === 'PM' && isAdmin && (
                                     <div className="flex justify-end mt-2 pt-2">
                                         <button
-                                            onClick={(e) => {
+                                            onClick={async (e) => {
                                                 e.stopPropagation();
-                                                if (confirm("Sei sicuro di voler eliminare questa schedulazione?")) {
+                                                if (await confirm({ title: "Eliminare questa schedulazione?", confirmLabel: "Elimina", variant: "destructive" })) {
                                                     deleteSchedule(item.id);
                                                 }
                                             }}
@@ -182,7 +184,7 @@ export default function PMSchedulePage() {
                                             <button
                                                 onClick={async (e) => {
                                                     e.stopPropagation();
-                                                    if (confirm("Sei sicuro di voler eliminare questo ordine di lavoro?")) {
+                                                    if (await confirm({ title: "Eliminare questo ordine di lavoro?", confirmLabel: "Elimina", variant: "destructive" })) {
                                                         const { deleteWorkOrder } = await import('@/lib/actions');
                                                         await deleteWorkOrder(item.id);
                                                     }
@@ -212,6 +214,7 @@ export default function PMSchedulePage() {
                     </div>
                 )}
             </div>
+            {dialog}
         </div>
     );
 }

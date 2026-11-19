@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 export type ComponentType = 'SCREW' | 'BARREL';
@@ -103,7 +104,7 @@ export function ComponentsProvider({ children }: { children: React.ReactNode }) 
         if (result.success) {
             refreshComponents(); // simpler to refresh than map especially with complex types
         } else {
-            alert(result.message);
+            toast.error(result.message);
         }
     };
 
@@ -117,7 +118,7 @@ export function ComponentsProvider({ children }: { children: React.ReactNode }) 
         if (result.success) {
             refreshComponents();
         } else {
-            alert(result.message);
+            toast.error(result.message);
         }
     };
 
@@ -133,7 +134,7 @@ export function ComponentsProvider({ children }: { children: React.ReactNode }) 
             // For now, let's refresh to get the standard behavior.
             refreshComponents();
         } else {
-            alert(result.message);
+            toast.error(result.message);
         }
     };
 

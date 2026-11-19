@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useInventory } from "@/lib/inventory-context";
@@ -8,12 +9,14 @@ import { BackToDashboardButton } from "@/components/ui/back-button";
 import { QRCodeDialog } from "@/components/inventory/qr-code-dialog";
 import Link from "next/link";
 import { PlantBadge } from "@/components/ui/plant-badge";
+import { usePrompt } from "@/components/ui/prompt-dialog";
 import { ArrowRightLeft, Layers } from "lucide-react";
 
 
 export default function InventoryPage() {
     const { parts, addPart, adjustQuantity, removePart } = useInventory();
     const [isAdding, setIsAdding] = useState(false);
+    const { ask, dialog } = usePrompt();
     const searchParams = useSearchParams();
 
     // New part state
@@ -237,11 +240,11 @@ export default function InventoryPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <button
-                                                onClick={() => {
-                                                    const qtyToAdd = prompt(`Quanti pezzi di '${part.name}' vuoi caricare?`, "1");
-                                                    if (qtyToAdd && !isNaN(Number(qtyToAdd))) {
-                                                        const qty = Number(qtyToAdd);
-                                                        if (qty <= 0) return;
+                                                onClick={async () => {
+                                                    const qtyToAdd = await ask({ title: "Carico manuale", description: part.name, label: "Quanti pezzi vuoi caricare?", inputType: "number", defaultValue: "1", required: true, confirmLabel: "Carica" });
+                                                    if (qtyToAdd !== null) {
+                                                        const qty = Number(qtyToAdd.replace(",", "."));
+                                                        if (!Number.isInteger(qty) || qty <= 0) { toast.warning("Inserisci un numero intero maggiore di zero."); return; }
                                                         adjustQuantity(part.id, qty);
                                                     }
                                                 }}
@@ -254,12 +257,13 @@ export default function InventoryPage() {
                                                 </div>
                                             </button>
                                             <button
-                                                onClick={() => {
-                                                    const qtyToRem = prompt(`Quanti pezzi di '${part.name}' vuoi scaricare?`, "1");
-                                                    if (qtyToRem && !isNaN(Number(qtyToRem))) {
-                                                        const qty = Number(qtyToRem);
+                                                onClick={async () => {
+                                                    const qtyToRem = await ask({ title: "Scarico manuale", description: part.name, label: "Quanti pezzi vuoi scaricare?", inputType: "number", defaultValue: "1", required: true, confirmLabel: "Scarica" });
+                                                    if (qtyToRem !== null) {
+                                                        const qty = Number(qtyToRem.replace(",", "."));
+                                                        if (!Number.isInteger(qty) || qty <= 0) { toast.warning("Inserisci un numero intero maggiore di zero."); return; }
                                                         if (qty > part.quantity) {
-                                                            alert("Quantità insufficiente!");
+                                                            toast.warning("Quantità insufficiente!");
                                                             return;
                                                         }
                                                         adjustQuantity(part.id, -qty);
@@ -291,6 +295,7 @@ export default function InventoryPage() {
                     </table>
                 </div>
             </div>
+            {dialog}
         </div>
     );
 }

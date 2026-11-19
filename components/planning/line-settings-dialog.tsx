@@ -10,6 +10,7 @@ import { updateProductionLine } from "@/lib/actions";
 import { toast } from "sonner";
 import { Loader2, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface LineSettingsDialogProps {
     line: string;
@@ -20,6 +21,7 @@ interface LineSettingsDialogProps {
 
 export function LineSettingsDialog({ line, currentSettings, onClose, onSuccess }: LineSettingsDialogProps) {
     const [loading, setLoading] = useState(false);
+    const { confirm, dialog } = useConfirm();
 
     // Stats State
     const [view, setView] = useState<'CONFIG' | 'STATS'>('CONFIG');
@@ -110,6 +112,7 @@ export function LineSettingsDialog({ line, currentSettings, onClose, onSuccess }
     ];
 
     return (
+        <>
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
@@ -288,7 +291,7 @@ export function LineSettingsDialog({ line, currentSettings, onClose, onSuccess }
                                     type="button"
                                     variant="destructive"
                                     onClick={async () => {
-                                        if (!confirm("Sei sicuro di voler eliminare questa linea dalla pianificazione?")) return;
+                                        if (!(await confirm({ title: "Eliminare questa linea?", description: "La linea verrà eliminata dalla pianificazione.", confirmLabel: "Elimina", variant: "destructive" }))) return;
                                         setLoading(true);
                                         const { deleteProductionLine } = await import("@/lib/actions");
                                         const res = await deleteProductionLine(line);
@@ -348,15 +351,15 @@ export function LineSettingsDialog({ line, currentSettings, onClose, onSuccess }
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
                                             <span className="text-muted-foreground">Tempo Programmato (TPT):</span>
-                                            <span className="font-mono font-medium">{(stats.totalScheduledTimeMinutes / 60).toFixed(1)}h</span>
+                                            <span className="font-mono font-medium">{(stats.totalScheduledTimeMinutes / 60).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}h</span>
                                         </div>
                                         <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
                                             <span className="text-muted-foreground">Fermi Totali (Guasti):</span>
-                                            <span className="font-mono font-medium text-red-600">{(stats.totalDowntimeMinutes / 60).toFixed(1)}h</span>
+                                            <span className="font-mono font-medium text-red-600">{(stats.totalDowntimeMinutes / 60).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}h</span>
                                         </div>
                                         <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
                                             <span className="text-muted-foreground">Tempo Operativo (ROT):</span>
-                                            <span className="font-mono font-bold text-green-700">{(stats.realOperatingTimeMinutes / 60).toFixed(1)}h</span>
+                                            <span className="font-mono font-bold text-green-700">{(stats.realOperatingTimeMinutes / 60).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}h</span>
                                         </div>
                                         <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
                                             <span className="text-muted-foreground">Numero Guasti:</span>
@@ -375,5 +378,7 @@ export function LineSettingsDialog({ line, currentSettings, onClose, onSuccess }
                 )}
             </DialogContent>
         </Dialog >
+        {dialog}
+        </>
     );
 }

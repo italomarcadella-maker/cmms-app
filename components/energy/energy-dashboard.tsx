@@ -202,7 +202,7 @@ export function EnergyDashboard({
                         <Zap className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{filteredStats.totals.ELEC.toFixed(1)} kWh</div>
+                        <div className="text-2xl font-bold">{filteredStats.totals.ELEC.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             Nel periodo selezionato
                         </p>
@@ -223,7 +223,7 @@ export function EnergyDashboard({
                         <Droplets className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{filteredStats.totals.WATER.toFixed(1)} m³</div>
+                        <div className="text-2xl font-bold">{filteredStats.totals.WATER.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m³</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             Nel periodo selezionato
                         </p>
@@ -244,7 +244,7 @@ export function EnergyDashboard({
                         <Flame className="h-4 w-4 text-orange-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{filteredStats.totals.GAS.toFixed(1)} m³</div>
+                        <div className="text-2xl font-bold">{filteredStats.totals.GAS.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m³</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             Nel periodo selezionato
                         </p>

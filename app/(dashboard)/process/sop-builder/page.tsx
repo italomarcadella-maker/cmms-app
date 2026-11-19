@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { useState, useRef, useEffect } from "react";
 import { getAssets } from "@/lib/actions";
 import { createSopDocument } from "@/lib/process-actions";
@@ -82,7 +83,7 @@ export default function SOPBuilder() {
             const result = await parseHmiImageToSop(imagePreview, selectedAsset);
 
             if (!result.success) {
-                alert(result.message || "Errore durante l'analisi dell'immagine. Riprova.");
+                toast.error(result.message || "Errore durante l'analisi dell'immagine. Riprova.");
                 return;
             }
 
@@ -101,7 +102,7 @@ export default function SOPBuilder() {
             setScanComplete(true);
         } catch (e) {
             console.error(e);
-            alert("Errore durante l'analisi dell'immagine. Riprova.");
+            toast.error("Errore durante l'analisi dell'immagine. Riprova.");
         } finally {
             setIsScanning(false);
         }
@@ -126,10 +127,10 @@ export default function SOPBuilder() {
         });
 
         if (res.success) {
-            alert("SOP salvato con successo! Questa ricetta diventerà il nuovo standard approvato.");
+            toast.success("SOP salvato con successo! Questa ricetta diventerà il nuovo standard approvato.");
             window.location.href = "/process";
         } else {
-            alert(res.message);
+            toast.error(res.message);
         }
     };
 

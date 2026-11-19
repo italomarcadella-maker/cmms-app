@@ -1,9 +1,11 @@
 "use client";
 
+import { toast } from "sonner";
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2, Gauge, Zap, Droplets, Flame } from "lucide-react";
 import { createMeter, deleteMeter } from "@/lib/actions";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { getTechnicians } from "@/lib/actions";
 import { getReadingPlans, type ReadingPlan } from "@/modules/energy/adapters/actions/reading-plan-actions";
 import { frequencyLabel } from "@/modules/energy/domain/reading-plan";
@@ -14,6 +16,7 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
     const [isAdding, setIsAdding] = useState(false);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const { confirm, dialog } = useConfirm();
     const [plans, setPlans] = useState<ReadingPlan[]>([]);
     const [assignees, setAssignees] = useState<PlanAssignee[]>([]);
 
@@ -46,19 +49,19 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
             setName(""); setSerial(""); setLocation("");
             router.refresh();
         } catch (error) {
-            alert("Errore creazione.");
+            toast.error("Errore creazione.");
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Eliminare questo contatore?")) return;
+        if (!(await confirm({ title: "Eliminare questo contatore?", confirmLabel: "Elimina", variant: "destructive" }))) return;
         try {
             await deleteMeter(id);
             router.refresh();
         } catch (error) {
-            alert("Errore eliminazione.");
+            toast.error("Errore eliminazione.");
         }
     };
 
@@ -172,6 +175,7 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
                     </div>
                 )}
             </div>
+            {dialog}
         </div>
     );
 }

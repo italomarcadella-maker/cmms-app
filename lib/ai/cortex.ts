@@ -63,7 +63,7 @@ export class CortexEngine {
                         id: 'sustainability-cost',
                         type: 'INFO',
                         title: 'Efficienza Energetica',
-                        message: `Costo energetico stimato ultimi 7 giorni: €${totalCost.toFixed(0)}. Consumo medio elevato rilevato.`,
+                        message: `Costo energetico stimato ultimi 7 giorni: €${totalCost.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}. Consumo medio elevato rilevato.`,
                         actionLabel: 'Dettaglio Consumi',
                         actionUrl: '/sustainability'
                     });

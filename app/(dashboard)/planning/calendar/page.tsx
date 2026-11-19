@@ -222,7 +222,7 @@ export default function AssetCalendarPage() {
                 toast.error(result.message);
                 setEvents(originalEvents);
             } else {
-                toast.success(`Intervento spostato al ${format(targetDate, 'd MMM')}`);
+                toast.success(`Intervento spostato al ${format(targetDate, 'd MMM', { locale: it })}`);
             }
         }
 
@@ -379,7 +379,7 @@ export default function AssetCalendarPage() {
                                     <div key={i} className={cn("p-4 text-center text-sm", isSameDay(day, new Date()) && "bg-blue-50/50")}>
                                         <div className="font-semibold capitalize">{format(day, "EEE", { locale: it })}</div>
                                         <div className={cn("text-xs mt-1", isSameDay(day, new Date()) ? "text-blue-600 font-bold" : "text-muted-foreground")}>
-                                            {format(day, "d MMM")}
+                                            {format(day, "d MMM", { locale: it })}
                                         </div>
                                     </div>
                                 ))}
@@ -467,7 +467,7 @@ export default function AssetCalendarPage() {
                                     {days.map((day, i) => (
                                         <div key={i} className={cn("p-4 text-center text-sm", isSameDay(day, new Date()) && "bg-blue-50/50")}>
                                             <div className="font-semibold capitalize">{format(day, "EEE", { locale: it })}</div>
-                                            <div className="text-xs text-muted-foreground">{format(day, "d MMM")}</div>
+                                            <div className="text-xs text-muted-foreground">{format(day, "d MMM", { locale: it })}</div>
                                         </div>
                                     ))}
                                 </div>

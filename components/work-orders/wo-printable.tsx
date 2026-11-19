@@ -62,7 +62,7 @@ export function PrintableWO({ wo, hidden }: { wo: any, hidden?: boolean }) {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 'bold' }}>ID: {wo.id}</div>
-                    <div>Data: {new Date().toLocaleDateString()}</div>
+                    <div>Data: {new Date().toLocaleDateString('it-IT')}</div>
                 </div>
             </div>
 
@@ -108,7 +108,7 @@ export function PrintableWO({ wo, hidden }: { wo: any, hidden?: boolean }) {
                                 <tr key={i}>
                                     <td>{p.partName}</td>
                                     <td>{p.quantity}</td>
-                                    <td style={{ textAlign: 'right' }}>€{(p.unitCost * p.quantity).toFixed(2)}</td>
+                                    <td style={{ textAlign: 'right' }}>€{(p.unitCost * p.quantity).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                             )) : (
                                 <tr><td colSpan={3} style={{ fontStyle: 'italic', color: '#999' }}>Nessun materiale consumato</td></tr>
@@ -132,7 +132,7 @@ export function PrintableWO({ wo, hidden }: { wo: any, hidden?: boolean }) {
                                 <tr key={i}>
                                     <td>{l.technicianName}</td>
                                     <td>{l.hours}h</td>
-                                    <td style={{ textAlign: 'right' }}>{new Date(l.date).toLocaleDateString()}</td>
+                                    <td style={{ textAlign: 'right' }}>{new Date(l.date).toLocaleDateString('it-IT')}</td>
                                 </tr>
                             )) : (
                                 <tr><td colSpan={3} style={{ fontStyle: 'italic', color: '#999' }}>Nessuna attività registrata</td></tr>

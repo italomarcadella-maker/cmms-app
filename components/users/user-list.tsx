@@ -119,7 +119,7 @@ export function UserList({ users, plants = [] }: UserListProps) {
                                 <RoleSelector userId={user.id} currentRole={user.role} />
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
-                                {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Mai'}
+                                {user.lastLogin ? new Date(user.lastLogin).toLocaleString('it-IT') : 'Mai'}
                             </TableCell>
                             <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">

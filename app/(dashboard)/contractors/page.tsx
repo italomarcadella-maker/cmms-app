@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePlant } from "@/lib/plant-context";
 import { frequencyText } from "@/modules/maintenance/domain/contractors";
-import { ContractorFormDialog, ExecutionDialog } from "@/components/contractors/contractor-dialogs";
+import { ContractorFormDialog, ExecutionDialog, NewContractDialog } from "@/components/contractors/contractor-dialogs";
 import { ActivityStateBadge, ContractStateBadge } from "@/components/contractors/state-badges";
 import {
     getContractorsOverview, listAllContracts, listContractActivities,
@@ -51,7 +51,10 @@ export default function ContractorsPage() {
                 title="Ditte esterne"
                 description="Contratti, attività periodiche e interventi delle ditte esterne, con scadenze e storico. Le attività in programma compaiono in blu nel calendario della dashboard."
                 actions={overview?.canManage && (
-                    <ContractorFormDialog trigger={<Button><Plus className="h-4 w-4" /> Nuova ditta</Button>} onSaved={reload} />
+                    <div className="flex flex-wrap gap-2">
+                        <NewContractDialog contractors={overview.contractors.filter(c => c.isActive)} trigger={<Button variant="outline"><FileSignature className="h-4 w-4" /> Nuovo contratto</Button>} onSaved={reload} />
+                        <ContractorFormDialog trigger={<Button><Plus className="h-4 w-4" /> Nuova ditta</Button>} onSaved={reload} />
+                    </div>
                 )}
             />
 
@@ -72,7 +75,7 @@ export default function ContractorsPage() {
 
                 <TabsContent value="activities" className="mt-4">
                     {activities === null ? <p className="text-sm text-muted-foreground">Caricamento...</p> : activities.length === 0 ? (
-                        <Card><EmptyState icon={<Wrench />} title="Nessuna attività in programma" description="Aggiungi una ditta, un contratto e le sue attività periodiche: qui compare cosa c'è da fare e da quando." /></Card>
+                        <Card><EmptyState icon={<Wrench />} title="Nessuna attività in programma" description="Aggiungi una ditta, un contratto e le sue attività periodiche: qui compare cosa c'è da fare e da quando." action={overview?.canManage ? <ContractorFormDialog trigger={<Button><Plus className="h-4 w-4" /> Nuova ditta</Button>} onSaved={reload} /> : undefined} /></Card>
                     ) : (
                         <Card>
                             <CardContent className="overflow-x-auto p-0">
@@ -111,7 +114,7 @@ export default function ContractorsPage() {
 
                 <TabsContent value="contractors" className="mt-4">
                     {overview === null ? <p className="text-sm text-muted-foreground">Caricamento...</p> : overview.contractors.length === 0 ? (
-                        <Card><EmptyState icon={<HardHat />} title="Nessuna ditta registrata" description="Registra le ditte con cui lavorate, poi aggiungi i contratti per stabilimento." /></Card>
+                        <Card><EmptyState icon={<HardHat />} title="Nessuna ditta registrata" description="Registra le ditte con cui lavorate, poi aggiungi i contratti per stabilimento." action={overview.canManage ? <ContractorFormDialog trigger={<Button><Plus className="h-4 w-4" /> Nuova ditta</Button>} onSaved={reload} /> : undefined} /></Card>
                     ) : (
                         <div className="grid gap-3 md:grid-cols-2">
                             {overview.contractors.map(c => (
@@ -144,7 +147,7 @@ export default function ContractorsPage() {
 
                 <TabsContent value="contracts" className="mt-4">
                     {contracts === null ? <p className="text-sm text-muted-foreground">Caricamento...</p> : contracts.length === 0 ? (
-                        <Card><EmptyState icon={<FileSignature />} title="Nessun contratto" description="I contratti si creano dalla scheda di ogni ditta." /></Card>
+                        <Card><EmptyState icon={<FileSignature />} title="Nessun contratto" description="Crea un contratto scegliendo la ditta e lo stabilimento; poi aggiungi le attività periodiche." action={overview?.canManage ? <NewContractDialog contractors={overview.contractors.filter(c => c.isActive)} trigger={<Button><Plus className="h-4 w-4" /> Nuovo contratto</Button>} onSaved={reload} /> : undefined} /></Card>
                     ) : (
                         <Card>
                             <CardContent className="overflow-x-auto p-0">

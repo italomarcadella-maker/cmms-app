@@ -30,6 +30,15 @@ const nextConfig = {
     typescript: {
         ignoreBuildErrors: false,
     },
+    // Pagine unificate: i vecchi indirizzi (preferiti, link salvati) portano a quelle attuali
+    async redirects() {
+        return [
+            { source: '/calendar', destination: '/planning/calendar', permanent: false },
+            { source: '/references/activities', destination: '/activities', permanent: false },
+            { source: '/assets/new', destination: '/assets', permanent: false },
+            { source: '/assets/qr', destination: '/assets', permanent: false },
+        ];
+    },
     experimental: {
         serverActions: {
             bodySizeLimit: '10mb',

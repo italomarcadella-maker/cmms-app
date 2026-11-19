@@ -95,7 +95,7 @@ export class VectorMemory {
                 candidates.push({
                     id: e.id,
                     tags: ['energia', 'sostenibilità', 'consumo', e.assetId || 'plant'],
-                    content: `Consumo Energetico rilevato: ${e.kwhConsumed} kWh. Costo stimato: €${e.costLocal?.toFixed(2)}`,
+                    content: `Consumo Energetico rilevato: ${e.kwhConsumed} kWh. Costo stimato: €${e.costLocal?.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                     type: 'energy',
                     createdAt: e.date
                 });

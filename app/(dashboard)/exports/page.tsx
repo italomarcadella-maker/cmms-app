@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useWorkOrders } from "@/lib/work-orders-context";
 import { useAssets } from "@/lib/assets-context";
 import { useInventory } from "@/lib/inventory-context";
@@ -92,14 +93,14 @@ export default function ExportsPage() {
                         result = await importWorkOrders(data);
                         if (result.success) {
                             setMessage({ type: 'success', text: `Importati ${result.count} interventi.` });
-                            if (result.errors.length > 0) alert("Alcuni errori:\n" + result.errors.join("\n"));
+                            if (result.errors.length > 0) toast.error("Alcuni errori:\n" + result.errors.join("\n"));
                         }
                         break;
                     case 'assets':
                         result = await importAssets(data);
                         if (result.success) {
                             setMessage({ type: 'success', text: `Importati ${result.count} asset.` });
-                            if (result.errors.length > 0) alert("Alcuni errori:\n" + result.errors.join("\n"));
+                            if (result.errors.length > 0) toast.error("Alcuni errori:\n" + result.errors.join("\n"));
                         }
                         break;
                     case 'inventory':
@@ -171,7 +172,7 @@ export default function ExportsPage() {
                 wo.priority,
                 wo.status,
                 wo.assignedTo || "Unassigned",
-                wo.dueDate ? new Date(wo.dueDate).toLocaleDateString() : "N/A",
+                wo.dueDate ? new Date(wo.dueDate).toLocaleDateString('it-IT') : "N/A",
                 partsCost.toFixed(2),
                 laborCost.toFixed(2),
                 (partsCost + laborCost).toFixed(2)
@@ -187,7 +188,7 @@ export default function ExportsPage() {
             if (wo.partsUsed) {
                 wo.partsUsed.forEach(part => {
                     rows.push([
-                        new Date(part.dateAdded || wo.createdAt).toLocaleDateString(),
+                        new Date(part.dateAdded || wo.createdAt).toLocaleDateString('it-IT'),
                         `"${part.partName}"`,
                         part.quantity.toString(),
                         part.unitCost.toString(),

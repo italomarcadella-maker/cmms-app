@@ -1,14 +1,17 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { useState } from "react";
 import { updatePurchaseRequestStatus, fulfillPurchaseRequest } from "@/lib/inventory-actions";
 import { format } from "date-fns";
 import { it } from 'date-fns/locale';
 import { PackageSearch, CheckCircle2, Truck, FileText, AlertCircle } from "lucide-react";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function PurchaseRequestsList({ initialRequests }: { initialRequests: any[] }) {
     const [requests, setRequests] = useState(initialRequests);
     const [loadingId, setLoadingId] = useState<string | null>(null);
+    const { confirm, dialog } = useConfirm();
 
     const handleStatusChange = async (id: string, newStatus: string) => {
         setLoadingId(id);
@@ -16,20 +19,20 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
         if (res.success) {
             setRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
         } else {
-            alert(res.message);
+            toast.error(res.message);
         }
         setLoadingId(null);
     };
 
     const handleFulfill = async (id: string) => {
-        if (!confirm("Confermi la ricezione della merce? La giacenza verrà aggiornata automaticamente.")) return;
+        if (!(await confirm({ title: "Confermi la ricezione della merce?", description: "La giacenza verrà aggiornata automaticamente.", confirmLabel: "Conferma ricezione" }))) return;
         setLoadingId(id);
         const res = await fulfillPurchaseRequest(id);
         if (res.success) {
             setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "RECEIVED", receivedAt: new Date() } : r));
-            alert("Giacenza aggiornata!");
+            toast.success("Giacenza aggiornata!");
         } else {
-            alert(res.message);
+            toast.error(res.message);
         }
         setLoadingId(null);
     };
@@ -110,7 +113,7 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
                                     {req.reason}
                                 </td>
                                 <td className="px-6 py-4 text-right font-medium">
-                                    {req.expectedCost ? `€${req.expectedCost.toFixed(2)}` : '-'}
+                                    {req.expectedCost ? `€${req.expectedCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                                 </td>
                                 <td className="px-6 py-4 text-right space-x-2">
                                     {req.status === "DRAFT" && (
@@ -146,6 +149,7 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
                     </tbody>
                 </table>
             </div>
+            {dialog}
         </div >
     );
 }

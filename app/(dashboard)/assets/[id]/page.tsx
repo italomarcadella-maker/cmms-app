@@ -15,6 +15,7 @@ import { AssetAIChat } from "@/components/assets/asset-ai-chat";
 import { TagGeneratorDialog } from "@/components/assets/tag-generator-dialog";
 import { AssetSOPList } from "@/components/assets/asset-sop-list";
 import { Button } from "@/components/ui/button";
+import { usePrompt } from "@/components/ui/prompt-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -35,6 +36,7 @@ export default function AssetDetailsPage() {
     const params = useParams();
     const { assets, updateAsset } = useAssets();
     const { workOrders } = useWorkOrders();
+    const { ask, dialog } = usePrompt();
 
     const asset = assets.find((a) => a.id === params.id) || assets.find((a) => a.id === decodeURIComponent(params.id as string));
 
@@ -170,10 +172,10 @@ export default function AssetDetailsPage() {
                                     <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => {
-                                            const docName = prompt("Nome del documento (es. Manuale uso):");
+                                        onClick={async () => {
+                                            const docName = await ask({ title: "Aggiungi documento", label: "Nome del documento (es. Manuale uso)", required: true, confirmLabel: "Avanti" });
                                             if (docName) {
-                                                const docType = prompt("Tipo (PDF, DOCX, IMG):", "PDF") || "PDF";
+                                                const docType = (await ask({ title: "Tipo di documento", label: "Tipo (PDF, DOCX, IMG)", defaultValue: "PDF" })) || "PDF";
                                                 const newDoc = { name: docName, type: docType, url: "#", date: new Date().toISOString() };
                                                 updateAsset(asset.id, { documents: [...(asset.documents || []), newDoc] });
                                             }
@@ -268,6 +270,7 @@ export default function AssetDetailsPage() {
             <AssetAIChat assetId={asset.id} assetName={asset.name} />
 
             {showTagGenerator && <TagGeneratorDialog assetId={asset.id} assetName={asset.name} onClose={() => setShowTagGenerator(false)} />}
+            {dialog}
         </div>
     );
 }

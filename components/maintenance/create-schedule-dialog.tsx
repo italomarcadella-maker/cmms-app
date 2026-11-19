@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RECURRENCE_OPTIONS, MaintenanceActivity, Asset } from "@/lib/types";
 import { Calendar as CalendarIcon, CheckSquare, ArrowRight, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import { it } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -205,7 +206,7 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                                                 )}
                                             >
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {firstDate ? format(firstDate, "PPP") : <span>Seleziona data</span>}
+                                                {firstDate ? format(firstDate, "PPP", { locale: it }) : <span>Seleziona data</span>}
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0 bg-white" align="start">

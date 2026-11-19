@@ -558,7 +558,7 @@ export default function ProjectWorkspace() {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl cursor-pointer hover:bg-emerald-100 transition" onClick={() => setIsEditingRoi(true)}>
                                     <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">ROI Stimato</p>
-                                    <p className="text-2xl font-extrabold text-emerald-900">€{project.roi?.toLocaleString() || "0"}</p>
+                                    <p className="text-2xl font-extrabold text-emerald-900">€{project.roi?.toLocaleString('it-IT') || "0"}</p>
                                 </div>
                                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl">
                                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Task Aperti</p>

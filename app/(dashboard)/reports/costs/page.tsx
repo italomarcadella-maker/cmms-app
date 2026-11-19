@@ -39,7 +39,7 @@ export default async function CostReportPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{formatCurrency(data.totalPartsCost)}</div>
-                        <p className="text-xs text-muted-foreground">{(data.totalPartsCost / data.totalCost * 100).toFixed(1)}% del totale</p>
+                        <p className="text-xs text-muted-foreground">{(data.totalPartsCost / data.totalCost * 100).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% del totale</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -49,7 +49,7 @@ export default async function CostReportPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{formatCurrency(data.totalLaborCost)}</div>
-                        <p className="text-xs text-muted-foreground">{(data.totalLaborCost / data.totalCost * 100).toFixed(1)}% del totale</p>
+                        <p className="text-xs text-muted-foreground">{(data.totalLaborCost / data.totalCost * 100).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% del totale</p>
                     </CardContent>
                 </Card>
             </div>

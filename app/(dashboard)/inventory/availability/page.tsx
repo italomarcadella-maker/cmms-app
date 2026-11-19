@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { usePrompt } from "@/components/ui/prompt-dialog";
 import {
     searchPartAvailability, requestPartTransfer, listPartTransfers, decidePartTransfer,
     receivePartTransfer, cancelPartTransfer,
@@ -236,6 +237,7 @@ function RequestForm({ stock, onClose, onDone }: { stock: StockRow; onClose: () 
 
 function TransfersTable({ rows, onChanged }: { rows: TransferRow[]; onChanged: () => void }) {
     const [busyId, setBusyId] = useState<string | null>(null);
+    const { ask, dialog } = usePrompt();
 
     const act = async (id: string, fn: () => Promise<{ success: boolean; message?: string }>) => {
         setBusyId(id);
@@ -288,8 +290,10 @@ function TransfersTable({ rows, onChanged }: { rows: TransferRow[]; onChanged: (
                                             {r.canDecide && (
                                                 <>
                                                     <Button size="sm" disabled={busyId === r.id} onClick={() => act(r.id, () => decidePartTransfer(r.id, true))}>Approva</Button>
-                                                    <Button size="sm" variant="outline" disabled={busyId === r.id} onClick={() => {
-                                                        const reason = window.prompt("Motivo del rifiuto (facoltativo)") ?? undefined;
+                                                    <Button size="sm" variant="outline" disabled={busyId === r.id} onClick={async () => {
+                                                        const answer = await ask({ title: "Rifiutare la richiesta?", label: "Motivo del rifiuto (facoltativo)", confirmLabel: "Rifiuta", variant: "destructive" });
+                                                        if (answer === null) return;
+                                                        const reason = answer;
                                                         act(r.id, () => decidePartTransfer(r.id, false, reason));
                                                     }}>Rifiuta</Button>
                                                 </>
@@ -308,6 +312,7 @@ function TransfersTable({ rows, onChanged }: { rows: TransferRow[]; onChanged: (
                     </TableBody>
                 </Table>
             </CardContent>
+            {dialog}
         </Card>
     );
 }

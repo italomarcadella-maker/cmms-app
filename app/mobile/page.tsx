@@ -84,7 +84,7 @@ export default async function MobileDashboardPage() {
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${task.priority === 'HIGH' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
                                     {task.priority}
                                 </span>
-                                <span className="text-xs text-muted-foreground">{new Date(task.createdAt).toLocaleDateString()}</span>
+                                <span className="text-xs text-muted-foreground">{new Date(task.createdAt).toLocaleDateString('it-IT')}</span>
                             </div>
                             <h3 className="font-bold text-slate-800 mb-1">{task.title}</h3>
                             <p className="text-xs text-muted-foreground line-clamp-1">{task.description}</p>

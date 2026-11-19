@@ -126,7 +126,7 @@ export default async function PredictiveMaintenancePage() {
                                             <span className={`font-mono font-medium flex items-center gap-1 ${asset.riskLevel === 'CRITICAL' ? 'text-red-600' : ''
                                                 }`}>
                                                 <Timer className="h-3 w-3" />
-                                                {asset.nextFailureDate?.toLocaleDateString()}
+                                                {asset.nextFailureDate?.toLocaleDateString('it-IT')}
                                             </span>
                                         </div>
                                     </div>

@@ -2,8 +2,10 @@
 
 import React, { useState, useRef } from "react";
 import { C, uid, today, PARAM_TYPES, PK, SAFETY_TYPES, SK } from "@/lib/fpes-utils";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export default function SopPro({ project: p, upd }: { project: any; upd: (patch: any) => void; }) {
+  const { confirm, dialog } = useConfirm();
   const mkSStep = (i: number) => ({
     id: uid(),
     titolo: "Step " + (i + 1),
@@ -182,7 +184,7 @@ export default function SopPro({ project: p, upd }: { project: any; upd: (patch:
                   <div className="flex opacity-0 hover:opacity-100 transition-opacity">
                     <button onClick={e => { e.stopPropagation(); moveStep(i, -1); }} className="text-slate-400 hover:text-slate-800 px-1">↑</button>
                     <button onClick={e => { e.stopPropagation(); moveStep(i, 1); }} className="text-slate-400 hover:text-slate-800 px-1">↓</button>
-                    <button onClick={e => { e.stopPropagation(); if (confirm("Eliminare?")) delStep(i); }} className="text-red-400 hover:text-red-600 px-1">×</button>
+                    <button onClick={async e => { e.stopPropagation(); if (await confirm({ title: "Eliminare questo passo?", confirmLabel: "Elimina", variant: "destructive" })) delStep(i); }} className="text-red-400 hover:text-red-600 px-1">×</button>
                   </div>
                 </div>
               ))}
@@ -335,6 +337,7 @@ export default function SopPro({ project: p, upd }: { project: any; upd: (patch:
           )}
         </div>
       </div>
+      {dialog}
     </div>
   );
 }

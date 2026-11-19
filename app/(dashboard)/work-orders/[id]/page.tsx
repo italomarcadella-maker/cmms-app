@@ -472,7 +472,7 @@ export default function WorkOrderDetailPage() {
                                             <span className="font-medium truncate max-w-[120px]" title={p.partName}>{p.partName}</span>
                                             <div className="flex items-center gap-3 text-muted-foreground">
                                                 <span>x{p.quantity}</span>
-                                                <span>€{(p.unitCost * p.quantity).toFixed(2)}</span>
+                                                <span>€{(p.unitCost * p.quantity).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 {canManage && (
                                                     <button
                                                         onClick={() => handleRemovePart(p.id)} // Assuming p.id is the WorkOrderPart ID
@@ -492,15 +492,15 @@ export default function WorkOrderDetailPage() {
                         <div className="space-y-3 mb-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Costo Ricambi</span>
-                                <span className="font-mono">€{partsCost.toFixed(2)}</span>
+                                <span className="font-mono">€{partsCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Costo Manodopera</span>
-                                <span className="font-mono">€{laborCost.toFixed(2)}</span>
+                                <span className="font-mono">€{laborCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className="pt-2 border-t flex justify-between font-bold text-base">
                                 <span>Totale</span>
-                                <span>€{totalCost.toFixed(2)}</span>
+                                <span>€{totalCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
                     </div>
@@ -570,7 +570,7 @@ export default function WorkOrderDetailPage() {
                                         <span className="font-medium">{log.technicianName}</span>
                                         <div className="flex items-center gap-4 text-muted-foreground">
                                             <span>{log.hours}h</span>
-                                            <span className="text-xs">{new Date(log.date).toLocaleDateString()}</span>
+                                            <span className="text-xs">{new Date(log.date).toLocaleDateString('it-IT')}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -629,15 +629,15 @@ export default function WorkOrderDetailPage() {
                         <div className="space-y-2 py-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Ricambi</span>
-                                <span>€{partsCost.toFixed(2)}</span>
+                                <span>€{partsCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Manodopera</span>
-                                <span>€{laborCost.toFixed(2)}</span>
+                                <span>€{laborCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
                                 <span>Totale</span>
-                                <span>€{totalCost.toFixed(2)}</span>
+                                <span>€{totalCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
                     </div>

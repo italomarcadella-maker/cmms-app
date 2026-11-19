@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState, useEffect, useCallback } from "react";
 import { getSOPsByAsset, updateSopDocument } from "@/lib/process-actions";
 import { FileCheck2, Edit2, Save, X } from "lucide-react";
@@ -57,7 +58,7 @@ export function AssetSOPList({ assetId }: { assetId: string }) {
             cancelEditing();
             loadSOPs();
         } else {
-            alert(res.message);
+            toast.error(res.message);
         }
     };
 
@@ -120,7 +121,7 @@ export function AssetSOPList({ assetId }: { assetId: string }) {
                         </div>
 
                         <p className="text-xs text-slate-400 mb-4 border-b pb-2">
-                            Autore: {sop.author} • Inserita il: {new Date(sop.createdAt).toLocaleDateString()}
+                            Autore: {sop.author} • Inserita il: {new Date(sop.createdAt).toLocaleDateString('it-IT')}
                         </p>
 
                         <div className="space-y-2">

@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { PreventiveSchedule, WorkOrder } from "@/lib/types";
 import { useWorkOrders } from "./work-orders-context";
@@ -71,7 +72,7 @@ export function PMProvider({ children }: { children: React.ReactNode }) {
         if (result.success) {
             setSchedules(prev => prev.filter(s => s.id !== id));
         } else {
-            alert(result.message);
+            toast.error(result.message);
         }
     };
 

@@ -1,12 +1,15 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { useState, useEffect } from "react";
 import { Plus, Save, Activity, Camera, Layers, Settings2, Trash2 } from "lucide-react";
 import { getRecipes, createRecipe, saveRecipeData, addQualityReading } from "@/lib/actions/sop-actions";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from "date-fns";
+import { usePrompt } from "@/components/ui/prompt-dialog";
 
 export default function SopMesDashboard() {
+  const { ask, dialog } = usePrompt();
   const [activeTab, setActiveTab] = useState<'recipe'|'quality'>('recipe');
   const [recipes, setRecipes] = useState<any[]>([]);
   const [currentRecipe, setCurrentRecipe] = useState<any>(null);
@@ -50,7 +53,7 @@ export default function SopMesDashboard() {
   }, [loadData]);
 
   const handleNewRecipe = async () => {
-    const name = prompt("Nome della nuova SOP / Ricetta Master?");
+    const name = await ask({ title: "Nuova SOP", label: "Nome della nuova SOP / Ricetta Master", required: true, confirmLabel: "Crea" });
     if (name) {
       const newRecipe = await createRecipe(name);
       await loadData();
@@ -61,7 +64,7 @@ export default function SopMesDashboard() {
   const handleSaveRecipe = async () => {
     if (!currentRecipe) return;
     await saveRecipeData(currentRecipe.id, machines);
-    alert("SOP salvata con successo!");
+    toast.success("SOP salvata con successo!");
     loadData();
   };
 
@@ -69,7 +72,7 @@ export default function SopMesDashboard() {
     if (!currentRecipe || !qualityValue) return;
     await addQualityReading(currentRecipe.id, parseFloat(qualityValue));
     setQualityValue("");
-    alert("Lettura salvata e analizzata dal Global AI Engine!");
+    toast.success("Lettura salvata e analizzata dal Global AI Engine!");
     loadData();
   };
 
@@ -251,6 +254,7 @@ export default function SopMesDashboard() {
         )}
 
       </div>
+      {dialog}
     </div>
   );
 }

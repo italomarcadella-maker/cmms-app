@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Technician, MaintenanceActivity } from "@/lib/types";
 
@@ -41,7 +42,7 @@ export function ReferenceProvider({ children }: { children: React.ReactNode }) {
         if (result.success && result.data) {
             setTechnicians(prev => [...prev, result.data as Technician]);
         } else {
-            alert(result.message);
+            toast.error(result.message);
         }
     };
 
@@ -51,7 +52,7 @@ export function ReferenceProvider({ children }: { children: React.ReactNode }) {
         if (result.success) {
             setTechnicians(prev => prev.filter(t => t.id !== id));
         } else {
-            alert(result.message);
+            toast.error(result.message);
         }
     };
 
@@ -61,7 +62,7 @@ export function ReferenceProvider({ children }: { children: React.ReactNode }) {
         if (result.success && result.data) {
             setActivities(prev => [...prev, result.data as MaintenanceActivity]);
         } else {
-            alert(result.message);
+            toast.error(result.message);
         }
     };
 
@@ -71,7 +72,7 @@ export function ReferenceProvider({ children }: { children: React.ReactNode }) {
         if (result.success) {
             setActivities(prev => prev.filter(a => a.id !== id));
         } else {
-            alert(result.message);
+            toast.error(result.message);
         }
     };
 

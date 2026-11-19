@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState } from "react";
 import { Plus, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { addMeterReading } from "@/lib/actions";
@@ -46,7 +47,7 @@ export function ReadingFormDialog({ meters }: { meters: any[] }) {
             }
         } catch (error) {
             console.error(error);
-            alert("Errore durante il salvataggio.");
+            toast.error("Errore durante il salvataggio.");
             setResult(null);
         } finally {
             setLoading(false);

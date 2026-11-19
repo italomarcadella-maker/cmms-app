@@ -104,7 +104,7 @@ export default async function AndonPage() {
                                 {asset.workOrders.find(w => w.priority === 'STOPPED')?.title || "Manutenzione Urgente"}
                             </div>
                             <div className="mt-2 text-right text-red-400 font-mono">
-                                Da: {asset.workOrders[0]?.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                Da: {asset.workOrders[0]?.createdAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                         </div>
                     ))}

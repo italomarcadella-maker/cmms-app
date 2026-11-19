@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { createContext, useContext, useMemo } from "react";
 import { WorkOrder } from "@/lib/types";
 import { updateWorkOrderStatus as updateStatusAction } from "@/lib/actions";
@@ -60,7 +61,7 @@ export function WorkOrdersProvider({
         } catch (err) {
             console.error("Failed to create work order", err);
             await swrMutate(); // Rollback
-            alert("Errore salvataggio ordine: " + err);
+            toast.error("Errore salvataggio ordine: " + err);
         }
     };
 
@@ -73,11 +74,11 @@ export function WorkOrdersProvider({
             const { deleteWorkOrder } = await import('@/lib/actions');
             const res = await deleteWorkOrder(id);
             if (!res.success) {
-                alert(res.message);
+                toast.error(res.message);
             }
             await swrMutate();
         } catch (err) {
-            alert("Errore eliminazione");
+            toast.error("Errore eliminazione");
             await swrMutate();
         }
     };

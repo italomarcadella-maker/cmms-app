@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import { uid } from "@/lib/fpes-utils";
 import { Lightbulb, Plus, Trash2, Pencil } from "lucide-react";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export default function KaizenBoard({ project, upd, cr }: { project: any; upd: (patch: any) => void; cr: any }) {
   const [edit, setEdit] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirm();
 
   const PRIO = {
     ALTA: { label: "Alta", col: "text-red-700 bg-red-100 border-red-200" },
@@ -32,8 +34,8 @@ export default function KaizenBoard({ project, upd, cr }: { project: any; upd: (
     upd({ kaizen: kaizen.map((x: any) => x.id === id ? { ...x, [k]: v } : x) });
   };
 
-  const delK = (id: string) => {
-    if(confirm("Eliminare definitivamente questo ticket Kaizen?")) {
+  const delK = async (id: string) => {
+    if(await confirm({ title: "Eliminare definitivamente questo ticket Kaizen?", confirmLabel: "Elimina", variant: "destructive" })) {
       upd({ kaizen: kaizen.filter((x: any) => x.id !== id) });
     }
   };
@@ -151,6 +153,7 @@ export default function KaizenBoard({ project, upd, cr }: { project: any; upd: (
           </div>
         ))}
       </div>
+      {dialog}
     </div>
   );
 }

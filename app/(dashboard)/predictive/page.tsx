@@ -157,7 +157,7 @@ export default function PredictivePage() {
                         <Zap className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">€ {kpiStats.totalCost.toFixed(2)}</div>
+                        <div className="text-2xl font-bold">€ {kpiStats.totalCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             Ricambi + Manodopera (Reale)
                         </p>
@@ -170,7 +170,7 @@ export default function PredictivePage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {kpiStats.mttrHours > 0 ? `${kpiStats.mttrHours.toFixed(1)} Ore` : "N/D"}
+                            {kpiStats.mttrHours > 0 ? `${kpiStats.mttrHours.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Ore` : "N/D"}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
                             Tempo medio riparazione

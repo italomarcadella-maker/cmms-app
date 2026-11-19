@@ -104,28 +104,28 @@ export default function CostsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <KPICard
                     title="Costo Totale"
-                    value={`€ ${totalMaintenanceCost.toLocaleString()}`}
+                    value={`€ ${totalMaintenanceCost.toLocaleString('it-IT')}`}
                     icon={Euro}
                     trend="+5% vs mese scorso"
                     color="text-emerald-600"
                 />
                 <KPICard
                     title="Manodopera"
-                    value={`€ ${totalLaborCost.toLocaleString()}`}
+                    value={`€ ${totalLaborCost.toLocaleString('it-IT')}`}
                     icon={Hammer}
                     sub={`${totalLaborHours} ore totali`}
                     color="text-blue-600"
                 />
                 <KPICard
                     title="Ricambi"
-                    value={`€ ${totalPartsCost.toLocaleString()}`}
+                    value={`€ ${totalPartsCost.toLocaleString('it-IT')}`}
                     icon={Component}
                     sub="Stima su interventi chiusi"
                     color="text-amber-600"
                 />
                 <KPICard
                     title="Costo Medio / Asset"
-                    value={`€ ${Math.round(totalMaintenanceCost / (assets.length || 1)).toLocaleString()}`}
+                    value={`€ ${Math.round(totalMaintenanceCost / (assets.length || 1)).toLocaleString('it-IT')}`}
                     icon={TrendingUp}
                     color="text-purple-600"
                 />
