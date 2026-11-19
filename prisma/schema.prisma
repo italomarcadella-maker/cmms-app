@@ -852,6 +852,22 @@ model Plant {
   loansOut     TechnicianLoan[] @relation("LoansOut")
   loansIn      TechnicianLoan[] @relation("LoansIn")
   sharedTemplates SharedTemplate[]
+  safetyEvents SafetyEvent[]
+}
+
+/// Registro degli eventi di sicurezza di uno stabilimento. Serve al contatore "giorni senza infortuni".
+/// Non contiene dati personali: niente nomi ne' informazioni sanitarie delle persone coinvolte.
+model SafetyEvent {
+  id          String   @id @default(cuid())
+  plantId     String
+  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  type        String   // INJURY, NEAR_MISS, HAZARD
+  occurredAt  DateTime
+  description String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([plantId, occurredAt])
 }
 
 /// Stabilimenti visibili a un utente non admin (responsabile di plant: uno o piu').

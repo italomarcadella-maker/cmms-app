@@ -293,3 +293,23 @@ body {
     break-inside: avoid;
   }
 }
+
+/* Quadranti e cronografo della dashboard */
+@keyframes gauge-fill {
+  from { stroke-dasharray: 0 100; }
+}
+@keyframes chrono-sweep {
+  to { transform: rotate(360deg); }
+}
+.gauge-arc {
+  animation: gauge-fill 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.chrono-hand {
+  transform-origin: 80px 80px;
+  animation: chrono-sweep 60s linear infinite;
+  animation-delay: calc(var(--chrono-offset, 0) * -1s);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gauge-arc { animation: none; }
+  .chrono-hand { animation: none; }
+}

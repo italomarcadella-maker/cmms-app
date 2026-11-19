@@ -1,8 +1,10 @@
 import { Suspense } from "react";
 import { DashboardHeader } from "@/components/dashboard/server/dashboard-header";
-import { StatsGrid } from "@/components/dashboard/server/stats-grid";
+import { GaugesRow } from "@/components/dashboard/server/gauges-row";
+import { SafetyCounterWidget } from "@/components/dashboard/server/safety-counter";
+import { FailuresByShiftCard } from "@/components/dashboard/failures-by-shift";
+import { WeekCalendar } from "@/components/dashboard/week-calendar";
 import { FunctionalAreasWidget } from "@/components/dashboard/server/functional-areas-widget";
-import { UpcomingSchedule } from "@/components/dashboard/server/upcoming-schedule";
 import { TechnicianAvailability } from "@/components/dashboard/server/technician-availability";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AIInsightsWrapper } from "@/components/dashboard/server/ai-insights-wrapper";
@@ -21,20 +23,31 @@ export default function Home() {
         <DashboardHeader />
       </Suspense>
 
-      {/* Summary first: the four numbers that tell whether the day is under control */}
+      {/* Quadranti: i quattro indicatori che dicono se la giornata e' sotto controllo */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Suspense
           fallback={
             <>
               {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-[122px] w-full rounded-xl" />
+                <Skeleton key={i} className="h-[170px] w-full rounded-xl" />
               ))}
             </>
           }
         >
-          <StatsGrid />
+          <GaugesRow />
         </Suspense>
       </div>
+
+      {/* Sicurezza e guasti: il cronografo dei giorni senza infortuni e la mappa per reparto e turno */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Suspense fallback={<Skeleton className="h-[260px] w-full rounded-xl" />}>
+          <SafetyCounterWidget />
+        </Suspense>
+        <FailuresByShiftCard />
+      </div>
+
+      {/* Piano della settimana: clic su un giorno per vedere interventi, assegnatari e voci da assegnare */}
+      <WeekCalendar />
 
       {/* Safety alerts stay at the top of the details */}
       <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
@@ -49,13 +62,6 @@ export default function Home() {
         <SectionTitle>Aree funzionali</SectionTitle>
         <Suspense fallback={<Skeleton className="h-24 w-full rounded-xl" />}>
           <FunctionalAreasWidget />
-        </Suspense>
-      </section>
-
-      <section>
-        <SectionTitle>Programmazione dei prossimi giorni</SectionTitle>
-        <Suspense fallback={<Skeleton className="h-48 w-full rounded-xl" />}>
-          <UpcomingSchedule />
         </Suspense>
       </section>
 

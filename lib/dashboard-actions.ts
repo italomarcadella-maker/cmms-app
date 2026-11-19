@@ -20,7 +20,7 @@ const getDetailedDashboardStatsCached = scopedCache(
                 lowStockCount
             ] = await Promise.all([
                 // 1. Asset Stats (Total, Active, Offline, AvgHealth) in one go if possible, but distinct queries are cleaner for Prisma
-                prisma.asset.aggregate({
+                prisma.asset.aggregate({
                     _count: {
                         id: true,
                         _all: true // Total
@@ -31,7 +31,7 @@ const getDetailedDashboardStatsCached = scopedCache(
                 }),
                 // 2. WO Basic Counts
                 prisma.workOrder.groupBy({
-                    by: ['status'],
+                    by: ['status'],
                     _count: { id: true }
                 }),
                 // 3. High Priority Open
@@ -43,9 +43,10 @@ const getDetailedDashboardStatsCached = scopedCache(
             ]);
 
             // Refine Asset Status Counts
-            const [activeAssets, offlineAssets] = await Promise.all([
+            const [activeAssets, offlineAssets, totalSpareParts] = await Promise.all([
                 prisma.asset.count({ where: { status: 'OPERATIONAL' } }),
-                prisma.asset.count({ where: { status: 'OFFLINE' } })
+                prisma.asset.count({ where: { status: 'OFFLINE' } }),
+                prisma.sparePart.count()
             ]);
 
             // Parse WO Grouped Stats
@@ -64,7 +65,8 @@ const getDetailedDashboardStatsCached = scopedCache(
                 highPriorityOpen: openHighPriorityCount,
                 overdueWorkOrders: overdueCount,
                 avgHealth: Math.round(assetStats._avg.healthScore || 0),
-                lowStockCount
+                lowStockCount,
+                totalSpareParts
             };
         } catch (error) {
             console.error("Dashboard Stats Error:", error);
@@ -78,7 +80,8 @@ const getDetailedDashboardStatsCached = scopedCache(
                 highPriorityOpen: 0,
                 overdueWorkOrders: 0,
                 avgHealth: 0,
-                lowStockCount: 0
+                lowStockCount: 0,
+            totalSpareParts: 0
             };
         }
     },
@@ -98,7 +101,8 @@ export async function getDetailedDashboardStats() {
             highPriorityOpen: 0,
             overdueWorkOrders: 0,
             avgHealth: 0,
-            lowStockCount: 0
+            lowStockCount: 0,
+            totalSpareParts: 0
         };
     }
     return getDetailedDashboardStatsCached();
@@ -214,7 +218,7 @@ const getRecentWorkOrdersCached = scopedCache(
     async (limit = 5) => {
         try {
             const wos = await prisma.workOrder.findMany({
-                take: limit,
+                take: limit,
                 orderBy: { createdAt: 'desc' },
                 include: { asset: true }
             });

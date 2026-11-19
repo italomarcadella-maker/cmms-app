@@ -92,6 +92,15 @@ describe.skipIf(!live)('isolamento tra plant (database reale)', () => {
         });
     });
 
+    it('il registro degli eventi di sicurezza e\' separato per plant', async () => {
+        await run(as('PLANT_MANAGER', [other.id]), async () => {
+            expect(await prisma.safetyEvent.count({ where: { plantId: owner.id } })).toBe(0);
+            await expect(prisma.safetyEvent.create({
+                data: { plantId: owner.id, type: 'INJURY', occurredAt: new Date(), createdById: 'test' },
+            })).rejects.toThrow(/Stabilimento non consentito/);
+        });
+    });
+
     it('un non-admin non puo\' creare o eliminare stabilimenti', async () => {
         await run(as('PLANT_MANAGER', [other.id]), async () => {
             await expect(prisma.plant.create({ data: { name: 'Pirata' } })).rejects.toThrow();

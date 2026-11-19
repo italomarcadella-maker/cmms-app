@@ -23,6 +23,7 @@ const DIRECT: Record<string, string> = {
     Project: 'plantId',
     DailyMeeting: 'plantId',
     ProductionLine: 'plantId',
+    SafetyEvent: 'plantId',
 };
 
 /** Modelli che ereditano il plant da un padre (percorso di relazione fino a una colonna plantId). */
