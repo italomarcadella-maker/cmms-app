@@ -1,14 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2, Gauge, Zap, Droplets, Flame } from "lucide-react";
 import { createMeter, deleteMeter } from "@/lib/actions";
 import { useRouter } from "next/navigation";
+import { getTechnicians } from "@/lib/actions";
+import { getReadingPlans, type ReadingPlan } from "@/modules/energy/adapters/actions/reading-plan-actions";
+import { frequencyLabel } from "@/modules/energy/domain/reading-plan";
+import { ReadingPlanDialog, type PlanAssignee } from "@/components/energy/reading-plan-dialog";
 
 export function MetersList({ initialMeters }: { initialMeters: any[] }) {
     const [isAdding, setIsAdding] = useState(false);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const [plans, setPlans] = useState<ReadingPlan[]>([]);
+    const [assignees, setAssignees] = useState<PlanAssignee[]>([]);
+
+    const reloadPlans = useCallback(async () => setPlans(await getReadingPlans()), []);
+    useEffect(() => {
+        let alive = true;
+        getReadingPlans().then(p => { if (alive) setPlans(p); });
+        getTechnicians().then(t => {
+            if (!alive) return;
+            setAssignees((t as { userId?: string | null; name: string }[]).filter(x => x.userId).map(x => ({ userId: x.userId as string, name: x.name })));
+        });
+        return () => { alive = false; };
+    }, [initialMeters.length]);
 
     // Form State
     const [name, setName] = useState("");
@@ -129,7 +146,25 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
                             <div className="flex justify-between">
                                 <span>Ubicazione:</span> <span>{meter.location || '-'}</span>
                             </div>
+                            {(() => {
+                                const plan = plans.find(p => p.meterId === meter.id);
+                                return (
+                                    <div className="flex justify-between">
+                                        <span>Lettura:</span>
+                                        <span className="text-right">
+                                            {plan?.frequencyDays ? `${frequencyLabel(plan.frequencyDays)}, prossima ${plan.nextDue ? new Date(plan.nextDue).toLocaleDateString('it-IT') : '-'}` : 'non pianificata'}
+                                        </span>
+                                    </div>
+                                );
+                            })()}
                         </div>
+                        <ReadingPlanDialog
+                            meterId={meter.id}
+                            meterName={meter.name}
+                            plan={plans.find(p => p.meterId === meter.id)}
+                            assignees={assignees}
+                            onSaved={reloadPlans}
+                        />
                     </div>
                 ))}
                 {initialMeters.length === 0 && (

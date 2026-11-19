@@ -101,6 +101,30 @@ describe.skipIf(!live)('isolamento tra plant (database reale)', () => {
         });
     });
 
+    it('i contratti delle ditte esterne sono separati per plant', async () => {
+        const contractor = await basePrisma.contractor.create({ data: { name: `Ditta di prova ${Date.now()}` } });
+        const contract = await basePrisma.contractorContract.create({
+            data: { contractorId: contractor.id, plantId: owner.id, title: 'Prova isolamento', startDate: new Date() },
+        });
+        try {
+            await run(as('PLANT_MANAGER', [other.id]), async () => {
+                expect(await prisma.contractorContract.count({ where: { id: contract.id } })).toBe(0);
+                expect(await prisma.contractorContract.findUnique({ where: { id: contract.id } })).toBeNull();
+                await expect(prisma.contractorContract.create({
+                    data: { contractorId: contractor.id, plantId: owner.id, title: 'x', startDate: new Date() },
+                })).rejects.toThrow(/Stabilimento non consentito/);
+                await expect(prisma.contractorActivity.create({
+                    data: { contractId: contract.id, title: 'x', frequencyDays: 30, nextDueDate: new Date() },
+                })).rejects.toThrow(/altro stabilimento|non trovato/);
+            });
+            await run(as('PLANT_MANAGER', [owner.id]), async () => {
+                expect(await prisma.contractorContract.count({ where: { id: contract.id } })).toBe(1);
+            });
+        } finally {
+            await basePrisma.contractor.delete({ where: { id: contractor.id } }); // elimina a cascata anche il contratto di prova
+        }
+    });
+
     it('un non-admin non puo\' creare o eliminare stabilimenti', async () => {
         await run(as('PLANT_MANAGER', [other.id]), async () => {
             await expect(prisma.plant.create({ data: { name: 'Pirata' } })).rejects.toThrow();

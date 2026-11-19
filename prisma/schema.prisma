@@ -170,6 +170,7 @@ model Asset {
   documents       AssetDocument[]
   workOrders      WorkOrder[]
   schedules       PreventiveSchedule[]
+  contractorActivities ContractorActivity[]
   
   // Process Engineering
   sopDocuments    SopDocument[]
@@ -413,9 +414,15 @@ model Meter {
   plantId          String?
   plant            Plant?   @relation(fields: [plantId], references: [id])
 
+  // Lettura pianificata: ogni quanti giorni, prossima scadenza e chi la esegue (id utente). Null = non pianificata.
+  readingFrequencyDays Int?
+  nextReadingDue       DateTime?
+  readingAssigneeId    String?
+
   readings         MeterReading[]
 
   @@index([plantId])
+  @@index([nextReadingDue])
 }
 
 model MeterReading {
@@ -853,6 +860,7 @@ model Plant {
   loansIn      TechnicianLoan[] @relation("LoansIn")
   sharedTemplates SharedTemplate[]
   safetyEvents SafetyEvent[]
+  contractorContracts ContractorContract[]
 }
 
 /// Registro degli eventi di sicurezza di uno stabilimento. Serve al contatore "giorni senza infortuni".
@@ -868,6 +876,81 @@ model SafetyEvent {
   createdAt   DateTime @default(now())
 
   @@index([plantId, occurredAt])
+}
+
+/// Ditta esterna. L'anagrafica e' di gruppo (la stessa ditta non si duplica); i contratti sono per stabilimento.
+/// Solo contatti di lavoro: niente dati personali non necessari.
+model Contractor {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  vatNumber    String?
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  contracts    ContractorContract[]
+}
+
+model ContractorContract {
+  id                String   @id @default(cuid())
+  contractorId      String
+  contractor        Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+  plantId           String
+  plant             Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  title             String
+  scope             String?  // perimetro: cosa copre il contratto
+  startDate         DateTime
+  endDate           DateTime?
+  renewalNoticeDays Int      @default(60)
+  annualValue       Float?
+  status            String   @default("ACTIVE") // ACTIVE, TERMINATED (la scadenza si ricava dalle date)
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  activities        ContractorActivity[]
+
+  @@index([plantId, endDate])
+  @@index([contractorId])
+}
+
+/// Attivita' periodica prevista dal contratto (es. "verifica trimestrale compressore").
+model ContractorActivity {
+  id            String   @id @default(cuid())
+  contractId    String
+  contract      ContractorContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  frequencyDays Int
+  assetId       String?
+  asset         Asset?   @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  nextDueDate   DateTime
+  lastDoneAt    DateTime?
+  assigneeId    String?  // referente interno che segue l'attivita'
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  executions    ContractorExecution[]
+
+  @@index([nextDueDate])
+  @@index([contractId])
+}
+
+model ContractorExecution {
+  id          String   @id @default(cuid())
+  activityId  String
+  activity    ContractorActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  doneAt      DateTime
+  outcome     String   // OK, ISSUES
+  notes       String?
+  reportUrl   String?  // collegamento al rapporto d'intervento
+  cost        Float?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([activityId, doneAt])
 }
 
 /// Stabilimenti visibili a un utente non admin (responsabile di plant: uno o piu').

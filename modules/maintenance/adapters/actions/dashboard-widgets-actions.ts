@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/actions';
 import { getPlantScope, runUnscoped } from '@/lib/plant-scope';
 import { DEFAULT_TIMEZONE, dayKeyInZone, shiftOf, type ShiftId } from '../../domain/shifts';
+import { contractState, isInForce } from '../../domain/contractors';
 
 /**
  * Dati per i widget della dashboard: guasti per reparto e turno, piano settimanale degli interventi.
@@ -90,8 +91,12 @@ export async function getFailuresByDepartmentShift(days = 30): Promise<FailuresB
 
 // --- Piano settimanale ---
 
+/** Tipo di intervento, che nel calendario ha un colore: guasto (rosso), programmata (verde), ditta esterna (blu), lettura (giallo). */
+export type WeekItemType = 'FAULT' | 'PROGRAMMED' | 'CONTRACTOR' | 'READING' | 'REQUEST';
+
 export interface WeekItem {
-    kind: 'WO' | 'PM';
+    kind: 'WO' | 'PM' | 'READ' | 'CTR';
+    type: WeekItemType;
     id: string;
     title: string;
     assetName: string;
@@ -102,6 +107,8 @@ export interface WeekItem {
     assignees: string[];
     unassigned: boolean;
     href: string;
+    /** Solo per le letture pianificate: unita' e ultimo valore, per inserire quello nuovo. */
+    meter?: { unit: string; lastValue: number | null; lastReadAt: string | null };
 }
 
 export interface WeekDay {
@@ -149,11 +156,11 @@ export async function getWeekPlan(anyDay?: string): Promise<WeekPlan> {
     const from = new Date(`${addDaysKey(weekStart, -1)}T00:00:00Z`);
     const to = new Date(`${addDaysKey(weekStart, 8)}T00:00:00Z`);
 
-    const [orders, schedules] = await Promise.all([
+    const [orders, schedules, meters, contractorActivities] = await Promise.all([
         prisma.workOrder.findMany({
             where: { dueDate: { gte: from, lt: to }, status: { notIn: ['CANCELED'] } },
             select: {
-                id: true, title: true, priority: true, status: true, dueDate: true, assignedTo: true, assignedTechnicianId: true, plantId: true,
+                id: true, title: true, type: true, priority: true, status: true, dueDate: true, assignedTo: true, assignedTechnicianId: true, plantId: true,
                 asset: { select: { name: true, department: true } },
                 assignedTechnician: { select: { name: true } },
                 technicians: { select: { technician: { select: { name: true } } } },
@@ -164,9 +171,27 @@ export async function getWeekPlan(anyDay?: string): Promise<WeekPlan> {
             where: { nextDueDate: { gte: from, lt: to } },
             select: { id: true, taskTitle: true, nextDueDate: true, assignedToId: true, asset: { select: { name: true, department: true, plantId: true } } },
         }),
+        prisma.meter.findMany({
+            where: { nextReadingDue: { gte: from, lt: to } },
+            select: {
+                id: true, name: true, unit: true, location: true, plantId: true, nextReadingDue: true, readingAssigneeId: true,
+                readings: { orderBy: { date: 'desc' }, take: 1, select: { value: true, date: true } },
+            },
+        }),
+        prisma.contractorActivity.findMany({
+            where: { isActive: true, nextDueDate: { gte: from, lt: to }, contract: { status: 'ACTIVE' } },
+            select: {
+                id: true, title: true, nextDueDate: true,
+                asset: { select: { name: true, department: true } },
+                contract: { select: { plantId: true, contractorId: true, title: true, status: true, startDate: true, endDate: true, renewalNoticeDays: true, contractor: { select: { name: true } } } },
+            },
+        }),
     ]);
 
-    const planners = schedules.filter(s => s.assignedToId).map(s => s.assignedToId as string);
+    const planners = [
+        ...schedules.map(s => s.assignedToId),
+        ...meters.map(m => m.readingAssigneeId),
+    ].filter((x): x is string => !!x);
     const planners2 = planners.length
         ? await prisma.user.findMany({ where: { id: { in: planners } }, select: { id: true, name: true } })
         : [];
@@ -187,7 +212,7 @@ export async function getWeekPlan(anyDay?: string): Promise<WeekPlan> {
         const open = !DONE.includes(o.status);
         const unassigned = open && assignees.length === 0;
         day.items.push({
-            kind: 'WO', id: o.id, title: o.title, assetName: o.asset?.name ?? '-', department: o.asset?.department ?? null, plantId: o.plantId,
+            kind: 'WO', type: o.type === 'FAULT' ? 'FAULT' : o.type === 'ROUTINE' ? 'PROGRAMMED' : 'REQUEST', id: o.id, title: o.title, assetName: o.asset?.name ?? '-', department: o.asset?.department ?? null, plantId: o.plantId,
             priority: o.priority, status: o.status, assignees, unassigned, href: `/work-orders/${o.id}`,
         });
     }
@@ -197,8 +222,35 @@ export async function getWeekPlan(anyDay?: string): Promise<WeekPlan> {
         if (!day) continue;
         const assignees = s.assignedToId ? [userName.get(s.assignedToId) ?? 'Utente'] : [];
         day.items.push({
-            kind: 'PM', id: s.id, title: s.taskTitle, assetName: s.asset?.name ?? '-', department: s.asset?.department ?? null, plantId: s.asset?.plantId ?? null,
+            kind: 'PM', type: 'PROGRAMMED', id: s.id, title: s.taskTitle, assetName: s.asset?.name ?? '-', department: s.asset?.department ?? null, plantId: s.asset?.plantId ?? null,
             priority: null, status: null, assignees, unassigned: assignees.length === 0, href: '/maintenance/schedule',
+        });
+    }
+
+    for (const m of meters) {
+        if (!m.nextReadingDue) continue;
+        const day = byDay.get(dayKeyInZone(m.nextReadingDue, timezone));
+        if (!day) continue;
+        const assignees = m.readingAssigneeId ? [userName.get(m.readingAssigneeId) ?? 'Utente'] : [];
+        const last = m.readings[0];
+        day.items.push({
+            kind: 'READ', type: 'READING', id: m.id, title: `Lettura ${m.name}`, assetName: m.location ?? 'Contatore', department: null,
+            plantId: m.plantId, priority: null, status: null, assignees, unassigned: assignees.length === 0, href: '/sustainability',
+            meter: { unit: m.unit, lastValue: last ? last.value : null, lastReadAt: last ? last.date.toISOString() : null },
+        });
+    }
+
+    // Attivita' delle ditte esterne: l'esecutore e' la ditta, quindi non compaiono tra le voci "da assegnare"
+    const now = new Date();
+    for (const a of contractorActivities) {
+        if (!isInForce(contractState(a.contract, now))) continue;
+        const day = byDay.get(dayKeyInZone(a.nextDueDate, timezone));
+        if (!day) continue;
+        day.items.push({
+            kind: 'CTR', type: 'CONTRACTOR', id: a.id, title: `${a.contract.contractor.name} · ${a.title}`,
+            assetName: a.asset?.name ?? a.contract.title, department: a.asset?.department ?? null, plantId: a.contract.plantId,
+            priority: null, status: null, assignees: [a.contract.contractor.name], unassigned: false,
+            href: `/contractors/${a.contract.contractorId}`,
         });
     }
 

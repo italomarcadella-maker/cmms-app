@@ -24,6 +24,7 @@ const DIRECT: Record<string, string> = {
     DailyMeeting: 'plantId',
     ProductionLine: 'plantId',
     SafetyEvent: 'plantId',
+    ContractorContract: 'plantId',
 };
 
 /** Modelli che ereditano il plant da un padre (percorso di relazione fino a una colonna plantId). */
@@ -47,6 +48,8 @@ const VIA: Record<string, string[]> = {
     ProjectTaskNote: ['task', 'project'],
     PurchaseRequest: ['part'],
     SopFeedback: ['sop', 'asset'],
+    ContractorActivity: ['contract'],
+    ContractorExecution: ['activity', 'contract'],
 };
 
 /** Come VIA, ma il padre e' facoltativo: i record senza padre restano visibili a tutti (conoscenza condivisa). */
@@ -122,7 +125,7 @@ function guardCreate(model: string, data: any, scope: PlantScope) {
 }
 
 /** Per ogni modello figlio: quale colonna lo lega al padre e di che tabella e' il padre. */
-const PARENT: Record<string, { fk: string; table: 'asset' | 'workOrder' | 'meter' | 'component' | 'dailyMeeting' | 'project' | 'sparePart' }> = {
+const PARENT: Record<string, { fk: string; table: 'asset' | 'workOrder' | 'meter' | 'component' | 'dailyMeeting' | 'project' | 'sparePart' | 'contractorContract' }> = {
     WorkOrder: { fk: 'assetId', table: 'asset' },
     PreventiveSchedule: { fk: 'assetId', table: 'asset' },
     SopDocument: { fk: 'assetId', table: 'asset' },
@@ -140,6 +143,7 @@ const PARENT: Record<string, { fk: string; table: 'asset' | 'workOrder' | 'meter
     MeetingSection: { fk: 'meetingId', table: 'dailyMeeting' },
     ProjectTask: { fk: 'projectId', table: 'project' },
     PurchaseRequest: { fk: 'partId', table: 'sparePart' },
+    ContractorActivity: { fk: 'contractId', table: 'contractorContract' },
 };
 
 /** Plant del padre (null = padre condiviso, undefined = padre inesistente). Lettura con il client grezzo. */

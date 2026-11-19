@@ -40,6 +40,8 @@ export async function getMeters() {
 }
 
 export async function createMeter(data: any) {
+    const { authorized } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'PROCESS_ENGINEER']);
+    if (!authorized) throw new Error('Non autorizzato');
     const repo = getMeterRepo();
     const meterEntity = new Meter({
         name: data.name,
@@ -55,6 +57,8 @@ export async function createMeter(data: any) {
 }
 
 export async function deleteMeter(id: string) {
+    const { authorized } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'PROCESS_ENGINEER']);
+    if (!authorized) throw new Error('Non autorizzato');
     const repo = getMeterRepo();
     await repo.delete(id);
     revalidatePath('/energy');
@@ -75,6 +79,8 @@ export async function getMeterReadings(meterId: string) {
 }
 
 export async function addMeterReading(data: { meterId: string, value: number, date: string }) {
+    const { authorized } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'SUPERVISOR', 'PROCESS_ENGINEER', 'MAINTAINER']);
+    if (!authorized) return { success: false, isAnomaly: false, aiAnalysis: null as string | null };
     const recordMeterReading = makeRecordMeterReading(getMeterRepo(), getReadingRepo());
     const { isAnomaly, aiAnalysis } = await recordMeterReading(data);
 

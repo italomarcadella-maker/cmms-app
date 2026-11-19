@@ -19,6 +19,7 @@ import {
     SearchCheck,
     GitCompareArrows,
     BookCopy,
+    Handshake,
     HandHelping,
     MessagesSquare,
     Package,
@@ -76,6 +77,7 @@ export const NAV_GROUPS: NavGroup[] = [
             { href: "/screws", label: "Viti e cilindri", icon: Cylinder },
             { href: "/planning/calendar", label: "Planning e calendario", icon: CalendarDays },
             { href: "/maintenance/schedule", label: "Manutenzione preventiva", icon: CalendarClock },
+            { href: "/contractors", label: "Ditte esterne", icon: Handshake, roles: ["ADMIN", "PLANT_MANAGER", "SUPERVISOR", "MAINTAINER", "PROCESS_ENGINEER"] },
         ],
     },
     {
