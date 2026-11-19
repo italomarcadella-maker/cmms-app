@@ -1,91 +1,98 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { mutate as mutateSWR } from "swr";
 import { useAuth } from "./auth-context";
+import { getPlantSelection, selectPlant, type PlantOption } from "./plant-actions";
 
-interface Plant {
-    id: string;
-    name: string;
-}
+export const ALL_PLANTS = "ALL";
 
 interface PlantContextType {
-    plants: Plant[];
-    activePlant: Plant | null;
-    setActivePlant: (plant: Plant) => void;
+    /** Stabilimenti tra cui l'utente puo' scegliere. */
+    plants: PlantOption[];
+    /** Stabilimento scelto, null se sono selezionati "Tutti". */
+    activePlant: PlantOption | null;
+    /** 'ALL' oppure l'id dello stabilimento scelto. */
+    selected: string;
+    /** True se i dati mostrati coprono piu' di uno stabilimento. */
+    isMultiPlant: boolean;
+    canSelectAll: boolean;
+    isAdmin: boolean;
+    /** Nome dello stabilimento a partire dall'id (per le etichette sulle righe). */
+    plantName: (id: string | null | undefined) => string | null;
+    /** Sceglie uno stabilimento (id) o "Tutti" (ALL_PLANTS). */
+    setSelection: (value: string) => Promise<void>;
     isLoading: boolean;
 }
 
 const PlantContext = createContext<PlantContextType>({
     plants: [],
     activePlant: null,
-    setActivePlant: () => { },
-    isLoading: true
+    selected: ALL_PLANTS,
+    isMultiPlant: false,
+    canSelectAll: false,
+    isAdmin: false,
+    plantName: () => null,
+    setSelection: async () => { },
+    isLoading: true,
 });
 
 export function PlantProvider({ children }: { children: ReactNode }) {
     const { user, status } = useAuth();
-    const [plants, setPlants] = useState<Plant[]>([]);
-    const [activePlant, setActivePlantState] = useState<Plant | null>(null);
+    const router = useRouter();
+    const [plants, setPlants] = useState<PlantOption[]>([]);
+    const [selected, setSelected] = useState<string>(ALL_PLANTS);
+    const [canSelectAll, setCanSelectAll] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (status === 'authenticated' && user) {
-            // Fetch plants from API
-            fetch('/api/plants')
-                .then(res => res.json())
-                .then(data => {
-                    const fetchedPlants = data.plants || [];
-                    setPlants(fetchedPlants);
-
-                    // Auto-select plant based on User's plantId, or localStorage, or default to first
-                    const savedPlantId = localStorage.getItem('cmms_active_plant_id');
-                    let defaultPlant = null;
-
-                    if (user.plantId) {
-                        defaultPlant = fetchedPlants.find((p: Plant) => p.id === user.plantId);
-                    } else if (savedPlantId) {
-                        defaultPlant = fetchedPlants.find((p: Plant) => p.id === savedPlantId);
-                    }
-
-                    if (!defaultPlant && fetchedPlants.length > 0) {
-                        defaultPlant = fetchedPlants[0];
-                    }
-
-                    if (defaultPlant) {
-                        setActivePlantState(defaultPlant);
-                        document.cookie = `cmms_plant_id=${defaultPlant.id}; path=/; max-age=31536000`;
-                    } else {
-                        setActivePlantState(null);
-                    }
-                    setIsLoading(false);
-                })
-                .catch(e => {
-                    console.error("Failed to load plants:", e);
-                    setIsLoading(false);
-                });
-        } else if (status === 'unauthenticated') {
-            Promise.resolve().then(() => {
-                setIsLoading(false);
-            });
+        if (status === "unauthenticated") {
+            Promise.resolve().then(() => setIsLoading(false));
+            return;
         }
+        if (status !== "authenticated" || !user) return;
+        let cancelled = false;
+        getPlantSelection()
+            .then(sel => {
+                if (cancelled) return;
+                setPlants(sel.plants);
+                setSelected(sel.selected);
+                setCanSelectAll(sel.canSelectAll);
+                setIsAdmin(sel.isAdmin);
+            })
+            .catch(e => console.error("Caricamento stabilimenti non riuscito:", e))
+            .finally(() => { if (!cancelled) setIsLoading(false); });
+        return () => { cancelled = true; };
     }, [user, status]);
 
-    const setActivePlant = (plant: Plant) => {
-        setActivePlantState(plant);
-        localStorage.setItem('cmms_active_plant_id', plant.id);
-        document.cookie = `cmms_plant_id=${plant.id}; path=/; max-age=31536000`; // 1 year
-        // Dispatch custom event so other components (like data tables) can refresh
-        window.dispatchEvent(new Event('cmms_plant_changed'));
+    const setSelection = useCallback(async (value: string) => {
+        const res = await selectPlant(value);
+        if (!res.success) return;
+        setSelected(value);
+        // Il server ha cambiato scope: ricarica i dati delle pagine server e di quelle con SWR
+        router.refresh();
+        mutateSWR(() => true, undefined, { revalidate: true });
+        window.dispatchEvent(new Event("cmms_plant_changed"));
+    }, [router]);
 
-        // Force router refresh if we are on dashboard so server components reload
-        // Or let individual client components listen
-    };
+    const value = useMemo<PlantContextType>(() => {
+        const activePlant = selected !== ALL_PLANTS ? plants.find(p => p.id === selected) ?? null : null;
+        return {
+            plants,
+            activePlant,
+            selected,
+            isMultiPlant: !activePlant && plants.length > 1,
+            canSelectAll,
+            isAdmin,
+            plantName: (id) => (id ? plants.find(p => p.id === id)?.name ?? null : null),
+            setSelection,
+            isLoading,
+        };
+    }, [plants, selected, canSelectAll, isAdmin, setSelection, isLoading]);
 
-    return (
-        <PlantContext.Provider value={{ plants, activePlant, setActivePlant, isLoading }}>
-            {children}
-        </PlantContext.Provider>
-    );
+    return <PlantContext.Provider value={value}>{children}</PlantContext.Provider>;
 }
 
 export function usePlant() {

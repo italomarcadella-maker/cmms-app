@@ -1,4 +1,4 @@
-import { getUsers } from '@/lib/actions';
+import { getUsers, getPlants } from '@/lib/actions';
 import { UserList } from '@/components/users/user-list';
 import { AddUserDialog } from '@/components/users/add-user-dialog';
 import { notFound } from 'next/navigation';
@@ -20,17 +20,18 @@ export default async function UsersPage() {
         );
     }
 
-    const users = await getUsers();
+    const [users, plants] = await Promise.all([getUsers(), getPlants()]);
+    const plantChoices = plants.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name }));
 
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
             <BackToDashboardButton />
             <div className="flex items-center justify-between">
                 <h1 className="font-semibold text-lg md:text-2xl">Gestione Utenti</h1>
-                <AddUserDialog />
+                <AddUserDialog plants={plantChoices} />
             </div>
             <div className="border rounded-lg shadow-sm">
-                <UserList users={users} />
+                <UserList users={users} plants={plantChoices} />
             </div>
         </div>
     );

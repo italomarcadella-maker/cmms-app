@@ -20,9 +20,30 @@ const EXPENSIVE_ROUTES = [
     '/api/scheduler'
 ];
 
+// Percorsi raggiungibili senza accesso: login, endpoint di autenticazione, controllo di salute (monitoraggio),
+// cron (protetto dal proprio segreto), risorse statiche.
+const PUBLIC_PREFIXES = ['/login', '/api/auth', '/api/health', '/api/cron', '/_next'];
+const PUBLIC_FILE = /\.(png|jpe?g|svg|ico|webp|json|js|css|woff2?|otf|ttf|txt|xml|webmanifest)$/i;
+
 export default authMiddleware((request: any) => {
     const ip = request.ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
     const { pathname } = request.nextUrl;
+
+    // Quando si passa una funzione a auth(), il callback "authorized" non reindirizza piu': il controllo di accesso
+    // va fatto qui. Senza, pagine e API risponderebbero anche a chi non ha effettuato il login.
+    const isLoggedIn = !!request.auth?.user;
+    const isPublic = PUBLIC_PREFIXES.some(p => pathname.startsWith(p)) || PUBLIC_FILE.test(pathname);
+    if (!isLoggedIn && !isPublic) {
+        if (pathname.startsWith('/api/')) {
+            return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
+        }
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('callbackUrl', pathname + request.nextUrl.search);
+        return NextResponse.redirect(loginUrl);
+    }
+    if (isLoggedIn && pathname.startsWith('/login')) {
+        return NextResponse.redirect(new URL('/', request.url));
+    }
 
     // Check if the current request is for an expensive API endpoint
     const isExpensive = EXPENSIVE_ROUTES.some(route => pathname.startsWith(route));

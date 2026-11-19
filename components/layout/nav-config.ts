@@ -15,6 +15,11 @@ import {
     LayoutDashboard,
     Leaf,
     ListChecks,
+    ArrowRightLeft,
+    SearchCheck,
+    GitCompareArrows,
+    BookCopy,
+    HandHelping,
     MessagesSquare,
     Package,
     PlusCircle,
@@ -25,7 +30,7 @@ import {
     type LucideIcon,
 } from "lucide-react";
 
-export type Role = "USER" | "MAINTAINER" | "SUPERVISOR" | "ADMIN" | "PROCESS_ENGINEER";
+export type Role = "USER" | "MAINTAINER" | "SUPERVISOR" | "PLANT_MANAGER" | "ADMIN" | "PROCESS_ENGINEER";
 
 export interface NavItem {
     href: string;
@@ -45,10 +50,10 @@ export interface NavGroup {
     items: NavItem[];
 }
 
-const OPERATIVE: Role[] = ["MAINTAINER", "SUPERVISOR", "ADMIN", "PROCESS_ENGINEER"];
-const SUPERVISION: Role[] = ["SUPERVISOR", "ADMIN", "PROCESS_ENGINEER"];
-const MANAGEMENT: Role[] = ["ADMIN", "PROCESS_ENGINEER"];
-const NOT_BASIC_USER: Role[] = ["MAINTAINER", "SUPERVISOR", "ADMIN", "PROCESS_ENGINEER"];
+const OPERATIVE: Role[] = ["PLANT_MANAGER", "MAINTAINER", "SUPERVISOR", "ADMIN", "PROCESS_ENGINEER"];
+const SUPERVISION: Role[] = ["PLANT_MANAGER", "SUPERVISOR", "ADMIN", "PROCESS_ENGINEER"];
+const MANAGEMENT: Role[] = ["PLANT_MANAGER", "ADMIN", "PROCESS_ENGINEER"];
+const NOT_BASIC_USER: Role[] = ["PLANT_MANAGER", "MAINTAINER", "SUPERVISOR", "ADMIN", "PROCESS_ENGINEER"];
 
 export const NAV_GROUPS: NavGroup[] = [
     {
@@ -67,6 +72,7 @@ export const NAV_GROUPS: NavGroup[] = [
             { href: "/assets", label: "Asset e macchinari", icon: Box },
             { href: "/mobile/scan", label: "Scanner QR", icon: ScanLine },
             { href: "/inventory", label: "Magazzino", icon: Package },
+            { href: "/inventory/availability", label: "Ricambi tra plant", icon: ArrowRightLeft, roles: ["ADMIN", "PLANT_MANAGER", "SUPERVISOR", "MAINTAINER", "PROCESS_ENGINEER"] },
             { href: "/screws", label: "Viti e cilindri", icon: Cylinder },
             { href: "/planning/calendar", label: "Planning e calendario", icon: CalendarDays },
             { href: "/maintenance/schedule", label: "Manutenzione preventiva", icon: CalendarClock },
@@ -78,10 +84,13 @@ export const NAV_GROUPS: NavGroup[] = [
         items: [
             { href: "/daily-meetings", label: "Daily meeting", icon: MessagesSquare },
             { href: "/process", label: "Ingegneria di processo", icon: FlaskConical },
-            { href: "/technicians/calendar", label: "Calendario turni", icon: CalendarRange, roles: ["SUPERVISOR", "ADMIN"] },
-            { href: "/technicians", label: "Team tecnico", icon: HardHat, roles: ["SUPERVISOR", "ADMIN"] },
-            { href: "/activities", label: "Attività", icon: ListChecks, roles: ["SUPERVISOR", "ADMIN"] },
-            { href: "/predictive", label: "AI predittiva", icon: BrainCircuit, roles: ["SUPERVISOR", "ADMIN"] },
+            { href: "/technicians/calendar", label: "Calendario turni", icon: CalendarRange, roles: ["SUPERVISOR", "PLANT_MANAGER", "ADMIN"] },
+            { href: "/technicians", label: "Team tecnico", icon: HardHat, roles: ["SUPERVISOR", "PLANT_MANAGER", "ADMIN"] },
+            { href: "/technicians/loans", label: "Prestiti tecnici", icon: HandHelping, roles: ["SUPERVISOR", "PLANT_MANAGER", "ADMIN"] },
+            { href: "/library", label: "Libreria di gruppo", icon: BookCopy, roles: ["SUPERVISOR", "PLANT_MANAGER", "ADMIN", "MAINTAINER", "PROCESS_ENGINEER"] },
+            { href: "/activities", label: "Attività", icon: ListChecks, roles: ["SUPERVISOR", "PLANT_MANAGER", "ADMIN"] },
+            { href: "/failure-insights", label: "Analisi guasti di gruppo", icon: SearchCheck, roles: ["SUPERVISOR", "PLANT_MANAGER", "ADMIN", "MAINTAINER", "PROCESS_ENGINEER"] },
+            { href: "/predictive", label: "AI predittiva", icon: BrainCircuit, roles: ["SUPERVISOR", "PLANT_MANAGER", "ADMIN"] },
             { href: "/sustainability", label: "Sostenibilità", icon: Leaf },
         ],
     },
@@ -89,11 +98,12 @@ export const NAV_GROUPS: NavGroup[] = [
         title: "Amministrazione",
         roles: MANAGEMENT,
         items: [
+            { href: "/group", label: "Confronto stabilimenti", icon: GitCompareArrows, roles: ["ADMIN", "PLANT_MANAGER"] },
             { href: "/kpi", label: "KPI e report", icon: BarChart3 },
             { href: "/costs", label: "Analisi costi", icon: ReceiptEuro },
             { href: "/users", label: "Utenti", icon: UserCog, roles: ["ADMIN"] },
             { href: "/exports", label: "Export dati", icon: FileDown },
-            { href: "/plants", label: "Stabilimenti", icon: Factory, roles: ["ADMIN"] },
+            { href: "/plants", label: "Stabilimenti", icon: Factory, roles: ["ADMIN", "PLANT_MANAGER"] },
             { href: "/settings", label: "Impostazioni", icon: Settings, roles: ["ADMIN"] },
         ],
     },
@@ -113,6 +123,9 @@ export function isItemActive(item: NavItem, pathname: string, search: URLSearchP
     if (item.href === "/") return pathname === "/";
     const underItem = pathname === item.href || pathname.startsWith(item.href + "/");
     if (!underItem) return item.alsoActiveFor?.some((p) => pathname.startsWith(p)) ?? false;
+    // Se un'altra voce piu' specifica corrisponde alla stessa pagina (es. /inventory/availability), vince quella
+    const moreSpecific = NAV_GROUPS.some(g => g.items.some(o => o !== item && !o.query && o.href !== "/" && o.href.length > item.href.length && (pathname === o.href || pathname.startsWith(o.href + "/"))));
+    if (moreSpecific) return false;
     // /work-orders?tab=requests belongs to its own item, not to "Ordini di lavoro"
     if (item.href === "/work-orders" && pathname === "/work-orders" && search?.get("tab") === "requests") return false;
     return true;

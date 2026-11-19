@@ -23,7 +23,7 @@ export default function PMSchedulePage() {
 
     const activeWOs = workOrders.filter(wo => wo.status === 'OPEN' || wo.status === 'IN_PROGRESS');
 
-    const isAdmin = user?.role === 'ADMIN';
+    const isAdmin = user?.role === 'ADMIN' || user?.role === 'PLANT_MANAGER';
     const [generatedCount, setGeneratedCount] = useState<number | null>(null);
 
     const handleGenerate = () => {

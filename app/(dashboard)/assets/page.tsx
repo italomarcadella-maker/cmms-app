@@ -36,7 +36,7 @@ export default function AssetsPage() {
     const [viewMode, setViewMode] = useState<"list" | "tree">("list");
     const [showGenerics, setShowGenerics] = useState(false);
 
-    const canManage = user?.role === "ADMIN" || user?.role === "SUPERVISOR";
+    const canManage = user?.role === "ADMIN" || user?.role === "SUPERVISOR" || user?.role === "PLANT_MANAGER";
 
     const defaultAsset = {
         name: "", model: "", serialNumber: "", vendor: "", plant: "", department: "", location: "", line: "", purchaseDate: "", status: "OPERATIONAL", healthScore: 100, lastMaintenance: "", cespite: ""

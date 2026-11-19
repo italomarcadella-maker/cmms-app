@@ -131,7 +131,7 @@ export async function createPreventiveSchedule(data: {
     firstDate: Date;
 }) {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+    if (!session?.user || !['ADMIN', 'PLANT_MANAGER'].includes((session.user as any).role)) {
         return { success: false, message: 'Non autorizzato' };
     }
 
@@ -157,7 +157,7 @@ export async function createPreventiveSchedule(data: {
 
 export async function deletePreventiveSchedule(id: string) {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
+    if (!session?.user || !['ADMIN', 'PLANT_MANAGER'].includes((session.user as any).role)) return { success: false, message: 'Non autorizzato' };
     try {
         const schedRepo = getSchedRepo();
         await schedRepo.delete(id);
@@ -170,7 +170,7 @@ export async function deletePreventiveSchedule(id: string) {
 
 export async function updatePreventiveSchedule(id: string, nextDueDate: Date) {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
+    if (!session?.user || !['ADMIN', 'PLANT_MANAGER'].includes((session.user as any).role)) return { success: false, message: 'Non autorizzato' };
 
     try {
         const schedRepo = getSchedRepo();

@@ -33,7 +33,7 @@ function AuthStateProvider({ children }: { children: React.ReactNode }) {
     const logout = () => signOut({ callbackUrl: "/login" });
 
     // Compatibility helpers
-    const isSupervisor = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
+    const isSupervisor = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'PLANT_MANAGER';
 
     return (
         <AuthContext.Provider value={{

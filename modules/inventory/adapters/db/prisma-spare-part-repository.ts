@@ -2,6 +2,7 @@ import { ISparePartRepository } from '../../domain/ports/spare-part-repository';
 import { SparePart } from '../../domain/entities/spare-part';
 import { SparePartMapper } from './spare-part-mapper';
 import { prisma } from '@/lib/prisma';
+import { resolveCatalogId } from './catalog-service';
 
 export class PrismaSparePartRepository implements ISparePartRepository {
     async findById(id: string): Promise<SparePart | null> {
@@ -20,15 +21,17 @@ export class PrismaSparePartRepository implements ISparePartRepository {
 
     async save(part: SparePart): Promise<SparePart> {
         const prismaData = SparePartMapper.toPrisma(part);
+        // Ogni riga di magazzino e' collegata alla voce di catalogo di gruppo (riconosciuta dalla descrizione)
+        const catalogId = await resolveCatalogId(prisma as any, part);
         let saved;
         if (part.id) {
             saved = await prisma.sparePart.update({
                 where: { id: part.id },
-                data: prismaData as any
+                data: { ...prismaData, catalogId } as any
             });
         } else {
             saved = await prisma.sparePart.create({
-                data: prismaData as any
+                data: { ...prismaData, catalogId } as any
             });
         }
         return SparePartMapper.toDomain(saved);

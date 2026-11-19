@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, Search, LayoutList, Kanban, Trash2, X } from "lucide-react";
+import { PlantBadge } from "@/components/ui/plant-badge";
 import { useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -71,7 +72,7 @@ function WorkOrdersContent() {
     const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
     const [assigningWo, setAssigningWo] = useState<{ id: string; techId?: string } | null>(null);
-    const canManage = user?.role === "ADMIN" || user?.role === "SUPERVISOR" || user?.role === "MAINTAINER";
+    const canManage = user?.role === "ADMIN" || user?.role === "SUPERVISOR" || user?.role === "PLANT_MANAGER" || user?.role === "MAINTAINER";
 
     const pendingCount = workOrders.filter((w) => w.status === "PENDING_APPROVAL").length;
 
@@ -290,6 +291,7 @@ function WorkOrdersContent() {
                                                     <div className="flex items-center gap-2">
                                                         <span className="font-medium group-hover:text-primary">{wo.title}</span>
                                                         {wo.category === "AI_SUGGESTION" && <Badge variant="info">Suggerito dall&apos;AI</Badge>}
+                                                        <PlantBadge plantId={wo.plantId} />
                                                     </div>
                                                     <span className="font-mono text-xs text-muted-foreground">{wo.id.substring(0, 10)}</span>
                                                 </div>
@@ -356,6 +358,7 @@ function WorkOrdersContent() {
                                         <div className="min-w-0">
                                             <p className="line-clamp-2 font-semibold">{wo.title}</p>
                                             <p className="text-xs text-muted-foreground">{wo.assetName}</p>
+                                            <PlantBadge plantId={wo.plantId} className="mt-1" />
                                         </div>
                                         <WorkOrderStatusPill status={wo.status} />
                                     </div>

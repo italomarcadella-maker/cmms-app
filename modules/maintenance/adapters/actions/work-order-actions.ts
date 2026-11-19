@@ -9,6 +9,8 @@ import { WorkOrder } from '../../domain/entities/work-order';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { logAction } from '@/lib/audit';
+import { usersToNotify } from '@/lib/plant-users';
+import { runUnscoped } from '@/lib/plant-scope';
 import { workOrderSchema } from '@/lib/validations';
 import { WorkOrderPriority, WorkOrderCategory, WorkOrderStatus } from '@prisma/client';
 
@@ -39,7 +41,8 @@ const VIRTUAL_ASSETS: Record<string, { name: string; type: string }> = {
 async function ensureVirtualAsset(id: string) {
     if (VIRTUAL_ASSETS[id]) {
         const info = VIRTUAL_ASSETS[id];
-        await prisma.asset.upsert({
+        // Asset di sistema condiviso (senza plant): creato fuori dallo scope
+        await runUnscoped(() => prisma.asset.upsert({
             where: { id },
             update: {},
             create: {
@@ -53,7 +56,7 @@ async function ensureVirtualAsset(id: string) {
                 purchaseDate: new Date(),
                 department: 'GENERAL'
             }
-        });
+        }));
     }
 }
 
@@ -83,7 +86,7 @@ async function checkAndCreatePurchaseRequest(partId: string) {
         }
     });
 
-    const purchasingUsers = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'SUPERVISOR'] } } });
+    const purchasingUsers = await usersToNotify(part.plantId, ['ADMIN', 'SUPERVISOR', 'PLANT_MANAGER']);
     for (const u of purchasingUsers) {
         await prisma.notification.create({
             data: {
@@ -396,6 +399,13 @@ export async function createWorkOrder(rawData: any) {
 
         await ensureVirtualAsset(data.assetId);
 
+        // L'asset deve essere visibile all'utente (il filtro per plant lo nasconde se appartiene a un altro stabilimento)
+        const targetAsset = await prisma.asset.findUnique({ where: { id: data.assetId }, select: { plantId: true } });
+        if (!targetAsset) return { success: false, message: "Asset non trovato o non accessibile da questo stabilimento." };
+        if (data.plantId && targetAsset.plantId && data.plantId !== targetAsset.plantId) {
+            return { success: false, message: "L'asset appartiene a un altro stabilimento." };
+        }
+
         const newWO = await prisma.workOrder.create({
             data: {
                 title: data.title,
@@ -409,7 +419,7 @@ export async function createWorkOrder(rawData: any) {
                 requesterId: data.requesterId || session.user.id,
                 validatedById: data.validatedById,
                 assignedTechnicianId: data.assignedTechnicianId,
-                plantId: data.plantId || (await prisma.asset.findUnique({ where: { id: data.assetId } }))?.plantId || (session.user as any).plantId,
+                plantId: data.plantId || targetAsset.plantId || undefined, // se manca, lo scope usa lo stabilimento corrente
                 checklist: data.checklist && data.checklist.length > 0 ? {
                     create: data.checklist.map((c: any) => ({
                         label: c.label,
@@ -438,10 +448,7 @@ export async function createWorkOrder(rawData: any) {
         if ((newWO.category === 'SAFETY' || newWO.assetId === 'SYS-SAFETY') &&
             (newWO.priority === 'HIGH' || newWO.priority === 'STOPPED')) {
 
-            const supervisors = await prisma.user.findMany({
-                where: { role: 'SUPERVISOR' },
-                select: { id: true }
-            });
+            const supervisors = await usersToNotify(newWO.plantId, ['SUPERVISOR', 'PLANT_MANAGER']);
 
             if (supervisors && supervisors.length > 0) {
                 const notifications = supervisors.map(supervisor => ({
@@ -945,7 +952,7 @@ export async function completeWorkOrder(workOrderId: string, note?: string) {
 }
 
 export async function importWorkOrders(workOrders: any[]) {
-    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    const { authorized, message } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'PROCESS_ENGINEER']);
     if (!authorized) return { success: false, message: message || "Unauthorized", count: 0, errors: ["Unauthorized"] };
     let count = 0;
     const errors: string[] = [];
@@ -1045,7 +1052,7 @@ export async function addWorkOrderPart(workOrderId: string, partId: string, quan
         });
 
         if (updatedPart.quantity <= updatedPart.minQuantity) {
-            const supervisors = await prisma.user.findMany({ where: { role: 'SUPERVISOR' } });
+            const supervisors = await usersToNotify(updatedPart.plantId, ['SUPERVISOR', 'PLANT_MANAGER']);
             for (const sup of supervisors) {
                 await prisma.notification.create({
                     data: {
@@ -1182,7 +1189,8 @@ export async function submitEWO(data: any) {
         });
 
         if (fields.productionImpact === 'STOPPAGE') {
-            const supervisors = await prisma.user.findMany({ where: { role: 'SUPERVISOR' } });
+            const ewoOrder = await prisma.workOrder.findUnique({ where: { id: workOrderId }, select: { plantId: true } });
+            const supervisors = await usersToNotify(ewoOrder?.plantId, ['SUPERVISOR', 'PLANT_MANAGER']);
             for (const sup of supervisors) {
                 await prisma.notification.create({
                     data: {
@@ -1199,7 +1207,7 @@ export async function submitEWO(data: any) {
             for (const p of partsConsumed) {
                 const part = await prisma.sparePart.findUnique({ where: { id: p.partId } });
                 if (part && part.quantity <= part.minQuantity) {
-                    const supervisors = await prisma.user.findMany({ where: { role: 'SUPERVISOR' } });
+                    const supervisors = await usersToNotify(part.plantId, ['SUPERVISOR', 'PLANT_MANAGER']);
                     for (const sup of supervisors) {
                         await prisma.notification.create({
                             data: {

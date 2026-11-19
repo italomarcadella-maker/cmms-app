@@ -21,12 +21,15 @@ import {
 } from '@/components/ui/select';
 import { Plus, Loader2, UserPlus } from 'lucide-react';
 import { createUser } from '@/lib/actions';
+import { PlantPicker, type PlantChoice } from './plant-picker';
 
-export function AddUserDialog() {
+export function AddUserDialog({ plants = [] }: { plants?: PlantChoice[] }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    const [plantIds, setPlantIds] = useState<string[]>([]);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -56,7 +59,7 @@ export function AddUserDialog() {
         }
 
         try {
-            const result = await createUser(formData);
+            const result = await createUser({ ...formData, plantIds });
             if (result.success) {
                 setSuccess('Utente creato con successo!');
                 setFormData({ name: '', email: '', password: '', role: 'USER' });
@@ -141,11 +144,13 @@ export function AddUserDialog() {
                                 <SelectItem value="USER">User</SelectItem>
                                 <SelectItem value="MAINTAINER">Manutentore</SelectItem>
                                 <SelectItem value="PROCESS_ENGINEER">Ingegnere di Processo</SelectItem>
-                                <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
+                                <SelectItem value="SUPERVISOR">Supervisor</SelectItem>                                <SelectItem value="PLANT_MANAGER">Responsabile di plant</SelectItem>
                                 <SelectItem value="ADMIN">Admin</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
+
+                    <PlantPicker plants={plants} value={plantIds} onChange={setPlantIds} isAdminRole={formData.role === 'ADMIN'} />
 
                     {error && (
                         <div className="text-sm text-red-500 font-medium bg-red-50 p-2 rounded border border-red-200">

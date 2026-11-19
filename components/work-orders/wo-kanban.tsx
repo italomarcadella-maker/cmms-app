@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { PlantBadge } from "@/components/ui/plant-badge";
 import { useRouter } from "next/navigation";
 import { Calendar, User } from "lucide-react";
 import { toast } from "sonner";
@@ -112,6 +113,7 @@ export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
                                                 <span className="font-mono text-xs text-muted-foreground">{wo.id.substring(0, 8)}</span>
                                                 <PriorityPill priority={wo.priority} />
                                             </div>
+                                            <PlantBadge plantId={wo.plantId} />
                                             <h4
                                                 className="cursor-pointer text-sm font-medium leading-tight hover:text-primary"
                                                 onClick={() => router.push(`/work-orders/${wo.id}`)}

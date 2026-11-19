@@ -38,7 +38,7 @@ async function requireRole(role: string): Promise<{ authorized: boolean; message
     if (!session?.user) {
         return { authorized: false, message: 'Non autenticato' };
     }
-    const roles = ['ADMIN', 'SUPERVISOR', 'PROCESS_ENGINEER'];
+    const roles = ['ADMIN', 'PLANT_MANAGER', 'SUPERVISOR', 'PROCESS_ENGINEER'];
     if (!roles.includes(session.user.role)) {
         return { authorized: false, message: `Non autorizzato: Richiesto ruolo adeguato` };
     }

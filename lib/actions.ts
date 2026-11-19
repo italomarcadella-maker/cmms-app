@@ -6,7 +6,9 @@ import { AuthError } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { auth } from '@/auth';
-import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { scopedCache } from '@/lib/scoped-cache';
+import { resolveWritePlantId, runUnscoped, invalidatePlantListCache, getPlantScope, userScopeWhere } from '@/lib/plant-scope';
 import { WorkOrderStatus } from '@/lib/types';
 
 import { logAction } from './audit';
@@ -76,7 +78,9 @@ export async function requireRole(role: string | string[]): Promise<{ authorized
     if (!session?.user) {
         return { authorized: false, message: 'Non autenticato' };
     }
-    const roles = Array.isArray(role) ? role : [role];
+    const roles = Array.isArray(role) ? [...role] : [role];
+    // Il responsabile di plant ha i diritti del supervisor, limitati ai propri stabilimenti (filtro in lib/prisma.ts)
+    if (roles.includes('SUPERVISOR') && !roles.includes('PLANT_MANAGER')) roles.push('PLANT_MANAGER');
     if (!roles.includes(session.user.role)) {
         return { authorized: false, message: `Non autorizzato: Richiesto ruolo ${roles.join(' o ')}` };
     }
@@ -139,14 +143,30 @@ export async function updateUserRole(userId: string, newRole: string) {
     }
 }
 
+/** Imposta gli stabilimenti visibili a un utente; lo stabilimento "di casa" resta quello gia' assegnato se ancora valido, altrimenti il primo. */
+async function setUserPlants(userId: string, plantIds: string[]) {
+    const unique = [...new Set(plantIds)];
+    const current = await prisma.user.findUnique({ where: { id: userId }, select: { plantId: true } });
+    const home = current?.plantId && unique.includes(current.plantId) ? current.plantId : unique[0] ?? null;
+    await prisma.$transaction([
+        prisma.userPlant.deleteMany({ where: { userId } }),
+        prisma.userPlant.createMany({ data: unique.map(plantId => ({ userId, plantId })) }),
+        prisma.user.update({ where: { id: userId }, data: { plantId: home } }),
+    ]);
+}
+
 export async function createUser(rawUserData: any) {
     const { authorized, message } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
 
     try {
         const { name, email, password, role } = rawUserData;
+        const plantIds: string[] = Array.isArray(rawUserData.plantIds) ? rawUserData.plantIds : [];
         if (!email || !password || !role) {
             return { success: false, message: 'Dati mancanti.' };
+        }
+        if (role !== 'ADMIN' && plantIds.length === 0) {
+            return { success: false, message: "Assegna almeno uno stabilimento all'utente." };
         }
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
@@ -163,6 +183,7 @@ export async function createUser(rawUserData: any) {
                 mustChangePassword: true
             }
         });
+        await setUserPlants(user.id, plantIds);
 
         // Phase 5: Consistency - Auto-create Technician profile for Maintainers
         if (role === 'MAINTAINER') {
@@ -216,11 +237,12 @@ export async function getUsers() {
     if (!authorized) throw new Error("Unauthorized");
     try {
         const users = await prisma.user.findMany({
-            select: { id: true, name: true, email: true, role: true, image: true, isActive: true, lastLogin: true, department: true }
+            select: { id: true, name: true, email: true, role: true, image: true, isActive: true, lastLogin: true, department: true, plantId: true, plants: { select: { plantId: true } } }
         });
         // Map dates to strings
-        return users.map((u: any) => ({
+        return users.map(({ plants, ...u }: any) => ({
             ...u,
+            plantIds: plants.map((p: any) => p.plantId) as string[],
             isActive: u.isActive !== false, // Handle null/undefined as true
             lastLogin: u.lastLogin ? u.lastLogin.toISOString() : null
         }));
@@ -248,10 +270,14 @@ export async function updateUserStatus(userId: string, isActive: boolean) {
     }
 }
 
-export async function updateUser(userId: string, data: { name?: string; email?: string; department?: string; image?: string; role?: string }) {
+export async function updateUser(userId: string, data: { name?: string; email?: string; department?: string; image?: string; role?: string; plantIds?: string[] }) {
     const { authorized, message } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
     try {
+        const newRole = data.role ?? (await prisma.user.findUnique({ where: { id: userId }, select: { role: true } }))?.role;
+        if (data.plantIds !== undefined && newRole !== "ADMIN" && data.plantIds.length === 0) {
+            return { success: false, message: "Assegna almeno uno stabilimento: senza, l'utente non vedrebbe alcun dato." };
+        }
         await prisma.user.update({
             where: { id: userId },
             data: {
@@ -262,6 +288,7 @@ export async function updateUser(userId: string, data: { name?: string; email?: 
                 role: data.role as any
             }
         });
+        if (data.plantIds !== undefined) await setUserPlants(userId, data.plantIds);
         revalidatePath('/users');
         return { success: true, message: 'Utente aggiornato con successo' };
     } catch (error) {
@@ -315,7 +342,7 @@ export async function resetDatabase() {
 
 // --- Dashboard ---
 
-export const getDashboardStats = unstable_cache(
+export const getDashboardStats = scopedCache(
     async () => {
         try {
             const totalAssets = await prisma.asset.count();
@@ -335,7 +362,7 @@ export const getDashboardStats = unstable_cache(
 
 // --- Assets ---
 
-export const getAssets = unstable_cache(
+export const getAssets = scopedCache(
     async () => {
         try {
             const assets = await prisma.asset.findMany({ 
@@ -360,36 +387,84 @@ export const getAssets = unstable_cache(
 
 export async function getPlants() {
     try {
-        const plants = await prisma.plant.findMany({ orderBy: { name: 'asc' } });
-        return plants;
+        const session = await auth();
+        if (!session?.user) return [];
+        // L'admin gestisce tutti gli stabilimenti anche se nel selettore ne ha scelto uno; gli altri vedono i propri.
+        const load = () => prisma.plant.findMany({ orderBy: { name: 'asc' } });
+        return session.user.role === 'ADMIN' ? await runUnscoped(load) : await load();
     } catch (error) {
         console.error('Failed to fetch plants:', error);
         return [];
     }
 }
 
-export async function addPlant(data: { name: string; location?: string }) {
+export async function addPlant(data: { name: string; location?: string; country?: string; timezone?: string }) {
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
     try {
-        const newPlant = await prisma.plant.create({ data });
-        revalidatePath('/assets');
-        revalidatePath('/plants');
+        if (!data.name?.trim()) return { success: false, message: 'Il nome dello stabilimento e\' obbligatorio' };
+        const newPlant = await runUnscoped(() => prisma.plant.create({
+            data: { name: data.name.trim(), location: data.location, country: data.country, ...(data.timezone ? { timezone: data.timezone } : {}) },
+        }));
+        invalidatePlantListCache();
+        revalidatePath('/', 'layout');
         return { success: true, data: newPlant };
     } catch (error) {
-        return { success: false, message: "Errore aggiunta stabilimento" };
+        return { success: false, message: "Errore aggiunta stabilimento (nome gia' esistente?)" };
+    }
+}
+
+export interface PlantSettingsInput {
+    name?: string;
+    location?: string | null;
+    country?: string | null;
+    timezone?: string;
+    electricityPricePerKwh?: number | null;
+    waterPricePerM3?: number | null;
+    co2FactorPerKwh?: number | null;
+    downtimeCostPerMinute?: number | null;
+    defaultLaborHourlyRate?: number | null;
+}
+
+/** Impostazioni di un plant. Anagrafica solo admin; tariffe e costi anche dal responsabile del plant (solo il proprio). */
+export async function updatePlant(id: string, data: PlantSettingsInput) {
+    const { authorized, message, session } = await requireRole(['ADMIN', 'PLANT_MANAGER']);
+    if (!authorized) return { success: false, message };
+    try {
+        const isAdmin = session.user.role === 'ADMIN';
+        const num = (v: number | null | undefined) => (v === undefined ? undefined : v === null || Number.isNaN(v) ? null : Math.max(0, v));
+        const costs = {
+            electricityPricePerKwh: num(data.electricityPricePerKwh),
+            waterPricePerM3: num(data.waterPricePerM3),
+            co2FactorPerKwh: num(data.co2FactorPerKwh),
+            downtimeCostPerMinute: num(data.downtimeCostPerMinute),
+            defaultLaborHourlyRate: num(data.defaultLaborHourlyRate),
+            timezone: data.timezone,
+        };
+        const registry = isAdmin ? { name: data.name?.trim() || undefined, location: data.location, country: data.country } : {};
+        const run = () => prisma.plant.update({ where: { id }, data: { ...registry, ...costs } });
+        // L'admin puo' modificare qualunque plant; il responsabile solo quelli assegnati (filtro in lib/prisma.ts)
+        const updated = isAdmin ? await runUnscoped(run) : await run();
+        invalidatePlantListCache();
+        revalidatePath('/', 'layout');
+        return { success: true, data: updated };
+    } catch (error) {
+        return { success: false, message: "Errore aggiornamento stabilimento" };
     }
 }
 
 export async function deletePlant(id: string) {
+    const { authorized, message } = await requireRole('ADMIN');
+    if (!authorized) return { success: false, message };
     try {
-        await prisma.plant.delete({ where: { id } });
-        revalidatePath('/assets');
-        revalidatePath('/plants');
+        await runUnscoped(() => prisma.plant.delete({ where: { id } }));
+        invalidatePlantListCache();
+        revalidatePath('/', 'layout');
         return { success: true };
     } catch (error) {
         return { success: false, message: "Errore eliminazione stabilimento. Assicurati che non ci siano asset collegati." };
     }
 }
-
 
 
 export async function importAssets(assets: any[]) {
@@ -513,11 +588,13 @@ export async function getTechnicians() {
         // We exclude those who already have a profile by checking userId NOT IN techs.userId
         const registeredUserIds = techs.map(t => t.userId).filter(Boolean) as string[];
 
+        const scopeWhere = userScopeWhere(await getPlantScope());
         const supervisors = await prisma.user.findMany({
             where: {
-                role: 'SUPERVISOR',
+                role: { in: ['SUPERVISOR', 'PLANT_MANAGER'] },
                 id: { notIn: registeredUserIds },
-                isActive: true
+                isActive: true,
+                ...scopeWhere
             },
             select: { id: true, name: true, email: true }
         });
@@ -542,9 +619,11 @@ export async function getAvailableUsersForTechnician() {
     const { authorized } = await requireRole('ADMIN');
     if (!authorized) return [];
     try {
+        const availableScope = userScopeWhere(await getPlantScope());
         const users = await prisma.user.findMany({
             where: {
                 technicianProfile: null,
+                ...availableScope,
                 // Optional: restrict to specific roles if needed, e.g. NOT 'ADMIN' or only 'MAINTAINER'?
                 // User requirement implies any user can be upgraded to technician.
                 // But typically we might want to filter out blocked users?
@@ -724,7 +803,7 @@ export async function sendChatMessage(data: { sender: string; role: string; cont
     }
 }
 
-export const getWorkOrders = unstable_cache(
+export const getWorkOrders = scopedCache(
     async () => {
         try {
             const wos = await prisma.workOrder.findMany({
@@ -1066,6 +1145,29 @@ export async function getSystemSettings() {
     }
 }
 
+/**
+ * Impostazioni valide per lo stabilimento in uso: i valori globali, sostituiti da quelli propri del plant dove definiti
+ * (tariffe, costo del fermo, costo orario). Con piu' stabilimenti selezionati ("Tutti") valgono i globali.
+ * La pagina delle impostazioni globali continua a usare getSystemSettings().
+ */
+export async function getEffectiveSettings(plantId?: string | null) {
+    const base = await getSystemSettings();
+    if (!base) return null;
+    let pid = plantId;
+    if (pid === undefined) {
+        const scope = await getPlantScope();
+        pid = scope.mode === 'plants' && scope.plantIds.length === 1 ? scope.plantIds[0] : null;
+    }
+    if (!pid) return base;
+    const plant = await runUnscoped(() => prisma.plant.findUnique({
+        where: { id: pid! },
+        select: { electricityPricePerKwh: true, waterPricePerM3: true, co2FactorPerKwh: true, downtimeCostPerMinute: true, defaultLaborHourlyRate: true },
+    }));
+    if (!plant) return base;
+    const overrides = Object.fromEntries(Object.entries(plant).filter(([, v]) => v !== null && v !== undefined));
+    return { ...base, ...overrides };
+}
+
 type SystemSettingsInput = Partial<{
     ewoThresholdHours: number;
     downtimeCostPerMinute: number;
@@ -1143,7 +1245,7 @@ export async function getAdvancedKPIs() {
             .slice(0, 5);
 
         // 3. Estimated Cost (downtime minutes * configurable €/min from SystemSettings)
-        const settings = await getSystemSettings();
+        const settings = await getEffectiveSettings();
         const downtimeCostPerMinute = settings?.downtimeCostPerMinute ?? 100;
         const estimatedCost = totalDowntime * downtimeCostPerMinute;
 
@@ -1168,7 +1270,7 @@ export async function getAdvancedKPIs() {
 }
 
 const getAssetMaintenanceEventsCached = async (start: Date, end: Date) => {
-    return unstable_cache(
+    return scopedCache(
         async (s: Date, e: Date) => {
             try {
                 // 1. Fetch Work Orders in Range
@@ -1287,14 +1389,14 @@ export async function updateProductionLine(data: {
     maintSunEnd?: string;
 }) {
     const session = await auth();
-    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERVISOR')) {
+    if (!session?.user || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERVISOR' && session.user.role !== 'PLANT_MANAGER')) {
         return { success: false, message: 'Non autorizzato' };
     }
 
     try {
-        const line = await prisma.productionLine.upsert({
-            where: { line: data.line },
-            update: {
+        const plantId = await resolveWritePlantId();
+        const existingLine = await prisma.productionLine.findFirst({ where: { plantId, line: data.line } });
+        const lineValues = {
                 prodStartDay: data.prodStartDay,
                 prodStartTime: data.prodStartTime,
                 prodEndDay: data.prodEndDay,
@@ -1308,23 +1410,10 @@ export async function updateProductionLine(data: {
                 maintSunStart: data.maintSunStart,
                 maintSunEnd: data.maintSunEnd,
                 updatedAt: new Date()
-            },
-            create: {
-                line: data.line,
-                prodStartDay: data.prodStartDay,
-                prodStartTime: data.prodStartTime,
-                prodEndDay: data.prodEndDay,
-                prodEndTime: data.prodEndTime,
-                maintStart: data.maintStart,
-                maintEnd: data.maintEnd,
-                maintStartDay: data.maintStartDay,
-                maintEndDay: data.maintEndDay,
-                maintSatStart: data.maintSatStart,
-                maintSatEnd: data.maintSatEnd,
-                maintSunStart: data.maintSunStart,
-                maintSunEnd: data.maintSunEnd
-            }
-        });
+        };
+        const line = existingLine
+            ? await prisma.productionLine.update({ where: { id: existingLine.id }, data: lineValues })
+            : await prisma.productionLine.create({ data: { ...lineValues, plantId, line: data.line } });
         revalidatePath('/planning/calendar');
         revalidatePath('/'); // Refresh Dashboard (production status)
         return { success: true, data: line };
@@ -1369,6 +1458,8 @@ export async function getProductionLines() {
             if (!merged.find(l => l.line === name)) {
                 // Return default/placeholder for unconfigured lines found in assets
                 merged.push({
+                    id: `virtual:${name}`,
+                    plantId: null,
                     line: name,
                     prodStartDay: 1,
                     prodStartTime: "06:00",
@@ -1402,9 +1493,7 @@ export async function deleteProductionLine(line: string) {
     }
 
     try {
-        await prisma.productionLine.delete({
-            where: { line }
-        });
+        await prisma.productionLine.deleteMany({ where: { line } }); // filtrato sul plant visibile
 
         revalidatePath('/planning/calendar');
         revalidatePath('/');

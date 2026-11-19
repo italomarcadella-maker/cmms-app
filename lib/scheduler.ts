@@ -40,6 +40,7 @@ export async function checkAndGeneratePreventiveWorkOrders() {
                             category: "OTHER", // Adjusted from PREVENTIVE, as it's not in the WorkOrderCategory enum
                             status: "OPEN",
                             assetId: schedule.assetId,
+                            plantId: schedule.asset?.plantId ?? null,
                             dueDate: addDays(today, 7), // Give 1 week to complete by default
                             originScheduleId: schedule.id,
                         },

@@ -68,3 +68,12 @@ Questa applicazione è pronta per essere pubblicata su Vercel. Segui questi pass
 *   **Self-Learning & Immagini**: 
     *   Le immagini caricate (se salvate su disco locale `public/uploads`) **NON funzioneranno** su Vercel perché il filesystem è effimero. Per la produzione, dovresti collegare uno storage S3 (AWS) o Vercel Blob.
     *   Il database `MaintenanceKnowledge` funzionerà correttamente perché è sul DB cloud.
+
+## Multi-plant: cosa sapere prima del deploy
+
+*   **Database**: le tabelle e le colonne del multi-plant (utenti per stabilimento, catalogo ricambi, trasferimenti, prestiti tecnici, libreria di gruppo, tariffe per plant) sono state applicate con `prisma db push`. La tabella `ProductionLine` ha cambiato chiave primaria: finché Vercel esegue il codice precedente, la configurazione delle linee di produzione non funziona.
+*   **Dati esistenti senza stabilimento**: `node scripts/backfill-multiplant.js [NOME_PLANT]` assegna a un plant i record che ne sono privi (idempotente). `npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/backfill-catalog.ts` collega i ricambi al catalogo di gruppo.
+*   **Utenti**: ogni utente non admin deve avere almeno uno stabilimento assegnato (pagina Utenti), altrimenti non vede alcun dato. L'admin vede sempre tutto.
+*   **Accesso obbligatorio**: il middleware ora richiede il login per tutte le pagine e le API, tranne `/login`, `/api/auth`, `/api/health`, `/api/cron` e le risorse statiche. Gli schermi di reparto (`/andon`, `/kiosk`) richiedono quindi un account dedicato con lo stabilimento assegnato.
+*   **Cron dei preventivi**: `/api/cron/preventive` risponde solo con l'intestazione `Authorization: Bearer <CRON_SECRET>`. Imposta la variabile `CRON_SECRET` su Vercel e, se vuoi la schedulazione, aggiungi un `vercel.json` con il cron (oggi non e' schedulato).
+*   **Verifica di isolamento sul database vero**: `set -a; source .env; set +a; RUN_LIVE_DB_TESTS=1 npx vitest run __tests__/live` (sola lettura; i tentativi di scrittura tra plant devono fallire).

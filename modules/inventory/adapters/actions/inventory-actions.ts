@@ -78,6 +78,7 @@ export async function getSpareParts(): Promise<any[]> {
             return {
                 id: json.id!,
                 name: json.name,
+                plantId: json.plantId ?? null,
                 category: json.category || '',
                 warehouse: json.warehouse || '',
                 quantity: json.quantity,
@@ -107,6 +108,7 @@ export async function addSparePart(data: { name: string; quantity: number; categ
             data: {
                 id: json.id!,
                 name: json.name,
+                plantId: json.plantId ?? null,
                 category: json.category || '',
                 warehouse: json.warehouse || '',
                 quantity: json.quantity,
@@ -141,6 +143,7 @@ export async function updateSparePartQuantity(id: string, quantity: number) {
             data: {
                 id: json.id!,
                 name: json.name,
+                plantId: json.plantId ?? null,
                 category: json.category || '',
                 warehouse: json.warehouse || '',
                 quantity: json.quantity,

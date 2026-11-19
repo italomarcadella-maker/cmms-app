@@ -20,7 +20,7 @@ export async function calculateLineReliability(
 ): Promise<ReliabilityMetrics> {
 
     // 1. Get Line Schedule Configuration
-    const lineConfig = await prisma.productionLine.findUnique({
+    const lineConfig = await prisma.productionLine.findFirst({
         where: { line: lineName }
     });
 

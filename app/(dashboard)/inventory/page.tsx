@@ -7,6 +7,8 @@ import { Plus, Box, AlertTriangle, Trash2 } from "lucide-react";
 import { BackToDashboardButton } from "@/components/ui/back-button";
 import { QRCodeDialog } from "@/components/inventory/qr-code-dialog";
 import Link from "next/link";
+import { PlantBadge } from "@/components/ui/plant-badge";
+import { ArrowRightLeft, Layers } from "lucide-react";
 
 
 export default function InventoryPage() {
@@ -62,6 +64,20 @@ export default function InventoryPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    <Link
+                        href="/inventory/availability"
+                        className="inline-flex items-center gap-2 rounded-md border bg-background px-4 py-2 text-sm font-medium hover:bg-muted shadow-sm transition-all"
+                    >
+                        <ArrowRightLeft className="h-4 w-4" />
+                        Disponibilità tra plant
+                    </Link>
+                    <Link
+                        href="/inventory/catalog"
+                        className="inline-flex items-center gap-2 rounded-md border bg-background px-4 py-2 text-sm font-medium hover:bg-muted shadow-sm transition-all"
+                    >
+                        <Layers className="h-4 w-4" />
+                        Catalogo
+                    </Link>
                     <Link
                         href="/inventory/purchase-requests"
                         className="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/90 shadow-sm transition-all"
@@ -192,7 +208,7 @@ export default function InventoryPage() {
                                 filteredParts.map(part => (
                                     <tr key={part.id} className="hover:bg-muted/50 transition-colors">
                                         <td className="px-4 py-3 font-medium">
-                                            {part.name}
+                                            <div className="flex flex-wrap items-center gap-2">{part.name}<PlantBadge plantId={part.plantId} /></div>
                                             <div className="text-xs text-muted-foreground font-mono">{part.id}</div>
                                         </td>
                                         <td className="px-4 py-3">
@@ -212,6 +228,11 @@ export default function InventoryPage() {
                                                 <div className="flex items-center justify-center gap-1 text-xs text-destructive mt-1 font-medium animate-pulse">
                                                     <AlertTriangle className="h-3 w-3" /> Scorta Bassa
                                                 </div>
+                                            )}
+                                            {part.quantity <= part.minQuantity && (
+                                                <Link href={`/inventory/availability?search=${encodeURIComponent(part.name)}`} className="mt-1 block text-xs font-medium text-primary hover:underline">
+                                                    Cerca in altri plant
+                                                </Link>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right">

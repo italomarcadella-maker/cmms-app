@@ -7,6 +7,10 @@ declare module "next-auth" {
             id: string
             role: string
             mustChangePassword?: boolean
+            /** Stabilimenti assegnati (per ADMIN la lista e' vuota: vede tutto). */
+            plantIds?: string[]
+            /** Stabilimento "di casa". */
+            homePlantId?: string | null
         } & DefaultSession["user"]
     }
 
@@ -20,6 +24,9 @@ declare module "next-auth/jwt" {
     interface JWT {
         role: string
         mustChangePassword?: boolean
+        plantIds?: string[]
+        homePlantId?: string | null
+        plantsCheckedAt?: number
     }
 }
 

@@ -1,15 +1,15 @@
 "use server";
 
-import { unstable_cache } from 'next/cache';
+import { scopedCache } from "@/lib/scoped-cache";
+import { getPlantScope, userScopeWhere } from "@/lib/plant-scope";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { cookies } from "next/headers";
 import { subDays, format, startOfDay, endOfDay } from "date-fns";
 import { it } from "date-fns/locale";
-import { getSystemSettings } from "@/lib/actions";
+import { getEffectiveSettings } from "@/lib/actions";
 
-const getDetailedDashboardStatsCached = unstable_cache(
-    async (plantId?: string) => {
+const getDetailedDashboardStatsCached = scopedCache(
+    async () => {
         try {
             // Execute parallel aggregation queries instead of counting locally
             const [
@@ -20,8 +20,7 @@ const getDetailedDashboardStatsCached = unstable_cache(
                 lowStockCount
             ] = await Promise.all([
                 // 1. Asset Stats (Total, Active, Offline, AvgHealth) in one go if possible, but distinct queries are cleaner for Prisma
-                prisma.asset.aggregate({
-                    where: plantId ? { plantId } : undefined,
+                prisma.asset.aggregate({
                     _count: {
                         id: true,
                         _all: true // Total
@@ -32,22 +31,21 @@ const getDetailedDashboardStatsCached = unstable_cache(
                 }),
                 // 2. WO Basic Counts
                 prisma.workOrder.groupBy({
-                    by: ['status'],
-                    where: plantId ? { plantId } : undefined,
+                    by: ['status'],
                     _count: { id: true }
                 }),
                 // 3. High Priority Open
-                prisma.workOrder.count({ where: { priority: 'STOPPED', status: { in: ['OPEN', 'IN_PROGRESS'] }, ...(plantId && { plantId }) } }),
+                prisma.workOrder.count({ where: { priority: 'STOPPED', status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
                 // 4. Overdue
-                prisma.workOrder.count({ where: { dueDate: { lt: new Date() }, status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] }, ...(plantId && { plantId }) } }),
+                prisma.workOrder.count({ where: { dueDate: { lt: new Date() }, status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] } } }),
                 // 5. Low Stock
-                prisma.sparePart.count({ where: { quantity: { lte: prisma.sparePart.fields.minQuantity }, ...(plantId && { plantId }) } })
+                prisma.sparePart.count({ where: { quantity: { lte: prisma.sparePart.fields.minQuantity } } })
             ]);
 
             // Refine Asset Status Counts
             const [activeAssets, offlineAssets] = await Promise.all([
-                prisma.asset.count({ where: { status: 'OPERATIONAL', ...(plantId && { plantId }) } }),
-                prisma.asset.count({ where: { status: 'OFFLINE', ...(plantId && { plantId }) } })
+                prisma.asset.count({ where: { status: 'OPERATIONAL' } }),
+                prisma.asset.count({ where: { status: 'OFFLINE' } })
             ]);
 
             // Parse WO Grouped Stats
@@ -103,12 +101,10 @@ export async function getDetailedDashboardStats() {
             lowStockCount: 0
         };
     }
-    const cookieStore = await cookies();
-    const plantId = cookieStore.get('cmms_plant_id')?.value;
-    return getDetailedDashboardStatsCached(plantId);
+    return getDetailedDashboardStatsCached();
 }
 
-export const getAssetStatusDistribution = unstable_cache(
+export const getAssetStatusDistribution = scopedCache(
     async () => {
         try {
             const distribution = await prisma.asset.groupBy({
@@ -139,7 +135,7 @@ export const getAssetStatusDistribution = unstable_cache(
     { revalidate: 60 }
 );
 
-export const getWorkOrderTrends = unstable_cache(
+export const getWorkOrderTrends = scopedCache(
     async (days = 7) => {
         try {
             const endDate = new Date();
@@ -214,12 +210,11 @@ export const getWorkOrderTrends = unstable_cache(
     { revalidate: 60 }
 );
 
-const getRecentWorkOrdersCached = unstable_cache(
-    async (plantId?: string, limit = 5) => {
+const getRecentWorkOrdersCached = scopedCache(
+    async (limit = 5) => {
         try {
             const wos = await prisma.workOrder.findMany({
-                take: limit,
-                where: plantId ? { plantId } : undefined,
+                take: limit,
                 orderBy: { createdAt: 'desc' },
                 include: { asset: true }
             });
@@ -238,20 +233,17 @@ const getRecentWorkOrdersCached = unstable_cache(
 );
 
 export async function getRecentWorkOrders(limit = 5) {
-    const cookieStore = await cookies();
-    const plantId = cookieStore.get('cmms_plant_id')?.value;
-    return getRecentWorkOrdersCached(plantId, limit);
+    return getRecentWorkOrdersCached(limit);
 }
 
-const getOverdueWorkOrdersCached = unstable_cache(
-    async (plantId?: string, limit = 5) => {
+const getOverdueWorkOrdersCached = scopedCache(
+    async (limit = 5) => {
         try {
             const wos = await prisma.workOrder.findMany({
                 take: limit,
                 where: {
                     dueDate: { lt: new Date() },
-                    status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] },
-                    ...(plantId && { plantId })
+                    status: { notIn: ['CLOSED', 'COMPLETED', 'CANCELED'] }
                 },
                 orderBy: { dueDate: 'asc' }, // Most overdue first
                 include: { asset: true }
@@ -271,13 +263,11 @@ const getOverdueWorkOrdersCached = unstable_cache(
 );
 
 export async function getOverdueWorkOrders(limit = 5) {
-    const cookieStore = await cookies();
-    const plantId = cookieStore.get('cmms_plant_id')?.value;
-    return getOverdueWorkOrdersCached(plantId, limit);
+    return getOverdueWorkOrdersCached(limit);
 }
 
-const getHighPrioritySafetyRequestsCached = unstable_cache(
-    async (plantId?: string, limit = 5) => {
+const getHighPrioritySafetyRequestsCached = scopedCache(
+    async (limit = 5) => {
         try {
             const requests = await prisma.workOrder.findMany({
                 take: limit,
@@ -287,15 +277,7 @@ const getHighPrioritySafetyRequestsCached = unstable_cache(
                         { assetId: 'SYS-SAFETY' }
                     ],
                     priority: { in: ['HIGH', 'MEDIUM', 'STOPPED', 'LOW', 'WORKING'] },
-                    status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
-                    AND: [
-                        plantId ? {
-                            OR: [
-                                { plantId: plantId },
-                                { plantId: null }
-                            ]
-                        } : {}
-                    ]
+                    status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] }
                 },
                 orderBy: [
                     { createdAt: 'desc' }
@@ -318,12 +300,10 @@ const getHighPrioritySafetyRequestsCached = unstable_cache(
 );
 
 export async function getHighPrioritySafetyRequests(limit = 5) {
-    const cookieStore = await cookies();
-    const plantId = cookieStore.get('cmms_plant_id')?.value;
-    return getHighPrioritySafetyRequestsCached(plantId, limit);
+    return getHighPrioritySafetyRequestsCached(limit);
 }
 
-export const getMaintenanceMetrics = unstable_cache(
+export const getMaintenanceMetrics = scopedCache(
     async (months = 6) => {
         try {
             const startDate = subDays(new Date(), months * 30);
@@ -344,7 +324,7 @@ export const getMaintenanceMetrics = unstable_cache(
 
             const [technicians, settings] = await Promise.all([
                 prisma.technician.findMany(),
-                getSystemSettings()
+                getEffectiveSettings()
             ]);
             const techRateMap = new Map(technicians.map(t => [t.id, t.hourlyRate]));
             const defaultHourlyRate = settings?.defaultLaborHourlyRate ?? 30;
@@ -456,16 +436,15 @@ export const getMaintenanceMetrics = unstable_cache(
     { revalidate: 300 }
 );
 
-const getAreaStatusCached = unstable_cache(
-    async (plantId?: string) => {
+const getAreaStatusCached = scopedCache(
+    async () => {
         try {
             const [production, facilities, workshop, improvement] = await Promise.all([
                 // Production: WOs on assets with a defined line
                 prisma.workOrder.count({
                     where: {
                         status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL'] },
-                        asset: { line: { not: null } },
-                        ...(plantId && { plantId })
+                        asset: { line: { not: null } }
                     }
                 }),
                 // Facilities: WOs on FACILITY assets or SYS-PLANT
@@ -476,8 +455,7 @@ const getAreaStatusCached = unstable_cache(
                             { asset: { type: 'FACILITY' } },
                             { assetId: 'SYS-PLANT' },
                             { category: 'OTHER' } // 'Impianti' in wizard uses OTHER category
-                        ],
-                        ...(plantId && { plantId })
+                        ]
                     }
                 }),
                 // Workshop: WOs on assets in location 'OFFICINA'
@@ -488,8 +466,7 @@ const getAreaStatusCached = unstable_cache(
                             { asset: { location: { contains: 'OFFICINA', mode: 'insensitive' } } },
                             { category: 'MECHANICAL' },
                             { assetId: 'SYS-WORKSHOP' }
-                        ],
-                        ...(plantId && { plantId })
+                        ]
                     }
                 }),
                 // Improvement: WOs of category IMPROVEMENT or KAIZEN assets
@@ -500,8 +477,7 @@ const getAreaStatusCached = unstable_cache(
                             { category: 'IMPROVEMENT' },
                             { asset: { type: 'KAIZEN' } },
                             { assetId: 'SYS-KAIZEN' }
-                        ],
-                        ...(plantId && { plantId })
+                        ]
                     }
                 })
             ]);
@@ -517,17 +493,16 @@ const getAreaStatusCached = unstable_cache(
 );
 
 export async function getAreaStatus() {
-    const cookieStore = await cookies();
-    const plantId = cookieStore.get('cmms_plant_id')?.value;
-    return getAreaStatusCached(plantId);
+    return getAreaStatusCached();
 }
 
-const getTechnicianPresenceCached = unstable_cache(
+const getTechnicianPresenceCached = scopedCache(
     async () => {
         try {
+            const userScope = userScopeWhere(await getPlantScope());
             // 1. Get all users with role MAINTAINER
             const maintainers = await prisma.user.findMany({
-                where: { role: 'MAINTAINER', isActive: true },
+                where: { role: "MAINTAINER", isActive: true, ...userScope },
                 select: { id: true, name: true }
             });
 
@@ -577,8 +552,8 @@ export async function getTechnicianPresence() {
     return getTechnicianPresenceCached();
 }
 
-const getUpcomingScheduleCached = unstable_cache(
-    async (plantId?: string, days = 3) => {
+const getUpcomingScheduleCached = scopedCache(
+    async (days = 3) => {
         try {
             const startDate = startOfDay(new Date());
             const endDate = endOfDay(new Date(new Date().setDate(new Date().getDate() + days)));
@@ -587,8 +562,7 @@ const getUpcomingScheduleCached = unstable_cache(
             const wos = await prisma.workOrder.findMany({
                 where: {
                     dueDate: { gte: startDate, lte: endDate },
-                    status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL', 'ASSIGNED'] },
-                    ...(plantId && { plantId })
+                    status: { in: ['OPEN', 'IN_PROGRESS', 'PENDING_APPROVAL', 'ASSIGNED'] }
                 },
                 include: { asset: true },
                 orderBy: { dueDate: 'asc' }
@@ -597,8 +571,7 @@ const getUpcomingScheduleCached = unstable_cache(
             // 2. Fetch Planned Schedules due in range
             const schedules = await prisma.preventiveSchedule.findMany({
                 where: {
-                    nextDueDate: { gte: startDate, lte: endDate },
-                    ...(plantId && { asset: { plantId } })
+                    nextDueDate: { gte: startDate, lte: endDate }
                 },
                 include: { asset: true },
                 orderBy: { nextDueDate: 'asc' }
@@ -642,7 +615,5 @@ const getUpcomingScheduleCached = unstable_cache(
 );
 
 export async function getUpcomingSchedule(days = 3) {
-    const cookieStore = await cookies();
-    const plantId = cookieStore.get('cmms_plant_id')?.value;
-    return getUpcomingScheduleCached(plantId, days);
+    return getUpcomingScheduleCached(days);
 }

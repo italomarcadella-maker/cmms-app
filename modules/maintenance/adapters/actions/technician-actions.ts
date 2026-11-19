@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
 import { PrismaTechnicianRepository } from '../db/prisma-technician-repository';
 import { Technician } from '../../domain/entities/technician';
+import { getPlantScope, userScopeWhere } from '@/lib/plant-scope';
 
 // Register dependencies if not registered
 try {
@@ -18,7 +19,7 @@ const getTechRepo = () => ServiceLocator.resolve<PrismaTechnicianRepository>('IT
 
 export async function addTechnician(data: { name: string; specialty: string; hourlyRate: number; email: string }) {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
+    if (!session?.user || !['ADMIN', 'PLANT_MANAGER'].includes((session.user as any).role)) return { success: false, message: 'Non autorizzato' };
 
     try {
         // Find User
@@ -53,7 +54,7 @@ export async function addTechnician(data: { name: string; specialty: string; hou
 
 export async function deleteTechnician(id: string) {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== 'ADMIN') return { success: false, message: 'Non autorizzato' };
+    if (!session?.user || !['ADMIN', 'PLANT_MANAGER'].includes((session.user as any).role)) return { success: false, message: 'Non autorizzato' };
     try {
         const techRepo = getTechRepo();
         await techRepo.delete(id);
@@ -124,10 +125,12 @@ export async function setTechnicianStatus(userId: string, date: Date, status: st
 
 export async function getAllTechnicians() {
     try {
+        const scopeWhere = userScopeWhere(await getPlantScope());
         const technicians = await prisma.user.findMany({
             where: {
+                ...scopeWhere,
                 role: {
-                    in: ["MAINTAINER", "SUPERVISOR"]
+                    in: ["MAINTAINER", "SUPERVISOR", "PLANT_MANAGER"]
                 }
             },
             select: {

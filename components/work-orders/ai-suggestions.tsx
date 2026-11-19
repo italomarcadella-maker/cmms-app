@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { generateCorporateBrainSuggestions, BrainSuggestion } from "@/lib/ai-service";
-import { Lightbulb, Loader2, Sparkles, BookOpen, Clock, Zap } from "lucide-react";
+import { Building2, Lightbulb, Loader2, Sparkles, BookOpen, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -53,8 +53,9 @@ export function AISuggestions({ assetId, description }: AISuggestionsProps) {
                                         {s.source === 'SOP' && <BookOpen className="h-3.5 w-3.5 text-blue-400" />}
                                         {s.source === 'KB' && <Zap className="h-3.5 w-3.5 text-amber-400" />}
                                         {s.source === 'STORICO_WO' && <Clock className="h-3.5 w-3.5 text-emerald-400" />}
+                                        {s.source === 'ALTRI_PLANT' && <Building2 className="h-3.5 w-3.5 text-sky-400" />}
                                         <span className="text-xs font-medium uppercase tracking-wider text-slate-300">
-                                            {s.source}
+                                            {s.source === 'ALTRI_PLANT' ? 'Altri stabilimenti' : s.source}
                                         </span>
                                     </div>
                                     <h4 className="font-medium text-sm text-slate-100 mb-1">{s.title}</h4>

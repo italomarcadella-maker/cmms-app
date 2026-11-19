@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { getFailureInsights } from '@/modules/maintenance/adapters/actions/failure-insights-actions';
 
 // Simple heuristic engine to simulate "AI" understanding of the database
 // In a real scenario, this would call an LLM (OpenAI/Gemini) with function calling.
@@ -89,6 +90,22 @@ export async function generateEWOAnalysis(description: string, assetName?: strin
         }
     } catch (e) {
         console.error("KB Lookup failed", e);
+    }
+
+    // 2. Esperienza di tutti gli stabilimenti: se un caso simile e' stato risolto altrove, si parte da quella soluzione
+    try {
+        const insights = await getFailureInsights({ description });
+        const top = insights.actions[0];
+        if (top && top.confidence >= 0.5) {
+            return {
+                causeAnalysis: top.cause || "Caso gia' incontrato in altri stabilimenti.",
+                solutionApplied: top.action,
+                preventiveActions: top.prevention || "Applicare la procedura usata negli altri stabilimenti e registrarla come standard.",
+                source: `Esperienza di ${top.plants.join(', ')} (${top.occurrences} ${top.occurrences === 1 ? 'caso' : 'casi'})`,
+            };
+        }
+    } catch (e) {
+        console.error("Cross-plant lookup failed", e);
     }
 
     const d = description.toLowerCase();
@@ -224,7 +241,7 @@ export async function getKnowledgeSuggestions(description: string): Promise<stri
 }
 
 export interface BrainSuggestion {
-    source: 'SOP' | 'KB' | 'STORICO_WO';
+    source: 'SOP' | 'KB' | 'STORICO_WO' | 'ALTRI_PLANT';
     title: string;
     content: string;
     relevance: number;
@@ -309,6 +326,21 @@ export async function generateCorporateBrainSuggestions(description: string, ass
                 content: `Storico: ${solution}`,
                 relevance: 70
             });
+        }
+
+        // 4. Esperienza degli altri stabilimenti: come sono stati risolti guasti simili (analisi trasversale, con plant di origine)
+        try {
+            const insights = await getFailureInsights({ description, assetId });
+            for (const a of insights.actions.slice(0, 2)) {
+                results.push({
+                    source: 'ALTRI_PLANT',
+                    title: `Risolto in ${a.plants.join(', ')} (${a.occurrences} ${a.occurrences === 1 ? 'caso' : 'casi'})`,
+                    content: `${a.action}${a.avgDowntimeMin ? ` Fermo medio: ${a.avgDowntimeMin} min.` : ''}`,
+                    relevance: Math.round(a.confidence * 100),
+                });
+            }
+        } catch (e) {
+            console.error("Cross-plant insights error", e);
         }
 
     } catch (e) {

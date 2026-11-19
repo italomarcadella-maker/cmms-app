@@ -6,7 +6,7 @@ import { PrismaMeterRepository } from '../db/prisma-meter-repository';
 import { PrismaMeterReadingRepository } from '../db/prisma-meter-reading-repository';
 import { Meter } from '../../domain/entities/meter';
 import { makeRecordMeterReading } from '../../domain/use-cases/record-meter-reading';
-import { requireRole, getSystemSettings } from '@/lib/actions';
+import { requireRole, getEffectiveSettings } from '@/lib/actions';
 
 import { format, subDays, addDays, parseISO, differenceInDays } from "date-fns";
 import { it } from "date-fns/locale";
@@ -83,7 +83,7 @@ export async function addMeterReading(data: { meterId: string, value: number, da
 }
 
 export async function getAllMeterReadings() {
-    const { authorized } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    const { authorized } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'PROCESS_ENGINEER']);
     if (!authorized) return [];
     const readings = await getReadingRepo().findWithMeter();
 
@@ -304,7 +304,7 @@ export async function getEnergyMetrics(plantId?: string, startDateStr?: string, 
         const chartData = Array.from(readingPoints.values())
             .sort((a, b) => a.date.localeCompare(b.date));
 
-        const settings = await getSystemSettings();
+        const settings = await getEffectiveSettings();
         const co2Factor = settings?.co2FactorPerKwh ?? 0.44;
         const electricityPrice = settings?.electricityPricePerKwh ?? 0.22;
         const waterPrice = settings?.waterPricePerM3 ?? 0.85;

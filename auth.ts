@@ -57,6 +57,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             }
             if (session.user) {
                 session.user.mustChangePassword = token.mustChangePassword;
+                session.user.plantIds = token.plantIds ?? [];
+                session.user.homePlantId = token.homePlantId ?? null;
             }
             return session;
         },
@@ -64,10 +66,31 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             if (user) {
                 token.role = user.role;
                 token.mustChangePassword = user.mustChangePassword;
+                token.plantsCheckedAt = 0; // forza la lettura degli stabilimenti al primo accesso
             }
             if (trigger === "update" && session?.user) {
                 token.role = session.user.role;
                 token.mustChangePassword = session.user.mustChangePassword;
+                token.plantsCheckedAt = 0;
+            }
+
+            // Ruolo e stabilimenti assegnati si rileggono dal database al massimo una volta al minuto:
+            // una modifica dell'admin (o la disattivazione di un utente) vale entro pochi istanti,
+            // senza una query per ogni richiesta.
+            if (token.sub && (!token.plantsCheckedAt || Date.now() - token.plantsCheckedAt > 60_000)) {
+                try {
+                    const dbUser = await prisma.user.findUnique({
+                        where: { id: token.sub },
+                        select: { role: true, isActive: true, plantId: true, plants: { select: { plantId: true } } },
+                    });
+                    if (!dbUser || dbUser.isActive === false) return null; // utente eliminato o disattivato: sessione chiusa
+                    token.role = dbUser.role;
+                    token.homePlantId = dbUser.plantId;
+                    token.plantIds = dbUser.plants.map(p => p.plantId);
+                    token.plantsCheckedAt = Date.now();
+                } catch (err) {
+                    console.error('[auth] Lettura stabilimenti non riuscita, uso i valori in sessione:', err);
+                }
             }
             return token;
         }

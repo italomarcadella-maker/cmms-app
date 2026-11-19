@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { updateUserStatus } from "@/lib/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import type { PlantChoice } from "./plant-picker";
 
 interface User {
     id: string;
@@ -28,13 +29,15 @@ interface User {
     isActive: boolean;
     lastLogin: string | null;
     department: string | null;
+    plantIds?: string[];
 }
 
 interface UserListProps {
     users: User[];
+    plants?: PlantChoice[];
 }
 
-export function UserList({ users }: UserListProps) {
+export function UserList({ users, plants = [] }: UserListProps) {
     const router = useRouter();
 
     const handleStatusChange = async (userId: string, currentStatus: boolean) => {
@@ -59,6 +62,7 @@ export function UserList({ users }: UserListProps) {
                         <TableHead className="w-[80px]">Avatar</TableHead>
                         <TableHead>Utente</TableHead>
                         <TableHead>Reparto</TableHead>
+                        <TableHead>Stabilimenti</TableHead>
                         <TableHead>Stato</TableHead>
                         <TableHead>Ruolo</TableHead>
                         <TableHead>Ultimo Accesso</TableHead>
@@ -88,6 +92,19 @@ export function UserList({ users }: UserListProps) {
                                 )}
                             </TableCell>
                             <TableCell>
+                                {user.role === 'ADMIN' ? (
+                                    <Badge variant="secondary">Tutti</Badge>
+                                ) : (user.plantIds ?? []).length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                        {(user.plantIds ?? []).map(id => (
+                                            <Badge key={id} variant="outline">{plants.find(p => p.id === id)?.name ?? '?'}</Badge>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <span className="text-xs font-medium text-warning-strong">Nessuno: non vede dati</span>
+                                )}
+                            </TableCell>
+                            <TableCell>
                                 <div className="flex items-center gap-2">
                                     <Switch
                                         checked={user.isActive}
@@ -112,8 +129,9 @@ export function UserList({ users }: UserListProps) {
                                         email: user.email,
                                         department: user.department || undefined,
                                         image: user.image || undefined,
-                                        role: user.role
-                                    }} />
+                                        role: user.role,
+                                        plantIds: user.plantIds
+                                    }} plants={plants} />
                                     <ChangePasswordDialog userId={user.id} userName={user.name || user.email || 'Utente'} />
                                     <DeleteUserDialog userId={user.id} userName={user.name || user.email || 'Utente'} />
                                 </div>

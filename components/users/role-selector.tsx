@@ -44,7 +44,7 @@ export function RoleSelector({ userId, currentRole }: RoleSelectorProps) {
                 <SelectItem value="USER">User</SelectItem>
                 <SelectItem value="MAINTAINER">Maintainer</SelectItem>
                 <SelectItem value="PROCESS_ENGINEER">Ingegnere di Processo</SelectItem>
-                <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
+                <SelectItem value="SUPERVISOR">Supervisor</SelectItem>                <SelectItem value="PLANT_MANAGER">Responsabile di plant</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>
             </SelectContent>
         </Select>

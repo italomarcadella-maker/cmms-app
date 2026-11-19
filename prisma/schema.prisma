@@ -12,6 +12,7 @@ generator client {
 
 enum UserRole {
   ADMIN
+  PLANT_MANAGER
   PROCESS_ENGINEER
   SUPERVISOR
   MAINTAINER
@@ -90,8 +91,11 @@ model User {
   isActive      Boolean   @default(true)
   lastLogin     DateTime?
   department    String?
+  // plantId = stabilimento "di casa" (selezionato all'accesso). Gli stabilimenti visibili sono in `plants`
+  // (un responsabile di plant puo' averne piu' di uno); ADMIN vede sempre tutti.
   plantId       String?
   plant         Plant?    @relation(fields: [plantId], references: [id])
+  plants        UserPlant[]
   accounts      Account[]
   sessions      Session[]
   notifications Notification[]
@@ -179,6 +183,8 @@ model Asset {
   @@index([healthScore])
   @@index([status])
   @@index([name])
+  @@index([plantId])
+  @@index([vendor, model])
 }
 
 model AssetDocument {
@@ -252,6 +258,7 @@ model WorkOrder {
   @@index([assignedTechnicianId])
   @@index([createdAt]) // New Index for Trends
   @@index([priority]) // New Index for High Priority checks
+  @@index([plantId])
 }
 
 
@@ -343,6 +350,7 @@ model Technician {
 
   assignments          WorkOrderTechnician[]
   workOrders           WorkOrder[] // Legacy Relation kept for compatibility
+  loans                TechnicianLoan[]
 }
 
 model WorkOrderTechnician {
@@ -372,10 +380,11 @@ model PreventiveSchedule {
   lastRunDate   DateTime?
   nextDueDate   DateTime
   assignedToId  String?
-  
+  sourceTemplateId String? // Se adottato dalla libreria condivisa per modello di macchina
+
   asset         Asset    @relation(fields: [assetId], references: [id])
   assetId       String
-  
+
   generatedWorkOrders WorkOrder[]
 
   @@index([nextDueDate])
@@ -401,8 +410,12 @@ model Meter {
   serialNumber     String?
   location         String?
   installationDate DateTime?
-  
+  plantId          String?
+  plant            Plant?   @relation(fields: [plantId], references: [id])
+
   readings         MeterReading[]
+
+  @@index([plantId])
 }
 
 model MeterReading {
@@ -436,8 +449,103 @@ model SparePart {
   plant       Plant?   @relation(fields: [plantId], references: [id])
   unitCost    Float    @default(0)
   lastUpdated DateTime @default(now())
-  
+
+  // Una riga SparePart = la giacenza di UN articolo in UN plant. Il catalogo unico (per descrizione)
+  // permette di riconoscere lo stesso articolo in plant diversi, perche' non esiste un codice comune.
+  catalogId   String?
+  catalog     SparePartCatalog? @relation(fields: [catalogId], references: [id])
+
   purchaseRequests PurchaseRequest[]
+  transfersOut     PartTransferRequest[]
+
+  @@index([plantId])
+  @@index([catalogId])
+}
+
+/// Catalogo ricambi di gruppo: un articolo logico, riconosciuto dalla descrizione normalizzata.
+model SparePartCatalog {
+  id          String   @id @default(cuid())
+  name        String            // descrizione canonica
+  normalizedKey String @unique  // descrizione normalizzata (minuscole, senza accenti/punteggiatura, token ordinati)
+  category    String?
+  vendor      String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  stocks      SparePart[]
+  transfers   PartTransferRequest[]
+
+  @@index([name])
+}
+
+/// Richiesta di trasferimento di un ricambio da un plant all'altro (approvata dal plant che lo cede).
+model PartTransferRequest {
+  id            String   @id @default(cuid())
+  catalogId     String?
+  catalog       SparePartCatalog? @relation(fields: [catalogId], references: [id])
+  partName      String
+  fromPlantId   String
+  toPlantId     String
+  fromPart      SparePart @relation(fields: [fromPartId], references: [id], onDelete: Cascade)
+  fromPartId    String
+  quantity      Int
+  status        String   @default("REQUESTED") // REQUESTED, APPROVED, REJECTED, RECEIVED, CANCELED
+  note          String?
+  decisionNote  String?
+  requestedById String
+  decidedById   String?
+  createdAt     DateTime @default(now())
+  decidedAt     DateTime?
+  receivedAt    DateTime?
+
+  fromPlant     Plant    @relation("TransfersOut", fields: [fromPlantId], references: [id], onDelete: Cascade)
+  toPlant       Plant    @relation("TransfersIn", fields: [toPlantId], references: [id], onDelete: Cascade)
+
+  @@index([fromPlantId, status])
+  @@index([toPlantId, status])
+}
+
+/// Tecnico prestato temporaneamente da un plant a un altro.
+model TechnicianLoan {
+  id            String   @id @default(cuid())
+  technicianId  String
+  technician    Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  fromPlantId   String
+  toPlantId     String
+  startDate     DateTime
+  endDate       DateTime
+  status        String   @default("REQUESTED") // REQUESTED, APPROVED, REJECTED, CANCELED
+  note          String?
+  requestedById String
+  decidedById   String?
+  createdAt     DateTime @default(now())
+  decidedAt     DateTime?
+
+  fromPlant     Plant    @relation("LoansOut", fields: [fromPlantId], references: [id], onDelete: Cascade)
+  toPlant       Plant    @relation("LoansIn", fields: [toPlantId], references: [id], onDelete: Cascade)
+
+  @@index([toPlantId, status])
+  @@index([fromPlantId, status])
+}
+
+/// Libreria di gruppo: piani preventivi e SOP pubblicati per modello di macchina, adottabili (e adattabili) da ogni plant.
+model SharedTemplate {
+  id            String   @id @default(cuid())
+  kind          String   // PM, SOP
+  title         String
+  description   String?
+  assetVendor   String?
+  assetModel    String
+  payload       Json
+  originPlantId String
+  originPlant   Plant    @relation(fields: [originPlantId], references: [id], onDelete: Cascade)
+  createdById   String
+  createdByName String?
+  adoptions     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([assetModel])
+  @@index([kind])
 }
 
 model Component {
@@ -450,6 +558,8 @@ model Component {
   usageType       String   // SOTTOSTRATO, COPERTURA, JOLLY
   warehouse       String   // RETINATO, MAGLIATO
   location        String
+  plantId         String?
+  plant           Plant?   @relation(fields: [plantId], references: [id])
   status          String   // OPTIMAL, WARNING, CRITICAL, etc.
   purchaseDate    DateTime
   
@@ -526,7 +636,10 @@ model TechnicianAvailability {
 }
 
 model ProductionLine {
-  line           String @id
+  id             String @id @default(cuid())
+  plantId        String?
+  plant          Plant? @relation(fields: [plantId], references: [id])
+  line           String // nome linea, unico all'interno del plant
   prodStartDay   Int    @default(1) // 1=Mon
   prodStartTime  String @default("06:00")
   prodEndDay     Int    @default(5) // 5=Fri
@@ -542,6 +655,8 @@ model ProductionLine {
   maintSunEnd    String?
 
   updatedAt      DateTime @default(now())
+
+  @@unique([plantId, line])
 }
 
 model AuditLog {
@@ -569,10 +684,14 @@ model Project {
   roi         Float?   // Return on investment estimation (economic)
   ecologicalRoi Float? // Estimated ecological savings (e.g. CO2 reduction)
   expectedEnergySavings Float? // Estimated energy savings in kWh or percentage
+  plantId     String?
+  plant       Plant?   @relation(fields: [plantId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   tasks       ProjectTask[]
+
+  @@index([plantId])
 }
 
 model ProjectTask {
@@ -610,6 +729,7 @@ model SopDocument {
   author                String
   line                  String?  // Associated production line
   product               String?  // Associated product
+  sourceTemplateId      String?  // Se adottata dalla libreria condivisa per modello di macchina
   version               Int      @default(1)
   previousVersionId     String?  // For Git-style versioning / Rollbacks
   isApproved            Boolean  @default(false)
@@ -659,11 +779,15 @@ model DailyMeeting {
   department  String   // RETINATO, MAGLIATO
   status      String   @default("DRAFT") // DRAFT, COMPLETED
   conductedBy String?  // User ID or name
+  plantId     String?
+  plant       Plant?   @relation(fields: [plantId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   sections    MeetingSection[]
   generatedOrders WorkOrder[]
+
+  @@index([plantId])
 }
 
 model MeetingSection {
@@ -704,12 +828,43 @@ model Plant {
   country     String?
   timezone    String   @default("Europe/Rome")
   createdAt   DateTime @default(now())
-  
+
+  // Impostazioni proprie del plant: se null vale il valore globale di SystemSettings.
+  electricityPricePerKwh Float?
+  waterPricePerM3        Float?
+  co2FactorPerKwh        Float?
+  downtimeCostPerMinute  Float?
+  defaultLaborHourlyRate Float?
+
   users       User[]
+  members     UserPlant[]
   assets      Asset[]
   workOrders  WorkOrder[]
   spareParts  SparePart[]
   energyLogs  EnergyLog[]
+  meters      Meter[]
+  components  Component[]
+  projects    Project[]
+  meetings    DailyMeeting[]
+  lines       ProductionLine[]
+  transfersOut PartTransferRequest[] @relation("TransfersOut")
+  transfersIn  PartTransferRequest[] @relation("TransfersIn")
+  loansOut     TechnicianLoan[] @relation("LoansOut")
+  loansIn      TechnicianLoan[] @relation("LoansIn")
+  sharedTemplates SharedTemplate[]
+}
+
+/// Stabilimenti visibili a un utente non admin (responsabile di plant: uno o piu').
+model UserPlant {
+  userId    String
+  plantId   String
+  createdAt DateTime @default(now())
+
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plant     Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@id([userId, plantId])
+  @@index([plantId])
 }
 
 model PurchaseRequest {

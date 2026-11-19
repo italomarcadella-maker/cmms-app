@@ -43,7 +43,7 @@ export default function WorkOrderDetailPage() {
     const { technicians } = useReference();
     const { confirm, dialog: confirmDialog } = useConfirm();
 
-    const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'MAINTAINER';
+    const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'PLANT_MANAGER' || user?.role === 'MAINTAINER';
 
     // Parts State
     const [isAddingPart, setIsAddingPart] = useState(false);

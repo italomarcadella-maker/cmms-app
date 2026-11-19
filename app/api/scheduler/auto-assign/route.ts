@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { assignWorkOrder } from "@/lib/actions";
+import { assignWorkOrder, requireRole } from "@/lib/actions";
 import { addDays, startOfDay, isSameDay } from "date-fns";
 
 export async function POST(request: Request) {
+    // Assegna automaticamente gli ordini aperti: riservato a chi coordina il lavoro (limitato al proprio stabilimento)
+    const { authorized, message } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'SUPERVISOR']);
+    if (!authorized) return NextResponse.json({ success: false, message }, { status: 403 });
     try {
         // 1. Fetch unassigned work orders, ordered by priority (HIGH first) and creation date
         const unassignedWOs = await prisma.workOrder.findMany({

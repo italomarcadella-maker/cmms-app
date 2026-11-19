@@ -8,8 +8,8 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
     disconnect: vi.fn(),
 }))
 
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
+// Mock window.matchMedia (solo negli ambienti con DOM: i test con @vitest-environment node non hanno window)
+if (typeof window !== 'undefined') Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation(query => ({
         matches: false,

@@ -34,7 +34,7 @@ const getWorkOrderRepo = () => ServiceLocator.resolve<PrismaWorkOrderRepository>
 const getScheduleRepo = () => ServiceLocator.resolve<PrismaScheduleRepository>('IScheduleRepository');
 
 export async function addAsset(rawData: any) {
-    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    const { authorized, message } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'PROCESS_ENGINEER']);
     if (!authorized) return { success: false, message };
 
     try {
@@ -81,7 +81,7 @@ export async function addAsset(rawData: any) {
 }
 
 export async function updateAsset(id: string, rawData: any) {
-    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
+    const { authorized, message } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'PROCESS_ENGINEER']);
     if (!authorized) return { success: false, message };
 
     try {

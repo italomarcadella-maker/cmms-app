@@ -21,6 +21,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { updateUser } from '@/lib/actions';
+import { PlantPicker, type PlantChoice } from './plant-picker';
 import { Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -32,10 +33,12 @@ interface EditUserDialogProps {
         department?: string;
         image?: string;
         role: string;
+        plantIds?: string[];
     };
+    plants?: PlantChoice[];
 }
 
-export function EditUserDialog({ user }: EditUserDialogProps) {
+export function EditUserDialog({ user, plants = [] }: EditUserDialogProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -45,6 +48,7 @@ export function EditUserDialog({ user }: EditUserDialogProps) {
     const [department, setDepartment] = useState(user.department || '');
     const [image, setImage] = useState(user.image || '');
     const [role, setRole] = useState(user.role);
+    const [plantIds, setPlantIds] = useState<string[]>(user.plantIds ?? []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -56,7 +60,8 @@ export function EditUserDialog({ user }: EditUserDialogProps) {
                 email,
                 department,
                 image,
-                role
+                role,
+                plantIds
             });
 
             if (result.success) {
@@ -79,7 +84,7 @@ export function EditUserDialog({ user }: EditUserDialogProps) {
                     <Pencil className="h-4 w-4" />
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[460px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Modifica Profilo Utente</DialogTitle>
                     <DialogDescription>
@@ -142,7 +147,7 @@ export function EditUserDialog({ user }: EditUserDialogProps) {
                                 <SelectItem value="USER">User</SelectItem>
                                 <SelectItem value="MAINTAINER">Manutentore</SelectItem>
                                 <SelectItem value="PROCESS_ENGINEER">Ingegnere di Processo</SelectItem>
-                                <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
+                                <SelectItem value="SUPERVISOR">Supervisor</SelectItem>                                <SelectItem value="PLANT_MANAGER">Responsabile di plant</SelectItem>
                                 <SelectItem value="ADMIN">Admin</SelectItem>
                             </SelectContent>
                         </Select>
@@ -159,6 +164,7 @@ export function EditUserDialog({ user }: EditUserDialogProps) {
                             placeholder="https://..."
                         />
                     </div>
+                    <PlantPicker plants={plants} value={plantIds} onChange={setPlantIds} isAdminRole={role === 'ADMIN'} />
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>
                             {loading ? "Salvataggio..." : "Salva Modifiche"}

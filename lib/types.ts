@@ -42,6 +42,7 @@ export interface WorkOrder {
     description: string;
     assetId: string;
     assetName: string; // Denormalized for display convenience
+    plantId?: string | null;
     priority: WorkOrderPriority;
     category: WorkOrderCategory;
     status: WorkOrderStatus;
@@ -107,7 +108,7 @@ export interface WorkOrderTimer {
     note: string | null;
 }
 
-export type UserRole = 'ADMIN' | 'PROCESS_ENGINEER' | 'SUPERVISOR' | 'MAINTAINER' | 'USER';
+export type UserRole = 'ADMIN' | 'PLANT_MANAGER' | 'PROCESS_ENGINEER' | 'SUPERVISOR' | 'MAINTAINER' | 'USER';
 
 export interface User {
     id: string;
@@ -163,6 +164,7 @@ export interface SparePart {
     name: string;
     category: string;
     warehouse?: string; // Added to support UI
+    plantId?: string | null;
     quantity: number;
     minQuantity: number;
     location: string;
