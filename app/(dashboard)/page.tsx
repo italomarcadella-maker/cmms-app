@@ -38,7 +38,8 @@ export default async function Home() {
       {/* Oggi: il calendario della settimana e, accanto, le poche cose da guardare subito */}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
         <WeekCalendar />
-        <div className="space-y-4">
+        {/* Colonna a pila: ogni riquadro ha l altezza del proprio contenuto, cosi' non esce dalla riga e non finisce sotto i riquadri seguenti */}
+        <div className="flex min-w-0 flex-col gap-4">
           <Suspense fallback={<Skeleton className="h-[260px] w-full rounded-xl" />}>
             <AttentionWidget />
           </Suspense>

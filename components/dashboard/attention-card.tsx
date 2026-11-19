@@ -16,7 +16,7 @@ export function AttentionCard({ items }: { items: AttentionItem[] }) {
     const urgent = items.filter(i => i.severity !== "info").length;
 
     return (
-        <Card className="flex h-full flex-col gap-2 p-4">
+        <Card className="flex flex-col gap-2 p-4">
             <div className="flex items-center justify-between gap-2">
                 <h3 className="text-sm font-semibold">Richiede attenzione</h3>
                 {urgent > 0 && <Badge variant="critical">{urgent}</Badge>}
