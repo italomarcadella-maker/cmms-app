@@ -7,14 +7,15 @@ import { CalendarDays, ChevronLeft, ChevronRight, Gauge, UserCheck, Wrench } fro
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { PriorityPill } from "@/components/ui/status-badge";
 import { PlantBadge } from "@/components/ui/plant-badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePlant } from "@/lib/plant-context";
 import { assignWorkOrder, getTechnicians } from "@/lib/actions";
-import { assignReading, recordPlannedReading } from "@/modules/energy/adapters/actions/reading-plan-actions";
+import { getTechnicianPresence } from "@/lib/dashboard-actions";
+import { assignReading } from "@/modules/energy/adapters/actions/reading-plan-actions";
+import { ReadingEntryForm } from "@/components/energy/reading-entry-form";
 import { getWeekPlan, type WeekDay, type WeekItem, type WeekItemType, type WeekPlan } from "@/modules/maintenance/adapters/actions/dashboard-widgets-actions";
 
 /** Colori per tipo di intervento. Usano i toni semantici del tema: critico (fucsia FITT, il nostro "rosso"), successo (verde), info (azzurro), avviso (giallo). */
@@ -45,6 +46,7 @@ export function WeekCalendar() {
     const [picked, setPicked] = useState<string | null>(null);
     const [techs, setTechs] = useState<TechOption[]>([]);
     const [hidden, setHidden] = useState<Set<WeekItemType>>(new Set());
+    const [presence, setPresence] = useState<{ presentCount: number; totalCount: number; absentees: { name: string; reason: string }[] } | null>(null);
 
     const reload = useCallback(async (day?: string) => {
         setPlan(await getWeekPlan(day));
@@ -71,6 +73,12 @@ export function WeekCalendar() {
         return () => { alive = false; };
     }, [selected]);
 
+    useEffect(() => {
+        let alive = true;
+        getTechnicianPresence().then(p => { if (alive) setPresence(p); });
+        return () => { alive = false; };
+    }, [selected]);
+
     const visible = useCallback((i: WeekItem) => !hidden.has(i.type), [hidden]);
     const day = useMemo(() => plan?.days.find(d => d.date === picked) ?? null, [plan, picked]);
     const loading = !plan;
@@ -86,7 +94,7 @@ export function WeekCalendar() {
     });
 
     return (
-        <Card className="overflow-hidden">
+        <Card id="week-calendar" className="overflow-hidden scroll-mt-20">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/20 p-4">
                 <div>
                     <h3 className="flex items-center gap-2 font-semibold"><CalendarDays className="h-5 w-5 text-primary" aria-hidden /> Programmazione della settimana</h3>
@@ -95,6 +103,15 @@ export function WeekCalendar() {
                             {asDate(plan.days[0].date).toLocaleDateString("it-IT", { day: "numeric", month: "long", timeZone: "UTC" })} - {asDate(plan.days[6].date).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}
                             {" · "}{weekItems.length} {weekItems.length === 1 ? "intervento" : "interventi"}
                             {weekUnassigned > 0 && <span className="font-medium text-critical-strong"> · {weekUnassigned} da assegnare</span>}
+                        </p>
+                    )}
+                    {presence && presence.totalCount > 0 && (
+                        <p
+                            className="mt-0.5 text-xs text-muted-foreground"
+                            title={presence.absentees.length ? presence.absentees.map(a => a.name).join(", ") : undefined}
+                        >
+                            Oggi in servizio: <span className="font-medium text-foreground">{presence.presentCount} su {presence.totalCount}</span> tecnici
+                            {presence.absentees.length > 0 && " · assenti: " + presence.absentees.length}
                         </p>
                     )}
                 </div>
@@ -232,7 +249,6 @@ function ItemRow({ item, techs, onChanged }: { item: WeekItem; techs?: TechOptio
     const style = TYPE_STYLE[item.type];
     const [tech, setTech] = useState("");
     const [busy, setBusy] = useState(false);
-    const [value, setValue] = useState("");
     const canAssign = !!techs && (item.kind === "WO" || (item.kind === "READ" && techs.some(t => t.userId)));
     const options = item.kind === "READ" ? techs?.filter(t => t.userId) : techs;
 
@@ -243,19 +259,6 @@ function ItemRow({ item, techs, onChanged }: { item: WeekItem; techs?: TechOptio
         const res = item.kind === "READ" ? await assignReading(item.id, picked?.userId ?? "") : await assignWorkOrder(item.id, tech);
         setBusy(false);
         if (res?.success) { toast.success(item.kind === "READ" ? "Lettura assegnata" : "Intervento assegnato"); onChanged(); } else toast.error(res?.message ?? "Assegnazione non riuscita");
-    };
-
-    const saveReading = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const n = Number(value.replace(",", "."));
-        setBusy(true);
-        const res = await recordPlannedReading(item.id, n);
-        setBusy(false);
-        if (!res.success) { toast.error(res.message); return; }
-        if (res.isAnomaly) toast.warning(res.aiAnalysis ?? "Lettura registrata, ma il valore è anomalo.");
-        else toast.success("Lettura registrata");
-        setValue("");
-        onChanged();
     };
 
     return (
@@ -291,23 +294,7 @@ function ItemRow({ item, techs, onChanged }: { item: WeekItem; techs?: TechOptio
             </div>
 
             {item.kind === "READ" && item.meter && (
-                <form onSubmit={saveReading} className="flex flex-wrap items-center gap-2">
-                    <Input
-                        inputMode="decimal"
-                        value={value}
-                        onChange={(e) => setValue(e.target.value)}
-                        placeholder={`Valore (${item.meter.unit})`}
-                        className="h-8 w-[160px] text-sm"
-                        aria-label={`Valore letto in ${item.meter.unit}`}
-                    />
-                    <Button size="sm" type="submit" disabled={busy || value.trim() === ""}>{busy ? "..." : "Registra lettura"}</Button>
-                    {item.meter.lastValue !== null && (
-                        <span className="text-xs text-muted-foreground">
-                            Ultima: {item.meter.lastValue.toLocaleString("it-IT")} {item.meter.unit}
-                            {item.meter.lastReadAt ? ` (${new Date(item.meter.lastReadAt).toLocaleDateString("it-IT")})` : ""}
-                        </span>
-                    )}
-                </form>
+                <ReadingEntryForm meterId={item.id} unit={item.meter.unit} lastValue={item.meter.lastValue} lastReadAt={item.meter.lastReadAt} onDone={onChanged} />
             )}
         </li>
     );

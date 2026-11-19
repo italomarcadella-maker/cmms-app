@@ -171,6 +171,7 @@ model Asset {
   workOrders      WorkOrder[]
   schedules       PreventiveSchedule[]
   contractorActivities ContractorActivity[]
+  meters          Meter[]
   
   // Process Engineering
   sopDocuments    SopDocument[]
@@ -413,6 +414,9 @@ model Meter {
   installationDate DateTime?
   plantId          String?
   plant            Plant?   @relation(fields: [plantId], references: [id])
+  // Impianto (asset) a cui appartiene il contatore, se indicato
+  assetId          String?
+  asset            Asset?   @relation(fields: [assetId], references: [id], onDelete: SetNull)
 
   // Lettura pianificata: ogni quanti giorni, prossima scadenza e chi la esegue (id utente). Null = non pianificata.
   readingFrequencyDays Int?
@@ -422,6 +426,7 @@ model Meter {
   readings         MeterReading[]
 
   @@index([plantId])
+  @@index([assetId])
   @@index([nextReadingDue])
 }
 

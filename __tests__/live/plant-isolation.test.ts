@@ -64,15 +64,23 @@ describe.skipIf(!live)('isolamento tra plant (database reale)', () => {
     });
 
     it('non si puo\' modificare ne\' eliminare un record dell\'altro plant', async () => {
-        const scope = as('PLANT_MANAGER', [other.id]);
-        await run(scope, async () => {
-            await expect(prisma.asset.update({ where: { id: ownerAssetId }, data: { name: 'HACK' } })).rejects.toThrow();
-            await expect(prisma.asset.delete({ where: { id: ownerAssetId } })).rejects.toThrow();
-            const r = await prisma.asset.updateMany({ where: {}, data: { name: 'HACK' } });
-            expect(r.count).toBe(0);
+        // I tentativi di scrittura si fanno SOLO su un asset temporaneo creato per il test: se il filtro avesse un
+        // difetto, non si tocca nessun dato reale (una versione precedente di questa verifica rinomino' due asset).
+        const temp = await basePrisma.asset.create({
+            data: { name: 'TEST-ISOLAMENTO', model: 'test', serialNumber: `TEST-ISOLAMENTO-${Date.now()}`, location: 'test', purchaseDate: new Date(), plantId: owner.id },
         });
-        const still = await basePrisma.asset.findUnique({ where: { id: ownerAssetId }, select: { name: true } });
-        expect(still?.name).not.toBe('HACK');
+        try {
+            await run(as('PLANT_MANAGER', [other.id]), async () => {
+                await expect(prisma.asset.update({ where: { id: temp.id }, data: { name: 'MODIFICATO' } })).rejects.toThrow();
+                await expect(prisma.asset.delete({ where: { id: temp.id } })).rejects.toThrow();
+                const r = await prisma.asset.updateMany({ where: { id: temp.id }, data: { name: 'MODIFICATO' } });
+                expect(r.count).toBe(0);
+            });
+            const still = await basePrisma.asset.findUnique({ where: { id: temp.id }, select: { name: true } });
+            expect(still?.name).toBe('TEST-ISOLAMENTO');
+        } finally {
+            await basePrisma.asset.delete({ where: { id: temp.id } });
+        }
     });
 
     it('non si puo\' creare un record in un plant non assegnato', async () => {

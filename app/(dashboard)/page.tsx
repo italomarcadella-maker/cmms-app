@@ -1,29 +1,25 @@
+import Link from "next/link";
 import { Suspense } from "react";
+import { ArrowRight, LineChart } from "lucide-react";
+import { auth } from "@/auth";
 import { DashboardHeader } from "@/components/dashboard/server/dashboard-header";
 import { GaugesRow } from "@/components/dashboard/server/gauges-row";
+import { AttentionWidget } from "@/components/dashboard/server/attention-widget";
 import { SafetyCounterWidget } from "@/components/dashboard/server/safety-counter";
 import { FailuresByShiftCard } from "@/components/dashboard/failures-by-shift";
 import { WeekCalendar } from "@/components/dashboard/week-calendar";
-import { FunctionalAreasWidget } from "@/components/dashboard/server/functional-areas-widget";
-import { TechnicianAvailability } from "@/components/dashboard/server/technician-availability";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AIInsightsWrapper } from "@/components/dashboard/server/ai-insights-wrapper";
-import { WeeklyTrends } from "@/components/dashboard/server/weekly-trends";
-import { AnalyticsWrapper } from "@/components/dashboard/server/analytics-wrapper";
-import { SafetyStatus } from "@/components/dashboard/server/safety-status";
+import { Card } from "@/components/ui/card";
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-3 text-base font-semibold text-foreground">{children}</h2>;
-}
+export default async function Home() {
+  const session = await auth();
+  const canSeeKpi = ["ADMIN", "PLANT_MANAGER", "PROCESS_ENGINEER"].includes(session?.user?.role ?? "");
 
-export default function Home() {
   return (
-    <div className="space-y-8 pb-10">
-      <Suspense fallback={<Skeleton className="h-16 w-full" />}>
-        <DashboardHeader />
-      </Suspense>
+    <div className="space-y-6 pb-10">
+      <DashboardHeader />
 
-      {/* Quadranti: i quattro indicatori che dicono se la giornata e' sotto controllo */}
+      {/* I quattro indicatori che dicono se la giornata e' sotto controllo */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Suspense
           fallback={
@@ -38,7 +34,15 @@ export default function Home() {
         </Suspense>
       </div>
 
-      {/* Sicurezza e guasti: il cronografo dei giorni senza infortuni e la mappa per reparto e turno */}
+      {/* Oggi: il calendario della settimana e, accanto, le poche cose da guardare subito */}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
+        <WeekCalendar />
+        <Suspense fallback={<Skeleton className="h-[320px] w-full rounded-xl" />}>
+          <AttentionWidget />
+        </Suspense>
+      </div>
+
+      {/* Sicurezza e guasti */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Suspense fallback={<Skeleton className="h-[260px] w-full rounded-xl" />}>
           <SafetyCounterWidget />
@@ -46,40 +50,18 @@ export default function Home() {
         <FailuresByShiftCard />
       </div>
 
-      {/* Piano della settimana: clic su un giorno per vedere interventi, assegnatari e voci da assegnare */}
-      <WeekCalendar />
-
-      {/* Safety alerts stay at the top of the details */}
-      <Suspense fallback={<Skeleton className="h-28 w-full rounded-xl" />}>
-        <SafetyStatus />
-      </Suspense>
-
-      <Suspense fallback={<Skeleton className="h-32 w-full rounded-xl" />}>
-        <AIInsightsWrapper />
-      </Suspense>
-
-      <section>
-        <SectionTitle>Aree funzionali</SectionTitle>
-        <Suspense fallback={<Skeleton className="h-24 w-full rounded-xl" />}>
-          <FunctionalAreasWidget />
-        </Suspense>
-      </section>
-
-      <section className="space-y-4">
-        <SectionTitle>Andamento e costi</SectionTitle>
-        <Suspense fallback={<Skeleton className="h-[340px] w-full rounded-xl" />}>
-          <WeeklyTrends />
-        </Suspense>
-        <Suspense fallback={<Skeleton className="h-[420px] w-full rounded-xl" />}>
-          <AnalyticsWrapper />
-        </Suspense>
-      </section>
-
-      <section>
-        <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
-          <TechnicianAvailability />
-        </Suspense>
-      </section>
+      {/* Andamento e costi stanno in KPI e report: qui solo il collegamento */}
+      {canSeeKpi && (
+        <Link href="/kpi" className="block">
+          <Card className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:border-primary/40">
+            <span className="flex items-center gap-3 text-sm">
+              <LineChart className="h-5 w-5 text-primary" aria-hidden />
+              <span><span className="font-medium">Andamento e costi</span> <span className="text-muted-foreground">· trend settimanali, costi di manutenzione e analisi nei KPI e report</span></span>
+            </span>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+          </Card>
+        </Link>
+      )}
     </div>
   );
 }

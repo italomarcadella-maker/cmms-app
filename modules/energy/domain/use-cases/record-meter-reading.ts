@@ -32,7 +32,11 @@ export const makeRecordMeterReading = (meterRepo: IMeterRepository, readingRepo:
         let isAnomaly = false;
         let aiAnalysis: string | null = null;
 
-        if (recentReadings.length > 0) {
+        // I controlli di anomalia valgono per i contatori cumulativi (energia, acqua, gas): pressioni, temperature e
+        // livelli salgono e scendono normalmente, quindi un valore piu' basso del precedente non e' un errore.
+        const isCumulative = ['ELEC', 'WATER', 'GAS'].includes(meter.type);
+
+        if (isCumulative && recentReadings.length > 0) {
             const lastReading = recentReadings[0];
             const consumption = dto.value - lastReading.value;
 

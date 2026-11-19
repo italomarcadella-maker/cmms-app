@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { getTechnicians } from "@/lib/actions";
 import { getReadingPlans, type ReadingPlan } from "@/modules/energy/adapters/actions/reading-plan-actions";
 import { frequencyLabel } from "@/modules/energy/domain/reading-plan";
+import { METER_TYPES, defaultUnit, meterTypeLabel } from "@/modules/energy/domain/meter-types";
 import { ReadingPlanDialog, type PlanAssignee } from "@/components/energy/reading-plan-dialog";
 
 export function MetersList({ initialMeters }: { initialMeters: any[] }) {
@@ -94,10 +95,8 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Tipo</label>
-                            <select value={type} onChange={e => { setType(e.target.value); setUnit(e.target.value === 'ELEC' ? 'kWh' : 'm3'); }} className="w-full h-10 px-3 rounded-md border bg-background">
-                                <option value="ELEC">Elettricità</option>
-                                <option value="WATER">Acqua</option>
-                                <option value="GAS">Gas</option>
+                            <select value={type} onChange={e => { setType(e.target.value); setUnit(defaultUnit(e.target.value)); }} className="w-full h-10 px-3 rounded-md border bg-background">
+                                {METER_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
                             </select>
                         </div>
                         <div className="space-y-2">
@@ -138,7 +137,7 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
                             <div className="flex justify-between">
-                                <span>Tipo:</span> <span className="font-mono">{meter.type}</span>
+                                <span>Tipo:</span> <span>{meterTypeLabel(meter.type)} ({meter.unit})</span>
                             </div>
                             <div className="flex justify-between">
                                 <span>Matricola:</span> <span className="font-mono">{meter.serialNumber || '-'}</span>
