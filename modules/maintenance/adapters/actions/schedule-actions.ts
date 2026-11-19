@@ -57,6 +57,10 @@ export async function createWorkOrderFromSchedule(scheduleId: string, date: Date
                 assetId: schedule.assetId,
                 priority: 'MEDIUM',
                 category: 'OTHER',
+                // Manutenzione programmata, non un guasto: senza questo l'ordine contava come guasto (valore predefinito) nei KPI e nell'MTBF
+                type: 'ROUTINE',
+                // Legame con il piano di origine: al completamento il piano riparte dalla data reale di esecuzione
+                originScheduleId: scheduleId,
                 status: 'OPEN',
                 assignedTo: 'Unassigned',
                 dueDate: date,

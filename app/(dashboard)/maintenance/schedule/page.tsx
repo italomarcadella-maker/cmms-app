@@ -7,6 +7,7 @@ import { format, differenceInDays, parseISO } from "date-fns";
 import { Calendar, CheckCircle2, AlertTriangle, Plus, Box, RefreshCw, Trash2, StopCircle, PlayCircle, Wrench } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation"; // Added router
+import Link from "next/link";
 
 import { useState } from "react";
 
@@ -51,6 +52,7 @@ export default function PMSchedulePage() {
         id: string,
         title: string,
         assetName: string,
+        assetId?: string,
         description: string,
         date: string,
         status: string;
@@ -64,6 +66,7 @@ export default function PMSchedulePage() {
             id: wo.id,
             title: wo.title,
             assetName: wo.assetName,
+            assetId: wo.assetId,
             description: wo.description,
             date: wo.dueDate || '',
             status: wo.status,
@@ -76,6 +79,7 @@ export default function PMSchedulePage() {
                 id: sch.id,
                 title: sch.taskTitle,
                 assetName: asset?.name || sch.assetName,
+                assetId: sch.assetId,
                 description: sch.description,
                 date: sch.nextDueDate,
                 status: 'SCHEDULED',
@@ -136,7 +140,9 @@ export default function PMSchedulePage() {
                                     <h3 className={`font-semibold text-lg line-clamp-1 ${item.type === 'WO' ? 'text-blue-900' : ''}`}>{item.title}</h3>
                                     <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                                         <Box className="h-3 w-3" />
-                                        <span>{item.assetName}</span>
+                                        {item.assetId && !item.assetId.startsWith('SYS-')
+                                            ? <Link href={`/assets/${item.assetId}`} onClick={(e) => e.stopPropagation()} className="hover:text-primary hover:underline">{item.assetName}</Link>
+                                            : <span>{item.assetName}</span>}
                                     </div>
                                 </div>
                             </div>

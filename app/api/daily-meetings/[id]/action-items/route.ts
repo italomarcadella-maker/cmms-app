@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-guard";
 import { SUPERVISION } from "@/lib/roles";
 import { WorkOrderCategory, WorkOrderPriority } from "@prisma/client";
+import { ensureSystemAsset, isSystemAssetId } from "@/lib/system-assets";
 
 export async function POST(
     request: Request,
@@ -21,6 +22,10 @@ export async function POST(
         const section = await prisma.meetingSection.findFirst({ where: { id: originSectionId, meetingId: id }, select: { id: true } });
         if (!section) return NextResponse.json({ error: "Sezione non trovata" }, { status: 404 });
 
+        // Senza macchina indicata il follow-up va sull'asset di sistema "Altro / Generico" (prima si usava un asset inesistente e la creazione falliva)
+        const targetAssetId: string = typeof assetId === "string" && assetId ? assetId : "SYS-OTHER";
+        if (isSystemAssetId(targetAssetId)) await ensureSystemAsset(targetAssetId);
+
         // 1. Create a WorkOrder (EWO/Task)
         const workOrder = await prisma.workOrder.create({
             data: {
@@ -30,7 +35,7 @@ export async function POST(
                 category: category || "OTHER",
                 type: "FAULT",
                 originMeetingId: id,
-                assetId: assetId || "generic-plant-level", // Assuming a generic asset exists or we handle it
+                assetId: targetAssetId,
                 assignedTo: assignee,
                 // Optional logic based on real app state
             }

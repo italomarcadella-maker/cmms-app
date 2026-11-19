@@ -323,15 +323,15 @@ export default function AssetCalendarPage() {
                         <button
                             onClick={async () => {
                                 toast.promise(async () => {
-                                    const res = await fetch('/api/cron/preventive');
-                                    const data = await res.json();
-                                    if (!data.success) throw new Error(data.message);
+                                    const res = await fetch('/api/scheduler/run');
+                                    const data = await res.json().catch(() => ({ success: false, error: 'Risposta non valida' }));
+                                    if (!res.ok || !data.success) throw new Error(data.error || data.message || 'Errore esecuzione scheduler');
                                     refreshData();
-                                    return `Generati ${data.count} ordini preventivi`;
+                                    return data.count > 0 ? `Generati ${data.count} ordini preventivi` : 'Nessun piano in scadenza: niente da generare';
                                 }, {
                                     loading: 'Esecuzione scheduler...',
                                     success: (msg) => msg,
-                                    error: 'Errore esecuzione scheduler'
+                                    error: (e) => (e instanceof Error && e.message ? e.message : 'Errore esecuzione scheduler')
                                 });
                             }}
                             className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md text-xs font-bold flex items-center gap-2 shadow-sm transition-colors"

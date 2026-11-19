@@ -1,4 +1,4 @@
-import { getDetailedDashboardStats } from "@/lib/dashboard-actions";
+import { getAssetAvailability, getDetailedDashboardStats } from "@/lib/dashboard-actions";
 import { GaugeCard } from "@/components/dashboard/gauge-card";
 import { healthTone } from "@/components/ui/status-badge";
 
@@ -6,16 +6,17 @@ const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / who
 
 /** I quattro indicatori principali, come quadranti. L'arco mostra una quota reale, mai un valore inventato. */
 export async function GaugesRow() {
-    const s = await getDetailedDashboardStats();
+    const [s, av] = await Promise.all([getDetailedDashboardStats(), getAssetAvailability()]);
+    const availablePct = av.inUse > 0 ? Math.round(((av.inUse - av.stopped) / av.inUse) * 100) : 0;
 
     return (
         <>
             <GaugeCard
-                label="Salute impianti"
-                display={`${s.avgHealth}%`}
-                percent={s.avgHealth}
-                hint={`media su ${s.totalAssets} macchine`}
-                tone={healthTone(s.avgHealth)}
+                label="Macchine operative"
+                display={av.inUse > 0 ? `${availablePct}%` : "-"}
+                percent={availablePct}
+                hint={av.inUse === 0 ? "nessuna macchina registrata" : av.stopped === 0 ? `nessuna ferma su ${av.inUse}` : `${av.stopped} ferme su ${av.inUse} macchine`}
+                tone={av.stopped === 0 ? "success" : healthTone(availablePct)}
                 href="/assets"
             />
             <GaugeCard

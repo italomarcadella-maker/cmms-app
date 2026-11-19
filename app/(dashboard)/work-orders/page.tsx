@@ -2,6 +2,7 @@
 
 import { Plus, Search, LayoutList, Kanban, Trash2, X } from "lucide-react";
 import { PlantBadge } from "@/components/ui/plant-badge";
+import Link from "next/link";
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -308,7 +309,11 @@ function WorkOrdersContent() {
                                                     <span className="font-mono text-xs text-muted-foreground">{wo.id.substring(0, 10)}</span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground">{wo.assetName}</TableCell>
+                                            <TableCell className="text-muted-foreground">
+                                                {wo.assetId && !wo.assetId.startsWith("SYS-")
+                                                    ? <Link href={`/assets/${wo.assetId}`} onClick={(e) => e.stopPropagation()} className="hover:text-primary hover:underline">{wo.assetName}</Link>
+                                                    : wo.assetName}
+                                            </TableCell>
                                             <TableCell>
                                                 <PriorityPill priority={wo.priority} />
                                             </TableCell>

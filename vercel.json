@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/preventive",
+      "schedule": "0 4 * * *"
+    }
+  ]
+}

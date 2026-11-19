@@ -88,5 +88,18 @@ export async function getAttentionItems(limit = 6): Promise<AttentionItem[]> {
             items.push({ id: 'ctr-expiring', severity: 'warning', title: `${plural(k.expiringContracts, 'contratto in scadenza', 'contratti in scadenza')}`, detail: 'Da rinnovare o disdire', href: '/contractors' });
         }
     }
+    // Copertura: macchine senza alcun piano e guasti chiusi senza analisi. Sono compiti di chi coordina, non del manutentore.
+    if (!who) {
+        const [noPlan, noAnalysis] = await Promise.all([
+            prisma.asset.count({ where: { NOT: { id: { startsWith: 'SYS-' } }, type: { in: ['MACHINE', 'FACILITY'] }, status: { in: ['OPERATIONAL', 'MAINTENANCE', 'OFFLINE'] }, schedules: { none: {} } } }),
+            prisma.workOrder.count({ where: { type: 'FAULT', status: { in: ['CLOSED', 'COMPLETED'] }, ewo: { is: null } } }),
+        ]);
+        if (noPlan > 0) {
+            items.push({ id: 'no-plan', severity: 'info', title: `${plural(noPlan, 'macchina senza piano di manutenzione', 'macchine senza piano di manutenzione')}`, detail: 'Crea un piano dalla scheda dell\'asset', href: '/assets' });
+        }
+        if (noAnalysis > 0) {
+            items.push({ id: 'no-ewo', severity: 'info', title: `${plural(noAnalysis, 'guasto chiuso senza analisi', 'guasti chiusi senza analisi')}`, detail: 'L\'analisi serve a generare i piani preventivi', href: '/work-orders?tab=history' });
+        }
+    }
     return items.sort((a, b) => ORDER[a.severity] - ORDER[b.severity]).slice(0, limit);
 }

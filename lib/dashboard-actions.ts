@@ -91,6 +91,39 @@ const getDetailedDashboardStatsCached = scopedCache(
     { revalidate: 60, tags: ['dashboard'] }
 );
 
+/**
+ * Disponibilita' delle macchine: quante sono ferme tra quelle in uso. Ferma = stato "fermo" oppure con un guasto aperto che la blocca
+ * (priorita' "fermo macchina"). Gli asset di sistema (segnaposto delle richieste) non sono macchine e non contano.
+ */
+const getAssetAvailabilityCached = scopedCache(
+    async () => {
+        try {
+            const [assets, stoppedFaults] = await Promise.all([
+                prisma.asset.findMany({ where: { NOT: { id: { startsWith: 'SYS-' } } }, select: { id: true, status: true } }),
+                prisma.workOrder.findMany({
+                    where: { type: 'FAULT', priority: 'STOPPED', status: { in: ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PENDING_APPROVAL', 'APPROVED', 'ON_HOLD', 'PENDING_REVIEW'] } },
+                    select: { assetId: true },
+                }),
+            ]);
+            const inUse = assets.filter(a => a.status !== 'DECOMMISSIONED' && a.status !== 'STORAGE');
+            const stoppedByFault = new Set(stoppedFaults.map(f => f.assetId));
+            const stopped = inUse.filter(a => a.status === 'OFFLINE' || stoppedByFault.has(a.id)).length;
+            return { inUse: inUse.length, stopped };
+        } catch (error) {
+            console.error('[dashboard-actions] availability', error);
+            return { inUse: 0, stopped: 0 };
+        }
+    },
+    ['dashboard-asset-availability'],
+    { revalidate: 60, tags: ['dashboard', 'work-orders'] }
+);
+
+export async function getAssetAvailability() {
+    const session = await auth();
+    if (!session?.user) return { inUse: 0, stopped: 0 };
+    return getAssetAvailabilityCached();
+}
+
 export async function getDetailedDashboardStats() {
     const session = await auth();
     if (!session?.user) {

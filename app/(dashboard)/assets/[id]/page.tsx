@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import QRCode from "react-qr-code";
 import { Activity, ArrowLeft, FileText, Printer, QrCode } from "lucide-react";
 
 import { useAssets } from "@/lib/assets-context";
-import { useWorkOrders } from "@/lib/work-orders-context";
+import { useAuth } from "@/lib/auth-context";
+import { getAssetReliability, type AssetReliability } from "@/modules/maintenance/adapters/actions/asset-reliability-actions";
 import { AssetStatusBadge } from "@/components/assets/asset-status-badge";
 import { WOStatusBadge } from "@/components/work-orders/wo-status-badge";
 import { AssetMaintenancePlan } from "@/components/assets/asset-maintenance-plan";
+import { AssetReliabilityPanel, AssetStoppedBanner } from "@/components/assets/asset-reliability-panel";
+import { AssetHistory } from "@/components/assets/asset-history";
 import { AssetAIChat } from "@/components/assets/asset-ai-chat";
 import { TagGeneratorDialog } from "@/components/assets/tag-generator-dialog";
 import { AssetSOPList } from "@/components/assets/asset-sop-list";
@@ -35,13 +38,18 @@ function Field({ label, value, mono }: { label: string; value?: string | null; m
 export default function AssetDetailsPage() {
     const params = useParams();
     const { assets, updateAsset } = useAssets();
-    const { workOrders } = useWorkOrders();
+    const { user } = useAuth();
     const { ask, dialog } = usePrompt();
 
     const asset = assets.find((a) => a.id === params.id) || assets.find((a) => a.id === decodeURIComponent(params.id as string));
 
     const [activeWOs, setActiveWOs] = useState<any[]>([]);
     const [showTagGenerator, setShowTagGenerator] = useState(false);
+    const [reliability, setReliability] = useState<AssetReliability | null>(null);
+    const [reliabilityLoading, setReliabilityLoading] = useState(true);
+    const [createPlanSignal, setCreatePlanSignal] = useState(0);
+    // Come lato server: i piani li creano solo amministratori e responsabili di plant
+    const canManagePlans = user?.role === "ADMIN" || user?.role === "PLANT_MANAGER";
 
     useEffect(() => {
         if (asset?.id) {
@@ -51,8 +59,19 @@ export default function AssetDetailsPage() {
         }
     }, [asset?.id]);
 
-    const assetWorkOrders = workOrders.filter((wo) => wo.assetId === asset?.id);
-    const closedWorkOrders = assetWorkOrders.filter((wo) => ["CLOSED", "COMPLETED", "CANCELED"].includes(wo.status));
+    const assetId = asset?.id;
+    const loadReliability = useCallback(async () => {
+        if (!assetId) return;
+        setReliabilityLoading(true);
+        const data = await getAssetReliability(assetId);
+        setReliability(data);
+        setReliabilityLoading(false);
+    }, [assetId]);
+
+    useEffect(() => {
+        loadReliability();
+    }, [loadReliability]);
+
     const assetUrl = typeof window !== "undefined" ? `${window.location.origin}/assets/${asset?.id}` : "";
 
     if (!asset) {
@@ -89,8 +108,16 @@ export default function AssetDetailsPage() {
                 <div className="space-y-6 lg:col-span-2">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <StatCard label="Stato" value={<AssetStatusBadge status={asset.status} className="text-sm" />} tone="neutral" icon={<Activity />} />
-                        <StatCard label="Indice di salute" value={`${asset.healthScore}%`} tone={healthTone(asset.healthScore)} icon={<Activity />} />
+                        <StatCard
+                            label="Indice di salute (inserito a mano)"
+                            value={`${asset.healthScore}%`}
+                            tone={healthTone(asset.healthScore)}
+                            icon={<Activity />}
+                            hint="Non si aggiorna da solo con guasti e interventi: cambia solo se lo modifichi nell'anagrafica dell'asset."
+                        />
                     </div>
+
+                    <AssetStoppedBanner data={reliability} />
 
                     <Tabs defaultValue="overview">
                         <TabsList>
@@ -100,6 +127,13 @@ export default function AssetDetailsPage() {
                         </TabsList>
 
                         <TabsContent value="overview" className="mt-4 space-y-6">
+                            <AssetReliabilityPanel
+                                data={reliability}
+                                loading={reliabilityLoading && !reliability}
+                                canManagePlans={canManagePlans}
+                                onCreatePlan={() => setCreatePlanSignal((n) => n + 1)}
+                            />
+
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Ordini e richieste attive</CardTitle>
@@ -129,37 +163,19 @@ export default function AssetDetailsPage() {
 
                             <Card>
                                 <CardContent className="pt-5">
-                                    <AssetMaintenancePlan assetId={asset.id} />
+                                    <AssetMaintenancePlan
+                                        assetId={asset.id}
+                                        plans={reliability?.plans ?? []}
+                                        loading={reliabilityLoading && !reliability}
+                                        onChanged={loadReliability}
+                                        openCreateSignal={createPlanSignal}
+                                    />
                                 </CardContent>
                             </Card>
                         </TabsContent>
 
                         <TabsContent value="history" className="mt-4">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Storico interventi chiusi</CardTitle>
-                                    <CardDescription>Ordini completati, chiusi o annullati su questo asset.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {closedWorkOrders.length === 0 ? (
-                                        <EmptyState title="Nessuno storico disponibile" className="py-8" />
-                                    ) : (
-                                        <ul className="space-y-2">
-                                            {closedWorkOrders.map((wo) => (
-                                                <li key={wo.id}>
-                                                    <Link href={`/work-orders/${wo.id}`} className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-accent">
-                                                        <div className="min-w-0">
-                                                            <div className="truncate text-sm font-medium">{wo.title}</div>
-                                                            <div className="text-xs text-muted-foreground">{new Date(wo.createdAt).toLocaleDateString("it-IT")}</div>
-                                                        </div>
-                                                        <WOStatusBadge status={wo.status} />
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </CardContent>
-                            </Card>
+                            <AssetHistory assetId={asset.id} />
                         </TabsContent>
 
                         <TabsContent value="docs" className="mt-4 space-y-6">

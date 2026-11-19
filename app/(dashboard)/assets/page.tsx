@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, MapPin, Network, Pencil, Plus, Printer, Search, Table as TableIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { useAssets } from "@/lib/assets-context";
 import { useAuth } from "@/lib/auth-context";
 import { deleteAsset } from "@/lib/actions";
+import { getAssetsStoppedByFault } from "@/modules/maintenance/adapters/actions/asset-reliability-actions";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AssetStatusBadge } from "@/components/assets/asset-status-badge";
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog";
@@ -35,6 +37,18 @@ export default function AssetsPage() {
     const [qrAsset, setQrAsset] = useState<any>(null);
     const [viewMode, setViewMode] = useState<"list" | "tree">("list");
     const [showGenerics, setShowGenerics] = useState(false);
+    // Asset con un guasto aperto che li ferma: una sola query per tutta la lista
+    const [stoppedIds, setStoppedIds] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        let alive = true;
+        getAssetsStoppedByFault().then((ids) => {
+            if (alive) setStoppedIds(new Set(ids));
+        });
+        return () => {
+            alive = false;
+        };
+    }, []);
 
     const canManage = user?.role === "ADMIN" || user?.role === "SUPERVISOR" || user?.role === "PLANT_MANAGER";
 
@@ -216,7 +230,10 @@ export default function AssetsPage() {
                                                 {asset.cespite && <div className="font-mono">Cespite {asset.cespite}</div>}
                                             </TableCell>
                                             <TableCell>
-                                                <AssetStatusBadge status={asset.status} />
+                                                <div className="flex flex-col items-start gap-1">
+                                                    <AssetStatusBadge status={asset.status} />
+                                                    {stoppedIds.has(asset.id) && <Badge variant="critical">Fermo per guasto</Badge>}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2" title={`Salute ${asset.healthScore}%`}>

@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { logAction } from '@/lib/audit';
 import { usersToNotify } from '@/lib/plant-users';
 import { runUnscoped } from '@/lib/plant-scope';
+import { ensureSystemAsset } from '@/lib/system-assets';
 import { canSeeWorkOrder, scopeWorkOrderWhere } from '@/lib/maintainer-scope';
 import { workOrderSchema } from '@/lib/validations';
 import { WorkOrderPriority, WorkOrderCategory, WorkOrderStatus } from '@prisma/client';
@@ -32,36 +33,8 @@ try {
 const getWORepo = () => ServiceLocator.resolve<PrismaWorkOrderRepository>('IWorkOrderRepository');
 const getTechRepo = () => ServiceLocator.resolve<PrismaTechnicianRepository>('ITechnicianRepository');
 
-// --- Helper for virtual assets ---
-const VIRTUAL_ASSETS: Record<string, { name: string; type: string }> = {
-    'SYS-SAFETY': { name: 'Segnalazione Sicurezza', type: 'SAFETY' },
-    'SYS-KAIZEN': { name: 'Proposta Miglioramento', type: 'KAIZEN' },
-    'SYS-WORKSHOP': { name: 'Richiesta Officina', type: 'OTHER' },
-    'SYS-PLANT': { name: 'Manutenzione Impianti', type: 'FACILITY' },
-    'SYS-OTHER': { name: 'Altro / Generico', type: 'OTHER' },
-};
-
-async function ensureVirtualAsset(id: string) {
-    if (VIRTUAL_ASSETS[id]) {
-        const info = VIRTUAL_ASSETS[id];
-        // Asset di sistema condiviso (senza plant): creato fuori dallo scope
-        await runUnscoped(() => prisma.asset.upsert({
-            where: { id },
-            update: {},
-            create: {
-                id,
-                name: info.name,
-                type: info.type as any,
-                model: 'System Virtual Asset',
-                serialNumber: id,
-                location: 'VIRTUAL',
-                status: 'OPERATIONAL',
-                purchaseDate: new Date(),
-                department: 'GENERAL'
-            }
-        }));
-    }
-}
+// --- Asset di sistema (segnaposto per le richieste non legate a una macchina): vedi lib/system-assets.ts ---
+const ensureVirtualAsset = ensureSystemAsset;
 
 // --- Helper for purchase requests ---
 async function checkAndCreatePurchaseRequest(partId: string) {
