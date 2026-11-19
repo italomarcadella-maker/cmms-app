@@ -1,5 +1,7 @@
 'use server';
 
+import { requireRole } from '@/lib/auth-guard';
+import { OPERATIVE, SUPERVISION, hasRole } from '@/lib/roles';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
@@ -18,8 +20,8 @@ try {
 const getTechRepo = () => ServiceLocator.resolve<PrismaTechnicianRepository>('ITechnicianRepository');
 
 export async function addTechnician(data: { name: string; specialty: string; hourlyRate: number; email: string }) {
-    const session = await auth();
-    if (!session?.user || !['ADMIN', 'PLANT_MANAGER'].includes((session.user as any).role)) return { success: false, message: 'Non autorizzato' };
+    const __guard = await requireRole(['ADMIN', 'PLANT_MANAGER']);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
 
     try {
         // Find User
@@ -53,13 +55,14 @@ export async function addTechnician(data: { name: string; specialty: string; hou
 }
 
 export async function deleteTechnician(id: string) {
-    const session = await auth();
-    if (!session?.user || !['ADMIN', 'PLANT_MANAGER'].includes((session.user as any).role)) return { success: false, message: 'Non autorizzato' };
+    const __guard = await requireRole(['ADMIN', 'PLANT_MANAGER']);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     try {
         const techRepo = getTechRepo();
         await techRepo.delete(id);
         return { success: true, message: 'Tecnico eliminato' };
     } catch (error) {
+        console.error('[technician-actions]', error);
         return { success: false, message: 'Errore eliminazione' };
     }
 }
@@ -90,6 +93,11 @@ export async function getTechnicianAvailability(startDate: Date, endDate: Date) 
 }
 
 export async function setTechnicianStatus(userId: string, date: Date, status: string, shift?: string, notes?: string) {
+    const guard = await requireRole(OPERATIVE);
+    if (!guard.authorized) return { success: false, message: guard.message ?? 'Non autorizzato' } as never;
+    if (userId !== guard.session.user.id && !hasRole(guard.session.user.role, SUPERVISION)) {
+        throw new Error('Puoi modificare solo la tua disponibilita\'.');
+    }
     try {
         const normalizedDate = new Date(date);
         normalizedDate.setHours(0, 0, 0, 0);

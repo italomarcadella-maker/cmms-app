@@ -1,15 +1,14 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/actions';
-import { getDailyInsights } from '@/lib/ai-service';
+import { requireRole } from '@/lib/auth-guard';
 import { getContractorsOverview } from './contractor-actions';
 import { getWeekPlan } from './dashboard-widgets-actions';
 
 /**
  * "Richiede attenzione": le poche cose da guardare subito, in ordine di gravita'.
  * Raccoglie fermi, segnalazioni di sicurezza, ritardi, interventi di oggi senza assegnatario, letture in ritardo,
- * contratti in scadenza e un suggerimento: al posto di tanti blocchi separati nella dashboard.
+ * contratti in scadenza: al posto di tanti blocchi separati nella dashboard. Il briefing dell'assistente AI e' un blocco a parte.
  */
 
 const VIEWERS = ['ADMIN', 'PLANT_MANAGER', 'SUPERVISOR', 'MAINTAINER', 'PROCESS_ENGINEER'];
@@ -36,7 +35,7 @@ export async function getAttentionItems(limit = 6): Promise<AttentionItem[]> {
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const items: AttentionItem[] = [];
 
-    const [stopped, safety, overdue, lateReadings, contractors, week, insights] = await Promise.all([
+    const [stopped, safety, overdue, lateReadings, contractors, week] = await Promise.all([
         prisma.workOrder.findMany({
             where: { priority: 'STOPPED', status: { in: [...OPEN] } },
             orderBy: { createdAt: 'desc' }, take: 3,
@@ -51,7 +50,6 @@ export async function getAttentionItems(limit = 6): Promise<AttentionItem[]> {
         prisma.meter.count({ where: { nextReadingDue: { lt: startOfToday } } }),
         getContractorsOverview().catch(() => null),
         getWeekPlan().catch(() => null),
-        getDailyInsights().catch(() => []),
     ]);
 
     for (const w of stopped) {
@@ -83,10 +81,5 @@ export async function getAttentionItems(limit = 6): Promise<AttentionItem[]> {
             items.push({ id: 'ctr-expiring', severity: 'warning', title: `${plural(k.expiringContracts, 'contratto in scadenza', 'contratti in scadenza')}`, detail: 'Da rinnovare o disdire', href: '/contractors' });
         }
     }
-    const tip = insights.find(i => i.type === 'ALERT' || i.type === 'WARNING') ?? insights.find(i => i.type === 'INFO');
-    if (tip) {
-        items.push({ id: `tip-${tip.id}`, severity: 'info', title: tip.title, detail: tip.message, href: tip.actionUrl ?? '/' });
-    }
-
     return items.sort((a, b) => ORDER[a.severity] - ORDER[b.severity]).slice(0, limit);
 }

@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import { authConfig } from './auth.config';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { isPublicPath } from './lib/public-paths';
 
 const authMiddleware = NextAuth(authConfig).auth;
 
@@ -20,11 +21,6 @@ const EXPENSIVE_ROUTES = [
     '/api/scheduler'
 ];
 
-// Percorsi raggiungibili senza accesso: login, endpoint di autenticazione, controllo di salute (monitoraggio),
-// cron (protetto dal proprio segreto), risorse statiche.
-const PUBLIC_PREFIXES = ['/login', '/api/auth', '/api/health', '/api/cron', '/_next'];
-const PUBLIC_FILE = /\.(png|jpe?g|svg|ico|webp|json|js|css|woff2?|otf|ttf|txt|xml|webmanifest)$/i;
-
 export default authMiddleware((request: any) => {
     const ip = request.ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
     const { pathname } = request.nextUrl;
@@ -32,7 +28,7 @@ export default authMiddleware((request: any) => {
     // Quando si passa una funzione a auth(), il callback "authorized" non reindirizza piu': il controllo di accesso
     // va fatto qui. Senza, pagine e API risponderebbero anche a chi non ha effettuato il login.
     const isLoggedIn = !!request.auth?.user;
-    const isPublic = PUBLIC_PREFIXES.some(p => pathname.startsWith(p)) || PUBLIC_FILE.test(pathname);
+    const isPublic = isPublicPath(pathname);
     if (!isLoggedIn && !isPublic) {
         if (pathname.startsWith('/api/')) {
             return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
@@ -40,6 +36,14 @@ export default authMiddleware((request: any) => {
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('callbackUrl', pathname + request.nextUrl.search);
         return NextResponse.redirect(loginUrl);
+    }
+    // Prima password da cambiare: finche' non e' cambiata si puo' solo aprire la pagina di cambio e la disconnessione
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (isLoggedIn && (request.auth.user as any).mustChangePassword === true && !isPublic && pathname !== '/change-password') {
+        if (pathname.startsWith('/api/')) {
+            return NextResponse.json({ error: 'Devi prima cambiare la password' }, { status: 403 });
+        }
+        return NextResponse.redirect(new URL('/change-password', request.url));
     }
     if (isLoggedIn && pathname.startsWith('/login')) {
         return NextResponse.redirect(new URL('/', request.url));

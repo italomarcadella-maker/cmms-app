@@ -1,5 +1,7 @@
 'use server';
 
+import { requireRole } from '@/lib/auth-guard';
+import { SUPERVISION, OPERATIVE } from '@/lib/roles';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
 import { PrismaSparePartRepository } from '../db/prisma-spare-part-repository';
@@ -33,6 +35,8 @@ export async function getPurchaseRequests() {
 }
 
 export async function updatePurchaseRequestStatus(id: string, status: string) {
+    const __guard = await requireRole(SUPERVISION);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     try {
         const reqRepo = getRequestRepo();
         const request = await reqRepo.findById(id);
@@ -55,6 +59,8 @@ export async function updatePurchaseRequestStatus(id: string, status: string) {
 }
 
 export async function fulfillPurchaseRequest(id: string) {
+    const __guard = await requireRole(SUPERVISION);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     try {
         const fulfillPurchaseRequest = makeFulfillPurchaseRequest(getRequestRepo(), getPartRepo());
         const result = await fulfillPurchaseRequest(id);
@@ -89,11 +95,14 @@ export async function getSpareParts(): Promise<any[]> {
             };
         });
     } catch (error) {
+        console.error('[inventory-actions]', error);
         return [];
     }
 }
 
 export async function addSparePart(data: { name: string; quantity: number; category?: string; description?: string; location?: string; unitCost?: number; minQuantity?: number; warehouse?: string }) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     try {
         const partRepo = getPartRepo();
         const partEntity = new SparePart({
@@ -119,11 +128,15 @@ export async function addSparePart(data: { name: string; quantity: number; categ
             }
         };
     } catch (error) {
+        console.error('[inventory-actions]', error);
         return { success: false, message: 'Errore aggiunta ricambio' };
     }
 }
 
 export async function updateSparePartQuantity(id: string, quantity: number) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (!Number.isInteger(quantity) || quantity < 0 || quantity > 10_000_000) return { success: false, message: 'Quantita\' non valida' };
     try {
         const partRepo = getPartRepo();
         const part = await partRepo.findById(id);
@@ -154,11 +167,39 @@ export async function updateSparePartQuantity(id: string, quantity: number) {
             }
         };
     } catch (error) {
+        console.error('[inventory-actions]', error);
+        return { success: false, message: 'Errore aggiornamento giacenza' };
+    }
+}
+
+/** Carico (delta positivo) o scarico (negativo) della giacenza, atomico: non parte da un valore letto prima, quindi due utenti insieme non si sovrascrivono. */
+export async function adjustSparePartQuantity(id: string, delta: number) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    if (!Number.isInteger(delta) || delta === 0 || Math.abs(delta) > 100_000) return { success: false, message: 'Quantita\' non valida' };
+    try {
+        const updated = await getPartRepo().adjustQuantity(id, delta);
+        if (!updated) return { success: false, message: delta < 0 ? 'Giacenza insufficiente per lo scarico' : 'Ricambio non trovato' };
+        const json = updated.toJSON();
+        revalidatePath('/inventory');
+        return {
+            success: true,
+            message: delta > 0 ? 'Carico registrato' : 'Scarico registrato',
+            data: {
+                id: json.id!, name: json.name, plantId: json.plantId ?? null, category: json.category || '', warehouse: json.warehouse || '',
+                quantity: json.quantity, minQuantity: json.minQuantity, location: json.location || '', unitCost: json.unitCost,
+                lastUpdated: json.lastUpdated ? json.lastUpdated.toISOString() : new Date().toISOString(),
+            },
+        };
+    } catch (error) {
+        console.error('adjustSparePartQuantity', error);
         return { success: false, message: 'Errore aggiornamento giacenza' };
     }
 }
 
 export async function deleteSparePart(id: string) {
+    const __guard = await requireRole(SUPERVISION);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     try {
         const partRepo = getPartRepo();
         const success = await partRepo.delete(id);
@@ -168,6 +209,7 @@ export async function deleteSparePart(id: string) {
         }
         return { success: false, message: 'Impossibile eliminare il ricambio' };
     } catch (error) {
+        console.error('[inventory-actions]', error);
         return { success: false, message: 'Errore eliminazione' };
     }
 }

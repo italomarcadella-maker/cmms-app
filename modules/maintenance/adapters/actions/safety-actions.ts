@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/actions';
+import { requireRole } from '@/lib/auth-guard';
 import { PlantScopeError, resolveWritePlantId } from '@/lib/plant-scope';
 import { longestStreakDays, wholeDaysBetween } from '../../domain/shifts';
 

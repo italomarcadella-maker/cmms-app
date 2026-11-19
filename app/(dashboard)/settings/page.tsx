@@ -40,9 +40,10 @@ export default function SettingsPage() {
     };
 
     const handleReset = async () => {
-        if (confirm("Sei sicuro di voler cancellare TUTTI i dati? Questa azione è irreversibile e cancellerà Ordini, Asset, Tecnici e Utenti non-admin.")) {
+        const typed = window.prompt("Questa azione è irreversibile e cancella Ordini, Asset, Tecnici e Utenti non-admin.\n\nPer confermare scrivi: ELIMINA TUTTO");
+        if (typed !== null) {
             try {
-                const result = await resetDatabase();
+                const result = await resetDatabase(typed);
                 if (result.success) {
                     toast.success(result.message);
                     router.refresh();

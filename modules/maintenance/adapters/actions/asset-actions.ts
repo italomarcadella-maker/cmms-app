@@ -1,6 +1,7 @@
 'use server';
 
-import { requireRole, revalidateAssets } from '@/lib/actions';
+import { requireRole } from '@/lib/auth-guard';
+import { revalidateAssets } from '@/lib/actions';
 import { logAction } from '@/lib/audit';
 import { assetSchema } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
@@ -76,7 +77,8 @@ export async function addAsset(rawData: any) {
         revalidateAssets();
         return { success: true, message: 'Asset creato con successo', data: newAsset.toJSON() };
     } catch (error: any) {
-        return { success: false, message: 'Errore creazione asset: ' + error.message };
+        console.error('[asset-actions]', error);
+        return { success: false, message: (error as { code?: string })?.code === 'P2002' ? 'Matricola gia\' presente.' : 'Errore creazione asset.' };
     }
 }
 
@@ -123,6 +125,7 @@ export async function updateAsset(id: string, rawData: any) {
         revalidateAssets();
         return { success: true, message: 'Asset aggiornato', data: savedAsset.toJSON() };
     } catch (error) {
+        console.error('[asset-actions]', error);
         return { success: false, message: 'Errore aggiornamento asset' };
     }
 }
@@ -142,6 +145,7 @@ export async function deleteAsset(id: string) {
         }
         return result;
     } catch (error) {
+        console.error('[asset-actions]', error);
         return { success: false, message: 'Errore durante l\'eliminazione' };
     }
 }

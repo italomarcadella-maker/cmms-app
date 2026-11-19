@@ -108,7 +108,8 @@ export interface WorkOrderTimer {
     note: string | null;
 }
 
-export type UserRole = 'ADMIN' | 'PLANT_MANAGER' | 'PROCESS_ENGINEER' | 'SUPERVISOR' | 'MAINTAINER' | 'USER';
+import type { Role } from '@/lib/roles';
+export type UserRole = Role;
 
 export interface User {
     id: string;

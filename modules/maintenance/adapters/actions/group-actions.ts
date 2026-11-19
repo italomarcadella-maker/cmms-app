@@ -2,7 +2,8 @@
 
 import { subDays } from 'date-fns';
 import { prisma } from '@/lib/prisma';
-import { requireRole, getEffectiveSettings } from '@/lib/actions';
+import { requireRole } from '@/lib/auth-guard';
+import { getEffectiveSettings } from '@/lib/actions';
 import { crossPlant, getPlantScope } from '@/lib/plant-scope';
 import { normalizeKey } from '../../../shared/domain/text-matching';
 

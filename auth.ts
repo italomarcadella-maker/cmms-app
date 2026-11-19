@@ -6,10 +6,17 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { PrismaAdapter } from "@auth/prisma-adapter"
 
+/** Dopo questi tentativi falliti l'account si blocca per qualche minuto (protezione dai tentativi ripetuti). */
+const MAX_FAILED_LOGINS = 5;
+const LOCK_MINUTES = 15;
+// Hash di confronto: se l'email non esiste si esegue comunque un confronto, cosi' i tempi di risposta non rivelano quali email sono registrate
+const DUMMY_HASH = '$2a$10$CwTycUXWue0Thq9StjUM0uJ8q8o5Zq3d0R0n8c5s0y0oQ0m0g0l0e';
+
 export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig,
     adapter: PrismaAdapter(prisma) as any,
-    session: { strategy: "jwt" },
+    // Sessione di 12 ore, rinnovata con l'uso: un token rubato o un PC dimenticato non restano validi per settimane
+    session: { strategy: "jwt", maxAge: 12 * 60 * 60, updateAge: 60 * 60 },
     // AUTH_SECRET is required and validated at startup by lib/env.mjs (imported from next.config.mjs).
     // No fallback here on purpose: a hardcoded fallback would silently sign JWTs with a known
     // secret if the env validation were ever bypassed.
@@ -18,32 +25,40 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     providers: [
         Credentials({
             async authorize(credentials) {
+                // Il login accetta anche le password piu' brevi gia' esistenti (chi ne ha una debole deve poter entrare per cambiarla);
+                // le regole di robustezza si applicano quando la password viene impostata (lib/password-policy.ts)
                 const parsedCredentials = z
-                    .object({ email: z.string().email(), password: z.string().min(3) })
+                    .object({ email: z.string().email(), password: z.string().min(1).max(256) })
                     .safeParse(credentials);
 
-                if (parsedCredentials.success) {
-                    const { email, password } = parsedCredentials.data;
-                    const user = await prisma.user.findUnique({ where: { email } });
+                if (!parsedCredentials.success) return null;
+                const { email, password } = parsedCredentials.data;
 
-                    if (!user || !user.password) return null;
-
-                    const passwordsMatch = await bcrypt.compare(password, user.password);
-
-                    if (passwordsMatch) {
-                        // Check if user is active
-                        if (user.isActive === false) return null;
-
-                        // Update last login
-                        await prisma.user.update({
-                            where: { id: user.id },
-                            data: { lastLogin: new Date() }
-                        });
-
-                        return user;
-                    }
+                const user = await prisma.user.findUnique({ where: { email } });
+                if (!user || !user.password) {
+                    await bcrypt.compare(password, DUMMY_HASH);
+                    return null;
                 }
-                return null;
+                if (user.isActive === false) return null;
+                if (user.lockedUntil && user.lockedUntil > new Date()) return null;
+
+                const passwordsMatch = await bcrypt.compare(password, user.password);
+
+                if (!passwordsMatch) {
+                    const failed = (user.failedLogins ?? 0) + 1;
+                    const lock = failed >= MAX_FAILED_LOGINS;
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: { failedLogins: lock ? 0 : failed, lockedUntil: lock ? new Date(Date.now() + LOCK_MINUTES * 60_000) : null },
+                    });
+                    return null;
+                }
+
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { lastLogin: new Date(), failedLogins: 0, lockedUntil: null },
+                });
+                return user;
             },
         }),
     ],
@@ -62,34 +77,33 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             }
             return session;
         },
-        async jwt({ token, user, trigger, session }: any) {
+        async jwt({ token, user, trigger }: any) {
             if (user) {
                 token.role = user.role;
                 token.mustChangePassword = user.mustChangePassword;
                 token.plantsCheckedAt = 0; // forza la lettura degli stabilimenti al primo accesso
             }
-            if (trigger === "update" && session?.user) {
-                token.role = session.user.role;
-                token.mustChangePassword = session.user.mustChangePassword;
-                token.plantsCheckedAt = 0;
-            }
+            // Un aggiornamento chiesto dal browser NON porta valori: serve solo a rileggere i dati reali dal database
+            // (cosi' il browser non puo' dichiarare da solo un ruolo diverso)
+            if (trigger === "update") token.plantsCheckedAt = 0;
 
-            // Ruolo e stabilimenti assegnati si rileggono dal database al massimo una volta al minuto:
-            // una modifica dell'admin (o la disattivazione di un utente) vale entro pochi istanti,
+            // Ruolo, obbligo di cambio password e stabilimenti assegnati si rileggono dal database al massimo una volta
+            // al minuto: una modifica dell'admin (o la disattivazione di un utente) vale entro pochi istanti,
             // senza una query per ogni richiesta.
             if (token.sub && (!token.plantsCheckedAt || Date.now() - token.plantsCheckedAt > 60_000)) {
                 try {
                     const dbUser = await prisma.user.findUnique({
                         where: { id: token.sub },
-                        select: { role: true, isActive: true, plantId: true, plants: { select: { plantId: true } } },
+                        select: { role: true, isActive: true, mustChangePassword: true, plantId: true, plants: { select: { plantId: true } } },
                     });
                     if (!dbUser || dbUser.isActive === false) return null; // utente eliminato o disattivato: sessione chiusa
                     token.role = dbUser.role;
+                    token.mustChangePassword = dbUser.mustChangePassword;
                     token.homePlantId = dbUser.plantId;
                     token.plantIds = dbUser.plants.map(p => p.plantId);
                     token.plantsCheckedAt = Date.now();
                 } catch (err) {
-                    console.error('[auth] Lettura stabilimenti non riuscita, uso i valori in sessione:', err);
+                    console.error('[auth] Lettura dei dati utente non riuscita, uso i valori in sessione:', err);
                 }
             }
             return token;

@@ -42,6 +42,29 @@ export class PrismaPurchaseRequestRepository implements IPurchaseRequestReposito
         }));
     }
 
+    async receive(id: string): Promise<'RECEIVED' | 'NOT_FOUND' | 'ALREADY_RECEIVED'> {
+        const request = await prisma.purchaseRequest.findUnique({ where: { id } });
+        if (!request) return 'NOT_FOUND';
+        try {
+            await prisma.$transaction(async tx => {
+                // Solo una richiesta concorrente puo' passare a RECEIVED: l'accredito avviene dopo e nella stessa transazione
+                const claimed = await tx.purchaseRequest.updateMany({
+                    where: { id, status: { not: 'RECEIVED' } },
+                    data: { status: 'RECEIVED', receivedAt: new Date() },
+                });
+                if (claimed.count !== 1) throw new Error('ALREADY_RECEIVED');
+                await tx.sparePart.updateMany({
+                    where: { id: request.partId },
+                    data: { quantity: { increment: request.quantity }, lastUpdated: new Date() },
+                });
+            });
+            return 'RECEIVED';
+        } catch (e) {
+            if (e instanceof Error && e.message === 'ALREADY_RECEIVED') return 'ALREADY_RECEIVED';
+            throw e;
+        }
+    }
+
     async save(request: PurchaseRequest): Promise<PurchaseRequest> {
         const prismaData = PurchaseRequestMapper.toPrisma(request);
         let saved;

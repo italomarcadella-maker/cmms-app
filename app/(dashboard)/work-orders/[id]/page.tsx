@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useWorkOrders } from "@/lib/work-orders-context";
 import { useInventory } from "@/lib/inventory-context";
@@ -20,7 +20,7 @@ import {
 import Link from "next/link";
 import { WOAssignDialog } from "@/components/work-orders/wo-assign-dialog";
 import { WOApproveDialog } from "@/components/work-orders/wo-approve-dialog";
-import { updateWorkOrderStatus, reviewWorkOrder, addWorkOrderPart, removeWorkOrderPart } from "@/lib/actions";
+import { updateWorkOrderStatus, reviewWorkOrder, addWorkOrderPart, removeWorkOrderPart, getEffectiveSettings } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { WOPriorityBadge } from "@/components/work-orders/wo-priority-badge";
@@ -44,6 +44,12 @@ export default function WorkOrderDetailPage() {
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'PLANT_MANAGER' || user?.role === 'MAINTAINER';
+
+    // Tariffa oraria di riferimento (impostazioni del plant) per i tecnici che non hanno una tariffa propria
+    const [defaultRate, setDefaultRate] = useState(0);
+    useEffect(() => {
+        getEffectiveSettings().then(st => { if (st?.defaultLaborHourlyRate) setDefaultRate(st.defaultLaborHourlyRate); }).catch(() => { });
+    }, []);
 
     // Parts State
     const [isAddingPart, setIsAddingPart] = useState(false);
@@ -78,7 +84,7 @@ export default function WorkOrderDetailPage() {
     // For now, we'll look up live.
     const laborCost = (wo.laborLogs || []).reduce((sum, log) => {
         const tech = technicians?.find(t => t.id === log.technicianId);
-        const rate = tech?.hourlyRate || 0;
+        const rate = tech?.hourlyRate || defaultRate;
         return sum + (log.hours * rate);
     }, 0);
 

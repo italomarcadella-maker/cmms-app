@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/actions';
+import { requireRole } from '@/lib/auth-guard';
 import { crossPlant, getPlantScope } from '@/lib/plant-scope';
 import {
     aggregateActions, selectCases,

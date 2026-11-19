@@ -11,7 +11,8 @@ export async function GET() {
     } catch (error: any) {
         console.error('Health Check Failed:', error);
         return NextResponse.json(
-            { status: 'error', database: 'disconnected', error: error.message },
+            { status: 'error', database: 'disconnected' }, // il dettaglio resta nei log: non si espone a chi non e' autenticato
+            
             { status: 500 }
         );
     }

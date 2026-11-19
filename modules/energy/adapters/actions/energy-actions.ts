@@ -6,7 +6,8 @@ import { PrismaMeterRepository } from '../db/prisma-meter-repository';
 import { PrismaMeterReadingRepository } from '../db/prisma-meter-reading-repository';
 import { Meter } from '../../domain/entities/meter';
 import { makeRecordMeterReading } from '../../domain/use-cases/record-meter-reading';
-import { requireRole, getEffectiveSettings } from '@/lib/actions';
+import { requireRole } from '@/lib/auth-guard';
+import { getEffectiveSettings } from '@/lib/actions';
 
 import { format, subDays, addDays, parseISO, differenceInDays } from "date-fns";
 import { it } from "date-fns/locale";
@@ -82,7 +83,17 @@ export async function addMeterReading(data: { meterId: string, value: number, da
     const { authorized } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'SUPERVISOR', 'PROCESS_ENGINEER', 'MAINTAINER']);
     if (!authorized) return { success: false, isAnomaly: false, aiAnalysis: null as string | null };
     const recordMeterReading = makeRecordMeterReading(getMeterRepo(), getReadingRepo());
-    const { isAnomaly, aiAnalysis } = await recordMeterReading(data);
+    let isAnomaly: boolean;
+    let aiAnalysis: string | null;
+    try {
+        ({ isAnomaly, aiAnalysis } = await recordMeterReading(data));
+    } catch (e) {
+        // Un contatore ha una sola lettura per data: un doppio invio non deve duplicare i consumi
+        if ((e as { code?: string })?.code === 'P2002') {
+            return { success: false, isAnomaly: false, aiAnalysis: null as string | null, message: 'Esiste gia\' una lettura di questo contatore per la stessa data.' };
+        }
+        throw e;
+    }
 
     revalidatePath('/energy');
     return { success: true, isAnomaly, aiAnalysis };

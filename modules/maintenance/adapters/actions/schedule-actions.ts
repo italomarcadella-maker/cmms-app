@@ -1,6 +1,8 @@
 'use server';
 
-import { requireRole, revalidateWorkOrders } from '@/lib/actions';
+import { OPERATIVE } from '@/lib/roles';
+import { requireRole } from '@/lib/auth-guard';
+import { revalidateWorkOrders } from '@/lib/actions';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
 import { PrismaScheduleRepository } from '../db/prisma-schedule-repository';
@@ -26,6 +28,8 @@ const getSchedRepo = () => ServiceLocator.resolve<PrismaScheduleRepository>('ISc
 const getWORepo = () => ServiceLocator.resolve<PrismaWorkOrderRepository>('IWorkOrderRepository');
 
 export async function createWorkOrderFromSchedule(scheduleId: string, date: Date, technicianId?: string) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     try {
         const schedRepo = getSchedRepo();
         const woRepo = getWORepo();
@@ -97,6 +101,7 @@ export async function getPreventiveSchedules() {
             nextDueDate: s.nextDueDate.toISOString()
         }));
     } catch (error) {
+        console.error('[schedule-actions]', error);
         return [];
     }
 }
@@ -117,6 +122,7 @@ export async function getAssetSchedules(assetId: string) {
             nextDueDate: s.nextDueDate.toISOString()
         }));
     } catch (error) {
+        console.error('[schedule-actions]', error);
         return [];
     }
 }
@@ -130,10 +136,8 @@ export async function createPreventiveSchedule(data: {
     activities: any[];
     firstDate: Date;
 }) {
-    const session = await auth();
-    if (!session?.user || !['ADMIN', 'PLANT_MANAGER'].includes((session.user as any).role)) {
-        return { success: false, message: 'Non autorizzato' };
-    }
+    const __guard = await requireRole(['ADMIN', 'PLANT_MANAGER']);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
 
     try {
         const schedRepo = getSchedRepo();
@@ -156,21 +160,22 @@ export async function createPreventiveSchedule(data: {
 }
 
 export async function deletePreventiveSchedule(id: string) {
-    const session = await auth();
-    if (!session?.user || !['ADMIN', 'PLANT_MANAGER'].includes((session.user as any).role)) return { success: false, message: 'Non autorizzato' };
+    const __guard = await requireRole(['ADMIN', 'PLANT_MANAGER']);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     try {
         const schedRepo = getSchedRepo();
         await schedRepo.delete(id);
         revalidatePath('/maintenance/schedule');
         return { success: true, message: 'Schedulazione eliminata con successo' };
     } catch (error) {
+        console.error('[schedule-actions]', error);
         return { success: false, message: 'Errore eliminazione' };
     }
 }
 
 export async function updatePreventiveSchedule(id: string, nextDueDate: Date) {
-    const session = await auth();
-    if (!session?.user || !['ADMIN', 'PLANT_MANAGER'].includes((session.user as any).role)) return { success: false, message: 'Non autorizzato' };
+    const __guard = await requireRole(['ADMIN', 'PLANT_MANAGER']);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
 
     try {
         const schedRepo = getSchedRepo();
@@ -187,6 +192,7 @@ export async function updatePreventiveSchedule(id: string, nextDueDate: Date) {
         revalidatePath('/maintenance');
         return { success: true, message: 'Data aggiornata' };
     } catch (error) {
+        console.error('[schedule-actions]', error);
         return { success: false, message: 'Errore aggiornamento data' };
     }
 }

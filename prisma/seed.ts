@@ -1,3 +1,9 @@
+// Seed di SVILUPPO: crea utenti con password di prova. Non eseguirlo mai su un database reale.
+if (process.env.ALLOW_DEV_SEED !== '1') {
+    console.error('Seed di sviluppo con password di prova: per eseguirlo su un database di prova imposta ALLOW_DEV_SEED=1. Non usarlo in produzione.');
+    process.exit(1);
+}
+
 import { PrismaClient, AssetStatus, AssetType, WorkOrderPriority, WorkOrderCategory, WorkOrderStatus, WorkOrderType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 

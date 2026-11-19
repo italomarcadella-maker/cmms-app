@@ -1,5 +1,6 @@
 'use server';
 
+import { SUPERVISION } from '@/lib/roles';
 import { signIn } from '@/auth';
 import { addDays, format, subDays, startOfDay } from 'date-fns';
 import { AuthError } from 'next-auth';
@@ -8,7 +9,10 @@ import bcrypt from 'bcryptjs';
 import { auth } from '@/auth';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { scopedCache } from '@/lib/scoped-cache';
-import { resolveWritePlantId, runUnscoped, invalidatePlantListCache, getPlantScope, userScopeWhere } from '@/lib/plant-scope';
+import { requireRole, requireLogin } from '@/lib/auth-guard';
+import { isRole } from '@/lib/roles';
+import { validatePassword } from '@/lib/password-policy';
+import { PlantScopeError, resolveWritePlantId, runUnscoped, invalidatePlantListCache, getPlantScope, userScopeWhere } from '@/lib/plant-scope';
 import { WorkOrderStatus } from '@/lib/types';
 
 import { logAction } from './audit';
@@ -71,22 +75,6 @@ export async function revalidateAssets() {
     (revalidateTag as any)('assets');
 }
 
-// --- Authorization Helper ---
-
-export async function requireRole(role: string | string[]): Promise<{ authorized: boolean; message?: string; session?: any }> {
-    const session = await auth();
-    if (!session?.user) {
-        return { authorized: false, message: 'Non autenticato' };
-    }
-    const roles = Array.isArray(role) ? [...role] : [role];
-    // Il responsabile di plant ha i diritti del supervisor, limitati ai propri stabilimenti (filtro in lib/prisma.ts)
-    if (roles.includes('SUPERVISOR') && !roles.includes('PLANT_MANAGER')) roles.push('PLANT_MANAGER');
-    if (!roles.includes(session.user.role)) {
-        return { authorized: false, message: `Non autorizzato: Richiesto ruolo ${roles.join(' o ')}` };
-    }
-    return { authorized: true, session };
-}
-
 // --- Authentication ---
 
 export async function authenticate(
@@ -111,6 +99,8 @@ export async function authenticate(
 export async function updateUserPassword(userId: string, newPassword: string) {
     const { authorized, message } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
+    const weak = validatePassword(newPassword);
+    if (weak) return { success: false, message: weak };
 
     try {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -129,8 +119,16 @@ export async function updateUserPassword(userId: string, newPassword: string) {
 export async function updateUserRole(userId: string, newRole: string) {
     const { authorized, message } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
+    if (!isRole(newRole)) return { success: false, message: 'Ruolo non valido.' };
 
     try {
+        // Non si puo' togliere il ruolo all'ultimo amministratore attivo
+        if (newRole !== 'ADMIN') {
+            const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+            if (target?.role === 'ADMIN' && (await prisma.user.count({ where: { role: 'ADMIN', isActive: true } })) <= 1) {
+                return { success: false, message: 'Deve restare almeno un amministratore attivo.' };
+            }
+        }
         await prisma.user.update({
             where: { id: userId },
             data: { role: newRole }
@@ -162,6 +160,9 @@ export async function createUser(rawUserData: any) {
     try {
         const { name, email, password, role } = rawUserData;
         const plantIds: string[] = Array.isArray(rawUserData.plantIds) ? rawUserData.plantIds : [];
+        if (!isRole(role)) return { success: false, message: 'Ruolo non valido.' };
+        const weakPassword = validatePassword(password);
+        if (weakPassword) return { success: false, message: weakPassword };
         if (!email || !password || !role) {
             return { success: false, message: 'Dati mancanti.' };
         }
@@ -173,41 +174,29 @@ export async function createUser(rawUserData: any) {
             return { success: false, message: 'Utente già esistente con questa email.' };
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await prisma.user.create({
+        const uniquePlants = [...new Set(plantIds)];
+        // Utente, stabilimenti assegnati e (per i manutentori) profilo tecnico si creano insieme: o tutto o niente
+        await prisma.user.create({
             data: {
                 name,
                 email,
                 password: hashedPassword,
                 role,
                 image: '',
-                mustChangePassword: true
-            }
+                mustChangePassword: true,
+                plantId: uniquePlants[0] ?? null,
+                plants: { create: uniquePlants.map(plantId => ({ plantId })) },
+                ...(role === 'MAINTAINER' ? { technicianProfile: { create: { name: name || email.split('@')[0], specialty: 'General', hourlyRate: 0 } } } : {}),
+            },
         });
-        await setUserPlants(user.id, plantIds);
-
-        // Phase 5: Consistency - Auto-create Technician profile for Maintainers
-        if (role === 'MAINTAINER') {
-            // Check if profile already exists (unlikely on new user but safe)
-            const existingTech = await prisma.technician.findFirst({ where: { userId: user.id } });
-            if (!existingTech) {
-                await prisma.technician.create({
-                    data: {
-                        name: name || email.split('@')[0],
-                        // email key not in Technician model, removed
-                        userId: user.id,
-                        specialty: "General",
-                        hourlyRate: 0
-                    }
-                });
-            }
-        }
 
         revalidatePath('/users');
         revalidatePath('/technicians');
         return { success: true, message: 'Utente creato con successo' };
     } catch (error) {
         console.error('Failed to create user:', error);
-        return { success: false, message: `Errore durante la creazione dell'utente: ${(error as any).message}` };
+        if ((error as { code?: string })?.code === 'P2002') return { success: false, message: 'Utente gia\' esistente con questa email.' };
+        return { success: false, message: "Errore durante la creazione dell'utente." };
     }
 }
 
@@ -216,6 +205,8 @@ export async function updateFirstLoginPassword(newPassword: string) {
     if (!session?.user?.email) {
         return { success: false, message: 'Non autenticato.' };
     }
+    const weak = validatePassword(newPassword);
+    if (weak) return { success: false, message: weak };
     try {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await prisma.user.update({
@@ -266,6 +257,7 @@ export async function updateUserStatus(userId: string, isActive: boolean) {
         revalidatePath('/users');
         return { success: true, message: isActive ? 'Utente riattivato' : 'Utente disattivato' };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: 'Errore aggiornamento stato' };
     }
 }
@@ -273,6 +265,7 @@ export async function updateUserStatus(userId: string, isActive: boolean) {
 export async function updateUser(userId: string, data: { name?: string; email?: string; department?: string; image?: string; role?: string; plantIds?: string[] }) {
     const { authorized, message } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
+    if (data.role !== undefined && !isRole(data.role)) return { success: false, message: 'Ruolo non valido.' };
     try {
         const newRole = data.role ?? (await prisma.user.findUnique({ where: { id: userId }, select: { role: true } }))?.role;
         if (data.plantIds !== undefined && newRole !== "ADMIN" && data.plantIds.length === 0) {
@@ -292,6 +285,7 @@ export async function updateUser(userId: string, data: { name?: string; email?: 
         revalidatePath('/users');
         return { success: true, message: 'Utente aggiornato con successo' };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: 'Errore aggiornamento dati' };
     }
 }
@@ -303,6 +297,20 @@ export async function deleteUser(userId: string) {
         if (session.user.id === userId) {
             return { success: false, message: 'Non puoi cancellare il tuo stesso account.' };
         }
+        const target = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { role: true, technicianProfile: { select: { id: true, _count: { select: { assignments: true, workOrders: true } } } }, _count: { select: { requestedWorkOrders: true, validatedWorkOrders: true } } },
+        });
+        if (!target) return { success: false, message: 'Utente non trovato.' };
+        if (target.role === 'ADMIN' && (await prisma.user.count({ where: { role: 'ADMIN', isActive: true } })) <= 1) {
+            return { success: false, message: 'Deve restare almeno un amministratore attivo.' };
+        }
+        // Un utente con storico (ordini richiesti o svolti) non si cancella: sparirebbero le sue tracce. Si disattiva.
+        const history = (target.technicianProfile?._count.assignments ?? 0) + (target.technicianProfile?._count.workOrders ?? 0)
+            + target._count.requestedWorkOrders + target._count.validatedWorkOrders;
+        if (history > 0) {
+            return { success: false, message: 'L\'utente ha uno storico di ordini di lavoro: disattivalo invece di eliminarlo, cosi\' lo storico resta leggibile.' };
+        }
         await prisma.user.delete({ where: { id: userId } });
         revalidatePath('/users');
         return { success: true, message: 'Utente eliminato con successo' };
@@ -312,25 +320,36 @@ export async function deleteUser(userId: string) {
     }
 }
 
-export async function resetDatabase() {
-    const { authorized, message } = await requireRole('ADMIN');
+/**
+ * Cancella i dati operativi. E' PERICOLOSA: resta disattivata a meno che non sia impostata ALLOW_DB_RESET=1 (ambiente di prova),
+ * richiede di scrivere la frase di conferma, lascia traccia nel registro e avviene in un'unica transazione.
+ */
+export async function resetDatabase(confirmation?: string) {
+    const { authorized, message, session } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
+    if (process.env.ALLOW_DB_RESET !== '1') {
+        return { success: false, message: 'Il reset e\' disattivato in questo ambiente. Per i dati reali usa un backup e il ripristino.' };
+    }
+    if (confirmation !== 'ELIMINA TUTTO') return { success: false, message: 'Scrivi esattamente ELIMINA TUTTO per confermare.' };
     try {
-        await prisma.meterReading.deleteMany();
-        await prisma.meter.deleteMany();
-        await prisma.notification.deleteMany();
-        await prisma.laborLog.deleteMany();
-        await prisma.workOrderPart.deleteMany();
-        await prisma.checklistItem.deleteMany();
-        await prisma.workOrder.deleteMany();
-        await prisma.preventiveSchedule.deleteMany();
-        await prisma.assetImage.deleteMany();
-        await prisma.assetDocument.deleteMany();
-        await prisma.asset.deleteMany();
-        await prisma.technician.deleteMany();
-        await prisma.maintenanceActivity.deleteMany();
-        await prisma.user.deleteMany({
-            where: { role: { not: 'ADMIN' } }
+        await runUnscoped(async () => {
+            await prisma.auditLog.create({ data: { userId: session.user.id, action: 'RESET_DATABASE', details: 'Reset dei dati operativi richiesto da un amministratore' } });
+            await prisma.$transaction([
+                prisma.meterReading.deleteMany(),
+                prisma.meter.deleteMany(),
+                prisma.notification.deleteMany(),
+                prisma.laborLog.deleteMany(),
+                prisma.workOrderPart.deleteMany(),
+                prisma.checklistItem.deleteMany(),
+                prisma.workOrder.deleteMany(),
+                prisma.preventiveSchedule.deleteMany(),
+                prisma.assetImage.deleteMany(),
+                prisma.assetDocument.deleteMany(),
+                prisma.asset.deleteMany(),
+                prisma.technician.deleteMany(),
+                prisma.maintenanceActivity.deleteMany(),
+                prisma.user.deleteMany({ where: { role: { not: 'ADMIN' } } }),
+            ]);
         });
         revalidatePath('/');
         return { success: true, message: 'Database ripulito con successo.' };
@@ -410,6 +429,7 @@ export async function addPlant(data: { name: string; location?: string; country?
         revalidatePath('/', 'layout');
         return { success: true, data: newPlant };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: "Errore aggiunta stabilimento (nome gia' esistente?)" };
     }
 }
@@ -449,6 +469,7 @@ export async function updatePlant(id: string, data: PlantSettingsInput) {
         revalidatePath('/', 'layout');
         return { success: true, data: updated };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: "Errore aggiornamento stabilimento" };
     }
 }
@@ -457,12 +478,29 @@ export async function deletePlant(id: string) {
     const { authorized, message } = await requireRole('ADMIN');
     if (!authorized) return { success: false, message };
     try {
+        // Eliminare uno stabilimento cancellerebbe a cascata energia, sicurezza, contratti e libreria e lascerebbe orfani
+        // asset, ordini e ricambi: si puo' fare solo se e' vuoto.
+        const linked = await runUnscoped(async () => {
+            const where = { plantId: id };
+            const counts = await Promise.all([
+                prisma.asset.count({ where }), prisma.workOrder.count({ where }), prisma.sparePart.count({ where }), prisma.meter.count({ where }),
+                prisma.component.count({ where }), prisma.project.count({ where }), prisma.dailyMeeting.count({ where }), prisma.energyLog.count({ where }),
+                prisma.safetyEvent.count({ where }), prisma.contractorContract.count({ where }), prisma.productionLine.count({ where }),
+                prisma.user.count({ where: { OR: [{ plantId: id }, { plants: { some: { plantId: id } } }] } }),
+            ]);
+            const labels = ['asset', 'ordini di lavoro', 'ricambi', 'contatori', 'componenti', 'progetti', 'riunioni', 'letture di energia', 'eventi di sicurezza', 'contratti', 'linee', 'utenti'];
+            return labels.map((l, i) => (counts[i] > 0 ? `${counts[i]} ${l}` : '')).filter(Boolean);
+        });
+        if (linked.length > 0) {
+            return { success: false, message: `Lo stabilimento non e' vuoto (${linked.join(', ')}). Sposta o elimina prima questi dati.` };
+        }
         await runUnscoped(() => prisma.plant.delete({ where: { id } }));
         invalidatePlantListCache();
         revalidatePath('/', 'layout');
         return { success: true };
     } catch (error) {
-        return { success: false, message: "Errore eliminazione stabilimento. Assicurati che non ci siano asset collegati." };
+        console.error('deletePlant', error);
+        return { success: false, message: "Errore eliminazione stabilimento." };
     }
 }
 
@@ -470,43 +508,59 @@ export async function deletePlant(id: string) {
 export async function importAssets(assets: any[]) {
     let count = 0;
     const errors: string[] = [];
-    const { authorized, message } = await requireRole(['ADMIN', 'PROCESS_ENGINEER']);
-    if (!authorized) return { success: false, message: message || "Unauthorized", count: 0, errors: ["Unauthorized"] };
+    const { authorized, message } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'PROCESS_ENGINEER']);
+    if (!authorized) return { success: false, message: message || "Non autorizzato", count: 0, errors: ["Non autorizzato"] };
+    if (!Array.isArray(assets) || assets.length === 0) return { success: false, message: 'Nessuna riga da importare.', count: 0, errors: [] };
+    if (assets.length > 1000) return { success: false, message: 'Si possono importare al massimo 1000 righe per volta.', count: 0, errors: [] };
 
-    for (const asset of assets) {
+    const STATUSES = ['OPERATIONAL', 'MAINTENANCE', 'OFFLINE', 'PLANNED_DOWNTIME'];
+    const TYPES = ['MACHINE', 'FACILITY', 'SAFETY', 'KAIZEN', 'OTHER'];
+    // Il plant si indica per nome: si ricava l'id tra quelli che l'utente puo' vedere
+    const plants = await prisma.plant.findMany({ select: { id: true, name: true } });
+    const plantByName = new Map(plants.map(p => [p.name.trim().toLowerCase(), p.id]));
+
+    for (const [index, asset] of assets.entries()) {
+        const label = `Riga ${index + 1}${asset?.name ? ` (${asset.name})` : ''}`;
         try {
-            if (!asset.name || !asset.model) continue;
+            if (!asset?.name || !asset?.model) { errors.push(`${label}: nome e modello sono obbligatori`); continue; }
+            let plantId: string | undefined;
+            if (asset.plant && String(asset.plant).trim() !== '') {
+                plantId = plantByName.get(String(asset.plant).trim().toLowerCase());
+                if (!plantId) { errors.push(`${label}: stabilimento "${asset.plant}" non trovato o non consentito`); continue; }
+            }
+            const status = STATUSES.includes(asset.status) ? asset.status : 'OPERATIONAL';
+            const type = TYPES.includes(asset.type) ? asset.type : 'MACHINE';
+            const purchaseDate = asset.purchaseDate ? new Date(asset.purchaseDate) : new Date();
+            if (Number.isNaN(purchaseDate.getTime())) { errors.push(`${label}: data di acquisto non valida`); continue; }
             const assetData = {
-                name: asset.name,
-                model: asset.model,
-                serialNumber: asset.serialNumber || `SN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-                location: asset.location || 'Unknown',
-                status: asset.status || 'OPERATIONAL',
-                healthScore: parseInt(asset.healthScore) || 100,
-                type: asset.type || 'MACHINE',
-                purchaseDate: asset.purchaseDate ? new Date(asset.purchaseDate) : new Date(),
-                department: asset.department || asset.category || 'General',
-                plant: asset.plant || 'Default Plant',
+                name: String(asset.name).trim(),
+                model: String(asset.model).trim(),
+                serialNumber: asset.serialNumber ? String(asset.serialNumber) : `SN-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+                location: asset.location || 'Non indicata',
+                status,
+                healthScore: Math.min(100, Math.max(0, parseInt(asset.healthScore) || 100)),
+                type,
+                purchaseDate,
+                department: asset.department || asset.category || null,
                 line: asset.line || null,
                 vendor: asset.vendor || null,
+                ...(plantId ? { plantId } : {}),
             };
             if (asset.id) {
-                await prisma.asset.upsert({
-                    where: { id: asset.id },
-                    update: assetData,
-                    create: { id: asset.id, ...assetData }
-                });
+                await prisma.asset.upsert({ where: { id: asset.id }, update: assetData as any, create: { id: asset.id, ...assetData } as any });
             } else {
-                await prisma.asset.create({ data: assetData });
+                await prisma.asset.create({ data: assetData as any });
             }
             count++;
         } catch (e) {
-            errors.push(`Failed to import ${asset.name}`);
+            const reason = e instanceof PlantScopeError ? e.message : (e as { code?: string })?.code === 'P2002' ? 'matricola gia\' presente' : 'errore nei dati';
+            console.error('importAssets', label, e);
+            errors.push(`${label}: ${reason}`);
         }
     }
     revalidatePath('/assets');
     revalidateAssets();
-    return { success: true, count, errors };
+    return { success: count > 0, message: count > 0 ? undefined : 'Nessuna riga importata.', count, errors };
 }
 
 export async function addAsset(rawData: any) {
@@ -611,6 +665,7 @@ export async function getTechnicians() {
         return [...techs, ...supervisorTechs] as any[];
 
     } catch (error) {
+        console.error('[actions]', error);
         return [];
     }
 }
@@ -657,7 +712,7 @@ export async function deleteTechnician(id: string) {
 // --- Maintenance Activities ---
 
 export async function getActivities() {
-    try { return await prisma.maintenanceActivity.findMany(); } catch (error) { return []; }
+    try { return await prisma.maintenanceActivity.findMany(); } catch (error) { console.error('[actions]', error); return []; }
 }
 
 export async function addActivity(data: { label: string; category?: string }) {
@@ -667,6 +722,7 @@ export async function addActivity(data: { label: string; category?: string }) {
         const newAct = await prisma.maintenanceActivity.create({ data });
         return { success: true, message: 'Attività aggiunta', data: newAct };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: 'Errore aggiunta attività' };
     }
 }
@@ -678,6 +734,7 @@ export async function deleteActivity(id: string) {
         await prisma.maintenanceActivity.delete({ where: { id } });
         return { success: true, message: 'Attività eliminata' };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: 'Errore eliminazione' };
     }
 }
@@ -707,7 +764,7 @@ export async function getComponents() {
     // Authorized for multiple roles
     const { authorized } = await requireRole(['ADMIN', 'MAINTAINER', 'SUPERVISOR', 'PROCESS_ENGINEER']);
     if (!authorized) return [];
-    try { return await prisma.component.findMany({ include: { measurements: true }, orderBy: { purchaseDate: 'desc' } }); } catch (error) { return []; }
+    try { return await prisma.component.findMany({ include: { measurements: true }, orderBy: { purchaseDate: 'desc' } }); } catch (error) { console.error('[actions]', error); return []; }
 }
 
 export async function addComponent(data: any) {
@@ -717,6 +774,7 @@ export async function addComponent(data: any) {
         const newComp = await prisma.component.create({ data });
         return { success: true, message: 'Componente aggiunto', data: newComp };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: 'Errore aggiunta componente' };
     }
 }
@@ -728,6 +786,7 @@ export async function updateComponent(id: string, updates: any) {
         const updated = await prisma.component.update({ where: { id }, data: updates });
         return { success: true, message: 'Componente aggiornato', data: updated };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: 'Errore aggiornamento' };
     }
 }
@@ -738,6 +797,10 @@ export async function uploadComponentDrawing(formData: FormData) {
 
     const file = formData.get('file') as File | null;
     if (!file) return { success: false, message: 'Nessun file ricevuto' };
+    const ALLOWED: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'application/pdf': 'pdf' };
+    const extension = ALLOWED[file.type];
+    if (!extension) return { success: false, message: 'Formato non consentito: solo PNG, JPEG, WebP o PDF.' };
+    if (file.size > 5 * 1024 * 1024) return { success: false, message: 'Il file supera i 5 MB.' };
 
     try {
         const { ServiceLocator } = await import('@/modules/shared/infrastructure/registry/service-locator');
@@ -745,8 +808,9 @@ export async function uploadComponentDrawing(formData: FormData) {
         const storage = ServiceLocator.resolve<{ uploadFile: (buf: Buffer, name: string, mime: string, bucket?: string) => Promise<string> }>('IFileStorageService');
 
         const buffer = Buffer.from(await file.arrayBuffer());
-        const safeName = `components/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
-        const url = await storage.uploadFile(buffer, safeName, file.type || 'application/octet-stream', 'documents');
+        const base = file.name.replace(/\.[^.]*$/, '').replace(/[^a-zA-Z0-9\-_]/g, '_').slice(0, 60) || 'file';
+        const safeName = `components/${Date.now()}-${base}.${extension}`;
+        const url = await storage.uploadFile(buffer, safeName, file.type, 'documents');
 
         return { success: true, message: 'Disegno caricato', url };
     } catch (error) {
@@ -770,6 +834,7 @@ export async function addMeasurement(componentId: string, measurement: { date: s
         });
         return { success: true, message: 'Misurazione aggiunta', data: newMeas };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: 'Errore aggiunta misurazione' };
     }
 }
@@ -778,27 +843,41 @@ export async function addMeasurement(componentId: string, measurement: { date: s
 
 export async function getChatMessages() {
     try {
-        return await prisma.chatMessage.findMany({ orderBy: { timestamp: 'asc' }, take: 100 });
+        const session = await auth();
+        if (!session?.user?.id) return [];
+        // La conversazione e' personale: le risposte possono contenere dati dello stabilimento di chi chiede
+        return await prisma.chatMessage.findMany({ where: { userId: session.user.id }, orderBy: { timestamp: 'asc' }, take: 100 });
     } catch (error) {
+        console.error('[actions]', error);
         return [];
     }
 }
 
 export async function sendChatMessage(data: { sender: string; role: string; content: string; isSystem?: boolean; thoughtProcess?: string[]; imageUrl?: string }) {
+    const guard = await requireLogin();
+    if (!guard.authorized) return { success: false, message: guard.message ?? 'Non autenticato' };
+    const user = guard.session.user;
     try {
+        const content = typeof data.content === 'string' ? data.content.slice(0, 4000) : '';
+        if (!content.trim()) return { success: false, message: 'Messaggio vuoto' };
+        // Mittente e ruolo di un messaggio dell'utente sono quelli della sessione, non quelli dichiarati dal browser.
+        // Le risposte dell'assistente (isSystem) restano dell'utente che le ha richieste e hanno un mittente fisso.
+        const system = data.isSystem === true;
         const msg = await prisma.chatMessage.create({
             data: {
-                sender: data.sender,
-                role: data.role,
-                content: data.content,
-                isSystem: data.isSystem || false,
+                userId: user.id,
+                sender: system ? (String(data.sender || 'Assistente').slice(0, 60)) : (user.name || user.email || 'Utente'),
+                role: system ? 'SYSTEM' : (user.role === 'SUPERVISOR' || user.role === 'PLANT_MANAGER' ? 'SUPERVISOR' : user.role === 'MAINTAINER' ? 'TECHNICIAN' : 'USER'),
+                content,
+                isSystem: system,
                 isRead: false,
-                thoughtProcess: data.thoughtProcess || [],
-                imageUrl: data.imageUrl
-            }
+                thoughtProcess: Array.isArray(data.thoughtProcess) ? data.thoughtProcess.slice(0, 20).map(t => String(t).slice(0, 300)) : [],
+                imageUrl: typeof data.imageUrl === 'string' && /^(https:\/\/|data:image\/(png|jpeg|webp);base64,)/.test(data.imageUrl) ? data.imageUrl : undefined,
+            },
         });
         return { success: true, data: msg };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: 'Errore invio messaggio' };
     }
 }
@@ -807,8 +886,10 @@ export const getWorkOrders = scopedCache(
     async () => {
         try {
             const wos = await prisma.workOrder.findMany({
+                // Gli ordini aperti non devono sparire perche' vecchi: si prendono tutti, piu' lo storico degli ultimi 6 mesi
+                where: { OR: [{ status: { in: ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PENDING_APPROVAL', 'APPROVED', 'ON_HOLD', 'PENDING_REVIEW'] } }, { createdAt: { gte: new Date(Date.now() - 183 * 86_400_000) } }] },
                 orderBy: { createdAt: 'desc' },
-                take: 1000,
+                take: 2000,
                 include: {
                     asset: true,
                     timers: true,
@@ -969,8 +1050,9 @@ export async function getUserNotifications() {
 export async function markNotificationAsRead(id: string) {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
-    await prisma.notification.update({ where: { id }, data: { read: true } });
-    return { success: true };
+    // Solo le proprie notifiche: l'id da solo non basta
+    const res = await prisma.notification.updateMany({ where: { id, userId: session.user.id }, data: { read: true } });
+    return { success: res.count === 1 };
 }
 
 // --- Energy ---
@@ -978,6 +1060,8 @@ export async function markNotificationAsRead(id: string) {
 // --- AI Suggestions ---
 
 export async function generateDailySuggestions() {
+    const __guard = await requireRole(SUPERVISION);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -1141,6 +1225,7 @@ export async function getSystemSettings() {
         }
         return settings;
     } catch (error) {
+        console.error('[actions]', error);
         return null;
     }
 }
@@ -1194,6 +1279,7 @@ export async function updateSystemSettings(input: SystemSettingsInput) {
         revalidatePath('/sustainability');
         return { success: true, message: 'Impostazioni aggiornate' };
     } catch (error) {
+        console.error('[actions]', error);
         return { success: false, message: 'Errore salvataggio impostazioni' };
     }
 }
@@ -1487,10 +1573,8 @@ export async function getProductionLines() {
 }
 
 export async function deleteProductionLine(line: string) {
-    const session = await auth();
-    if (!session?.user || (session.user as any).role === 'USER') {
-        return { success: false, message: 'Non autorizzato' };
-    }
+    const guard = await requireRole(SUPERVISION);
+    if (!guard.authorized) return { success: false, message: guard.message ?? 'Non autorizzato' };
 
     try {
         await prisma.productionLine.deleteMany({ where: { line } }); // filtrato sul plant visibile

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireRole } from "@/lib/auth-guard";
+import { SUPERVISION } from "@/lib/roles";
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -24,9 +26,13 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+    const guard = await requireRole(SUPERVISION);
+    if (!guard.authorized) return NextResponse.json({ error: guard.message }, { status: guard.message === 'Non autenticato' ? 401 : 403 });
     try {
         const body = await request.json();
-        const { department, date, conductedBy } = body;
+        const { department, date } = body;
+        const conductedBy = guard.session.user.name ?? guard.session.user.email ?? undefined; // dalla sessione, non dal browser
+        if (typeof department !== "string" || !department.trim()) return NextResponse.json({ error: "Reparto mancante" }, { status: 400 });
 
         // Create a drafted meeting with 4 empty sections ready to be filled
         const newMeeting = await prisma.dailyMeeting.create({

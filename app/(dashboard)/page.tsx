@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { DashboardHeader } from "@/components/dashboard/server/dashboard-header";
 import { GaugesRow } from "@/components/dashboard/server/gauges-row";
 import { AttentionWidget } from "@/components/dashboard/server/attention-widget";
+import { AIInsightsWrapper } from "@/components/dashboard/server/ai-insights-wrapper";
 import { SafetyCounterWidget } from "@/components/dashboard/server/safety-counter";
 import { FailuresByShiftCard } from "@/components/dashboard/failures-by-shift";
 import { WeekCalendar } from "@/components/dashboard/week-calendar";
@@ -37,9 +38,14 @@ export default async function Home() {
       {/* Oggi: il calendario della settimana e, accanto, le poche cose da guardare subito */}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
         <WeekCalendar />
-        <Suspense fallback={<Skeleton className="h-[320px] w-full rounded-xl" />}>
-          <AttentionWidget />
-        </Suspense>
+        <div className="space-y-4">
+          <Suspense fallback={<Skeleton className="h-[260px] w-full rounded-xl" />}>
+            <AttentionWidget />
+          </Suspense>
+          <Suspense fallback={<Skeleton className="h-[200px] w-full rounded-xl" />}>
+            <AIInsightsWrapper />
+          </Suspense>
+        </div>
       </div>
 
       {/* Sicurezza e guasti */}

@@ -3,7 +3,7 @@
 import { addDays } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/actions';
+import { requireRole } from '@/lib/auth-guard';
 import { getPlantScope, runUnscoped } from '@/lib/plant-scope';
 import { normalizeKey } from '../../../shared/domain/text-matching';
 

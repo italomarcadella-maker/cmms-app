@@ -27,4 +27,9 @@ export interface IPurchaseRequestRepository {
     findAllWithPart(): Promise<PurchaseRequestListItem[]>;
     save(request: PurchaseRequest): Promise<PurchaseRequest>;
     delete(id: string): Promise<boolean>;
+    /**
+     * Segna la richiesta come ricevuta e accredita la quantita' al magazzino, tutto in un'unica operazione atomica.
+     * Solo una chiamata puo' riuscire per richiesta: un doppio clic non accredita due volte.
+     */
+    receive(id: string): Promise<'RECEIVED' | 'NOT_FOUND' | 'ALREADY_RECEIVED'>;
 }

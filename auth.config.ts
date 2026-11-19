@@ -5,6 +5,16 @@ export const authConfig = {
         signIn: '/login',
     },
     callbacks: {
+        // Il middleware (edge) non legge il database: porta nella sessione i campi del token che gli servono
+        session({ session, token }) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const user = session.user as any;
+            if (user) {
+                user.role = token.role;
+                user.mustChangePassword = token.mustChangePassword;
+            }
+            return session;
+        },
         authorized({ auth, request: { nextUrl } }) {
             const isLoggedIn = !!auth?.user;
 

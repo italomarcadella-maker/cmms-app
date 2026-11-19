@@ -2,7 +2,7 @@
 
 import { addDays } from 'date-fns';
 import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/actions';
+import { requireRole } from '@/lib/auth-guard';
 import { getPlantScope, runUnscoped } from '@/lib/plant-scope';
 import { DEFAULT_TIMEZONE, dayKeyInZone, shiftOf, type ShiftId } from '../../domain/shifts';
 import { contractState, isInForce } from '../../domain/contractors';

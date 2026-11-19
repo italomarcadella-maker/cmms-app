@@ -1,5 +1,6 @@
 "use client";
 
+import { escapeHtml } from '@/lib/html';
 import { useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -126,7 +127,7 @@ export function TagGeneratorDialog({ assets, onClose, assetId, assetName }: TagG
                     <div class="tag-container">
                         <div class="tag">
                             <div class="tag-header">⚙️ Smart Plant - CMMS</div>
-                            <div class="asset-name">${item.name}</div>
+                            <div class="asset-name">${escapeHtml(item.name)}</div>
                             <div class="barcode"></div>
                             <div class="qr">
                                 <!-- Place a placeholder SVG for printing to render perfectly -->
@@ -134,7 +135,7 @@ export function TagGeneratorDialog({ assets, onClose, assetId, assetName }: TagG
                                     <path d="M0 0h9v9H0zm1 1v7h7V1zm12 0h9v9h-9zm1 1v7h7V1zM0 12h9v9H0zm1 1v7h7v-7zm15-3v1h1v-1zm1 0h1v1h-1zm1 0v1h1v-1zm2 0h1v1h-1zm-6 2h1v1h-1zm3 0h1v1h-1zm1 0h2v1h-2zm-3 2h2v1h-2zm4 0h1v1h-1zm2 0h1v1h-1zm-6 2h1v1h-1zm1 0h1v1h-1zm2 0h2v1h-2zm2 0h1v1h-1zm-6 2h1v1h-1zm2 0h1v1h-1zm2 0h1v1h-1zm1 0v1h1v-1zm1 0h1v1h-1z" fill="#000"/>
                                 </svg>
                             </div>
-                            <div class="serial">SN: ${item.id.toUpperCase().substring(0, 16)}</div>
+                            <div class="serial">SN: ${escapeHtml(item.id.toUpperCase().substring(0, 16))}</div>
                             <div class="footer-text">SCANSIONA PER SEGNALAZIONE RAPIDA</div>
                         </div>
                     </div>

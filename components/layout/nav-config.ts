@@ -32,7 +32,8 @@ import {
     type LucideIcon,
 } from "lucide-react";
 
-export type Role = "USER" | "MAINTAINER" | "SUPERVISOR" | "PLANT_MANAGER" | "ADMIN" | "PROCESS_ENGINEER";
+import type { Role } from "@/lib/roles";
+export type { Role };
 
 export interface NavItem {
     href: string;

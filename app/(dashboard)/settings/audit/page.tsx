@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export default async function AuditLogsPage() {
     const session = await auth();
     if (session?.user?.role !== 'ADMIN') {
-        redirect('/dashboard');
+        redirect('/');
     }
 
     const logs = await prisma.auditLog.findMany({
@@ -44,7 +44,7 @@ export default async function AuditLogsPage() {
                                     {format(log.timestamp, 'dd/MM/yyyy HH:mm:ss')}
                                 </TableCell>
                                 <TableCell className="font-medium text-sm">
-                                    {log.user.name || log.user.email}
+                                    {log.user ? (log.user.name || log.user.email) : 'Utente eliminato'}
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant="outline">{log.action}</Badge>

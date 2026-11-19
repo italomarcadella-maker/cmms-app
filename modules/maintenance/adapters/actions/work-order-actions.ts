@@ -1,6 +1,8 @@
 'use server';
 
-import { requireRole, revalidateWorkOrders } from '@/lib/actions';
+import { OPERATIVE, SUPERVISION, hasRole } from '@/lib/roles';
+import { requireRole } from '@/lib/auth-guard';
+import { revalidateWorkOrders } from '@/lib/actions';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
 import { PrismaWorkOrderRepository } from '../db/prisma-work-order-repository';
@@ -102,6 +104,8 @@ async function checkAndCreatePurchaseRequest(partId: string) {
 // --- Ported Actions ---
 
 export async function rescheduleWorkOrder(id: string, newDate: Date) {
+    const __guard = await requireRole(SUPERVISION);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -123,57 +127,54 @@ export async function rescheduleWorkOrder(id: string, newDate: Date) {
     }
 }
 
-export async function assignWorkOrder(workOrderId: string, technicianId: string, date?: Date) {
-    try {
-        const session = await auth();
-        const techRepo = getTechRepo();
-        const woRepo = getWORepo();
-
-        let tech = await techRepo.findById(technicianId);
-
-        if (!tech) {
-            const user = await prisma.user.findUnique({ where: { id: technicianId } });
-            if (user && (user.role === 'SUPERVISOR' || user.role === 'MAINTAINER')) {
-                const savedTech = await techRepo.save(new (await import('../../domain/entities/technician')).Technician({
-                    name: user.name || 'Technician',
-                    userId: user.id,
-                    specialty: user.role === 'SUPERVISOR' ? 'Supervisor' : 'General',
-                    hourlyRate: 0
-                }));
-                tech = savedTech;
-            }
+/** Trova il profilo tecnico di un id (tecnico o utente) e, per supervisor e manutentori senza profilo, lo crea. */
+async function resolveTechnician(inputId: string) {
+    const techRepo = getTechRepo();
+    let tech = await techRepo.findById(inputId);
+    if (!tech) {
+        const user = await prisma.user.findUnique({ where: { id: inputId } });
+        if (user && (user.role === 'SUPERVISOR' || user.role === 'MAINTAINER' || user.role === 'PLANT_MANAGER')) {
+            tech = await techRepo.save(new (await import('../../domain/entities/technician')).Technician({
+                name: user.name || 'Technician',
+                userId: user.id,
+                specialty: user.role === 'MAINTAINER' ? 'General' : 'Supervisor',
+                hourlyRate: 0
+            }));
         }
+    }
+    return tech;
+}
 
+/** Assegna un ordine a UN tecnico (sostituisce le assegnazioni precedenti). Assegnare e' un compito di chi coordina. */
+export async function assignWorkOrder(workOrderId: string, technicianId: string, date?: Date) {
+    const __guard = await requireRole(SUPERVISION);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
+    try {
+        const session = __guard.session;
+        const tech = await resolveTechnician(technicianId);
         if (!tech) return { success: false, message: "Tecnico non trovato" };
 
-        const wo = await woRepo.findById(workOrderId);
+        const wo = await prisma.workOrder.findUnique({ where: { id: workOrderId }, select: { id: true, title: true } });
         if (!wo) return { success: false, message: "Ordine non trovato" };
 
-        const updatedWO = new WorkOrder({
-            ...wo.toJSON(),
-            assignedTechnicianId: tech.id,
-            status: 'ASSIGNED',
-            dueDate: date || wo.dueDate
-        });
-        await woRepo.save(updatedWO);
-
-        const existingRel = await prisma.workOrderTechnician.findUnique({
-            where: {
-                workOrderId_technicianId: {
-                    workOrderId,
-                    technicianId: tech.id!
-                }
-            }
-        });
-
-        if (!existingRel) {
-            await prisma.workOrderTechnician.create({
+        // Un'unica fonte per "chi ha in carico l'ordine": id, nome visualizzato e righe di assegnazione cambiano insieme
+        await prisma.$transaction(async tx => {
+            await tx.workOrder.update({
+                where: { id: workOrderId },
                 data: {
-                    workOrderId,
-                    technicianId: tech.id!
-                }
+                    assignedTechnicianId: tech.id!,
+                    assignedTo: tech.name,
+                    status: 'ASSIGNED',
+                    ...(date ? { dueDate: date } : {}),
+                },
             });
-        }
+            await tx.workOrderTechnician.deleteMany({ where: { workOrderId, technicianId: { not: tech.id! } } });
+            await tx.workOrderTechnician.upsert({
+                where: { workOrderId_technicianId: { workOrderId, technicianId: tech.id! } },
+                update: {},
+                create: { workOrderId, technicianId: tech.id! },
+            });
+        });
 
         if (tech.userId) {
             await prisma.notification.create({
@@ -200,71 +201,50 @@ export async function assignWorkOrder(workOrderId: string, technicianId: string,
     }
 }
 
+/** Imposta l'elenco dei tecnici di un ordine (anche piu' di uno). */
 export async function updateWorkOrderAssignments(workOrderId: string, technicianIds: string[]) {
+    const __guard = await requireRole(SUPERVISION);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     try {
-        const session = await auth();
-        const techRepo = getTechRepo();
-        const woRepo = getWORepo();
+        if (!Array.isArray(technicianIds) || technicianIds.length > 20) return { success: false, message: 'Elenco di tecnici non valido.' };
 
-        await prisma.workOrderTechnician.deleteMany({
-            where: { workOrderId }
-        });
-
-        const resolvedIds: string[] = [];
-        for (const inputId of technicianIds) {
-            let tech = await techRepo.findById(inputId);
-            if (!tech) {
-                const user = await prisma.user.findUnique({ where: { id: inputId } });
-                if (user && (user.role === 'SUPERVISOR' || user.role === 'MAINTAINER')) {
-                    tech = await techRepo.save(new (await import('../../domain/entities/technician')).Technician({
-                        name: user.name || 'Technician',
-                        userId: user.id,
-                        specialty: user.role === 'SUPERVISOR' ? 'Supervisor' : 'General',
-                        hourlyRate: 0
-                    }));
-                }
-            }
-            if (tech) resolvedIds.push(tech.id!);
-        }
-
-        const wo = await woRepo.findById(workOrderId);
+        // Prima si controlla che l'ordine esista: in precedenza le assegnazioni venivano cancellate anche per un ordine inesistente
+        const wo = await prisma.workOrder.findUnique({ where: { id: workOrderId }, select: { id: true, status: true } });
         if (!wo) return { success: false, message: "Ordine non trovato" };
 
-        if (resolvedIds.length > 0) {
-            await prisma.workOrderTechnician.createMany({
-                data: resolvedIds.map(id => ({
-                    workOrderId,
-                    technicianId: id
-                }))
-            });
+        const techs: NonNullable<Awaited<ReturnType<typeof resolveTechnician>>>[] = [];
+        const seen = new Set<string>();
+        for (const inputId of technicianIds) {
+            const tech = await resolveTechnician(inputId);
+            if (tech && !seen.has(tech.id!)) { seen.add(tech.id!); techs.push(tech); }
+        }
 
-            const updatedWO = new WorkOrder({
-                ...wo.toJSON(),
-                assignedTechnicianId: resolvedIds[0],
-                status: 'ASSIGNED'
-            });
-            await woRepo.save(updatedWO);
-
-            for (const techId of resolvedIds) {
-                const tech = await techRepo.findById(techId);
-                if (tech && tech.userId) {
-                    await prisma.notification.create({
-                        data: {
-                            userId: tech.userId,
-                            title: "Nuovo Incarico (Multi)",
-                            message: "Sei stato aggiunto a un ordine di lavoro.",
-                            link: `/work-orders/${workOrderId}`
-                        }
-                    });
-                }
+        await prisma.$transaction(async tx => {
+            await tx.workOrderTechnician.deleteMany({ where: { workOrderId } });
+            if (techs.length > 0) {
+                await tx.workOrderTechnician.createMany({ data: techs.map(t => ({ workOrderId, technicianId: t.id! })) });
+                await tx.workOrder.update({
+                    where: { id: workOrderId },
+                    data: { assignedTechnicianId: techs[0].id!, assignedTo: techs.map(t => t.name).join(', '), status: 'ASSIGNED' },
+                });
+            } else {
+                await tx.workOrder.update({
+                    where: { id: workOrderId },
+                    data: { assignedTechnicianId: null, assignedTo: null, status: wo.status === 'ASSIGNED' ? 'OPEN' : wo.status },
+                });
             }
-        } else {
-            const updatedWO = new WorkOrder({
-                ...wo.toJSON(),
-                assignedTechnicianId: null,
-                status: 'OPEN'
+        });
+
+        const userIds = techs.map(t => t.userId).filter((x): x is string => !!x);
+        if (userIds.length > 0) {
+            await prisma.notification.createMany({
+                data: userIds.map(userId => ({
+                    userId,
+                    title: "Nuovo Incarico (Multi)",
+                    message: "Sei stato aggiunto a un ordine di lavoro.",
+                    link: `/work-orders/${workOrderId}`,
+                })),
             });
-            await woRepo.save(updatedWO);
         }
 
         revalidatePath("/work-orders");
@@ -478,7 +458,7 @@ export async function createWorkOrder(rawData: any) {
 
 export async function approveRequest(id: string, technicianId: string, priority: string) {
     const session = await auth();
-    if (!session?.user || (session.user as any).role === 'USER') {
+    if (!session?.user || !hasRole((session.user as any).role, SUPERVISION)) {
         return { success: false, message: 'Non autorizzato' };
     }
 
@@ -521,13 +501,14 @@ export async function approveRequest(id: string, technicianId: string, priority:
         revalidateWorkOrders();
         return { success: true, message: 'Richiesta approvata e assegnata' };
     } catch (error) {
+        console.error('[work-order-actions]', error);
         return { success: false, message: 'Errore approvazione' };
     }
 }
 
 export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT', feedback?: string) {
     const session = await auth();
-    if (!session?.user || (session.user as any).role === 'USER') {
+    if (!session?.user || !hasRole((session.user as any).role, SUPERVISION)) {
         return { success: false, message: 'Non autorizzato' };
     }
 
@@ -638,6 +619,8 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
 }
 
 export async function updateWorkOrderStatus(id: string, status: string) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -668,13 +651,14 @@ export async function updateWorkOrderStatus(id: string, status: string) {
         revalidateWorkOrders();
         return { success: true };
     } catch (error) {
+        console.error('[work-order-actions]', error);
         return { success: false };
     }
 }
 
 export async function deleteWorkOrder(id: string) {
     const session = await auth();
-    if (!session?.user || (session.user as any).role === 'USER') return { success: false, message: "Non autorizzato" };
+    if (!session?.user || !hasRole((session.user as any).role, SUPERVISION)) return { success: false, message: "Non autorizzato" };
     try {
         await prisma.workOrder.delete({ where: { id } });
         await logAction('DELETE_WO', id, 'Deleted Work Order');
@@ -684,21 +668,30 @@ export async function deleteWorkOrder(id: string) {
         revalidateWorkOrders();
         return { success: true };
     } catch (error) {
+        console.error('[work-order-actions]', error);
         return { success: false, message: "Failed to delete work order" };
     }
 }
 
 export async function updateWorkOrderDetails(id: string, updates: any) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
     try {
-        const { dueDate, ...rest } = updates;
-        const data: any = { ...rest };
-
-        if (dueDate) {
-            data.dueDate = new Date(dueDate);
+        // Solo questi campi si modificano da qui: stato, assegnatario, plant, costi e relazioni hanno le proprie azioni
+        const data: any = {};
+        const text = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : undefined);
+        if (updates?.title !== undefined) { const v = text(updates.title, 200); if (v) data.title = v; }
+        if (updates?.description !== undefined) { const v = text(updates.description, 4000); if (v !== undefined) data.description = v; }
+        if (updates?.priority !== undefined && Object.values(WorkOrderPriority).includes(updates.priority)) data.priority = updates.priority;
+        if (updates?.category !== undefined && Object.values(WorkOrderCategory).includes(updates.category)) data.category = updates.category;
+        if (updates?.dueDate) {
+            const d = new Date(updates.dueDate);
+            if (!Number.isNaN(d.getTime())) data.dueDate = d;
         }
+        if (Object.keys(data).length === 0) return { success: false, message: 'Nessun campo modificabile da questa azione.' };
 
         const updated = await prisma.workOrder.update({
             where: { id },
@@ -726,6 +719,8 @@ export async function createPreventiveFromEWO(
     frequency: string,
     frequencyDays: number
 ) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -769,6 +764,8 @@ export async function createPreventiveFromEWO(
 }
 
 export async function startWorkSession(workOrderId: string) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -795,11 +792,14 @@ export async function startWorkSession(workOrderId: string) {
         revalidateWorkOrders();
         return { success: true };
     } catch (error) {
+        console.error('[work-order-actions]', error);
         return { success: false, message: 'Errore avvio timer' };
     }
 }
 
 export async function pauseWorkSession(workOrderId: string, note?: string) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -853,6 +853,8 @@ export async function pauseWorkSession(workOrderId: string, note?: string) {
 }
 
 export async function stopWorkSession(workOrderId: string, note?: string) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -907,6 +909,8 @@ export async function stopWorkSession(workOrderId: string, note?: string) {
 }
 
 export async function completeWorkOrder(workOrderId: string, note?: string) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -947,44 +951,57 @@ export async function completeWorkOrder(workOrderId: string, note?: string) {
         revalidateWorkOrders();
         return { success: true, message: 'Ordine completato' };
     } catch (error) {
+        console.error('[work-order-actions]', error);
         return { success: false, message: 'Errore completamento' };
     }
 }
 
 export async function importWorkOrders(workOrders: any[]) {
     const { authorized, message } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'PROCESS_ENGINEER']);
-    if (!authorized) return { success: false, message: message || "Unauthorized", count: 0, errors: ["Unauthorized"] };
+    if (!authorized) return { success: false, message: message || "Non autorizzato", count: 0, errors: ["Non autorizzato"] };
+    if (!Array.isArray(workOrders) || workOrders.length === 0) return { success: false, message: 'Nessuna riga da importare.', count: 0, errors: [] };
+    if (workOrders.length > 1000) return { success: false, message: 'Si possono importare al massimo 1000 righe per volta.', count: 0, errors: [] };
     let count = 0;
     const errors: string[] = [];
-    for (const wo of workOrders) {
+    const priorities = Object.values(WorkOrderPriority) as string[];
+    const categories = Object.values(WorkOrderCategory) as string[];
+    const statuses = Object.values(WorkOrderStatus) as string[];
+    for (const [index, wo] of workOrders.entries()) {
+        const label = `Riga ${index + 1}${wo?.title ? ` (${wo.title})` : ''}`;
         try {
-            if (!wo.title || !wo.assetName) continue;
+            if (!wo?.title || !wo?.assetName) { errors.push(`${label}: titolo e macchina sono obbligatori`); continue; }
             const asset = await prisma.asset.findFirst({ where: { name: wo.assetName } });
             if (!asset) {
-                errors.push(`Asset not found: ${wo.assetName} for WO: ${wo.title}`);
+                errors.push(`${label}: macchina "${wo.assetName}" non trovata nel tuo stabilimento`);
                 continue;
             }
+            const due = wo.dueDate ? new Date(wo.dueDate) : new Date();
+            if (Number.isNaN(due.getTime())) { errors.push(`${label}: data di scadenza non valida`); continue; }
             const woData = {
-                title: wo.title,
-                description: wo.description || '',
-                priority: wo.priority || 'MEDIUM',
-                status: wo.status || 'OPEN',
-                category: wo.category || 'Other',
+                title: String(wo.title).trim().slice(0, 200),
+                description: String(wo.description || '').slice(0, 4000),
+                priority: priorities.includes(wo.priority) ? wo.priority : 'MEDIUM',
+                status: statuses.includes(wo.status) ? wo.status : 'OPEN',
+                // "Other" non e' una categoria valida (si chiama OTHER): una categoria sconosciuta diventa OTHER
+                category: categories.includes(String(wo.category || '').toUpperCase()) ? String(wo.category).toUpperCase() : 'OTHER',
                 assetId: asset.id,
-                dueDate: wo.dueDate ? new Date(wo.dueDate) : new Date(),
+                dueDate: due,
                 assignedTo: wo.assignedTo || null
             };
             await prisma.workOrder.create({ data: woData as any });
             count++;
         } catch (e) {
-            errors.push(`Failed to import WO: ${wo.title}`);
+            console.error('importWorkOrders', label, e);
+            errors.push(`${label}: errore nei dati`);
         }
     }
     revalidatePath('/work-orders');
-    return { success: true, count, errors };
+    return { success: count > 0, message: count > 0 ? undefined : 'Nessuna riga importata.', count, errors };
 }
 
 export async function assignWorkOrderToSelf(workOrderId: string) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autenticato' };
 
@@ -1000,18 +1017,12 @@ export async function assignWorkOrderToSelf(workOrderId: string) {
         const wo = await prisma.workOrder.findUnique({ where: { id: workOrderId } });
         if (!wo) return { success: false, message: 'Ordine non trovato' };
 
-        if (wo.assignedTechnicianId && wo.assignedTechnicianId !== tech.id) {
-            return { success: false, message: 'Ordine già assegnato.' };
-        }
-
-        await prisma.workOrder.update({
-            where: { id: workOrderId },
-            data: {
-                assignedTechnicianId: tech.id,
-                assignedTo: tech.name,
-                status: 'ASSIGNED'
-            }
+        // Controllo e scrittura insieme: se due tecnici lo prendono in carico nello stesso istante, vince uno solo
+        const claimed = await prisma.workOrder.updateMany({
+            where: { id: workOrderId, OR: [{ assignedTechnicianId: null }, { assignedTechnicianId: tech.id }] },
+            data: { assignedTechnicianId: tech.id, assignedTo: tech.name, status: 'ASSIGNED' },
         });
+        if (claimed.count !== 1) return { success: false, message: 'Ordine già assegnato.' };
 
         revalidatePath('/work-orders');
         revalidatePath('/');
@@ -1024,32 +1035,39 @@ export async function assignWorkOrderToSelf(workOrderId: string) {
 }
 
 export async function addWorkOrderPart(workOrderId: string, partId: string, quantity: number) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
     try {
+        const qty = Math.floor(Number(quantity));
+        if (!Number.isFinite(qty) || qty < 1 || qty > 100000) return { success: false, message: 'Quantità non valida' };
+
         const part = await prisma.sparePart.findUnique({ where: { id: partId } });
         if (!part) return { success: false, message: 'Ricambio non trovato' };
 
-        if (part.quantity < quantity) {
-            return { success: false, message: `Quantità insufficiente in magazzino (Disponibile: ${part.quantity})` };
-        }
-
-        const updatedPart = await prisma.sparePart.update({
-            where: { id: partId },
-            data: { quantity: part.quantity - quantity, lastUpdated: new Date() }
-        });
-
-        await prisma.workOrderPart.create({
-            data: {
-                workOrderId,
-                partId,
-                partName: part.name,
-                quantity,
-                unitCost: part.unitCost || 0,
-                dateAdded: new Date()
+        // Scarico e riga dell'ordine nella stessa transazione, con decremento condizionato: due richieste
+        // contemporanee non scaricano due volte e la giacenza non puo' scendere sotto zero.
+        let updatedPart;
+        try {
+            updatedPart = await prisma.$transaction(async tx => {
+                const res = await tx.sparePart.updateMany({
+                    where: { id: partId, quantity: { gte: qty } },
+                    data: { quantity: { decrement: qty }, lastUpdated: new Date() },
+                });
+                if (res.count !== 1) throw new Error('INSUFFICIENT_STOCK');
+                await tx.workOrderPart.create({
+                    data: { workOrderId, partId, partName: part.name, quantity: qty, unitCost: part.unitCost || 0, dateAdded: new Date() },
+                });
+                return tx.sparePart.findUniqueOrThrow({ where: { id: partId } });
+            });
+        } catch (e) {
+            if (e instanceof Error && e.message === 'INSUFFICIENT_STOCK') {
+                return { success: false, message: `Quantità insufficiente in magazzino (Disponibile: ${part.quantity})` };
             }
-        });
+            throw e;
+        }
 
         if (updatedPart.quantity <= updatedPart.minQuantity) {
             const supervisors = await usersToNotify(updatedPart.plantId, ['SUPERVISOR', 'PLANT_MANAGER']);
@@ -1076,6 +1094,8 @@ export async function addWorkOrderPart(workOrderId: string, partId: string, quan
 }
 
 export async function removeWorkOrderPart(id: string) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -1083,26 +1103,29 @@ export async function removeWorkOrderPart(id: string) {
         const woPart = await prisma.workOrderPart.findUnique({ where: { id } });
         if (!woPart) return { success: false, message: 'Parte non trovata' };
 
-        const originalPart = await prisma.sparePart.findFirst({ where: { id: woPart.partId } });
-
-        if (originalPart) {
-            await prisma.sparePart.update({
-                where: { id: originalPart.id },
-                data: { quantity: originalPart.quantity + woPart.quantity, lastUpdated: new Date() }
+        // La riga si cancella per prima e solo una richiesta puo' riuscirci: un doppio clic non restituisce due volte i pezzi
+        await prisma.$transaction(async tx => {
+            const deleted = await tx.workOrderPart.deleteMany({ where: { id } });
+            if (deleted.count !== 1) throw new Error('ALREADY_REMOVED');
+            await tx.sparePart.updateMany({
+                where: { id: woPart.partId },
+                data: { quantity: { increment: woPart.quantity }, lastUpdated: new Date() },
             });
-        }
-
-        await prisma.workOrderPart.delete({ where: { id } });
+        });
 
         revalidatePath(`/work-orders/${woPart.workOrderId}`);
         revalidateWorkOrders();
         return { success: true, message: 'Ricambio rimosso e giacenza ripristinata' };
     } catch (error) {
+        if (error instanceof Error && error.message === 'ALREADY_REMOVED') return { success: false, message: 'Ricambio gia\' rimosso' };
+        console.error('removeWorkOrderPart', error);
         return { success: false, message: 'Errore rimozione ricambio' };
     }
 }
 
 export async function toggleChecklistItem(itemId: string, completed: boolean) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
@@ -1122,11 +1145,14 @@ export async function toggleChecklistItem(itemId: string, completed: boolean) {
         revalidateWorkOrders();
         return { success: true, message: 'Checklist aggiornata' };
     } catch (e) {
+        console.error('[work-order-actions]', e);
         return { success: false, message: 'Errore aggiornamento checklist' };
     }
 }
 
 export async function confirmEWO(workOrderId: string) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
     try {
@@ -1138,47 +1164,76 @@ export async function confirmEWO(workOrderId: string) {
         revalidateWorkOrders();
         return { success: true };
     } catch (error) {
+        console.error('[work-order-actions]', error);
         return { success: false, message: 'Errore conferma EWO' };
     }
 }
 
+/** Scarica un ricambio per un ordine: giacenza e riga dell'ordine nella stessa transazione, mai sotto zero. */
+async function consumeSparePart(workOrderId: string, partId: string, qty: number): Promise<{ ok: boolean; reason?: string; available?: number }> {
+    const part = await prisma.sparePart.findUnique({ where: { id: partId } });
+    if (!part) return { ok: false, reason: 'NOT_FOUND' };
+    try {
+        await prisma.$transaction(async tx => {
+            const res = await tx.sparePart.updateMany({
+                where: { id: partId, quantity: { gte: qty } },
+                data: { quantity: { decrement: qty }, lastUpdated: new Date() },
+            });
+            if (res.count !== 1) throw new Error('INSUFFICIENT_STOCK');
+            await tx.workOrderPart.create({
+                data: { workOrderId, partId, partName: part.name, quantity: qty, unitCost: part.unitCost || 0, dateAdded: new Date() },
+            });
+        });
+        return { ok: true };
+    } catch (e) {
+        if (e instanceof Error && e.message === 'INSUFFICIENT_STOCK') return { ok: false, reason: 'INSUFFICIENT', available: part.quantity };
+        throw e;
+    }
+}
+
+const EWO_FIELDS = [
+    'description', 'causeAnalysis', 'solutionApplied', 'preventiveActions', 'needsFollowUp', 'followUpDetail',
+    'downtimeStart', 'downtimeEnd', 'totalDowntimeMin', 'productionImpact', 'imageBefore', 'imageAfter',
+] as const;
+
 export async function submitEWO(data: any) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
     try {
-        const { workOrderId, partsConsumed, ...fields } = data;
+        const { workOrderId, partsConsumed } = data;
+        // Solo i campi dell'EWO: il resto di cio' che arriva dal browser si ignora
+        const fields: Record<string, any> = {};
+        for (const key of EWO_FIELDS) if (data[key] !== undefined) fields[key] = data[key];
+        for (const key of ['downtimeStart', 'downtimeEnd'] as const) {
+            if (fields[key] !== undefined && fields[key] !== null) {
+                const d = new Date(fields[key]);
+                fields[key] = Number.isNaN(d.getTime()) ? null : d;
+            }
+        }
+
+        if (!fields.causeAnalysis || !fields.solutionApplied) return { success: false, message: 'Causa e soluzione sono obbligatorie.' };
 
         await prisma.eWO.upsert({
             where: { workOrderId },
-            update: { ...fields, authorName: session.user.name || 'User' },
-            create: { ...fields, workOrderId, authorName: session.user.name || 'User' }
+            update: { ...(fields as any), authorName: session.user.name || 'User' },
+            create: { ...(fields as any), workOrderId, authorName: session.user.name || 'User' } as any
         });
 
+        // Scarico dei ricambi: se uno non e' disponibile lo si segnala all'utente, non si ignora in silenzio
+        const notConsumed: string[] = [];
         if (partsConsumed && Array.isArray(partsConsumed)) {
             for (const p of partsConsumed) {
-                if (p.partId && p.quantity > 0) {
-                    try {
-                        const part = await prisma.sparePart.findUnique({ where: { id: p.partId } });
-                        if (part && part.quantity >= p.quantity) {
-                            await prisma.sparePart.update({
-                                where: { id: p.partId },
-                                data: { quantity: part.quantity - p.quantity, lastUpdated: new Date() }
-                            });
-                            await prisma.workOrderPart.create({
-                                data: {
-                                    workOrderId,
-                                    partId: p.partId,
-                                    partName: part.name,
-                                    quantity: p.quantity,
-                                    unitCost: part.unitCost || 0,
-                                    dateAdded: new Date()
-                                }
-                            });
-                        }
-                    } catch (err) {
-                        console.error("Part consumption error in EWO:", err);
-                    }
+                const qty = Math.floor(Number(p?.quantity));
+                if (!p?.partId || !Number.isFinite(qty) || qty < 1) continue;
+                try {
+                    const r = await consumeSparePart(workOrderId, p.partId, qty);
+                    if (!r.ok) notConsumed.push(r.reason === 'INSUFFICIENT' ? `${p.partName ?? p.partId} (disponibili ${r.available})` : String(p.partName ?? p.partId));
+                } catch (err) {
+                    console.error("Part consumption error in EWO:", err);
+                    notConsumed.push(String(p.partName ?? p.partId));
                 }
             }
         }
@@ -1244,7 +1299,12 @@ export async function submitEWO(data: any) {
         revalidatePath(`/work-orders/${workOrderId}`);
         revalidatePath('/requests');
         revalidateWorkOrders();
-        return { success: true, message: 'EWO registrato e archiviato.' };
+        return {
+            success: true,
+            message: notConsumed.length > 0
+                ? `EWO registrato. Ricambi NON scaricati dal magazzino (giacenza insufficiente o non trovati): ${notConsumed.join(', ')}.`
+                : 'EWO registrato e archiviato.',
+        };
     } catch (e) {
         console.error("EWO Submit Error:", e);
         return { success: false, message: 'Errore salvataggio EWO' };
@@ -1255,6 +1315,7 @@ export async function getEWO(workOrderId: string) {
     try {
         return await prisma.eWO.findUnique({ where: { workOrderId } });
     } catch (e) {
+        console.error('[work-order-actions]', e);
         return null;
     }
 }

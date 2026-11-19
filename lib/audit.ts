@@ -1,5 +1,4 @@
-"use server";
-
+// Funzione interna: NON e' una server action (altrimenti chiunque potrebbe scrivere voci arbitrarie nel registro).
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 

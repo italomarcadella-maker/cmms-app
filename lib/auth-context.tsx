@@ -30,7 +30,12 @@ function AuthStateProvider({ children }: { children: React.ReactNode }) {
     const user = session?.user as User | null;
 
     const login = () => signIn();
-    const logout = () => signOut({ callbackUrl: "/login" });
+    const logout = async () => {
+        try {
+            if (typeof caches !== "undefined") await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+        } catch { /* la cache non e' disponibile: si prosegue con la disconnessione */ }
+        await signOut({ callbackUrl: "/login" });
+    };
 
     // Compatibility helpers
     const isSupervisor = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'PLANT_MANAGER';

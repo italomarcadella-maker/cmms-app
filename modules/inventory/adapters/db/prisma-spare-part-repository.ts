@@ -37,6 +37,15 @@ export class PrismaSparePartRepository implements ISparePartRepository {
         return SparePartMapper.toDomain(saved);
     }
 
+    async adjustQuantity(id: string, delta: number): Promise<SparePart | null> {
+        const changed = delta >= 0
+            ? await prisma.sparePart.updateMany({ where: { id }, data: { quantity: { increment: delta }, lastUpdated: new Date() } })
+            : await prisma.sparePart.updateMany({ where: { id, quantity: { gte: -delta } }, data: { quantity: { decrement: -delta }, lastUpdated: new Date() } });
+        if (changed.count !== 1) return null;
+        const raw = await prisma.sparePart.findUnique({ where: { id } });
+        return raw ? SparePartMapper.toDomain(raw) : null;
+    }
+
     async delete(id: string): Promise<boolean> {
         try {
             await prisma.sparePart.delete({

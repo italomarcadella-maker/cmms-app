@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/actions';
+import { requireRole } from '@/lib/auth-guard';
 import { crossPlant, getPlantScope, resolveWritePlantId, PlantScopeError } from '@/lib/plant-scope';
 import { usersToNotify } from '@/lib/plant-users';
 

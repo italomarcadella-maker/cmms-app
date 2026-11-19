@@ -43,7 +43,8 @@ export class PrismaMeterReadingRepository implements IMeterReadingRepository {
         const raws = await prisma.meterReading.findMany({
             where: Object.keys(date).length > 0 ? { date } : undefined,
             include: { meter: true },
-            orderBy: { date: 'asc' }
+            orderBy: { date: 'asc' },
+            take: 20000, // limite di sicurezza: senza intervallo non si caricano tutte le letture di sempre
         });
 
         return raws.map((r) => ({

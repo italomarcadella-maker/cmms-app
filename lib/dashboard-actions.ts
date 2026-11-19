@@ -132,6 +132,7 @@ export const getAssetStatusDistribution = scopedCache(
 
             return Object.entries(map).map(([name, value]) => ({ name, value }));
         } catch (error) {
+            console.error('[dashboard-actions]', error);
             return [];
         }
     },
@@ -229,6 +230,7 @@ const getRecentWorkOrdersCached = scopedCache(
                 createdAt: wo.createdAt.toISOString(),
             }));
         } catch (error) {
+            console.error('[dashboard-actions]', error);
             return [];
         }
     },
@@ -259,6 +261,7 @@ const getOverdueWorkOrdersCached = scopedCache(
                 createdAt: wo.createdAt.toISOString(),
             }));
         } catch (error) {
+            console.error('[dashboard-actions]', error);
             return [];
         }
     },
@@ -335,15 +338,16 @@ export const getMaintenanceMetrics = scopedCache(
 
             let totalRepairTimeHours = 0;
             let repairCount = 0;
+            let repairsWithHours = 0;
             let totalCost = 0;
 
-            const monthlyDataMap = new Map<string, { mttrSum: number, mtbfSum: number, mtbfCount: number, cost: number, count: number }>();
+            const monthlyDataMap = new Map<string, { mttrSum: number, mttrCount: number, mtbfSum: number, mtbfCount: number, cost: number, count: number }>();
 
             // Initialize months
             for (let i = 5; i >= 0; i--) {
                 const d = subDays(new Date(), i * 30);
                 const monthName = format(d, 'MMM', { locale: it });
-                monthlyDataMap.set(monthName, { mttrSum: 0, mtbfSum: 0, mtbfCount: 0, cost: 0, count: 0 });
+                monthlyDataMap.set(monthName, { mttrSum: 0, mttrCount: 0, mtbfSum: 0, mtbfCount: 0, cost: 0, count: 0 });
             }
 
             // MTBF (real): for assets with 2+ faults in the window, average the time between
@@ -356,24 +360,21 @@ export const getMaintenanceMetrics = scopedCache(
                 const monthName = format(wo.createdAt, 'MMM', { locale: it });
 
                 // MTTR
-                let woHours = 0;
-                if (wo.laborLogs.length > 0) {
-                    woHours = wo.laborLogs.reduce((sum: number, log: any) => sum + log.hours, 0);
-                } else {
-                    woHours = 4; // Fallback when no labor log was recorded for this WO
-                }
-                totalRepairTimeHours += woHours;
+                // Il tempo di riparazione si calcola solo sugli interventi con ore registrate: senza ore non si inventa un valore
+                const woHours = wo.laborLogs.reduce((sum: number, log: any) => sum + log.hours, 0);
+                const hasHours = wo.laborLogs.length > 0;
+                if (hasHours) { totalRepairTimeHours += woHours; repairsWithHours++; }
                 repairCount++;
 
                 // Cost
                 const partsCost = wo.partsUsed.reduce((sum: number, part: any) => sum + (part.quantity * part.unitCost), 0);
-                const laborCost = wo.laborLogs.reduce((sum: number, log: any) => sum + (log.hours * (techRateMap.get(log.technicianId) ?? defaultHourlyRate)), 0);
+                const laborCost = wo.laborLogs.reduce((sum: number, log: any) => sum + (log.hours * (techRateMap.get(log.technicianId) || defaultHourlyRate)), 0);
                 const woCost = partsCost + laborCost;
                 totalCost += woCost;
 
                 if (monthlyDataMap.has(monthName)) {
                     const entry = monthlyDataMap.get(monthName)!;
-                    entry.mttrSum += woHours;
+                    if (hasHours) { entry.mttrSum += woHours; entry.mttrCount++; }
                     entry.cost += woCost;
                     entry.count++;
                     monthlyDataMap.set(monthName, entry);
@@ -400,7 +401,7 @@ export const getMaintenanceMetrics = scopedCache(
                 }
             }
 
-            const mttr = repairCount > 0 ? Math.round((totalRepairTimeHours / repairCount) * 10) / 10 : 0;
+            const mttr = repairsWithHours > 0 ? Math.round((totalRepairTimeHours / repairsWithHours) * 10) / 10 : 0;
             // MTBF Global: average interval between consecutive faults on the same asset.
             // 0 means not enough data yet (no asset had 2+ faults in the window).
             const mtbf = allMtbfSamplesHours.length > 0
@@ -412,7 +413,7 @@ export const getMaintenanceMetrics = scopedCache(
 
             // Monthly Trend Data
             const monthlyData = Array.from(monthlyDataMap.entries()).map(([name, data]) => {
-                const monthMttr = data.count > 0 ? Math.round((data.mttrSum / data.count) * 10) / 10 : 0;
+                const monthMttr = data.mttrCount > 0 ? Math.round((data.mttrSum / data.mttrCount) * 10) / 10 : 0;
                 const monthMtbf = data.mtbfCount > 0 ? Math.round(data.mtbfSum / data.mtbfCount) : mtbf;
 
                 return {

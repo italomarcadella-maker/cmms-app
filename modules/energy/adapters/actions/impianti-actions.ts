@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/actions';
+import { requireRole } from '@/lib/auth-guard';
 import { activityState, contractState, isInForce, type ActivityState } from '@/modules/maintenance/domain/contractors';
 import { readingState, type ReadingState } from '../../domain/meter-types';
 

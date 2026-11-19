@@ -1,5 +1,7 @@
 'use server';
 
+import { requireRole } from '@/lib/auth-guard';
+import { ENGINEERING, OPERATIVE } from '@/lib/roles';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
@@ -36,6 +38,8 @@ export async function getRecipes() {
 }
 
 export async function createRecipe(name: string, assetId?: string) {
+    const __guard = await requireRole(ENGINEERING);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const repo = getRecipeRepo();
     const recipeEntity = new ProcessRecipe({
         name,
@@ -47,6 +51,8 @@ export async function createRecipe(name: string, assetId?: string) {
 }
 
 export async function saveRecipeData(recipeId: string, machines: any[]) {
+    const __guard = await requireRole(ENGINEERING);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     await prisma.processMachine.deleteMany({ where: { recipeId } });
 
     for (const m of machines) {
@@ -79,6 +85,8 @@ export async function saveRecipeData(recipeId: string, machines: any[]) {
 }
 
 export async function addQualityReading(recipeId: string, value: number) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const repo = getQualityRepo();
     const readingEntity = new QualityReading({
         recipeId,

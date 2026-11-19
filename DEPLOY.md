@@ -69,6 +69,26 @@ Questa applicazione è pronta per essere pubblicata su Vercel. Segui questi pass
     *   Le immagini caricate (se salvate su disco locale `public/uploads`) **NON funzioneranno** su Vercel perché il filesystem è effimero. Per la produzione, dovresti collegare uno storage S3 (AWS) o Vercel Blob.
     *   Il database `MaintenanceKnowledge` funzionerà correttamente perché è sul DB cloud.
 
+## Variabili d'ambiente
+
+| Variabile | Obbligatoria | Note |
+|---|---|---|
+| `DATABASE_URL` | sì | Connessione dell'app (con Supabase: pooler, porta 6543) |
+| `DIRECT_URL` | consigliata | Connessione diretta (porta 5432), usata da Prisma per schema e migrazioni. Se manca si usa `DATABASE_URL` |
+| `AUTH_SECRET` | sì | Almeno 32 caratteri casuali |
+| `CRON_SECRET` | per i cron | Senza, `/api/cron/preventive` rifiuta ogni chiamata |
+| `GEMINI_API_KEY` | per l'IA | Con `AI_PROVIDER=gemini` |
+| `ALLOW_DB_RESET` | mai in produzione | Abilita "Cancella tutti i dati" nelle impostazioni (solo ambienti di prova) |
+| `ALLOW_DEV_SEED` | mai in produzione | Consente i seed di sviluppo |
+
+Non salvare mai password o chiavi nel repository. Il file `.env` non deve essere tracciato da git.
+
+## Backup e modifiche allo schema
+
+*   **Prima di ogni modifica allo schema** fai un backup (Supabase: Database > Backups, oppure `pg_dump` con la connessione diretta). `prisma db push` può cancellare dati se una colonna viene rimossa o ristretta.
+*   Gli indici e i vincoli aggiunti di recente (ad esempio una sola lettura per contatore e data) falliscono se nel database esistono già dati che li violano: controlla prima i duplicati.
+*   Le migrazioni versionate stanno in `prisma/migrations`. Il 19/11/2026 è stata creata la baseline `0_init` (PostgreSQL, dallo schema attuale) e segnata come già applicata sul database di produzione; le vecchie migrazioni SQLite sono state rimosse. Da ora le modifiche allo schema si fanno con `npx prisma migrate dev --name <descrizione>` in sviluppo e `npx prisma migrate deploy` in produzione (con `DIRECT_URL` impostata), non più con `db push`.
+
 ## Multi-plant: cosa sapere prima del deploy
 
 *   **Database**: le tabelle e le colonne del multi-plant (utenti per stabilimento, catalogo ricambi, trasferimenti, prestiti tecnici, libreria di gruppo, tariffe per plant) sono state applicate con `prisma db push`. La tabella `ProductionLine` ha cambiato chiave primaria: finché Vercel esegue il codice precedente, la configurazione delle linee di produzione non funziona.

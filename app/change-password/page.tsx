@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Key, Loader2, AlertCircle } from 'lucide-react';
 import { updateFirstLoginPassword } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { MIN_PASSWORD_LENGTH } from '@/lib/password-policy';
 import { toast } from 'sonner';
 
 export default function ChangePasswordPage() {
@@ -15,14 +17,15 @@ export default function ChangePasswordPage() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const router = useRouter();
+    const { update } = useSession();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        if (password.length < 3) {
-            setError('La password deve essere di almeno 3 caratteri.');
+        if (password.length < MIN_PASSWORD_LENGTH) {
+            setError(`La password deve avere almeno ${MIN_PASSWORD_LENGTH} caratteri, con almeno una lettera e un numero.`);
             setLoading(false);
             return;
         }
@@ -38,10 +41,12 @@ export default function ChangePasswordPage() {
             if (result.success) {
                 toast.success(result.message || 'Password aggiornata! Reindirizzamento...');
                 setSuccess('Password aggiornata! Reindirizzamento...'); // Keep showing inline success too or remove? Let's keep inline for redundant clarity but toast is nicer.
+                // Rilegge la sessione dal database: senza, il blocco "cambia la password" resterebbe attivo fino al prossimo aggiornamento
+                await update();
                 setTimeout(() => {
                     router.push('/');
                     router.refresh();
-                }, 2000);
+                }, 1200);
             } else {
                 toast.error(result.message || 'Errore durante l\'aggiornamento.');
                 setError(result.message || 'Errore durante l\'aggiornamento.');

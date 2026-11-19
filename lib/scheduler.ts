@@ -1,6 +1,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { addDays } from "date-fns";
+import { parseActivities } from "@/modules/maintenance/domain/checklist";
 
 export async function checkAndGeneratePreventiveWorkOrders() {
     try {
@@ -29,8 +30,17 @@ export async function checkAndGeneratePreventiveWorkOrders() {
         // 2. Process each schedule
         for (const schedule of dueSchedules) {
             try {
-                await prisma.$transaction(async (tx) => {
-                    // Create Work Order
+                const created = await prisma.$transaction(async (tx) => {
+                    // "Prenota" la scadenza per prima: se il cron e un utente lanciano la generazione insieme, solo uno
+                    // riesce a spostare la data e genera l'ordine (niente ordini doppi).
+                    const daysToAdd = schedule.frequencyDays > 0 ? schedule.frequencyDays : 30; // dati errati non devono creare cicli infiniti
+                    const claimed = await tx.preventiveSchedule.updateMany({
+                        where: { id: schedule.id, nextDueDate: { lte: today } },
+                        data: { lastRunDate: today, nextDueDate: addDays(today, daysToAdd) },
+                    });
+                    if (claimed.count !== 1) return false;
+
+                    const checklist = parseActivities(schedule.activities);
                     await tx.workOrder.create({
                         data: {
                             title: `[AUTO] ${schedule.taskTitle}`,
@@ -43,23 +53,12 @@ export async function checkAndGeneratePreventiveWorkOrders() {
                             plantId: schedule.asset?.plantId ?? null,
                             dueDate: addDays(today, 7), // Give 1 week to complete by default
                             originScheduleId: schedule.id,
+                            checklist: checklist.length > 0 ? { create: checklist.map(label => ({ label, completed: false })) } : undefined,
                         },
                     });
-
-                    // Calculate next due date
-                    // If frequencyDays is 0 or null, default to 30 to avoid infinite loops if data is bad
-                    const daysToAdd = schedule.frequencyDays > 0 ? schedule.frequencyDays : 30;
-                    const nextDate = addDays(today, daysToAdd);
-
-                    // Update Schedule
-                    await tx.preventiveSchedule.update({
-                        where: { id: schedule.id },
-                        data: {
-                            lastRunDate: today,
-                            nextDueDate: nextDate,
-                        },
-                    });
+                    return true;
                 });
+                if (!created) continue; // gia' generato da un'altra esecuzione
                 generatedCount++;
             } catch (err: any) {
                 console.error(`Error processing schedule ${schedule.id}:`, err);

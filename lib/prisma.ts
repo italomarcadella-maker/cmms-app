@@ -124,8 +124,9 @@ function guardCreate(model: string, data: any, scope: PlantScope) {
     return data;
 }
 
-/** Per ogni modello figlio: quale colonna lo lega al padre e di che tabella e' il padre. */
-const PARENT: Record<string, { fk: string; table: 'asset' | 'workOrder' | 'meter' | 'component' | 'dailyMeeting' | 'project' | 'sparePart' | 'contractorContract' }> = {
+/** Per ogni modello figlio: quale colonna lo lega al padre, di che tabella e' il padre e (se il padre non ha plantId) il percorso fino a chi lo ha. */
+type ParentRule = { fk: string; table: string; via?: string[] };
+const PARENT: Record<string, ParentRule> = {
     WorkOrder: { fk: 'assetId', table: 'asset' },
     PreventiveSchedule: { fk: 'assetId', table: 'asset' },
     SopDocument: { fk: 'assetId', table: 'asset' },
@@ -144,23 +145,31 @@ const PARENT: Record<string, { fk: string; table: 'asset' | 'workOrder' | 'meter
     ProjectTask: { fk: 'projectId', table: 'project' },
     PurchaseRequest: { fk: 'partId', table: 'sparePart' },
     ContractorActivity: { fk: 'contractId', table: 'contractorContract' },
+    MeetingActionItem: { fk: 'sectionId', table: 'meetingSection', via: ['meeting'] },
+    ProjectTaskNote: { fk: 'taskId', table: 'projectTask', via: ['project'] },
+    SopFeedback: { fk: 'sopId', table: 'sopDocument', via: ['asset'] },
+    ContractorExecution: { fk: 'activityId', table: 'contractorActivity', via: ['contract'] },
 };
 
 /** Plant del padre (null = padre condiviso, undefined = padre inesistente). Lettura con il client grezzo. */
-async function parentPlantId(table: string, id: string): Promise<string | null | undefined> {
-    const where = { where: { id }, select: { plantId: true } } as any;
-    const db = basePrisma as any;
-    const row = await db[table].findUnique(where);
-    return row === null ? undefined : row.plantId ?? null;
+async function parentPlantId(table: string, id: string, via: string[] = []): Promise<string | null | undefined> {
+    const select = via.reduceRight<Record<string, unknown>>((acc, rel) => ({ [rel]: { select: acc } }), { plantId: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const row = await (basePrisma as any)[table].findUnique({ where: { id }, select });
+    if (row === null) return undefined;
+    let cur = row;
+    for (const rel of via) cur = cur?.[rel];
+    return cur?.plantId ?? null;
 }
 
 /** Controlla che il record padre sia di un plant consentito; per gli ordini di lavoro ne ricava anche il plant. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function guardParent(model: string, data: any, scope: PlantScope) {
     const rule = PARENT[model];
     if (!rule || !data) return data;
     const fkValue = data[rule.fk] ?? data[rule.table]?.connect?.id;
     if (!fkValue) return data;
-    const plantOfParent = await parentPlantId(rule.table, fkValue);
+    const plantOfParent = await parentPlantId(rule.table, fkValue, rule.via);
     if (plantOfParent === undefined) throw new PlantScopeError('Elemento collegato non trovato');
     if (plantOfParent !== null && !scope.plantIds.includes(plantOfParent)) {
         throw new PlantScopeError("L'elemento collegato appartiene a un altro stabilimento");

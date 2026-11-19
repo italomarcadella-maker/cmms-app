@@ -88,6 +88,8 @@ model User {
   password      String?
   role          String    @default("USER") // Keep as String for NextAuth simplicity or migrate to Enum? Let's keep String for now to avoid Auth issues, focusing on Domain Data.
   mustChangePassword Boolean @default(false)
+  failedLogins  Int       @default(0)
+  lockedUntil   DateTime?
   isActive      Boolean   @default(true)
   lastLogin     DateTime?
   department    String?
@@ -261,6 +263,8 @@ model WorkOrder {
   @@index([createdAt]) // New Index for Trends
   @@index([priority]) // New Index for High Priority checks
   @@index([plantId])
+  @@index([plantId, status])
+  @@index([plantId, createdAt])
 }
 
 
@@ -316,6 +320,8 @@ model ChecklistItem {
   // Optional: Who checked it and when
   checkedBy   String?
   checkedAt   DateTime?
+
+  @@index([workOrderId])
 }
 
 model WorkOrderPart {
@@ -327,6 +333,9 @@ model WorkOrderPart {
   dateAdded   DateTime
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   workOrderId String
+
+  @@index([workOrderId])
+  @@index([partId])
 }
 
 model LaborLog {
@@ -338,6 +347,8 @@ model LaborLog {
   note           String?
   workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   workOrderId    String
+
+  @@index([workOrderId])
 }
 
 model Technician {
@@ -390,6 +401,7 @@ model PreventiveSchedule {
   generatedWorkOrders WorkOrder[]
 
   @@index([nextDueDate])
+  @@index([assetId])
 }
 
 model Notification {
@@ -402,6 +414,8 @@ model Notification {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model Meter {
@@ -445,6 +459,7 @@ model MeterReading {
   meter      Meter    @relation(fields: [meterId], references: [id], onDelete: Cascade)
 
   @@index([meterId, date])
+  @@unique([meterId, date])
 }
 
 model SparePart {
@@ -608,6 +623,8 @@ model WorkOrderTimer {
   note        String?   // Reason for pause/stop
 
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
 }
 
 model ChatMessage {
@@ -620,6 +637,10 @@ model ChatMessage {
   isSystem  Boolean  @default(false)
   thoughtProcess String[] @default([])
   imageUrl  String?
+  // Proprietario della conversazione: ogni utente vede solo la propria
+  userId    String?
+
+  @@index([userId, timestamp])
 }
 
 model MaintenanceKnowledge {
@@ -673,13 +694,16 @@ model ProductionLine {
 
 model AuditLog {
   id          String   @id @default(cuid())
-  userId      String
+  userId      String?  // null se l'utente e' stato eliminato: il registro si conserva
   action      String   // e.g., "CREATE_WO", "UPDATE_STOCK", "LOGIN"
   resourceId  String?  // ID of the object affected
   details     String?  // JSON string or text summary
   timestamp   DateTime @default(now())
   
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([timestamp])
+  @@index([userId, timestamp])
 }
 
 
@@ -985,6 +1009,7 @@ model PurchaseRequest {
   part        SparePart @relation(fields: [partId], references: [id], onDelete: Cascade)
   
   @@index([status])
+  @@index([partId])
 }
 
 model EnergyLog {

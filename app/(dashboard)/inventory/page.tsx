@@ -12,7 +12,7 @@ import { ArrowRightLeft, Layers } from "lucide-react";
 
 
 export default function InventoryPage() {
-    const { parts, addPart, updateQuantity, removePart } = useInventory();
+    const { parts, addPart, adjustQuantity, removePart } = useInventory();
     const [isAdding, setIsAdding] = useState(false);
     const searchParams = useSearchParams();
 
@@ -242,7 +242,7 @@ export default function InventoryPage() {
                                                     if (qtyToAdd && !isNaN(Number(qtyToAdd))) {
                                                         const qty = Number(qtyToAdd);
                                                         if (qty <= 0) return;
-                                                        updateQuantity(part.id, part.quantity + qty);
+                                                        adjustQuantity(part.id, qty);
                                                     }
                                                 }}
                                                 className="text-emerald-600 hover:bg-emerald-50 transition-colors p-2 rounded-md mr-1"
@@ -262,7 +262,7 @@ export default function InventoryPage() {
                                                             alert("Quantità insufficiente!");
                                                             return;
                                                         }
-                                                        updateQuantity(part.id, part.quantity - qty);
+                                                        adjustQuantity(part.id, -qty);
                                                     }
                                                 }}
                                                 className="text-amber-600 hover:bg-amber-50 transition-colors p-2 rounded-md mr-1"

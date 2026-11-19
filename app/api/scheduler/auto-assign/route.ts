@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { assignWorkOrder, requireRole } from "@/lib/actions";
+import { requireRole } from '@/lib/auth-guard';
+import { assignWorkOrder } from '@/lib/actions';
 import { addDays, startOfDay, isSameDay } from "date-fns";
+import { byUrgency } from "@/modules/maintenance/domain/priority";
 
 export async function POST(request: Request) {
     // Assegna automaticamente gli ordini aperti: riservato a chi coordina il lavoro (limitato al proprio stabilimento)
@@ -14,11 +16,11 @@ export async function POST(request: Request) {
                 assignedTechnicianId: null,
                 status: "OPEN"
             },
-            orderBy: [
-                { priority: "desc" },
-                { createdAt: "asc" }
-            ]
+            orderBy: { createdAt: "asc" },
+            take: 500,
         });
+        // L'ordine di urgenza non e' quello dell'enum del database: si ordina qui (fermi macchina per primi)
+        unassignedWOs.sort(byUrgency);
 
         if (unassignedWOs.length === 0) {
             return NextResponse.json({ success: true, count: 0, message: "Nessun ordine da assegnare." });
@@ -136,6 +138,6 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error("Auto-Assign Fatal Error:", error);
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+        return NextResponse.json({ success: false, message: "Errore nell'assegnazione automatica" }, { status: 500 });
     }
 }

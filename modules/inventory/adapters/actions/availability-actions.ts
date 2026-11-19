@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/actions';
+import { requireRole } from '@/lib/auth-guard';
 import { crossPlant, getPlantScope, resolveWritePlantId, runUnscoped, PlantScopeError } from '@/lib/plant-scope';
 import { usersToNotify } from '@/lib/plant-users';
 import { rankMatches } from '../../domain/catalog-matching';
@@ -231,14 +231,9 @@ export async function decidePartTransfer(id: string, approve: boolean, decisionN
         if (req.status !== 'REQUESTED') return { success: false, message: 'La richiesta e\' gia\' stata gestita.' };
 
         await prisma.$transaction(async tx => {
-            if (approve) {
-                const part = await tx.sparePart.findUnique({ where: { id: req.fromPartId } });
-                if (!part) throw new Error('Il ricambio non e\' piu\' presente in magazzino.');
-                if (part.quantity < req.quantity) throw new Error(`Giacenza insufficiente: ${part.quantity} pz disponibili.`);
-                await tx.sparePart.update({ where: { id: part.id }, data: { quantity: part.quantity - req.quantity, lastUpdated: new Date() } });
-            }
-            await tx.partTransferRequest.update({
-                where: { id },
+            // Si "prenota" prima la richiesta: due approvazioni contemporanee non scalano due volte la giacenza
+            const claimed = await tx.partTransferRequest.updateMany({
+                where: { id, status: 'REQUESTED' },
                 data: {
                     status: approve ? 'APPROVED' : 'REJECTED',
                     decidedById: session.user.id,
@@ -246,6 +241,14 @@ export async function decidePartTransfer(id: string, approve: boolean, decisionN
                     decisionNote: decisionNote?.trim() || null,
                 },
             });
+            if (claimed.count !== 1) throw new Error('La richiesta e\' gia\' stata gestita.');
+            if (approve) {
+                const res = await tx.sparePart.updateMany({
+                    where: { id: req.fromPartId, quantity: { gte: req.quantity } },
+                    data: { quantity: { decrement: req.quantity }, lastUpdated: new Date() },
+                });
+                if (res.count !== 1) throw new Error('Giacenza insufficiente per cedere i pezzi richiesti.');
+            }
         });
 
         const targets = await usersToNotify(req.toPlantId, ['PLANT_MANAGER', 'SUPERVISOR', 'MAINTAINER']);
@@ -288,11 +291,14 @@ export async function receivePartTransfer(id: string) {
         }), { transferId: id });
 
         await prisma.$transaction(async tx => {
+            // La riga si porta a RECEIVED per prima e solo una conferma puo' riuscire: una seconda non accredita di nuovo
+            const claimed = await tx.partTransferRequest.updateMany({ where: { id, status: 'APPROVED' }, data: { status: 'RECEIVED', receivedAt: new Date() } });
+            if (claimed.count !== 1) throw new Error('ALREADY_RECEIVED');
             const existing = req.catalogId
                 ? await tx.sparePart.findFirst({ where: { plantId: req.toPlantId, catalogId: req.catalogId } })
                 : null;
             if (existing) {
-                await tx.sparePart.update({ where: { id: existing.id }, data: { quantity: existing.quantity + req.quantity, lastUpdated: new Date() } });
+                await tx.sparePart.update({ where: { id: existing.id }, data: { quantity: { increment: req.quantity }, lastUpdated: new Date() } });
             } else {
                 await tx.sparePart.create({
                     data: {
@@ -308,12 +314,12 @@ export async function receivePartTransfer(id: string) {
                     },
                 });
             }
-            await tx.partTransferRequest.update({ where: { id }, data: { status: 'RECEIVED', receivedAt: new Date() } });
         });
         revalidatePath('/inventory');
         revalidatePath('/inventory/availability');
         return { success: true, message: 'Ricezione confermata: la giacenza del tuo stabilimento e\' stata aggiornata.' };
     } catch (e) {
+        if (e instanceof Error && e.message === 'ALREADY_RECEIVED') return { success: false, message: 'La ricezione e\' gia\' stata confermata.' };
         console.error('receivePartTransfer', e);
         return { success: false, message: 'Errore nella conferma di ricezione.' };
     }

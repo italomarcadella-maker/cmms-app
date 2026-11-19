@@ -1,5 +1,7 @@
 'use server';
 
+import { requireRole } from '@/lib/auth-guard';
+import { ENGINEERING } from '@/lib/roles';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { ServiceLocator } from '@/modules/shared/infrastructure/registry/service-locator';
@@ -54,6 +56,8 @@ export async function getSimulationById(id: string) {
 }
 
 export async function createSimulation(data: { name: string, layout: string, assetId?: string, leanScore?: number, lineEff?: number, dataJson: any }) {
+    const __guard = await requireRole(ENGINEERING);
+    if (!__guard.authorized) throw new Error(__guard.message ?? 'Non autorizzato');
     const repo = getSimulationRepo();
     const simEntity = new LineSimulation({
         name: data.name,
@@ -73,6 +77,8 @@ export async function createSimulation(data: { name: string, layout: string, ass
 }
 
 export async function saveSimulationSnapshot(simulationId: string, versionData: { label: string, leanScore: number, lineEff: number, dataJson: any }) {
+    const __guard = await requireRole(ENGINEERING);
+    if (!__guard.authorized) throw new Error(__guard.message ?? 'Non autorizzato');
     const saveSnapshot = makeSaveSimulationSnapshot(getSimulationRepo(), getVersionRepo());
     const snap = await saveSnapshot({ simulationId, ...versionData });
 

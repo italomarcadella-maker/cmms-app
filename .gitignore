@@ -36,3 +36,10 @@ next-env.d.ts
 
 # environment variables
 .env
+
+# Database locali e variabili d'ambiente (mai in git)
+*.db
+*.db-journal
+prisma/dev.db
+.env.*
+!.env.example

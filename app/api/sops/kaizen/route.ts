@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireLogin } from "@/lib/auth-guard";
 
 export async function POST(request: Request) {
+    const guard = await requireLogin();
+    if (!guard.authorized) return NextResponse.json({ error: guard.message }, { status: 401 });
     try {
         const body = await request.json();
-        const { sopId, userId, title, description } = body;
+        const { sopId, title, description } = body;
+        const userId = guard.session.user.id; // dalla sessione: non si puo' scrivere a nome di un altro
 
-        if (!sopId || !userId || !title || !description) {
+        if (!sopId || !title || !description) {
             return NextResponse.json(
                 { error: "Missing required fields" },
                 { status: 400 }

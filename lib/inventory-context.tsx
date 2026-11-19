@@ -8,6 +8,7 @@ interface InventoryContextType {
     parts: SparePart[];
     addPart: (part: Omit<SparePart, "id" | "lastUpdated">) => void;
     updateQuantity: (id: string, newQuantity: number) => void;
+    adjustQuantity: (id: string, delta: number) => Promise<void>;
     removePart: (id: string) => void;
     refreshParts: () => Promise<void>;
 }
@@ -68,6 +69,22 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const adjustQuantity = async (id: string, delta: number) => {
+        const { adjustSparePartQuantity } = await import('@/modules/inventory/adapters/actions/inventory-actions');
+        const result = await adjustSparePartQuantity(id, delta);
+        if (result.success && result.data) {
+            const updatedPart = result.data as SparePart;
+            setParts(prev => prev.map(p => (p.id === id ? updatedPart : p)));
+            if (updatedPart.quantity <= updatedPart.minQuantity) {
+                toast.warning(`Attenzione: scorta in esaurimento per ${updatedPart.name}! (${updatedPart.quantity} rimanenti)`, { duration: 5000 });
+            } else {
+                toast.success(result.message);
+            }
+        } else {
+            toast.error(result.message);
+        }
+    };
+
     const removePart = async (id: string) => {
         const { deleteSparePart } = await import('@/lib/actions');
         const result = await deleteSparePart(id);
@@ -81,7 +98,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <InventoryContext.Provider value={{ parts, addPart, updateQuantity, removePart, refreshParts }}>
+        <InventoryContext.Provider value={{ parts, addPart, updateQuantity, adjustQuantity, removePart, refreshParts }}>
             {children}
         </InventoryContext.Provider>
     );

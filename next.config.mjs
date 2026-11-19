@@ -6,6 +6,22 @@ const withPWA = withPWAInit({
     register: true,
     skipWaiting: true,
     disable: process.env.NODE_ENV === "development",
+    // Resta solo la cache della pagina iniziale che next-pwa aggiunge da solo (serve solo offline); al logout tutte le cache vengono svuotate.
+    // Niente cache per pagine e API: contengono dati dell'utente e resterebbero leggibili offline dopo il logout.
+    // Si conservano solo le risorse statiche.
+    runtimeCaching: [
+        {
+            urlPattern: ({ url }) => url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/brand/"),
+            handler: "CacheFirst",
+            options: { cacheName: "static-assets", expiration: { maxEntries: 120, maxAgeSeconds: 30 * 24 * 60 * 60 } },
+        },
+        {
+            urlPattern: ({ url }) => /\.(?:png|jpe?g|svg|webp|ico|woff2?|otf|ttf)$/i.test(url.pathname),
+            handler: "StaleWhileRevalidate",
+            options: { cacheName: "images-fonts", expiration: { maxEntries: 80, maxAgeSeconds: 7 * 24 * 60 * 60 } },
+        },
+        { urlPattern: () => true, handler: "NetworkOnly" },
+    ],
 });
 
 /** @type {import('next').NextConfig} */

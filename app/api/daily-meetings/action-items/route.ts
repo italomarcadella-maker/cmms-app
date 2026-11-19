@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireRole } from "@/lib/auth-guard";
+import { SUPERVISION } from "@/lib/roles";
 
 // Fetch all action items across meetings
 export async function GET(request: Request) {
@@ -24,12 +26,17 @@ export async function GET(request: Request) {
 
 // Update action item status (for Kanban drag-and-drop)
 export async function PATCH(request: Request) {
+    const guard = await requireRole(SUPERVISION);
+    if (!guard.authorized) return NextResponse.json({ error: guard.message }, { status: guard.message === 'Non autenticato' ? 401 : 403 });
     try {
         const body = await request.json();
         const { id, status } = body;
 
         if (!id || !status) {
             return NextResponse.json({ error: "Missing id or status" }, { status: 400 });
+        }
+        if (!["OPEN", "IN_PROGRESS", "RESOLVED"].includes(status)) {
+            return NextResponse.json({ error: "Stato non valido" }, { status: 400 });
         }
 
         const updatedItem = await prisma.meetingActionItem.update({

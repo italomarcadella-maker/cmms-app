@@ -7,28 +7,15 @@ export interface FulfillPurchaseRequestResult {
 }
 
 /**
- * Marks a purchase request as received and credits the ordered quantity back
- * into stock. Refuses to double-process a request already marked RECEIVED,
- * since that would double-count the stock adjustment.
+ * Segna una richiesta d'acquisto come ricevuta e accredita la quantita' ordinata al magazzino.
+ * L'operazione e' atomica e riuscibile una sola volta: un secondo tentativo (doppio clic, due utenti) viene rifiutato,
+ * altrimenti la giacenza verrebbe accreditata due volte.
  */
-export const makeFulfillPurchaseRequest = (requestRepo: IPurchaseRequestRepository, partRepo: ISparePartRepository) => {
+export const makeFulfillPurchaseRequest = (requestRepo: IPurchaseRequestRepository, _partRepo?: ISparePartRepository) => {
     return async (requestId: string): Promise<FulfillPurchaseRequestResult> => {
-        const request = await requestRepo.findById(requestId);
-        if (!request) return { success: false, message: 'Richiesta non trovata' };
-
-        if (request.status === 'RECEIVED') {
-            return { success: false, message: 'Già ricevuta' };
-        }
-
-        const part = await partRepo.findById(request.partId);
-        if (part) {
-            part.adjustQuantity(request.quantity);
-            await partRepo.save(part);
-        }
-
-        request.updateStatus('RECEIVED');
-        await requestRepo.save(request);
-
+        const outcome = await requestRepo.receive(requestId);
+        if (outcome === 'NOT_FOUND') return { success: false, message: 'Richiesta non trovata' };
+        if (outcome === 'ALREADY_RECEIVED') return { success: false, message: 'Già ricevuta' };
         return { success: true, message: 'Merce ricevuta e giacenza aggiornata' };
     };
 };

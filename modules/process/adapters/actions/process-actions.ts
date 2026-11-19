@@ -1,5 +1,8 @@
 'use server';
 
+import { OPERATIVE } from '@/lib/roles';
+import { requireRole } from '@/lib/auth-guard';
+import { ENGINEERING } from '@/lib/roles';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
@@ -31,19 +34,6 @@ try {
 const getProjectRepo = () => ServiceLocator.resolve<PrismaProjectRepository>('IProjectRepository');
 const getSopRepo = () => ServiceLocator.resolve<PrismaSopDocumentRepository>('ISopDocumentRepository');
 const getAnomalyRepo = () => ServiceLocator.resolve<PrismaProcessAnomalyRepository>('IProcessAnomalyRepository');
-
-// --- AUTHORIZATION HELPER ---
-async function requireRole(role: string): Promise<{ authorized: boolean; message?: string; session?: any }> {
-    const session = await auth();
-    if (!session?.user) {
-        return { authorized: false, message: 'Non autenticato' };
-    }
-    const roles = ['ADMIN', 'PLANT_MANAGER', 'SUPERVISOR', 'PROCESS_ENGINEER'];
-    if (!roles.includes(session.user.role)) {
-        return { authorized: false, message: `Non autorizzato: Richiesto ruolo adeguato` };
-    }
-    return { authorized: true, session };
-}
 
 // --- PROJECTS ---
 
@@ -106,7 +96,7 @@ export async function getProjectById(id: string) {
 }
 
 export async function updateProject(id: string, data: { roi?: number; title?: string; description?: string; status?: string; progress?: number }) {
-    const { authorized } = await requireRole('ADMIN');
+    const { authorized } = await requireRole(ENGINEERING);
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
     try {
@@ -144,7 +134,7 @@ export async function addProjectTaskNote(taskId: string, content: string, projec
 }
 
 export async function createProject(data: { title: string, description?: string, startDate: Date, endDate: Date, roi?: number }) {
-    const { authorized } = await requireRole('ADMIN');
+    const { authorized } = await requireRole(ENGINEERING);
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
     try {
@@ -154,12 +144,13 @@ export async function createProject(data: { title: string, description?: string,
         revalidatePath('/process');
         return { success: true, project };
     } catch (e) {
+        console.error('[process-actions]', e);
         return { success: false, message: "Errore creazione progetto" };
     }
 }
 
 export async function archiveProject(id: string) {
-    const { authorized } = await requireRole('ADMIN');
+    const { authorized } = await requireRole(ENGINEERING);
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
     try {
@@ -171,12 +162,13 @@ export async function archiveProject(id: string) {
         revalidatePath(`/process/projects/${id}`);
         return { success: true };
     } catch (e) {
+        console.error('[process-actions]', e);
         return { success: false, message: "Errore archiviazione progetto" };
     }
 }
 
 export async function deleteProject(id: string) {
-    const { authorized } = await requireRole('ADMIN');
+    const { authorized } = await requireRole(ENGINEERING);
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
     try {
@@ -184,6 +176,7 @@ export async function deleteProject(id: string) {
         revalidatePath('/process');
         return { success: true };
     } catch (e) {
+        console.error('[process-actions]', e);
         return { success: false, message: "Errore eliminazione progetto" };
     }
 }
@@ -192,7 +185,7 @@ export async function deleteProject(id: string) {
 
 export async function createProjectTask(data: { projectId: string, title: string, startDate: Date, endDate: Date, status?: string, dependencies?: string }) {
     console.log(`[createProjectTask] Attempting to create task for project: ${data.projectId}`, data);
-    const { authorized } = await requireRole('ADMIN');
+    const { authorized } = await requireRole(ENGINEERING);
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
     try {
@@ -209,7 +202,7 @@ export async function createProjectTask(data: { projectId: string, title: string
 }
 
 export async function updateTaskDates(taskId: string, startDate: Date, endDate: Date, projectId: string) {
-    const { authorized } = await requireRole('ADMIN');
+    const { authorized } = await requireRole(ENGINEERING);
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
     try {
@@ -220,12 +213,13 @@ export async function updateTaskDates(taskId: string, startDate: Date, endDate: 
         revalidatePath(`/process/projects/${projectId}`);
         return { success: true };
     } catch (e) {
+        console.error('[process-actions]', e);
         return { success: false, message: "Errore aggiornamento date" };
     }
 }
 
 export async function linkTaskToMaintenance(taskId: string, assetId: string, description: string, projectId: string) {
-    const { authorized, session } = await requireRole('ADMIN');
+    const { authorized, session } = await requireRole(ENGINEERING);
     if (!authorized) return { success: false, message: "Non autorizzato" };
 
     try {
@@ -269,6 +263,7 @@ export async function getSopDocuments() {
             orderBy: { createdAt: 'desc' }
         });
     } catch (e) {
+        console.error('[process-actions]', e);
         return [];
     }
 }
@@ -289,6 +284,7 @@ export async function createSopDocument(data: { title: string, assetId: string, 
         revalidatePath(`/assets/${data.assetId}`);
         return { success: true };
     } catch (e) {
+        console.error('[process-actions]', e);
         return { success: false, message: "Errore creazione SOP" };
     }
 }
@@ -298,6 +294,7 @@ export async function getSOPsByAsset(assetId: string) {
         const sops = await getSopRepo().findByAssetId(assetId);
         return sops.map(s => s.toJSON());
     } catch (e) {
+        console.error('[process-actions]', e);
         return [];
     }
 }
@@ -314,6 +311,7 @@ export async function updateSopDocument(id: string, data: { title?: string, aiEx
         revalidatePath(`/assets/${sop.assetId}`);
         return { success: true };
     } catch (e) {
+        console.error('[process-actions]', e);
         return { success: false, message: "Errore aggiornamento SOP" };
     }
 }
@@ -454,6 +452,8 @@ export async function askLeanCopilot(fpesData: any, message: string) {
 }
 
 export async function updateAssetStatus(assetId: string, status: "OPERATIONAL" | "MAINTENANCE" | "OFFLINE") {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: "Non autenticato" };
 
@@ -495,6 +495,8 @@ export async function createQuickWorkOrder(data: {
     priority: "STOPPED" | "MALFUNCTIONING" | "HIGH" | "MEDIUM" | "LOW";
     category: "MECHANICAL" | "ELECTRICAL" | "HYDRAULIC" | "PNEUMATIC" | "SOFTWARE" | "CIVIL" | "OTHER" | "SAFETY" | "IMPROVEMENT";
 }) {
+    const __guard = await requireRole(OPERATIVE);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const session = await auth();
     if (!session?.user) return { success: false, message: "Non autenticato" };
 

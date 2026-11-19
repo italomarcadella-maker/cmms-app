@@ -1,5 +1,7 @@
 "use server";
 
+import { requireRole } from '@/lib/auth-guard';
+import { ENGINEERING } from '@/lib/roles';
 import { prisma } from "@/lib/prisma";
 import { getFailureInsights } from '@/modules/maintenance/adapters/actions/failure-insights-actions';
 
@@ -376,6 +378,7 @@ export async function getDailyInsights(): Promise<DailyInsight[]> {
         }));
         return [...mappedGlobalInsights, ...cortexInsights];
     } catch (e) {
+        console.error('[ai-service]', e);
         return cortexInsights;
     }
 }
@@ -628,6 +631,8 @@ export async function suggestActivitiesForDowntime(lineName: string, durationHou
 // --- PROCESS ENGINEERING AI (HMI VISION & SOP) ---
 
 export async function parseHmiImageToSop(imageUrl: string, assetId: string) {
+    const __guard = await requireRole(ENGINEERING);
+    if (!__guard.authorized) return { success: false, message: __guard.message ?? 'Non autorizzato' };
     const prompt = `Analizza questa immagine HMI di un macchinario industriale.
     Estrai tutti i parametri operativi visibili (temperature, pressioni, velocità, setpoint).
     Restituisci un array JSON di oggetti con: label, value, unit, tolerance (stima una tolleranza ragionevole basata sul valore), category.

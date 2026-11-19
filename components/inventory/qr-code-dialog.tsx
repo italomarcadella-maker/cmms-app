@@ -1,5 +1,6 @@
 "use client";
 
+import { escapeHtml } from '@/lib/html';
 import {
     Dialog,
     DialogContent,
@@ -50,10 +51,10 @@ export function QRCodeDialog({ part }: QRCodeDialogProps) {
           </head>
           <body>
             <div class="label">
-              <h2>${part.name}</h2>
+              <h2>${escapeHtml(part.name)}</h2>
               ${printContent.innerHTML}
-              <p>ID: ${part.id}</p>
-              <p>${part.warehouse || ''} - ${part.location || ''}</p>
+              <p>ID: ${escapeHtml(part.id)}</p>
+              <p>${escapeHtml(part.warehouse || '')} - ${escapeHtml(part.location || '')}</p>
             </div>
           </body>
         </html>
