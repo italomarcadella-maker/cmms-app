@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldAlert, Lightbulb, Wrench, Package, Factory, ChevronLeft } from "lucide-react";
+import { ShieldAlert, Lightbulb, Wrench, Package, PackageOpen, Factory, ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { NewMaterialRequestForm } from "@/components/material-requests/new-request-dialog";
 import { cn } from "@/lib/utils";
 import { RequestForm } from "./request-form";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,15 @@ const CATEGORIES = [
         categoryType: 'MECHANICAL'
     },
     {
+        id: 'material',
+        label: 'Materiale dal magazzino ricambi',
+        description: 'Chiedi alla manutenzione materiali e ricambi dal suo magazzino.',
+        icon: PackageOpen,
+        color: 'text-cyan-600',
+        virtualAssetId: null,
+        categoryType: 'OTHER'
+    },
+    {
         id: 'other',
         label: 'Altro',
         description: 'Altre richieste generiche.',
@@ -66,6 +77,7 @@ const CATEGORIES = [
 ];
 
 export function RequestWizard() {
+    const router = useRouter();
     const [step, setStep] = useState<1 | 2>(1);
     const [selectedCategory, setSelectedCategory] = useState<typeof CATEGORIES[0] | null>(null);
 
@@ -118,12 +130,25 @@ export function RequestWizard() {
                         <span className="font-semibold">{selectedCategory?.label}</span>
                     </div>
 
-                    <RequestForm
-                        initialCategory={selectedCategory?.categoryType}
-                        initialAssetId={selectedCategory?.virtualAssetId || undefined}
-                        forceAssetSelection={selectedCategory?.id === 'production' || selectedCategory?.id === 'plant'}
-                        onCancel={handleBack}
-                    />
+                    {selectedCategory?.id === 'material' ? (
+                        // Non e' un ordine di lavoro: e' una richiesta di materiale al magazzino manutenzione, con il suo modulo
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-xl">Richiesta di materiale al magazzino ricambi</CardTitle>
+                                <CardDescription>Se l'articolo è nel magazzino manutenzione vedi subito quanti pezzi ci sono. Potrai seguire la richiesta in "Richieste di materiale".</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <NewMaterialRequestForm onDone={() => router.push("/requests/material")} />
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <RequestForm
+                            initialCategory={selectedCategory?.categoryType}
+                            initialAssetId={selectedCategory?.virtualAssetId || undefined}
+                            forceAssetSelection={selectedCategory?.id === 'production' || selectedCategory?.id === 'plant'}
+                            onCancel={handleBack}
+                        />
+                    )}
                 </div>
             )}
         </div>

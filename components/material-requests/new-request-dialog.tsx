@@ -77,7 +77,8 @@ export function NewMaterialRequestDialog({ trigger, onSaved }: { trigger: ReactN
     );
 }
 
-function NewMaterialRequestForm({ onDone }: { onDone: () => void }) {
+/** Modulo della richiesta di materiale: nella finestra della pagina Richieste di materiale e dentro "Nuova richiesta". */
+export function NewMaterialRequestForm({ onDone }: { onDone: () => void }) {
     const { plants, activePlant } = usePlant();
     const [plantId, setPlantId] = useState(activePlant?.id ?? plants[0]?.id ?? "");
     const [department, setDepartment] = useState("");
