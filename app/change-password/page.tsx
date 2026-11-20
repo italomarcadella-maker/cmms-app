@@ -8,9 +8,11 @@ import { updateFirstLoginPassword } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { MIN_PASSWORD_LENGTH } from '@/lib/password-policy';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
+import { useT } from '@/lib/i18n/client';
 
 export default function ChangePasswordPage() {
+    const t = useT();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -25,13 +27,13 @@ export default function ChangePasswordPage() {
         setError('');
 
         if (password.length < MIN_PASSWORD_LENGTH) {
-            setError(`La password deve avere almeno ${MIN_PASSWORD_LENGTH} caratteri, con almeno una lettera e un numero.`);
+            setError(t('La password deve avere almeno {min} caratteri, con almeno una lettera e un numero.', { min: MIN_PASSWORD_LENGTH }));
             setLoading(false);
             return;
         }
 
         if (password !== confirmPassword) {
-            setError('Le password non coincidono.');
+            setError(t('Le password non coincidono.'));
             setLoading(false);
             return;
         }
@@ -40,7 +42,7 @@ export default function ChangePasswordPage() {
             const result = await updateFirstLoginPassword(password);
             if (result.success) {
                 toast.success(result.message || 'Password aggiornata! Reindirizzamento...');
-                setSuccess('Password aggiornata! Reindirizzamento...'); // Keep showing inline success too or remove? Let's keep inline for redundant clarity but toast is nicer.
+                setSuccess(t('Password aggiornata! Reindirizzamento...')); // Keep showing inline success too or remove? Let's keep inline for redundant clarity but toast is nicer.
                 // Rilegge la sessione dal database: senza, il blocco "cambia la password" resterebbe attivo fino al prossimo aggiornamento
                 await update();
                 setTimeout(() => {
@@ -49,11 +51,11 @@ export default function ChangePasswordPage() {
                 }, 1200);
             } else {
                 toast.error(result.message || 'Errore durante l\'aggiornamento.');
-                setError(result.message || 'Errore durante l\'aggiornamento.');
+                setError(t(result.message || 'Errore durante l\'aggiornamento.'));
             }
         } catch (err) {
             toast.error('Si è verificato un errore.');
-            setError('Si è verificato un errore.');
+            setError(t('Si è verificato un errore.'));
         } finally {
             setLoading(false);
         }
@@ -64,38 +66,38 @@ export default function ChangePasswordPage() {
             <div className="w-full max-w-md space-y-8 bg-white dark:bg-zinc-900 p-8 rounded-lg shadow-md border dark:border-zinc-800">
                 <div className="text-center">
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                        Primo Accesso
+                        {t('Primo Accesso')}
                     </h1>
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        Per sicurezza, devi cambiare la tua password per continuare.
+                        {t('Per sicurezza, devi cambiare la tua password per continuare.')}
                     </p>
                 </div>
 
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div className="space-y-4 rounded-md shadow-sm">
                         <div className="relative">
-                            <label htmlFor="new-password" className="sr-only">Nuova Password</label>
+                            <label htmlFor="new-password" className="sr-only">{t('Nuova Password')}</label>
                             <Input
                                 id="new-password"
                                 name="new-password"
                                 type="password"
                                 required
                                 className="pl-10"
-                                placeholder="Nuova Password"
+                                placeholder={t('Nuova Password')}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
                             <Key className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                         </div>
                         <div className="relative">
-                            <label htmlFor="confirm-password" className="sr-only">Conferma Password</label>
+                            <label htmlFor="confirm-password" className="sr-only">{t('Conferma Password')}</label>
                             <Input
                                 id="confirm-password"
                                 name="confirm-password"
                                 type="password"
                                 required
                                 className="pl-10"
-                                placeholder="Conferma Password"
+                                placeholder={t('Conferma Password')}
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                             />
@@ -118,7 +120,7 @@ export default function ChangePasswordPage() {
 
                     <Button type="submit" className="w-full" disabled={loading}>
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Aggiorna Password
+                        {t('Aggiorna Password')}
                     </Button>
                 </form>
             </div>

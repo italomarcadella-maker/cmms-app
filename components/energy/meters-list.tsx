@@ -1,6 +1,7 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useFormat } from "@/lib/i18n/client";
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2, Gauge, Zap, Droplets, Flame } from "lucide-react";
 import { createMeter, deleteMeter } from "@/lib/actions";
@@ -13,6 +14,8 @@ import { METER_TYPES, defaultUnit, meterTypeLabel } from "@/modules/energy/domai
 import { ReadingPlanDialog, type PlanAssignee } from "@/components/energy/reading-plan-dialog";
 
 export function MetersList({ initialMeters }: { initialMeters: any[] }) {
+    const t = useT();
+    const fmt = useFormat();
     const [isAdding, setIsAdding] = useState(false);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
@@ -24,9 +27,9 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
     useEffect(() => {
         let alive = true;
         getReadingPlans().then(p => { if (alive) setPlans(p); });
-        getTechnicians().then(t => {
+        getTechnicians().then(techs => {
             if (!alive) return;
-            setAssignees((t as { userId?: string | null; name: string }[]).filter(x => x.userId).map(x => ({ userId: x.userId as string, name: x.name })));
+            setAssignees((techs as { userId?: string | null; name: string }[]).filter(x => x.userId).map(x => ({ userId: x.userId as string, name: x.name })));
         });
         return () => { alive = false; };
     }, [initialMeters.length]);
@@ -49,19 +52,19 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
             setName(""); setSerial(""); setLocation("");
             router.refresh();
         } catch (error) {
-            toast.error("Errore creazione.");
+            toast.error(t("Errore creazione."));
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!(await confirm({ title: "Eliminare questo contatore?", confirmLabel: "Elimina", variant: "destructive" }))) return;
+        if (!(await confirm({ title: t("Eliminare questo contatore?"), confirmLabel: t("Elimina"), variant: "destructive" }))) return;
         try {
             await deleteMeter(id);
             router.refresh();
         } catch (error) {
-            toast.error("Errore eliminazione.");
+            toast.error(t("Errore eliminazione."));
         }
     };
 
@@ -83,40 +86,40 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
                     className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow-sm hover:translate-y-0.5 transition-all"
                 >
                     <Plus className={`h-4 w-4 transition-transform ${isAdding ? "rotate-45" : ""}`} />
-                    {isAdding ? "Annulla" : "Nuovo Contatore"}
+                    {isAdding ? t("Annulla") : t("Nuovo Contatore")}
                 </button>
             </div>
 
             {/* Form */}
             {isAdding && (
                 <div className="bg-card border rounded-xl p-6 shadow-sm animate-in slide-in-from-top-4">
-                    <h3 className="font-semibold mb-4">Dettagli Contatore</h3>
+                    <h3 className="font-semibold mb-4">{t("Dettagli Contatore")}</h3>
                     <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Nome Identificativo</label>
-                            <input required value={name} onChange={e => setName(e.target.value)} className="w-full h-10 px-3 rounded-md border bg-background" placeholder="es. Contatore Generale" />
+                            <label className="text-sm font-medium">{t("Nome Identificativo")}</label>
+                            <input required value={name} onChange={e => setName(e.target.value)} className="w-full h-10 px-3 rounded-md border bg-background" placeholder={t("es. Contatore Generale")} />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Tipo</label>
+                            <label className="text-sm font-medium">{t("Tipo")}</label>
                             <select value={type} onChange={e => { setType(e.target.value); setUnit(defaultUnit(e.target.value)); }} className="w-full h-10 px-3 rounded-md border bg-background">
-                                {METER_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                                {METER_TYPES.map(mt => <option key={mt.id} value={mt.id}>{t(mt.label)}</option>)}
                             </select>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Unità di Misura</label>
+                            <label className="text-sm font-medium">{t("Unità di Misura")}</label>
                             <input required value={unit} onChange={e => setUnit(e.target.value)} className="w-full h-10 px-3 rounded-md border bg-background" />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Numero di Serie</label>
+                            <label className="text-sm font-medium">{t("Numero di Serie")}</label>
                             <input value={serial} onChange={e => setSerial(e.target.value)} className="w-full h-10 px-3 rounded-md border bg-background" />
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                            <label className="text-sm font-medium">Ubicazione</label>
-                            <input value={location} onChange={e => setLocation(e.target.value)} className="w-full h-10 px-3 rounded-md border bg-background" placeholder="es. Cabina Elettrica A" />
+                            <label className="text-sm font-medium">{t("Ubicazione")}</label>
+                            <input value={location} onChange={e => setLocation(e.target.value)} className="w-full h-10 px-3 rounded-md border bg-background" placeholder={t("es. Cabina Elettrica A")} />
                         </div>
                         <div className="md:col-span-2 flex justify-end">
                             <button type="submit" disabled={loading} className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90">
-                                {loading ? "Salvataggio..." : "Salva Contatore"}
+                                {loading ? t("Salvataggio...") : t("Salva Contatore")}
                             </button>
                         </div>
                     </form>
@@ -140,21 +143,21 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
                             <div className="flex justify-between">
-                                <span>Tipo:</span> <span>{meterTypeLabel(meter.type)} ({meter.unit})</span>
+                                <span>{t("Tipo:")}</span> <span>{t(meterTypeLabel(meter.type))} ({meter.unit})</span>
                             </div>
                             <div className="flex justify-between">
-                                <span>Matricola:</span> <span className="font-mono">{meter.serialNumber || '-'}</span>
+                                <span>{t("Matricola:")}</span> <span className="font-mono">{meter.serialNumber || '-'}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span>Ubicazione:</span> <span>{meter.location || '-'}</span>
+                                <span>{t("Ubicazione:")}</span> <span>{meter.location || '-'}</span>
                             </div>
                             {(() => {
                                 const plan = plans.find(p => p.meterId === meter.id);
                                 return (
                                     <div className="flex justify-between">
-                                        <span>Lettura:</span>
+                                        <span>{t("Lettura:")}</span>
                                         <span className="text-right">
-                                            {plan?.frequencyDays ? `${frequencyLabel(plan.frequencyDays)}, prossima ${plan.nextDue ? new Date(plan.nextDue).toLocaleDateString('it-IT') : '-'}` : 'non pianificata'}
+                                            {plan?.frequencyDays ? t("{freq}, prossima {date}", { freq: t(frequencyLabel(plan.frequencyDays)), date: plan.nextDue ? fmt.date(plan.nextDue) : '-' }) : t('non pianificata')}
                                         </span>
                                     </div>
                                 );
@@ -171,7 +174,7 @@ export function MetersList({ initialMeters }: { initialMeters: any[] }) {
                 ))}
                 {initialMeters.length === 0 && (
                     <div className="col-span-full py-12 text-center text-muted-foreground italic border-2 border-dashed rounded-xl">
-                        Nessun contatore presente. Aggiungine uno per iniziare.
+                        {t("Nessun contatore presente. Aggiungine uno per iniziare.")}
                     </div>
                 )}
             </div>

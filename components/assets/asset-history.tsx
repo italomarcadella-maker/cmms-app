@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CalendarClock, History, Inbox, Wrench, type LucideIcon } from "lucide-react";
 
+import { useT, useFormat } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 import { getAssetHistory, type AssetHistoryItem } from "@/modules/maintenance/adapters/actions/asset-reliability-actions";
 import type { HistoryKind } from "@/modules/maintenance/domain/asset-reliability";
 import { Button } from "@/components/ui/button";
@@ -15,20 +17,22 @@ import { WOStatusBadge } from "@/components/work-orders/wo-status-badge";
 import { WOPriorityBadge } from "@/components/work-orders/wo-priority-badge";
 
 const KIND_LABEL: Record<string, { label: string; icon: LucideIcon }> = {
-    FAULT: { label: "Guasto", icon: Wrench },
-    ROUTINE: { label: "Manutenzione programmata", icon: CalendarClock },
-    REQUEST: { label: "Richiesta", icon: Inbox },
+    FAULT: { label: tk("Guasto"), icon: Wrench },
+    ROUTINE: { label: tk("Manutenzione programmata"), icon: CalendarClock },
+    REQUEST: { label: tk("Richiesta"), icon: Inbox },
 };
 
 const EMPTY_TEXT: Record<HistoryKind, string> = {
-    ALL: "Nessun ordine registrato su questo asset.",
-    FAULT: "Nessun guasto registrato su questo asset.",
-    ROUTINE: "Nessuna manutenzione programmata registrata su questo asset.",
-    REQUEST: "Nessuna richiesta registrata su questo asset.",
+    ALL: tk("Nessun ordine registrato su questo asset."),
+    FAULT: tk("Nessun guasto registrato su questo asset."),
+    ROUTINE: tk("Nessuna manutenzione programmata registrata su questo asset."),
+    REQUEST: tk("Nessuna richiesta registrata su questo asset."),
 };
 
 /** Storico completo degli ordini dell'asset (senza limite di data), filtrabile per tipo, a pagine da 25. */
 export function AssetHistory({ assetId }: { assetId: string }) {
+    const t = useT();
+    const fmt = useFormat();
     const [kind, setKind] = useState<HistoryKind>("ALL");
     const [items, setItems] = useState<AssetHistoryItem[]>([]);
     const [total, setTotal] = useState(0);
@@ -46,7 +50,7 @@ export function AssetHistory({ assetId }: { assetId: string }) {
         getAssetHistory(assetId, { kind, page: 1 }).then((res) => {
             if (id !== requestId.current) return;
             if (!res.success) {
-                setError(res.message ?? "Errore nel caricamento dello storico");
+                setError(res.message ?? tk("Errore nel caricamento dello storico"));
                 setItems([]);
                 setTotal(0);
                 setHasMore(false);
@@ -82,7 +86,7 @@ export function AssetHistory({ assetId }: { assetId: string }) {
             setPage(res.page);
             setHasMore(res.hasMore);
         } else {
-            setError(res.message ?? "Errore nel caricamento");
+            setError(res.message ?? tk("Errore nel caricamento"));
         }
         setLoadingMore(false);
     };
@@ -91,19 +95,19 @@ export function AssetHistory({ assetId }: { assetId: string }) {
         <Card>
             <CardHeader className="gap-3">
                 <div className="space-y-1.5">
-                    <CardTitle>Storico interventi</CardTitle>
-                    <CardDescription>Tutti gli ordini di questo asset, dal più recente, senza limite di data.</CardDescription>
+                    <CardTitle>{t("Storico interventi")}</CardTitle>
+                    <CardDescription>{t("Tutti gli ordini di questo asset, dal più recente, senza limite di data.")}</CardDescription>
                 </div>
                 <div className="overflow-x-auto">
                     <SegmentedControl
-                        aria-label="Tipo di intervento"
+                        aria-label={t("Tipo di intervento")}
                         value={kind}
                         onChange={changeKind}
                         options={[
-                            { value: "ALL", label: "Tutti" },
-                            { value: "FAULT", label: "Guasti" },
-                            { value: "ROUTINE", label: "Manutenzione programmata" },
-                            { value: "REQUEST", label: "Richieste" },
+                            { value: "ALL", label: t("Tutti") },
+                            { value: "FAULT", label: t("Guasti") },
+                            { value: "ROUTINE", label: t("Manutenzione programmata") },
+                            { value: "REQUEST", label: t("Richieste") },
                         ]}
                     />
                 </div>
@@ -116,9 +120,9 @@ export function AssetHistory({ assetId }: { assetId: string }) {
                         <Skeleton className="h-16 w-full" />
                     </div>
                 ) : error ? (
-                    <p className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">{error}</p>
+                    <p className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">{t(error)}</p>
                 ) : items.length === 0 ? (
-                    <EmptyState icon={<History />} title="Nessuno storico" description={EMPTY_TEXT[kind]} className="py-8" />
+                    <EmptyState icon={<History />} title={t("Nessuno storico")} description={t(EMPTY_TEXT[kind])} className="py-8" />
                 ) : (
                     <>
                         <ul className="space-y-2">
@@ -129,13 +133,13 @@ export function AssetHistory({ assetId }: { assetId: string }) {
                                     <li key={wo.id}>
                                         <Link href={wo.link} className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-accent">
                                             <div className="flex min-w-0 items-center gap-3">
-                                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground" title={k?.label ?? wo.type}>
+                                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground" title={k ? t(k.label) : wo.type}>
                                                     <Icon className="h-4 w-4" aria-hidden />
                                                 </span>
                                                 <div className="min-w-0">
                                                     <div className="truncate text-sm font-medium">{wo.title}</div>
                                                     <div className="text-xs text-muted-foreground">
-                                                        {k?.label ?? wo.type} · {new Date(wo.createdAt).toLocaleDateString("it-IT")}
+                                                        {k ? t(k.label) : wo.type} · {fmt.date(wo.createdAt)}
                                                         {wo.assignee ? ` · ${wo.assignee}` : ""}
                                                     </div>
                                                 </div>
@@ -151,11 +155,13 @@ export function AssetHistory({ assetId }: { assetId: string }) {
                         </ul>
                         <div className="mt-4 flex flex-col items-center gap-2">
                             <p className="text-xs text-muted-foreground">
-                                {items.length} di {total.toLocaleString("it-IT")} {total === 1 ? "ordine" : "ordini"}
+                                {total === 1
+                                    ? t("{shown} di {total} ordine", { shown: items.length, total: fmt.number(total) })
+                                    : t("{shown} di {total} ordini", { shown: items.length, total: fmt.number(total) })}
                             </p>
                             {hasMore && (
                                 <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
-                                    {loadingMore ? "Caricamento..." : "Carica altri"}
+                                    {loadingMore ? t("Caricamento...") : t("Carica altri")}
                                 </Button>
                             )}
                         </div>

@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, MapPin, Network, Pencil, Plus, Printer, Search, Table as TableIcon, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 
 import { useAssets } from "@/lib/assets-context";
 import { useAuth } from "@/lib/auth-context";
+import { useT } from "@/lib/i18n/client";
 import { deleteAsset } from "@/lib/actions";
 import { getAssetsStoppedByFault } from "@/modules/maintenance/adapters/actions/asset-reliability-actions";
 import { getAssetsHealth, type AssetHealthSummary } from "@/modules/maintenance/adapters/actions/asset-health-actions";
@@ -28,6 +29,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export default function AssetsPage() {
     const router = useRouter();
+    const t = useT();
     const { assets, addAsset, updateAsset } = useAssets();
     const { user } = useAuth();
     const { confirm, dialog: confirmDialog } = useConfirm();
@@ -111,10 +113,18 @@ export default function AssetsPage() {
 
     const handleDeleteClick = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
+        // Gruppi e componenti non si eliminano con la macchina: restano nell'elenco come asset senza padre
+        const childCount = (assets ?? []).filter((a) => a.parentId === id).length;
+        const childNote =
+            childCount === 0
+                ? ""
+                : childCount === 1
+                  ? ` ${t("Questo asset ha 1 componente collegato: resterà senza asset padre, non verrà eliminato.")}`
+                  : ` ${t("Questo asset ha {count} componenti collegati: resteranno senza asset padre, non verranno eliminati.", { count: childCount })}`;
         const ok = await confirm({
-            title: "Eliminare questo asset?",
-            description: "L'azione non può essere annullata. Se l'asset ha ordini di lavoro o manutenzioni collegate non potrà essere eliminato.",
-            confirmLabel: "Elimina",
+            title: t("Eliminare questo asset?"),
+            description: `${t("L'azione non può essere annullata. Se l'asset ha ordini di lavoro o manutenzioni collegate non potrà essere eliminato.")}${childNote}`,
+            confirmLabel: t("Elimina"),
             variant: "destructive",
         });
         if (!ok) return;
@@ -122,7 +132,7 @@ export default function AssetsPage() {
         try {
             const result = await deleteAsset(id);
             if (result.success) {
-                toast.success("Asset eliminato");
+                toast.success("Asset eliminato", { description: childCount > 0 ? result.message : undefined });
                 router.refresh();
             } else {
                 toast.error("Impossibile eliminare l'asset", { description: result.message });
@@ -141,12 +151,12 @@ export default function AssetsPage() {
     return (
         <div className="space-y-4">
             <PageHeader
-                title="Asset e macchinari"
-                description="Gestisci attrezzature e macchinari dello stabilimento."
-                breadcrumb={[{ label: "Operativo" }, { label: "Asset e macchinari" }]}
+                title={t("Asset e macchinari")}
+                description={t("Gestisci attrezzature e macchinari dello stabilimento.")}
+                breadcrumb={[{ label: t("Operativo") }, { label: t("Asset e macchinari") }]}
                 actions={
                     <Button onClick={handleNewClick}>
-                        <Plus className="mr-1.5 h-4 w-4" /> Nuovo asset
+                        <Plus className="mr-1.5 h-4 w-4" /> {t("Nuovo asset")}
                     </Button>
                 }
                 className="mb-2"
@@ -157,8 +167,8 @@ export default function AssetsPage() {
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         className="h-9 pl-9"
-                        placeholder="Cerca per nome, modello, matricola o ubicazione"
-                        aria-label="Cerca asset"
+                        placeholder={t("Cerca per nome, modello, matricola o ubicazione")}
+                        aria-label={t("Cerca asset")}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
@@ -174,16 +184,16 @@ export default function AssetsPage() {
                             className="h-4 w-4 rounded border-input accent-primary"
                         />
                         <Label htmlFor="show-generics" className="cursor-pointer text-sm font-normal text-muted-foreground">
-                            Mostra generici e sicurezza
+                            {t("Mostra generici e sicurezza")}
                         </Label>
                     </div>
                     <SegmentedControl
-                        aria-label="Vista"
+                        aria-label={t("Vista")}
                         value={viewMode}
                         onChange={setViewMode}
                         options={[
-                            { value: "list", label: "Lista", icon: <TableIcon /> },
-                            { value: "tree", label: "Albero", icon: <Network /> },
+                            { value: "list", label: t("Lista"), icon: <TableIcon /> },
+                            { value: "tree", label: t("Albero"), icon: <Network /> },
                         ]}
                     />
                 </div>
@@ -194,14 +204,14 @@ export default function AssetsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow className="hover:bg-transparent">
-                                <TableHead>Asset</TableHead>
-                                <TableHead>Dettagli</TableHead>
-                                <TableHead>Ubicazione</TableHead>
-                                <TableHead>Reparto e linea</TableHead>
-                                <TableHead>Stato</TableHead>
-                                <TableHead>Salute</TableHead>
+                                <TableHead>{t("Asset")}</TableHead>
+                                <TableHead>{t("Dettagli")}</TableHead>
+                                <TableHead>{t("Ubicazione")}</TableHead>
+                                <TableHead>{t("Reparto e linea")}</TableHead>
+                                <TableHead>{t("Stato")}</TableHead>
+                                <TableHead>{t("Salute")}</TableHead>
                                 <TableHead className="w-[120px] text-right">
-                                    <span className="sr-only">Azioni</span>
+                                    <span className="sr-only">{t("Azioni")}</span>
                                 </TableHead>
                             </TableRow>
                         </TableHeader>
@@ -209,7 +219,7 @@ export default function AssetsPage() {
                             {filteredAssets.length === 0 ? (
                                 <TableRow className="hover:bg-transparent">
                                     <TableCell colSpan={7}>
-                                        <EmptyState icon={<Box />} title="Nessun asset trovato" description="Modifica la ricerca oppure aggiungi un nuovo asset." />
+                                        <EmptyState icon={<Box />} title={t("Nessun asset trovato")} description={t("Modifica la ricerca oppure aggiungi un nuovo asset.")} />
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -231,8 +241,8 @@ export default function AssetsPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-xs text-muted-foreground">
-                                                <div>Modello: {asset.model}</div>
-                                                <div className="font-mono">Matricola: {asset.serialNumber}</div>
+                                                <div>{t("Modello: {value}", { value: asset.model })}</div>
+                                                <div className="font-mono">{t("Matricola: {value}", { value: asset.serialNumber })}</div>
                                             </TableCell>
                                             <TableCell className="text-xs text-muted-foreground">
                                                 <div className="flex items-center gap-1.5">
@@ -243,33 +253,33 @@ export default function AssetsPage() {
                                             </TableCell>
                                             <TableCell className="text-xs text-muted-foreground">
                                                 {asset.department && <div>{asset.department}</div>}
-                                                {asset.line && <div>Linea {asset.line}</div>}
-                                                {asset.cespite && <div className="font-mono">Cespite {asset.cespite}</div>}
+                                                {asset.line && <div>{t("Linea {value}", { value: asset.line })}</div>}
+                                                {asset.cespite && <div className="font-mono">{t("Cespite {value}", { value: asset.cespite })}</div>}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col items-start gap-1">
                                                     <AssetStatusBadge status={asset.status} />
-                                                    {stoppedIds.has(asset.id) && <Badge variant="critical">Fermo per guasto</Badge>}
+                                                    {stoppedIds.has(asset.id) && <Badge variant="critical">{t("Fermo per guasto")}</Badge>}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div
                                                     className="flex items-center gap-2"
-                                                    title={score === null ? (health?.reason ? `Salute non valutabile: ${health.reason}` : "Salute non valutabile") : `Salute ${score}%`}
+                                                    title={score === null ? (health?.reason ? t("Salute non valutabile: {reason}", { reason: t(health.reason) }) : t("Salute non valutabile")) : t("Salute {score}%", { score })}
                                                 >
                                                     <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                                                         {tone && score !== null && <div className={cn("h-full rounded-full", toneBarClass[tone])} style={{ width: `${score}%` }} />}
                                                     </div>
-                                                    <span className={cn("text-xs font-medium tabular-nums", score === null && "text-muted-foreground")}>{score === null ? "n.d." : `${score}%`}</span>
+                                                    <span className={cn("text-xs font-medium tabular-nums", score === null && "text-muted-foreground")}>{score === null ? t("n.d.") : `${score}%`}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-0.5">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={(e) => handleEditClick(e, asset)} aria-label={`Modifica ${asset.name}`}>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={(e) => handleEditClick(e, asset)} aria-label={t("Modifica {name}", { name: asset.name })}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>
                                                     {canManage && (
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-critical-strong" onClick={(e) => handleDeleteClick(e, asset.id)} aria-label={`Elimina ${asset.name}`}>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-critical-strong" onClick={(e) => handleDeleteClick(e, asset.id)} aria-label={t("Elimina {name}", { name: asset.name })}>
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     )}
@@ -282,7 +292,7 @@ export default function AssetsPage() {
                                                             setQrAsset(asset);
                                                             setIsQrOpen(true);
                                                         }}
-                                                        aria-label={`Stampa il QR di ${asset.name}`}
+                                                        aria-label={t("Stampa il QR di {name}", { name: asset.name })}
                                                     >
                                                         <Printer className="h-4 w-4" />
                                                     </Button>

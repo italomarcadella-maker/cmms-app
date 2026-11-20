@@ -1,11 +1,12 @@
 /**
  * Turni, giorni e serie senza infortuni. Funzioni pure, senza dipendenze: usate dalle azioni della dashboard.
  */
+import { tk } from '@/lib/i18n/translate';
 
 export const SHIFTS = [
-    { id: 'MORNING', label: 'Mattina', from: 6, to: 14 },
-    { id: 'AFTERNOON', label: 'Pomeriggio', from: 14, to: 22 },
-    { id: 'NIGHT', label: 'Notte', from: 22, to: 6 },
+    { id: 'MORNING', label: tk('Mattina'), from: 6, to: 14 },
+    { id: 'AFTERNOON', label: tk('Pomeriggio'), from: 14, to: 22 },
+    { id: 'NIGHT', label: tk('Notte'), from: 22, to: 6 },
 ] as const;
 
 export type ShiftId = (typeof SHIFTS)[number]['id'];

@@ -20,7 +20,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { format } from "date-fns";
-import { it } from "date-fns/locale";
+import { useT, useDateFnsLocale } from "@/lib/i18n/client";
 import { ShieldAlert, Search, Filter, ArrowRight, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,8 @@ interface SafetyListProps {
 }
 
 export function SafetyList({ requests }: SafetyListProps) {
+    const t = useT();
+    const dfLocale = useDateFnsLocale();
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [priorityFilter, setPriorityFilter] = useState("ALL");
@@ -60,7 +62,7 @@ export function SafetyList({ requests }: SafetyListProps) {
                 <div className="relative w-full sm:w-72">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Cerca segnalazioni..."
+                        placeholder={t("Cerca segnalazioni...")}
                         className="pl-8"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -70,25 +72,25 @@ export function SafetyList({ requests }: SafetyListProps) {
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="w-[140px]">
                             <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
-                            <SelectValue placeholder="Stato" />
+                            <SelectValue placeholder={t("Stato")} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="ALL">Tutti gli stati</SelectItem>
-                            <SelectItem value="OPEN">Aperti</SelectItem>
-                            <SelectItem value="IN_PROGRESS">In Corso</SelectItem>
-                            <SelectItem value="COMPLETED">Risolti</SelectItem>
+                            <SelectItem value="ALL">{t("Tutti gli stati")}</SelectItem>
+                            <SelectItem value="OPEN">{t("Aperti")}</SelectItem>
+                            <SelectItem value="IN_PROGRESS">{t("In Corso")}</SelectItem>
+                            <SelectItem value="COMPLETED">{t("Risolti")}</SelectItem>
                         </SelectContent>
                     </Select>
                     <Select value={priorityFilter} onValueChange={setPriorityFilter}>
                         <SelectTrigger className="w-[140px]">
                             <AlertTriangle className="mr-2 h-4 w-4 text-muted-foreground" />
-                            <SelectValue placeholder="Priorità" />
+                            <SelectValue placeholder={t("Priorità")} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="ALL">Tutte le priorità</SelectItem>
-                            <SelectItem value="STOPPED">CRITICA (Fermo)</SelectItem>
-                            <SelectItem value="HIGH">Alta</SelectItem>
-                            <SelectItem value="MEDIUM">Media</SelectItem>
+                            <SelectItem value="ALL">{t("Tutte le priorità")}</SelectItem>
+                            <SelectItem value="STOPPED">{t("CRITICA (Fermo)")}</SelectItem>
+                            <SelectItem value="HIGH">{t("Alta")}</SelectItem>
+                            <SelectItem value="MEDIUM">{t("Media")}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -98,19 +100,19 @@ export function SafetyList({ requests }: SafetyListProps) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Titolo</TableHead>
-                            <TableHead>Asset</TableHead>
-                            <TableHead>Priorità</TableHead>
-                            <TableHead>Stato</TableHead>
-                            <TableHead>Data</TableHead>
-                            <TableHead className="text-right">Azioni</TableHead>
+                            <TableHead>{t("Titolo")}</TableHead>
+                            <TableHead>{t("Asset")}</TableHead>
+                            <TableHead>{t("Priorità")}</TableHead>
+                            <TableHead>{t("Stato")}</TableHead>
+                            <TableHead>{t("Data")}</TableHead>
+                            <TableHead className="text-right">{t("Azioni")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredRequests.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                                    Nessuna segnalazione trovata.
+                                    {t("Nessuna segnalazione trovata.")}
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -145,12 +147,12 @@ export function SafetyList({ requests }: SafetyListProps) {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground text-sm">
-                                        {format(new Date(req.createdAt), "d MMM yyyy", { locale: it })}
+                                        {format(new Date(req.createdAt), "d MMM yyyy", { locale: dfLocale })}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <Button asChild size="sm" variant="ghost">
                                             <Link href={`/work-orders/${req.id}`}>
-                                                Dettagli <ArrowRight className="ml-1 h-4 w-4" />
+                                                {t("Dettagli")} <ArrowRight className="ml-1 h-4 w-4" />
                                             </Link>
                                         </Button>
                                     </TableCell>

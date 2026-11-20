@@ -1,6 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Loader2, X } from "lucide-react";
 import { getPlants } from "@/lib/actions";
+import { useAssets } from "@/lib/assets-context";
+import { useT, useLocale } from "@/lib/i18n/client";
+import { candidateParents, getAssetPath } from "@/modules/maintenance/domain/asset-hierarchy";
 
 interface AssetFormDialogProps {
     isOpen: boolean;
@@ -10,6 +13,8 @@ interface AssetFormDialogProps {
 }
 
 export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDialogProps) {
+    const t = useT();
+    const locale = useLocale();
     const [loading, setLoading] = useState(false);
     const [prevAsset, setPrevAsset] = useState(asset);
     const [formData, setFormData] = useState(() => ({
@@ -17,6 +22,25 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
         plant: asset?.plantId || asset?.plant
     }));
     const [plants, setPlants] = useState<any[]>([]);
+    const { assets } = useAssets();
+
+    // "Fa parte di": solo gli asset che possono davvero essere padre (stesso stabilimento, non se stesso ne' i suoi componenti)
+    const editingId: string | null = asset?.id ?? null;
+    const selectedPlant: string | null = formData.plant || null;
+    const parentOptions = useMemo(() => {
+        const items = assets.map((a) => ({ id: a.id, name: a.name, parentId: a.parentId ?? null, plantId: a.plantId ?? null }));
+        const known = editingId !== null && items.some((i) => i.id === editingId);
+        const candidates = candidateParents(items, known ? editingId : null, selectedPlant);
+        return candidates
+            .map((c) => ({ id: c.id, label: getAssetPath(items, c.id).map((i) => i.name).join(" > ") }))
+            .sort((x, y) => x.label.localeCompare(y.label, locale));
+    }, [assets, editingId, selectedPlant, locale]);
+    const childCount = editingId ? assets.filter((a) => a.parentId === editingId).length : 0;
+    const originalPlant: string | null = asset?.plantId ?? null;
+    // Il padre scelto vale solo se e' ancora un candidato; quello attuale resta valido finche' lo stabilimento non cambia
+    const currentParent: string | null = formData.parentId || null;
+    const parentIsValid = currentParent !== null && (parentOptions.some((o) => o.id === currentParent) || (currentParent === (asset?.parentId ?? null) && selectedPlant === originalPlant));
+    const parentValue = parentIsValid ? (currentParent as string) : "";
 
     if (asset !== prevAsset) {
         setPrevAsset(asset);
@@ -53,6 +77,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
             id: formData.id || `AST-${Math.floor(Math.random() * 10000)}`,
             // Map 'plant' from select to 'plantId' for the backend
             plant: formData.plant,
+            parentId: parentValue || null,
             location: formData.location || "N/A"
         };
 
@@ -68,10 +93,10 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
             <div className="relative w-full max-w-2xl rounded-lg border bg-background p-6 shadow-lg animate-in zoom-in-95 duration-200">
                 <div className="flex flex-col space-y-1.5 text-center sm:text-left mb-4">
                     <h2 className="text-lg font-semibold leading-none tracking-tight">
-                        {asset.id ? "Modifica Asset" : "Nuovo Asset"}
+                        {asset.id ? t("Modifica Asset") : t("Nuovo Asset")}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                        Inserisci i dettagli del macchinario qui sotto. Clicca salva quando hai finito.
+                        {t("Inserisci i dettagli del macchinario qui sotto. Clicca salva quando hai finito.")}
                     </p>
                 </div>
                 <button
@@ -79,7 +104,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                     className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
                     <X className="h-4 w-4" />
-                    <span className="sr-only">Close</span>
+                    <span className="sr-only">{t("Chiudi")}</span>
                 </button>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,7 +112,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                         {/* Row 0: Type */}
                         <div className="space-y-2">
                             <label htmlFor="type" className="text-sm font-medium">
-                                Tipo Asset
+                                {t("Tipo Asset")}
                             </label>
                             <select
                                 id="type"
@@ -96,11 +121,11 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                                 onChange={(e) => setFormData((prev: any) => ({ ...prev, type: e.target.value }))}
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             >
-                                <option value="MACHINE">Macchinario / Attrezzatura</option>
-                                <option value="FACILITY">Impianto / Struttura</option>
-                                <option value="SAFETY">Sicurezza / DPI</option>
-                                <option value="KAIZEN">Quick Kaizen</option>
-                                <option value="OTHER">Altro / Generico</option>
+                                <option value="MACHINE">{t("Macchinario / Attrezzatura")}</option>
+                                <option value="FACILITY">{t("Impianto / Struttura")}</option>
+                                <option value="SAFETY">{t("Sicurezza / DPI")}</option>
+                                <option value="KAIZEN">{t("Quick Kaizen")}</option>
+                                <option value="OTHER">{t("Altro / Generico")}</option>
                             </select>
                         </div>
 
@@ -108,7 +133,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label htmlFor="name" className="text-sm font-medium">
-                                    Nome Asset
+                                    {t("Nome Asset")}
                                 </label>
                                 <input
                                     id="name"
@@ -117,12 +142,12 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                                     onChange={handleChange}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                     required
-                                    placeholder="es. Pressa Idraulica"
+                                    placeholder={t("es. Pressa Idraulica")}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="model" className="text-sm font-medium">
-                                    Modello
+                                    {t("Modello")}
                                 </label>
                                 <input
                                     id="model"
@@ -131,7 +156,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                                     onChange={handleChange}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                     required
-                                    placeholder="es. X-2000"
+                                    placeholder={t("es. X-2000")}
                                 />
                             </div>
                         </div>
@@ -140,7 +165,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label htmlFor="serialNumber" className="text-sm font-medium">
-                                    Seriale
+                                    {t("Seriale")}
                                 </label>
                                 <input
                                     id="serialNumber"
@@ -149,12 +174,12 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                                     onChange={handleChange}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                     required
-                                    placeholder="es. SN-123456"
+                                    placeholder={t("es. SN-123456")}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="vendor" className="text-sm font-medium">
-                                    Costruttore
+                                    {t("Costruttore")}
                                 </label>
                                 <input
                                     id="vendor"
@@ -163,7 +188,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                                     onChange={handleChange}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                     required
-                                    placeholder="es. Acme Corp"
+                                    placeholder={t("es. Acme Corp")}
                                 />
                             </div>
                         </div>
@@ -172,7 +197,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label htmlFor="plant" className="text-sm font-medium">
-                                    Stabilimento
+                                    {t("Stabilimento")}
                                 </label>
                                 <select
                                     id="plant"
@@ -181,18 +206,25 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                                     onChange={handleChange}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                     required
+                                    disabled={childCount > 0}
+                                    aria-describedby={childCount > 0 ? "plant-locked-hint" : undefined}
                                 >
-                                    <option value="">Seleziona stabilimento...</option>
+                                    <option value="">{t("Seleziona stabilimento...")}</option>
                                     {plants.map((p) => (
                                         <option key={p.id} value={p.id}>
                                             {p.name}
                                         </option>
                                     ))}
                                 </select>
+                                {childCount > 0 && (
+                                    <p id="plant-locked-hint" className="text-xs text-muted-foreground">
+                                        {t("Lo stabilimento non si cambia finché l'asset ha componenti collegati ({count}).", { count: childCount })}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="department" className="text-sm font-medium">
-                                    Reparto
+                                    {t("Reparto")}
                                 </label>
                                 <input
                                     id="department"
@@ -201,16 +233,41 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                                     onChange={handleChange}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                     required
-                                    placeholder="es. Produzione"
+                                    placeholder={t("es. Produzione")}
                                 />
                             </div>
+                        </div>
+
+                        {/* Gerarchia: macchina -> gruppo -> componente */}
+                        <div className="space-y-2">
+                            <label htmlFor="parentId" className="text-sm font-medium">
+                                {t("Fa parte di")} <span className="font-normal text-muted-foreground">{t("(facoltativo)")}</span>
+                            </label>
+                            <select
+                                id="parentId"
+                                name="parentId"
+                                value={parentValue}
+                                onChange={(e) => setFormData((prev: any) => ({ ...prev, parentId: e.target.value || null }))}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                aria-describedby="parent-hint"
+                            >
+                                <option value="">{t("Nessuno (macchina principale)")}</option>
+                                {parentOptions.map((o) => (
+                                    <option key={o.id} value={o.id}>
+                                        {o.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p id="parent-hint" className="text-xs text-muted-foreground">
+                                {t("Per un gruppo o un componente: scegli la macchina o il gruppo di cui fa parte (stesso stabilimento, al massimo 6 livelli).")}
+                            </p>
                         </div>
 
                         {/* Row 4: Line & Cespite */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label htmlFor="line" className="text-sm font-medium">
-                                    Linea
+                                    {t("Linea")}
                                 </label>
                                 <input
                                     id="line"
@@ -218,12 +275,12 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                                     value={formData.line || ''}
                                     onChange={handleChange}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    placeholder="es. Linea Assemblaggio 1"
+                                    placeholder={t("es. Linea Assemblaggio 1")}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="cespite" className="text-sm font-medium">
-                                    Cespite
+                                    {t("Cespite")}
                                 </label>
                                 <input
                                     id="cespite"
@@ -231,7 +288,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                                     value={formData.cespite || ''}
                                     onChange={handleChange}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    placeholder="es. CSP-2024-001"
+                                    placeholder={t("es. CSP-2024-001")}
                                 />
                             </div>
                         </div>
@@ -240,7 +297,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label htmlFor="status" className="text-sm font-medium">
-                                    Stato
+                                    {t("Stato")}
                                 </label>
                                 <select
                                     id="status"
@@ -249,10 +306,10 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                                     onChange={(e) => setFormData((prev: any) => ({ ...prev, status: e.target.value }))}
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                 >
-                                    <option value="OPERATIONAL">In Uso (Operational)</option>
-                                    <option value="MAINTENANCE">In Manutenzione</option>
-                                    <option value="STORAGE">Accantonato</option>
-                                    <option value="DECOMMISSIONED">Rottamato</option>
+                                    <option value="OPERATIONAL">{t("In Uso")}</option>
+                                    <option value="MAINTENANCE">{t("In Manutenzione")}</option>
+                                    <option value="STORAGE">{t("Accantonato")}</option>
+                                    <option value="DECOMMISSIONED">{t("Rottamato")}</option>
                                 </select>
                             </div>
                         </div>
@@ -264,7 +321,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                             onClick={onClose}
                             className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 mt-2 sm:mt-0"
                         >
-                            Annulla
+                            {t("Annulla")}
                         </button>
                         <button
                             type="submit"
@@ -272,7 +329,7 @@ export function AssetFormDialog({ isOpen, onClose, asset, onSave }: AssetFormDia
                             className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
                         >
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Salva
+                            {t("Salva")}
                         </button>
                     </div>
                 </form>

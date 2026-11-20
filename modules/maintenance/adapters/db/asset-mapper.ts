@@ -19,7 +19,8 @@ export class AssetMapper {
             healthScore: prismaAsset.healthScore,
             lastMaintenance: prismaAsset.lastMaintenance,
             type: prismaAsset.type as AssetType,
-            warrantyExpiration: prismaAsset.warrantyExpiration
+            warrantyExpiration: prismaAsset.warrantyExpiration,
+            parentId: prismaAsset.parentId
         });
     }
 
@@ -39,7 +40,8 @@ export class AssetMapper {
             healthScore: domainAsset.healthScore,
             lastMaintenance: domainAsset.lastMaintenance || null,
             type: domainAsset.type as PrismaAssetType,
-            warrantyExpiration: domainAsset.warrantyExpiration || null
+            warrantyExpiration: domainAsset.warrantyExpiration || null,
+            parentId: domainAsset.parentId || null
         };
 
         if (domainAsset.id) {

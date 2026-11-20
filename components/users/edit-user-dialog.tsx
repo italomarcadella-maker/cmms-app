@@ -23,7 +23,8 @@ import {
 import { updateUser } from '@/lib/actions';
 import { PlantPicker, type PlantChoice } from './plant-picker';
 import { Pencil } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
+import { useT } from '@/lib/i18n/client';
 
 interface EditUserDialogProps {
     user: {
@@ -39,6 +40,7 @@ interface EditUserDialogProps {
 }
 
 export function EditUserDialog({ user, plants = [] }: EditUserDialogProps) {
+    const t = useT();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -80,21 +82,21 @@ export function EditUserDialog({ user, plants = [] }: EditUserDialogProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" title="Modifica Utente">
+                <Button variant="ghost" size="icon" title={t("Modifica Utente")} aria-label={t("Modifica Utente")}>
                     <Pencil className="h-4 w-4" />
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[460px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Modifica Profilo Utente</DialogTitle>
+                    <DialogTitle>{t("Modifica Profilo Utente")}</DialogTitle>
                     <DialogDescription>
-                        Aggiorna i dati anagrafici e il reparto dell'utente.
+                        {t("Aggiorna i dati anagrafici e il reparto dell'utente.")}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="name" className="text-right">
-                            Nome
+                            {t("Nome")}
                         </Label>
                         <Input
                             id="name"
@@ -106,7 +108,7 @@ export function EditUserDialog({ user, plants = [] }: EditUserDialogProps) {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="email" className="text-right">
-                            Email
+                            {t("Email")}
                         </Label>
                         <Input
                             id="email"
@@ -119,42 +121,43 @@ export function EditUserDialog({ user, plants = [] }: EditUserDialogProps) {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="department" className="text-right">
-                            Reparto
+                            {t("Reparto")}
                         </Label>
                         <Select value={department} onValueChange={setDepartment}>
                             <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Seleziona Reparto" />
+                                <SelectValue placeholder={t("Seleziona Reparto")} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="Manutenzione Meccanica">Manutenzione Meccanica</SelectItem>
-                                <SelectItem value="Manutenzione Elettrica">Manutenzione Elettrica</SelectItem>
-                                <SelectItem value="Produzione">Produzione</SelectItem>
-                                <SelectItem value="Ufficio Tecnico">Ufficio Tecnico</SelectItem>
-                                <SelectItem value="Amministrazione">Amministrazione</SelectItem>
-                                <SelectItem value="Altro">Altro</SelectItem>
+                                <SelectItem value="Manutenzione Meccanica">{t("Manutenzione Meccanica")}</SelectItem>
+                                <SelectItem value="Manutenzione Elettrica">{t("Manutenzione Elettrica")}</SelectItem>
+                                <SelectItem value="Produzione">{t("Produzione")}</SelectItem>
+                                <SelectItem value="Ufficio Tecnico">{t("Ufficio Tecnico")}</SelectItem>
+                                <SelectItem value="Amministrazione">{t("Amministrazione")}</SelectItem>
+                                <SelectItem value="Altro">{t("Altro")}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="role" className="text-right">
-                            Ruolo
+                            {t("Ruolo")}
                         </Label>
                         <Select value={role} onValueChange={setRole}>
                             <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Seleziona Ruolo" />
+                                <SelectValue placeholder={t("Seleziona Ruolo")} />
                             </SelectTrigger>
                             <SelectContent className="bg-white">
-                                <SelectItem value="USER">User</SelectItem>
-                                <SelectItem value="MAINTAINER">Manutentore</SelectItem>
-                                <SelectItem value="PROCESS_ENGINEER">Ingegnere di Processo</SelectItem>
-                                <SelectItem value="SUPERVISOR">Supervisor</SelectItem>                                <SelectItem value="PLANT_MANAGER">Responsabile di plant</SelectItem>
-                                <SelectItem value="ADMIN">Admin</SelectItem>
+                                <SelectItem value="USER">{t("User")}</SelectItem>
+                                <SelectItem value="MAINTAINER">{t("Manutentore")}</SelectItem>
+                                <SelectItem value="PROCESS_ENGINEER">{t("Ingegnere di Processo")}</SelectItem>
+                                <SelectItem value="SUPERVISOR">{t("Supervisor")}</SelectItem>
+                                <SelectItem value="PLANT_MANAGER">{t("Responsabile di plant")}</SelectItem>
+                                <SelectItem value="ADMIN">{t("Admin")}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="image" className="text-right">
-                            Foto URL
+                            {t("Foto URL")}
                         </Label>
                         <Input
                             id="image"
@@ -167,7 +170,7 @@ export function EditUserDialog({ user, plants = [] }: EditUserDialogProps) {
                     <PlantPicker plants={plants} value={plantIds} onChange={setPlantIds} isAdminRole={role === 'ADMIN'} />
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>
-                            {loading ? "Salvataggio..." : "Salva Modifiche"}
+                            {loading ? t("Salvataggio...") : t("Salva Modifiche")}
                         </Button>
                     </DialogFooter>
                 </form>

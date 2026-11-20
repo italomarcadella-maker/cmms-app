@@ -6,10 +6,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { requireRole } from "@/lib/auth-guard";
 import { redirect } from "next/navigation";
 import { getAssets } from "@/lib/actions";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = 'force-dynamic';
 
 export default async function ReportsPage() {
+    const { t } = await getT();
     const { authorized } = await requireRole(['ADMIN', 'PLANT_MANAGER', 'SUPERVISOR', 'PROCESS_ENGINEER']);
     if (!authorized) redirect('/');
 
@@ -18,13 +20,13 @@ export default async function ReportsPage() {
     return (
         <div className="mx-auto max-w-3xl space-y-6">
             <PageHeader
-                title="Schede asset"
-                description="Scheda di manutenzione di un macchinario, con cronologia degli interventi e costi, pronta da stampare o salvare in PDF per gli audit."
+                title={t("Schede asset")}
+                description={t("Scheda di manutenzione di un macchinario, con cronologia degli interventi e costi, pronta da stampare o salvare in PDF per gli audit.")}
             />
             <Card>
                 <CardContent className="p-2">
                     {assets.length === 0 ? (
-                        <EmptyState title="Nessun asset" description="Le schede si generano dagli asset registrati." />
+                        <EmptyState title={t("Nessun asset")} description={t("Le schede si generano dagli asset registrati.")} />
                     ) : (
                         <ul className="divide-y">
                             {assets.map((asset: { id: string; name: string; location?: string }) => (

@@ -16,8 +16,9 @@ import { DeleteUserDialog } from "./delete-user-dialog";
 import { EditUserDialog } from "./edit-user-dialog";
 import { Switch } from "@/components/ui/switch";
 import { updateUserStatus } from "@/lib/actions";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { useRouter } from "next/navigation";
+import { useT, useFormat } from "@/lib/i18n/client";
 import type { PlantChoice } from "./plant-picker";
 
 interface User {
@@ -38,6 +39,8 @@ interface UserListProps {
 }
 
 export function UserList({ users, plants = [] }: UserListProps) {
+    const t = useT();
+    const fmt = useFormat();
     const router = useRouter();
 
     const handleStatusChange = async (userId: string, currentStatus: boolean) => {
@@ -59,14 +62,14 @@ export function UserList({ users, plants = [] }: UserListProps) {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[80px]">Avatar</TableHead>
-                        <TableHead>Utente</TableHead>
-                        <TableHead>Reparto</TableHead>
-                        <TableHead>Stabilimenti</TableHead>
-                        <TableHead>Stato</TableHead>
-                        <TableHead>Ruolo</TableHead>
-                        <TableHead>Ultimo Accesso</TableHead>
-                        <TableHead className="text-right">Azioni</TableHead>
+                        <TableHead className="w-[80px]">{t("Avatar")}</TableHead>
+                        <TableHead>{t("Utente")}</TableHead>
+                        <TableHead>{t("Reparto")}</TableHead>
+                        <TableHead>{t("Stabilimenti")}</TableHead>
+                        <TableHead>{t("Stato")}</TableHead>
+                        <TableHead>{t("Ruolo")}</TableHead>
+                        <TableHead>{t("Ultimo Accesso")}</TableHead>
+                        <TableHead className="text-right">{t("Azioni")}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -80,20 +83,20 @@ export function UserList({ users, plants = [] }: UserListProps) {
                             </TableCell>
                             <TableCell>
                                 <div className="flex flex-col">
-                                    <span className="font-medium">{user.name || 'N/A'}</span>
+                                    <span className="font-medium">{user.name || t("N/D")}</span>
                                     <span className="text-xs text-muted-foreground">{user.email}</span>
                                 </div>
                             </TableCell>
                             <TableCell>
                                 {user.department ? (
-                                    <Badge variant="outline">{user.department}</Badge>
+                                    <Badge variant="outline">{t(user.department)}</Badge>
                                 ) : (
                                     <span className="text-muted-foreground text-xs">-</span>
                                 )}
                             </TableCell>
                             <TableCell>
                                 {user.role === 'ADMIN' ? (
-                                    <Badge variant="secondary">Tutti</Badge>
+                                    <Badge variant="secondary">{t("Tutti")}</Badge>
                                 ) : (user.plantIds ?? []).length > 0 ? (
                                     <div className="flex flex-wrap gap-1">
                                         {(user.plantIds ?? []).map(id => (
@@ -101,7 +104,7 @@ export function UserList({ users, plants = [] }: UserListProps) {
                                         ))}
                                     </div>
                                 ) : (
-                                    <span className="text-xs font-medium text-warning-strong">Nessuno: non vede dati</span>
+                                    <span className="text-xs font-medium text-warning-strong">{t("Nessuno: non vede dati")}</span>
                                 )}
                             </TableCell>
                             <TableCell>
@@ -111,7 +114,7 @@ export function UserList({ users, plants = [] }: UserListProps) {
                                         onCheckedChange={() => handleStatusChange(user.id, user.isActive)}
                                     />
                                     <span className="text-xs text-muted-foreground">
-                                        {user.isActive ? 'Attivo' : 'Inattivo'}
+                                        {user.isActive ? t("Attivo") : t("Inattivo")}
                                     </span>
                                 </div>
                             </TableCell>
@@ -119,7 +122,7 @@ export function UserList({ users, plants = [] }: UserListProps) {
                                 <RoleSelector userId={user.id} currentRole={user.role} />
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
-                                {user.lastLogin ? new Date(user.lastLogin).toLocaleString('it-IT') : 'Mai'}
+                                {user.lastLogin ? fmt.dateTime(user.lastLogin) : t("Mai")}
                             </TableCell>
                             <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
@@ -132,8 +135,8 @@ export function UserList({ users, plants = [] }: UserListProps) {
                                         role: user.role,
                                         plantIds: user.plantIds
                                     }} plants={plants} />
-                                    <ChangePasswordDialog userId={user.id} userName={user.name || user.email || 'Utente'} />
-                                    <DeleteUserDialog userId={user.id} userName={user.name || user.email || 'Utente'} />
+                                    <ChangePasswordDialog userId={user.id} userName={user.name || user.email || t("Utente")} />
+                                    <DeleteUserDialog userId={user.id} userName={user.name || user.email || t("Utente")} />
                                 </div>
                             </TableCell>
                         </TableRow>

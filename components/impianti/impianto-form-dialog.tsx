@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { usePlant } from "@/lib/plant-context";
 import { addAsset } from "@/lib/actions";
+import { useAssets } from "@/lib/assets-context";
 
 /**
  * Crea un impianto tecnologico (un asset di tipo "impianto/struttura"). Gli impianti si raggruppano per nome:
@@ -22,6 +24,7 @@ export function ImpiantoFormDialog({ trigger, existingNames, defaultImpianto, on
     defaultImpianto?: string;
     onSaved: () => void;
 }) {
+    const t = useT();
     const [open, setOpen] = useState(false);
     const adding = !!defaultImpianto;
     return (
@@ -29,11 +32,11 @@ export function ImpiantoFormDialog({ trigger, existingNames, defaultImpianto, on
             <DialogTrigger asChild>{trigger}</DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>{adding ? `Aggiungi un componente a «${defaultImpianto}»` : "Nuovo impianto"}</DialogTitle>
+                    <DialogTitle>{adding ? t("Aggiungi un componente a «{name}»", { name: defaultImpianto ?? "" }) : t("Nuovo impianto")}</DialogTitle>
                     <DialogDescription>
                         {adding
-                            ? "Il componente (per esempio un compressore o un essiccatore) comparirà nella scheda di questo impianto."
-                            : "Per esempio «Aria compressa» o «Cabina elettrica». Potrai poi aggiungere i componenti, le manutenzioni, i contatori e le ditte a contratto."}
+                            ? t("Il componente (per esempio un compressore o un essiccatore) comparirà nella scheda di questo impianto.")
+                            : t("Per esempio «Aria compressa» o «Cabina elettrica». Potrai poi aggiungere i componenti, le manutenzioni, i contatori e le ditte a contratto.")}
                     </DialogDescription>
                 </DialogHeader>
                 {open && <Form existingNames={existingNames} defaultImpianto={defaultImpianto} onDone={() => { setOpen(false); onSaved(); }} />}
@@ -43,7 +46,10 @@ export function ImpiantoFormDialog({ trigger, existingNames, defaultImpianto, on
 }
 
 function Form({ existingNames, defaultImpianto, onDone }: { existingNames: string[]; defaultImpianto?: string; onDone: () => void }) {
+    const t = useT();
     const { plants, activePlant } = usePlant();
+    // L'elenco e l'albero degli asset sono in memoria e si aggiornano ogni 2 minuti: dopo aver creato l'impianto si aggiornano subito
+    const { refreshAssets } = useAssets();
     const adding = !!defaultImpianto;
     const [impianto, setImpianto] = useState(defaultImpianto ?? "");
     const [name, setName] = useState("");
@@ -58,12 +64,14 @@ function Form({ existingNames, defaultImpianto, onDone }: { existingNames: strin
         const group = impianto.trim();
         // Per un nuovo impianto il nome dell'impianto e' anche il nome del componente, salvo che l'utente ne indichi uno diverso
         const assetName = (adding ? name : name.trim() || group).trim();
-        if (!group || !assetName) { toast.error("Indica il nome dell'impianto."); return; }
-        if (plants.length > 1 && !plantId) { toast.error("Scegli lo stabilimento."); return; }
+        if (!group || !assetName) { toast.error(t("Indica il nome dell'impianto.")); return; }
+        if (plants.length > 1 && !plantId) { toast.error(t("Scegli lo stabilimento.")); return; }
         setBusy(true);
         const res = await addAsset({
             name: assetName,
             line: group,
+            // Nell'albero degli asset gli impianti stanno nel reparto "Impianti", separati dalle linee di produzione
+            department: "Impianti",
             type: "FACILITY",
             location: location.trim() || "Non indicata",
             model: model.trim() || "Non indicato",
@@ -73,7 +81,7 @@ function Form({ existingNames, defaultImpianto, onDone }: { existingNames: strin
             status: "OPERATIONAL",
         });
         setBusy(false);
-        if (res.success) { toast.success(adding ? "Componente aggiunto." : "Impianto creato."); onDone(); } else toast.error(res.message ?? "Operazione non riuscita.");
+        if (res.success) { toast.success(adding ? t("Componente aggiunto.") : t("Impianto creato.")); await refreshAssets(); onDone(); } else toast.error(res.message ?? t("Operazione non riuscita."));
     };
 
     const listId = "impianti-existing";
@@ -81,31 +89,31 @@ function Form({ existingNames, defaultImpianto, onDone }: { existingNames: strin
         <form onSubmit={submit} className="grid gap-3">
             {plants.length > 1 && (
                 <div className="grid gap-1.5">
-                    <Label>Stabilimento</Label>
+                    <Label>{t("Stabilimento")}</Label>
                     <Select value={plantId} onValueChange={setPlantId}>
-                        <SelectTrigger><SelectValue placeholder="Scegli lo stabilimento" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder={t("Scegli lo stabilimento")} /></SelectTrigger>
                         <SelectContent>{plants.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
             )}
             <div className="grid gap-1.5">
-                <Label htmlFor="i-group">Impianto</Label>
-                <Input id="i-group" list={listId} value={impianto} onChange={(e) => setImpianto(e.target.value)} placeholder="Es. Aria compressa" required readOnly={adding} />
+                <Label htmlFor="i-group">{t("Impianto")}</Label>
+                <Input id="i-group" list={listId} value={impianto} onChange={(e) => setImpianto(e.target.value)} placeholder={t("Es. Aria compressa")} required readOnly={adding} />
                 <datalist id={listId}>{existingNames.map(n => <option key={n} value={n} />)}</datalist>
             </div>
             <div className="grid gap-1.5">
-                <Label htmlFor="i-name">{adding ? "Componente" : "Componente principale (facoltativo)"}</Label>
-                <Input id="i-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={adding ? "Es. Compressore 2" : "Se vuoto, usa il nome dell'impianto"} required={adding} />
+                <Label htmlFor="i-name">{adding ? t("Componente") : t("Componente principale (facoltativo)")}</Label>
+                <Input id="i-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={adding ? t("Es. Compressore 2") : t("Se vuoto, usa il nome dell'impianto")} required={adding} />
             </div>
             <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5"><Label htmlFor="i-loc">Posizione</Label><Input id="i-loc" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Es. Locale tecnico" /></div>
-                <div className="grid gap-1.5"><Label htmlFor="i-model">Modello</Label><Input id="i-model" value={model} onChange={(e) => setModel(e.target.value)} /></div>
+                <div className="grid gap-1.5"><Label htmlFor="i-loc">{t("Posizione")}</Label><Input id="i-loc" value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("Es. Locale tecnico")} /></div>
+                <div className="grid gap-1.5"><Label htmlFor="i-model">{t("Modello")}</Label><Input id="i-model" value={model} onChange={(e) => setModel(e.target.value)} /></div>
             </div>
             <div className="grid gap-1.5">
-                <Label htmlFor="i-serial">Matricola</Label>
-                <Input id="i-serial" value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="Se vuota ne viene generata una interna" />
+                <Label htmlFor="i-serial">{t("Matricola")}</Label>
+                <Input id="i-serial" value={serial} onChange={(e) => setSerial(e.target.value)} placeholder={t("Se vuota ne viene generata una interna")} />
             </div>
-            <DialogFooter><Button type="submit" disabled={busy}>{busy ? "Salvataggio..." : "Salva"}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" disabled={busy}>{busy ? t("Salvataggio...") : t("Salva")}</Button></DialogFooter>
         </form>
     );
 }

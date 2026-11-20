@@ -3,6 +3,7 @@ import { CheckCircle2, ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getT } from "@/lib/i18n/server";
 import type { AttentionItem, AttentionSeverity } from "@/modules/maintenance/adapters/actions/attention-actions";
 
 const DOT: Record<AttentionSeverity, string> = {
@@ -12,21 +13,22 @@ const DOT: Record<AttentionSeverity, string> = {
 };
 
 /** Le poche cose da guardare subito, in ordine di gravità. */
-export function AttentionCard({ items }: { items: AttentionItem[] }) {
+export async function AttentionCard({ items }: { items: AttentionItem[] }) {
+    const { t } = await getT();
     const urgent = items.filter(i => i.severity !== "info").length;
 
     return (
         <Card className="flex flex-col gap-2 p-4">
             <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold">Richiede attenzione</h3>
+                <h3 className="text-sm font-semibold">{t("Richiede attenzione")}</h3>
                 {urgent > 0 && <Badge variant="critical">{urgent}</Badge>}
             </div>
 
             {items.length === 0 ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
                     <CheckCircle2 className="h-8 w-8 text-success-strong" aria-hidden />
-                    <p className="text-sm font-medium">Tutto sotto controllo</p>
-                    <p className="max-w-[220px] text-xs text-muted-foreground">Nessun fermo, ritardo o scadenza da seguire in questo momento.</p>
+                    <p className="text-sm font-medium">{t("Tutto sotto controllo")}</p>
+                    <p className="max-w-[220px] text-xs text-muted-foreground">{t("Nessun fermo, ritardo o scadenza da seguire in questo momento.")}</p>
                 </div>
             ) : (
                 <ul className="-mx-2 divide-y">

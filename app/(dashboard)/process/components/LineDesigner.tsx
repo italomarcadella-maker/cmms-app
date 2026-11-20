@@ -3,9 +3,19 @@
 import React, { useState, useRef, useCallback } from "react";
 import { C, LAYOUTS, lPos, mkSt, SCOLS } from "@/lib/fpes-utils";
 import { Plus, RotateCcw, Trash2, X, Shuffle, Combine } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
+
+// Compone una frase tradotta con segnaposto {nome} resi in grassetto (la traduzione puo' spostarli liberamente)
+function richText(template: string, vals: Record<string, React.ReactNode>) {
+  return template.split(/(\{\w+\})/).map((part, i) => {
+    const m = part.match(/^\{(\w+)\}$/);
+    return m && m[1] in vals ? <strong key={i} className="text-slate-900 font-semibold">{vals[m[1]]}</strong> : part;
+  });
+}
 
 export default function LineDesigner({ project, upd }: { project: any; upd: (patch: any) => void }) {
+  const t = useT();
   const [drag, setDrag] = useState<any>(null);
   const [sel, setSel] = useState<any>(null);
   const [snap, setSnap] = useState(true);
@@ -74,7 +84,7 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
         recuperiAdeg: true,
         attivita: [{
           id: "_" + Math.random().toString(36).slice(2, 9),
-          nome: "Attività base",
+          nome: t("Attività base"),
           desc: "",
           durataSec: s.cicloS,
           tipoVA: "VA",
@@ -101,12 +111,12 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
       ...(newMuriMuda ? { murimuda: newMuriMuda } : {})
     });
     setSel(s.id);
-    toast.success(`Aggiunta postazione ${s.nome}!`);
+    toast.success(t("Aggiunta postazione {name}!", { name: s.nome }));
   };
 
   const handleDeleteClick = (id: string) => {
     if (project.stazioni.length <= 1) {
-      toast.error("Impossibile eliminare: la linea deve avere almeno una postazione.");
+      toast.error(t("Impossibile eliminare: la linea deve avere almeno una postazione."));
       return;
     }
     const st = project.stazioni.find((s: any) => s.id === id);
@@ -233,7 +243,7 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
     const sumC = active.reduce((s: number, st: any) => s + st.cicloS, 0);
     const lineEff = bot.cicloS > 0 ? Math.round((sumC / (n * bot.cicloS)) * 100) : 0;
     
-    toast.success(`Linea Ribilanciata! Nuovo Bottleneck: ${bot.nome} (${bot.cicloS}s), Nuova Efficienza: ${lineEff}%`);
+    toast.success(t("Linea Ribilanciata! Nuovo Bottleneck: {name} ({s}s), Nuova Efficienza: {eff}%", { name: bot.nome, s: bot.cicloS, eff: lineEff }));
     
     setRebalanceSt(null);
     if (sel === rebalanceSt.id) setSel(null);
@@ -255,18 +265,18 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
     <div className="w-full">
       <div className="flex items-center gap-4 mb-4">
         <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-          Line Designer — {(LAYOUTS as any)[project.layout]?.label || project.layout}
+          {t("Line Designer — {layout}", { layout: (LAYOUTS as any)[project.layout]?.label ? t((LAYOUTS as any)[project.layout].label) : project.layout })}
         </h2>
         <div className="flex gap-2 ml-auto">
           <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer mr-2">
             <input type="checkbox" checked={snap} onChange={(e) => setSnap(e.target.checked)} className="rounded" />
-            Snap to Grid
+            {t("Snap to Grid")}
           </label>
           <button onClick={resetL} className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold transition-colors border">
-            <RotateCcw className="h-3 w-3" /> Reset
+            <RotateCcw className="h-3 w-3" /> {t("Reset")}
           </button>
           <button onClick={addSt} className="flex items-center gap-1 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg font-semibold transition-colors">
-            <Plus className="h-3 w-3" /> Postazione
+            <Plus className="h-3 w-3" /> {t("Postazione")}
           </button>
         </div>
       </div>
@@ -322,12 +332,12 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
             <div className="bg-white border rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-right-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-3 h-3 rounded-[3px]" style={{ background: selSt2.colore }}/>
-                <h3 className="font-bold text-sm text-slate-800 truncate">Proprietà Postazione</h3>
+                <h3 className="font-bold text-sm text-slate-800 truncate">{t("Proprietà Postazione")}</h3>
                 <button 
                   onClick={() => handleDeleteClick(sel)}
                   disabled={project.stazioni.length <= 1}
                   className={`ml-auto p-1 rounded-md transition-colors ${project.stazioni.length <= 1 ? 'text-slate-300 cursor-not-allowed' : 'text-red-400 hover:text-red-600 hover:bg-red-50'}`}
-                  title={project.stazioni.length <= 1 ? "La linea deve contenere almeno 1 postazione" : "Elimina postazione"}
+                  title={project.stazioni.length <= 1 ? t("La linea deve contenere almeno 1 postazione") : t("Elimina postazione")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -335,26 +345,26 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nome</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">{t("Nome")}</label>
                   <input type="text" value={selSt2.nome} onChange={e => upd({ stazioni: project.stazioni.map((s:any) => s.id === sel ? { ...s, nome: e.target.value } : s) })} className="w-full border rounded-md p-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Operazione</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">{t("Operazione")}</label>
                   <input type="text" value={selSt2.operazione} onChange={e => upd({ stazioni: project.stazioni.map((s:any) => s.id === sel ? { ...s, operazione: e.target.value } : s) })} className="w-full border rounded-md p-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Ciclo (s)</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">{t("Ciclo (s)")}</label>
                     <input type="number" min={1} value={selSt2.cicloS} onChange={e => upd({ stazioni: project.stazioni.map((s:any) => s.id === sel ? { ...s, cicloS: parseInt(e.target.value) || 0 } : s) })} className="w-full border rounded-md p-1.5 text-xs font-mono" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Operatori</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">{t("Operatori")}</label>
                     <input type="number" min={1} max={10} value={selSt2.operatori} onChange={e => upd({ stazioni: project.stazioni.map((s:any) => s.id === sel ? { ...s, operatori: parseInt(e.target.value) || 1 } : s) })} className="w-full border rounded-md p-1.5 text-xs font-mono" />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Colore</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">{t("Colore")}</label>
                   <div className="flex gap-1.5 flex-wrap">
                     {SCOLS.map(col => (
                       <button 
@@ -375,7 +385,7 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
                       onChange={e => upd({ stazioni: project.stazioni.map((s:any) => s.id === sel ? { ...s, attiva: e.target.checked } : s) })}
                       className="rounded text-blue-600 focus:ring-blue-500" 
                     />
-                    Postazione Attiva
+                    {t("Postazione Attiva")}
                   </label>
                 </div>
               </div>
@@ -383,7 +393,7 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
           ) : (
             <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-center h-48 text-slate-400">
               <span className="text-2xl mb-2 block">👆</span>
-              <p className="text-xs font-medium">Seleziona una postazione nel layout per modificarla</p>
+              <p className="text-xs font-medium">{t("Seleziona una postazione nel layout per modificarla")}</p>
             </div>
           )}
         </div>
@@ -398,7 +408,7 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
             
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <span>⚡</span> Ribilanciamento Linea
+                <span>⚡</span> {t("Ribilanciamento Linea")}
               </h3>
               <button 
                 onClick={() => setRebalanceSt(null)}
@@ -410,8 +420,7 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
             
             <div className="mb-6">
               <p className="text-sm text-slate-600">
-                Stai eliminando la postazione <strong className="text-slate-900 font-semibold">{rebalanceSt.nome}</strong>.
-                Come vuoi gestire il suo carico di lavoro di <strong className="text-slate-900 font-semibold">{rebalanceSt.cicloS}s</strong> e le sue attività?
+                {richText(t("Stai eliminando la postazione {name}. Come vuoi gestire il suo carico di lavoro di {sec}s e le sue attività?"), { name: rebalanceSt.nome, sec: rebalanceSt.cicloS })}
               </p>
             </div>
 
@@ -425,9 +434,9 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
                   <Shuffle className="h-5 w-5 animate-pulse" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Ribilanciamento Automatico (Smart)</h4>
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{t("Ribilanciamento Automatico (Smart)")}</h4>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Suddivide equamente i tempi ({rebalanceSt.cicloS}s) e distribuisce a rotazione le attività MURI-MUDA sulle postazioni rimanenti.
+                    {t("Suddivide equamente i tempi ({sec}s) e distribuisce a rotazione le attività MURI-MUDA sulle postazioni rimanenti.", { sec: rebalanceSt.cicloS })}
                   </p>
                 </div>
               </button>
@@ -439,14 +448,14 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
                     <Combine className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Fusione con Postazione</h4>
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{t("Fusione con Postazione")}</h4>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      Trasferisce l'intero carico di lavoro e tutte le attività dettagliate in una postazione adiacente specifica.
+                      {t("Trasferisce l'intero carico di lavoro e tutte le attività dettagliate in una postazione adiacente specifica.")}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pl-10">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Destinatario:</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("Destinatario:")}</label>
                   <select
                     value={rebalanceTarget}
                     onChange={(e) => setRebalanceTarget(e.target.value)}
@@ -465,7 +474,7 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
                     disabled={!rebalanceTarget}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Fondi
+                    {t("Fondi")}
                   </button>
                 </div>
               </div>
@@ -479,9 +488,9 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
                   <Trash2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider text-red-700">Elimina e Scarta</h4>
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider text-red-700">{t("Elimina e Scarta")}</h4>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Cancella definitivamente la postazione senza redistribuire tempi o attività (perdita dei dati di questa stazione).
+                    {t("Cancella definitivamente la postazione senza redistribuire tempi o attività (perdita dei dati di questa stazione).")}
                   </p>
                 </div>
               </button>
@@ -492,7 +501,7 @@ export default function LineDesigner({ project, upd }: { project: any; upd: (pat
                 onClick={() => setRebalanceSt(null)}
                 className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold transition-colors"
               >
-                Annulla
+                {t("Annulla")}
               </button>
             </div>
           </div>

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useReference } from "@/lib/reference-context";
 import { useAuth } from "@/lib/auth-context";
+import { useT, useFormat } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 import { Plus, Users, User, Trash2, Euro, Loader2, ShieldCheck, AlertTriangle, Grid3x3 } from "lucide-react";
 import { BackToDashboardButton } from "@/components/ui/back-button";
 import {
@@ -20,14 +22,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { getAvailableUsersForTechnician } from "@/lib/actions";
 import { getQualificationOverview, type QualificationOverview } from "@/modules/maintenance/adapters/actions/qualification-actions";
-import { qualificationText } from "@/modules/maintenance/domain/qualifications";
 import { QualificationsDialog } from "@/components/technicians/qualifications-dialog";
 
 const ALL_QUALIFICATIONS = "all";
 const MATRIX_ROLES: string[] = ["SUPERVISOR", "PLANT_MANAGER", "ADMIN", "PROCESS_ENGINEER"];
 const STATE_VARIANT = { VALID: "success", EXPIRING: "warning", EXPIRED: "critical", NO_EXPIRY: "neutral" } as const;
+// Il valore e' quello salvato; l'etichetta e' il testo mostrato
+const SPECIALTIES = [
+    { value: "Elettricista", label: tk("Elettricista") },
+    { value: "Meccanico", label: tk("Meccanico") },
+    { value: "Idraulico", label: tk("Idraulico") },
+    { value: "Impianti", label: tk("Manutentore Impianti") },
+    { value: "Programmatore PLC", label: tk("Programmatore PLC") },
+    { value: "Esterno", label: tk("Consulente Esterno") },
+    { value: "Generico", label: tk("Manutentore Generico") },
+];
 
 export default function TechniciansPage() {
+    const t = useT();
+    const fmt = useFormat();
     const { technicians, addTechnician, removeTechnician } = useReference();
     const { user } = useAuth();
     const [availableUsers, setAvailableUsers] = useState<{ id: string; name: string | null; email: string | null }[]>([]);
@@ -106,12 +119,12 @@ export default function TechniciansPage() {
                     <Users className="h-8 w-8" />
                 </div>
                 <div className="flex-1">
-                    <h1 className="text-3xl font-bold tracking-tight">Gestione Tecnici</h1>
-                    <p className="text-muted-foreground">Gestisci il personale di manutenzione e assegna ruoli tecnici agli utenti.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">{t("Gestione Tecnici")}</h1>
+                    <p className="text-muted-foreground">{t("Gestisci il personale di manutenzione e assegna ruoli tecnici agli utenti.")}</p>
                 </div>
                 {user?.role && MATRIX_ROLES.includes(user.role) && (
                     <Button asChild variant="outline">
-                        <Link href="/technicians/matrix"><Grid3x3 className="mr-2 h-4 w-4" /> Matrice competenze</Link>
+                        <Link href="/technicians/matrix"><Grid3x3 className="mr-2 h-4 w-4" /> {t("Matrice competenze")}</Link>
                     </Button>
                 )}
             </div>
@@ -123,26 +136,26 @@ export default function TechniciansPage() {
                         <div role="status" className="flex items-start gap-3 rounded-lg border border-transparent bg-warning-soft p-3 text-sm text-warning-strong">
                             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                             <div>
-                                <span className="font-semibold">Abilitazioni da rinnovare: </span>
-                                {[
-                                    expiredCount > 0 && `${expiredCount} ${expiredCount === 1 ? "scaduta" : "scadute"}`,
-                                    expiringCount > 0 && `${expiringCount} in scadenza entro 30 giorni`,
-                                ].filter(Boolean).join(", ")}
-                                .
+                                {t("Abilitazioni da rinnovare: {details}.", {
+                                    details: [
+                                        expiredCount > 0 && (expiredCount === 1 ? t("1 scaduta") : t("{count} scadute", { count: expiredCount })),
+                                        expiringCount > 0 && t("{count} in scadenza entro 30 giorni", { count: expiringCount }),
+                                    ].filter(Boolean).join(", "),
+                                })}
                             </div>
                         </div>
                     )}
                     {overview && overview.types.length > 0 && (
                         <div className="flex flex-wrap items-center gap-3">
                             <Label htmlFor="qual-filter" className="flex items-center gap-1.5 text-sm">
-                                <ShieldCheck className="h-4 w-4 text-muted-foreground" /> Abilitato a:
+                                <ShieldCheck className="h-4 w-4 text-muted-foreground" /> {t("Abilitato a:")}
                             </Label>
                             <Select value={filterActive ? qualFilter : ALL_QUALIFICATIONS} onValueChange={setQualFilter}>
                                 <SelectTrigger id="qual-filter" className="w-full sm:w-72">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={ALL_QUALIFICATIONS}>Tutti i tecnici</SelectItem>
+                                    <SelectItem value={ALL_QUALIFICATIONS}>{t("Tutti i tecnici")}</SelectItem>
                                     {overview.types.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -150,22 +163,22 @@ export default function TechniciansPage() {
                     )}
                     <Card>
                         <CardHeader className="pb-3">
-                            <CardTitle>Staff Tecnico</CardTitle>
+                            <CardTitle>{t("Staff Tecnico")}</CardTitle>
                             <CardDescription>
                                 {filterActive
-                                    ? `${visibleTechnicians.length} su ${technicians.length} tecnici abilitati all'attività scelta.`
-                                    : `Attualmente ${technicians.length} tecnici operativi.`}
+                                    ? t("{shown} su {total} tecnici abilitati all'attività scelta.", { shown: visibleTechnicians.length, total: technicians.length })
+                                    : t("Attualmente {count} tecnici operativi.", { count: technicians.length })}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="divide-y rounded-md border text-sm">
                                 {technicians.length === 0 ? (
                                     <div className="p-8 text-center text-muted-foreground">
-                                        Nessun tecnico registrato.
+                                        {t("Nessun tecnico registrato.")}
                                     </div>
                                 ) : visibleTechnicians.length === 0 ? (
                                     <div className="p-8 text-center text-muted-foreground">
-                                        Nessun tecnico abilitato a questa attività.
+                                        {t("Nessun tecnico abilitato a questa attività.")}
                                     </div>
                                 ) : (
                                     visibleTechnicians.map(tech => {
@@ -179,10 +192,10 @@ export default function TechniciansPage() {
                                                 <div className="font-semibold truncate">{tech.name}</div>
                                                 <div className="text-muted-foreground text-xs flex items-center gap-2">
                                                     <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                                                        {tech.specialty}
+                                                        {t(SPECIALTIES.find(s => s.value === tech.specialty)?.label ?? tech.specialty)}
                                                     </span>
                                                     <span>•</span>
-                                                    <span className="font-mono">€{tech.hourlyRate}/h</span>
+                                                    <span className="font-mono">{fmt.currency(tech.hourlyRate, "EUR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}/h</span>
                                                 </div>
                                                 {quals && quals.length > 0 && (
                                                     <div className="mt-2 flex flex-wrap gap-1.5">
@@ -194,7 +207,7 @@ export default function TechniciansPage() {
                                                                 className="font-medium"
                                                             >
                                                                 {q.typeName}
-                                                                {q.state !== "NO_EXPIRY" && <span className="ml-1 font-normal">· {qualificationText(q.state, q.expiresAt ? new Date(q.expiresAt) : null)}</span>}
+                                                                {q.state !== "NO_EXPIRY" && <span className="ml-1 font-normal">· {q.state === "EXPIRED" ? t("scaduta il {date}", { date: fmt.date(q.expiresAt) }) : q.state === "EXPIRING" ? t("in scadenza il {date}", { date: fmt.date(q.expiresAt) }) : t("valida fino al {date}", { date: fmt.date(q.expiresAt) })}</span>}
                                                             </Badge>
                                                         ))}
                                                     </div>
@@ -209,7 +222,7 @@ export default function TechniciansPage() {
                                                     onSaved={loadQualifications}
                                                     trigger={
                                                         <Button variant="outline" size="sm" type="button">
-                                                            <ShieldCheck className="mr-1.5 h-4 w-4" /> Abilitazioni
+                                                            <ShieldCheck className="mr-1.5 h-4 w-4" /> {t("Abilitazioni")}
                                                         </Button>
                                                     }
                                                 />
@@ -219,7 +232,8 @@ export default function TechniciansPage() {
                                                 size="icon"
                                                 onClick={() => removeTechnician(tech.id)}
                                                 className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                                title="Rimuovi dal ruolo Tecnico"
+                                                title={t("Rimuovi dal ruolo Tecnico")}
+aria-label={t("Rimuovi dal ruolo Tecnico")}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -236,28 +250,28 @@ export default function TechniciansPage() {
                 <div className="h-fit">
                     <Card className="border-l-4 border-l-primary shadow-md">
                         <CardHeader>
-                            <CardTitle className="text-lg">Aggiungi Tecnico</CardTitle>
-                            <CardDescription>Promuovi un utente esistente a Tecnico.</CardDescription>
+                            <CardTitle className="text-lg">{t("Aggiungi Tecnico")}</CardTitle>
+                            <CardDescription>{t("Promuovi un utente esistente a Tecnico.")}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handleAdd} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="user-select">Seleziona Utente</Label>
+                                    <Label htmlFor="user-select">{t("Seleziona Utente")}</Label>
                                     <Select
                                         value={selectedUserId}
                                         onValueChange={setSelectedUserId}
                                         disabled={loadingUsers}
                                     >
                                         <SelectTrigger id="user-select" className="w-full">
-                                            <SelectValue placeholder={loadingUsers ? "Caricamento..." : "Seleziona un utente..."} />
+                                            <SelectValue placeholder={loadingUsers ? t("Caricamento...") : t("Seleziona un utente...")} />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {availableUsers.length === 0 ? (
                                                 <div className="p-2 text-sm text-muted-foreground text-center">
-                                                    Nessun utente disponibile.
+                                                    {t("Nessun utente disponibile.")}
                                                     <br />
                                                     <span className="text-xs">
-                                                        (Crea prima un Utente in Gestione Utenti)
+                                                        {t("(Crea prima un Utente in Gestione Utenti)")}
                                                     </span>
                                                 </div>
                                             ) : (
@@ -270,33 +284,29 @@ export default function TechniciansPage() {
                                         </SelectContent>
                                     </Select>
                                     <p className="text-[10px] text-muted-foreground">
-                                        Solo gli utenti senza profilo tecnico appaiono qui.
+                                        {t("Solo gli utenti senza profilo tecnico appaiono qui.")}
                                     </p>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="specialty">Specializzazione</Label>
+                                    <Label htmlFor="specialty">{t("Specializzazione")}</Label>
                                     <Select
                                         value={specialty}
                                         onValueChange={setSpecialty}
                                     >
                                         <SelectTrigger id="specialty">
-                                            <SelectValue placeholder="Seleziona ruolo" />
+                                            <SelectValue placeholder={t("Seleziona ruolo")} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Elettricista">Elettricista</SelectItem>
-                                            <SelectItem value="Meccanico">Meccanico</SelectItem>
-                                            <SelectItem value="Idraulico">Idraulico</SelectItem>
-                                            <SelectItem value="Impianti">Manutentore Impianti</SelectItem>
-                                            <SelectItem value="Programmatore PLC">Programmatore PLC</SelectItem>
-                                            <SelectItem value="Esterno">Consulente Esterno</SelectItem>
-                                            <SelectItem value="Generico">Manutentore Generico</SelectItem>
+                                            {SPECIALTIES.map(s => (
+                                                <SelectItem key={s.value} value={s.value}>{t(s.label)}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="hourlyRate">Costo Orario (€)</Label>
+                                    <Label htmlFor="hourlyRate">{t("Costo Orario (€)")}</Label>
                                     <div className="relative">
                                         <Euro className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input
@@ -320,11 +330,11 @@ export default function TechniciansPage() {
                                     {isSubmitting ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Salvataggio...
+                                            {t("Salvataggio...")}
                                         </>
                                     ) : (
                                         <>
-                                            <Plus className="mr-2 h-4 w-4" /> Aggiungi al Team
+                                            <Plus className="mr-2 h-4 w-4" /> {t("Aggiungi al Team")}
                                         </>
                                     )}
                                 </Button>

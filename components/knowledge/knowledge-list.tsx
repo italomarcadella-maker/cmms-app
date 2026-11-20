@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useT } from "@/lib/i18n/client";
 
 export interface KnowledgeItem {
     id: string;
@@ -17,6 +18,7 @@ export interface KnowledgeItem {
 
 /** Elenco delle soluzioni apprese, con ricerca vera su tag, soluzione e categoria. */
 export function KnowledgeList({ items }: { items: KnowledgeItem[] }) {
+    const t = useT();
     const [query, setQuery] = useState("");
 
     const shown = useMemo(() => {
@@ -32,13 +34,13 @@ export function KnowledgeList({ items }: { items: KnowledgeItem[] }) {
         <div className="space-y-4">
             <div className="relative max-w-md">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden />
-                <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cerca per guasto, soluzione o categoria..." className="pl-10" aria-label="Cerca nella base di conoscenza" />
+                <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Cerca per guasto, soluzione o categoria...")} className="pl-10" aria-label={t("Cerca nella base di conoscenza")} />
             </div>
 
             {items.length === 0 ? (
-                <Card><EmptyState icon={<Lightbulb />} title="Nessuna conoscenza acquisita" description="Il sistema impara dalle soluzioni registrate quando chiudi gli ordini di lavoro con una descrizione dettagliata." /></Card>
+                <Card><EmptyState icon={<Lightbulb />} title={t("Nessuna conoscenza acquisita")} description={t("Il sistema impara dalle soluzioni registrate quando chiudi gli ordini di lavoro con una descrizione dettagliata.")} /></Card>
             ) : shown.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nessuna soluzione corrisponde a «{query}».</p>
+                <p className="text-sm text-muted-foreground">{t("Nessuna soluzione corrisponde a «{query}».", { query })}</p>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {shown.map(item => (
@@ -56,8 +58,8 @@ export function KnowledgeList({ items }: { items: KnowledgeItem[] }) {
                                     <p className="text-sm font-medium text-foreground/90">{item.solution}</p>
                                 </div>
                                 <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>Categoria: {item.assetCategory || "Generale"}</span>
-                                    <span>Applicata <strong>{item.successCount}</strong> {item.successCount === 1 ? "volta" : "volte"}</span>
+                                    <span>{t("Categoria: {name}", { name: item.assetCategory || t("Generale") })}</span>
+                                    <span>{t("Applicata")} <strong>{item.successCount}</strong> {item.successCount === 1 ? t("volta") : t("volte")}</span>
                                 </div>
                             </CardContent>
                         </Card>

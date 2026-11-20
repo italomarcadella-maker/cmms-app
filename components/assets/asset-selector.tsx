@@ -5,6 +5,8 @@ import { Search, ChevronRight, ChevronDown, Factory, LayoutTemplate, Waypoints, 
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 import { Asset } from "@/lib/types";
 import { AssetStatusBadge } from "./asset-status-badge";
 
@@ -14,6 +16,7 @@ interface AssetSelectorProps {
 }
 
 export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
+    const t = useT();
     const [searchTerm, setSearchTerm] = useState("");
     const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
@@ -31,9 +34,9 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
     // Grouping Logic (Same as AssetTree)
     const groupedAssets = useMemo(() => {
         return filteredAssets.reduce((acc, asset) => {
-            const plant = asset.plant || "Non Assegnato";
-            const dept = asset.department || "Generale";
-            const line = asset.line || "Nessuna Linea";
+            const plant = asset.plant || tk("Non Assegnato");
+            const dept = asset.department || tk("Generale");
+            const line = asset.line || tk("Nessuna Linea");
 
             if (!acc[plant]) acc[plant] = {};
             if (!acc[plant][dept]) acc[plant][dept] = {};
@@ -76,7 +79,7 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
             <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                    placeholder="Cerca asset per nome, seriale o posizione..."
+                    placeholder={t("Cerca asset per nome, seriale o posizione...")}
                     className="pl-9 bg-background/50 backdrop-blur-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -88,12 +91,12 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
                 {Object.keys(groupedAssets).length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-muted-foreground gap-2">
                         <Search className="h-8 w-8 opacity-20" />
-                        <p>Nessun asset trovato</p>
+                        <p>{t("Nessun asset trovato")}</p>
                     </div>
                 ) : (
                     <div className="p-2 space-y-1">
                         {Object.keys(groupedAssets)
-                            .filter(plant => plant !== "Non Assegnato") // Hide Unassigned
+                            .filter(plant => plant !== tk("Non Assegnato")) // Hide Unassigned
                             .sort()
                             .map((plant) => (
                                 <div key={plant}>
@@ -105,7 +108,7 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
                                             {expandedNodes.has(plant) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                         </div>
                                         <Factory className="h-4 w-4 text-blue-500" />
-                                        <span>{plant}</span>
+                                        <span>{t(plant)}</span>
                                     </div>
 
                                     {expandedNodes.has(plant) && (
@@ -125,7 +128,7 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
                                                                             {expandedNodes.has(`${plant}-${dept}-${line}`) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                                                         </div>
                                                                         <Waypoints className="h-4 w-4 text-purple-500" />
-                                                                        <span>{line}</span>
+                                                                        <span>{t(line)}</span>
                                                                     </div>
 
                                                                     {expandedNodes.has(`${plant}-${dept}-${line}`) && (
@@ -175,7 +178,7 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
                                                                 {expandedNodes.has(`${plant}-${dept}`) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                                             </div>
                                                             <LayoutTemplate className="h-4 w-4 text-orange-500" />
-                                                            <span>{dept}</span>
+                                                            <span>{t(dept)}</span>
                                                         </div>
 
                                                         {expandedNodes.has(`${plant}-${dept}`) && (
@@ -190,7 +193,7 @@ export function AssetSelector({ assets, onSelect }: AssetSelectorProps) {
                                                                                 {expandedNodes.has(`${plant}-${dept}-${line}`) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                                                             </div>
                                                                             <Waypoints className="h-4 w-4 text-purple-500" />
-                                                                            <span>{line}</span>
+                                                                            <span>{t(line)}</span>
                                                                         </div>
 
                                                                         {expandedNodes.has(`${plant}-${dept}-${line}`) && (

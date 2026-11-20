@@ -1,6 +1,7 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
 import React, { useState, useEffect } from "react";
 import { getProjects, createProject, deleteProject, getUnresolvedAnomalies, archiveProject } from "@/lib/process-actions";
 import { Plus, BarChart3, Settings, Trash2, ShieldAlert, Archive, ListFilter, Activity, Network, Lightbulb, Box, TrendingUp, Send } from "lucide-react";
@@ -9,6 +10,7 @@ import Link from "next/link";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export default function ProcessDashboard() {
+    const t = useT();
     const { confirm, dialog } = useConfirm();
     const [projects, setProjects] = useState<any[]>([]);
     const [anomalies, setAnomalies] = useState<any[]>([]);
@@ -74,14 +76,14 @@ export default function ProcessDashboard() {
             // Option: Redirect to the new project immediately
             // window.location.href = `/process/projects/${res.project.id}`;
         } else {
-            toast.error("Errore nella creazione del progetto");
+            toast.error(t("Errore nella creazione del progetto"));
         }
     };
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (await confirm({ title: "Eliminare definitivamente questo progetto?", description: "Verranno eliminati anche tutti i task associati.", confirmLabel: "Elimina", variant: "destructive" })) {
+        if (await confirm({ title: t("Eliminare definitivamente questo progetto?"), description: t("Verranno eliminati anche tutti i task associati."), confirmLabel: t("Elimina"), variant: "destructive" })) {
             const res = await deleteProject(id);
             if (res.success) {
                 localStorage.removeItem(`proj_modules_${id}`);
@@ -94,7 +96,7 @@ export default function ProcessDashboard() {
     const handleArchive = async (id: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (await confirm({ title: "Archiviare questo progetto?", confirmLabel: "Archivia" })) {
+        if (await confirm({ title: t("Archiviare questo progetto?"), confirmLabel: t("Archivia") })) {
             const res = await archiveProject(id);
             if (res.success) loadData();
             else toast.error(res.message);
@@ -117,17 +119,17 @@ export default function ProcessDashboard() {
                 <div>
                     <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
                         <Settings className="h-8 w-8 text-blue-600" />
-                        Ingegneria di Processo
+                        {t("Ingegneria di Processo")}
                     </h1>
                     <p className="text-slate-500 mt-2 font-medium max-w-2xl">
-                        Hub centrale per la gestione dei progetti di miglioramento continuo. Crea un progetto e configura i moduli necessari per la tua analisi.
+                        {t("Hub centrale per la gestione dei progetti di miglioramento continuo. Crea un progetto e configura i moduli necessari per la tua analisi.")}
                     </p>
                 </div>
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
                     className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-blue-200 hover:shadow-xl hover:-translate-y-0.5 hover:bg-blue-700 transition-all"
                 >
-                    <Plus className="h-4 w-4" /> Nuovo Progetto
+                    <Plus className="h-4 w-4" /> {t("Nuovo Progetto")}
                 </button>
             </div>
 
@@ -135,13 +137,13 @@ export default function ProcessDashboard() {
                 {/* Anomalie Sidebar */}
                 <div className="lg:col-span-1 bg-gradient-to-b from-amber-50 to-white p-5 rounded-2xl border border-amber-100 shadow-sm h-fit">
                     <div className="flex items-center gap-2 mb-4 text-amber-800 font-bold">
-                        <Activity className="h-5 w-5" /> Derive Segnalate
+                        <Activity className="h-5 w-5" /> {t("Derive Segnalate")}
                     </div>
                     {anomalies.length > 0 ? (
                         <div className="space-y-3">
                             {anomalies.map((a: any) => (
                                 <div key={a.id} className="bg-white p-3 rounded-xl border border-amber-200 shadow-sm flex flex-col gap-1">
-                                    <span className="text-xs font-bold text-slate-800">{a.asset?.name || "Asset Sconosciuto"}</span>
+                                    <span className="text-xs font-bold text-slate-800">{a.asset?.name || t("Asset Sconosciuto")}</span>
                                     <span className="text-xs text-slate-600">{a.description}</span>
                                 </div>
                             ))}
@@ -149,8 +151,8 @@ export default function ProcessDashboard() {
                     ) : (
                         <div className="text-center py-10">
                             <ShieldAlert className="h-10 w-10 text-emerald-200 mx-auto mb-2" />
-                            <p className="text-sm font-medium text-emerald-600">Nessuna deriva segnalata.</p>
-                            <p className="text-xs text-slate-400 mt-1">Processo sotto controllo.</p>
+                            <p className="text-sm font-medium text-emerald-600">{t("Nessuna deriva segnalata.")}</p>
+                            <p className="text-xs text-slate-400 mt-1">{t("Processo sotto controllo.")}</p>
                         </div>
                     )}
                 </div>
@@ -160,7 +162,7 @@ export default function ProcessDashboard() {
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                             <BarChart3 className="h-5 w-5 text-blue-600" />
-                            {showArchived ? 'Archivio Progetti Storici' : 'Progetti Aperti'}
+                            {showArchived ? t('Archivio Progetti Storici') : t('Progetti Aperti')}
                         </h2>
                         <button 
                             onClick={() => setShowArchived(!showArchived)}
@@ -172,18 +174,18 @@ export default function ProcessDashboard() {
                             )}
                         >
                             <ListFilter className="h-4 w-4" />
-                            {showArchived ? 'Mostra Attivi' : 'Mostra Archiviati'}
+                            {showArchived ? t('Mostra Attivi') : t('Mostra Archiviati')}
                         </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {loading ? (
                             <div className="col-span-full py-12 text-center text-slate-400 font-medium animate-pulse">
-                                Caricamento Progetti...
+                                {t("Caricamento Progetti...")}
                             </div>
                         ) : projects.length === 0 ? (
                             <div className="col-span-full py-12 text-center text-slate-400 font-medium bg-white rounded-2xl border border-dashed border-slate-300">
-                                Nessun progetto trovato. Clicca su "Nuovo Progetto" in alto a destra.
+                                {t("Nessun progetto trovato. Clicca su \"Nuovo Progetto\" in alto a destra.")}
                             </div>
                         ) : (
                             projects.map(project => (
@@ -195,20 +197,20 @@ export default function ProcessDashboard() {
                                     <div>
                                         <div className="flex justify-between items-start mb-3">
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase border ${getStatusColor(project.status)}`}>
-                                                {project.status === 'PLANNING' ? 'IN PIANIFICAZIONE' : project.status}
+                                                {project.status === 'PLANNING' ? t('IN PIANIFICAZIONE') : project.status}
                                             </span>
                                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={(e) => handleArchive(project.id, e)}
                                                     className="text-slate-300 hover:text-amber-500 hover:bg-amber-50 p-1 rounded transition-colors"
-                                                    title="Archivia"
+                                                    title={t("Archivia")}
                                                 >
                                                     <Archive className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={(e) => handleDelete(project.id, e)}
                                                     className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-colors"
-                                                    title="Elimina"
+                                                    title={t("Elimina")}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
@@ -218,13 +220,13 @@ export default function ProcessDashboard() {
                                             {project.title}
                                         </h3>
                                         <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                                            {project.description || "Nessuna descrizione fornita."}
+                                            {project.description || t("Nessuna descrizione fornita.")}
                                         </p>
                                     </div>
 
                                     <div className="mt-4 pt-3 border-t border-slate-100">
                                         <div className="flex justify-between items-center text-xs text-slate-500 mb-2">
-                                            <span>{project.tasks?.length || 0} Task</span>
+                                            <span>{t("{n} Task", { n: project.tasks?.length || 0 })}</span>
                                             <span className="font-semibold text-emerald-600">ROI: €{project.roi || 0}</span>
                                         </div>
                                         <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
@@ -246,30 +248,30 @@ export default function ProcessDashboard() {
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-slate-100 bg-slate-50">
-                            <h2 className="text-lg font-bold text-slate-800">Crea Nuovo Progetto</h2>
-                            <p className="text-xs text-slate-500 mt-1">Inizializza il contenitore per le tue attività.</p>
+                            <h2 className="text-lg font-bold text-slate-800">{t("Crea Nuovo Progetto")}</h2>
+                            <p className="text-xs text-slate-500 mt-1">{t("Inizializza il contenitore per le tue attività.")}</p>
                         </div>
                         <form onSubmit={handleCreateProject} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Titolo Progetto</label>
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{t("Titolo Progetto")}</label>
                                 <input 
                                     type="text" required
                                     value={newProjTitle} onChange={e => setNewProjTitle(e.target.value)}
                                     className="w-full border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500" 
-                                    placeholder="Es. Ottimizzazione Linea 3"
+                                    placeholder={t("Es. Ottimizzazione Linea 3")}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Descrizione</label>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{t("Descrizione")}</label>
                                     <textarea 
                                         value={newProjDesc} onChange={e => setNewProjDesc(e.target.value)}
                                         className="w-full border-slate-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 min-h-[80px]" 
-                                        placeholder="Obiettivi..."
+                                        placeholder={t("Obiettivi...")}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">ROI Stimato (€)</label>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{t("ROI Stimato (€)")}</label>
                                     <input 
                                         type="number" min="0" step="1000"
                                         value={newProjRoi} onChange={e => setNewProjRoi(e.target.value)}
@@ -280,21 +282,21 @@ export default function ProcessDashboard() {
                             
                             {/* SELEZIONE MODULI */}
                             <div className="pt-2">
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 border-b pb-1">Moduli Iniziali Attivi</label>
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 border-b pb-1">{t("Moduli Iniziali Attivi")}</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {[
-                                        { id: 'GANTT', label: 'Gantt & Task', icon: <BarChart3 className="h-3 w-3" /> },
-                                        { id: 'SETUP', label: 'Parametri di Linea', icon: <Settings className="h-3 w-3" /> },
+                                        { id: 'GANTT', label: t('Gantt & Task'), icon: <BarChart3 className="h-3 w-3" /> },
+                                        { id: 'SETUP', label: t('Parametri di Linea'), icon: <Settings className="h-3 w-3" /> },
                                         { id: 'LINE_DESIGNER', label: 'Line Designer', icon: <Network className="h-3 w-3" /> },
                                         { id: 'YAMAZUMI', label: 'Yamazumi', icon: <Activity className="h-3 w-3" /> },
-                                        { id: 'ERGO', label: 'Ergonomia', icon: <ShieldAlert className="h-3 w-3" /> },
+                                        { id: 'ERGO', label: t('Ergonomia'), icon: <ShieldAlert className="h-3 w-3" /> },
                                         { id: 'TIMWOODS', label: 'TIMWOODS', icon: <Trash2 className="h-3 w-3" /> },
-                                        { id: 'KAIZEN', label: 'Kaizen Board', icon: <Lightbulb className="h-3 w-3" /> },
-                                        { id: 'SOP', label: 'SOP Builder', icon: <ListFilter className="h-3 w-3" /> },
+                                        { id: 'KAIZEN', label: t('Kaizen Board'), icon: <Lightbulb className="h-3 w-3" /> },
+                                        { id: 'SOP', label: t('SOP Builder'), icon: <ListFilter className="h-3 w-3" /> },
                                         { id: 'MURIMUDA', label: 'MURI·MUDA', icon: <Box className="h-3 w-3" /> },
-                                        { id: 'LEANSCORE', label: 'Lean Score', icon: <TrendingUp className="h-3 w-3" /> },
+                                        { id: 'LEANSCORE', label: t('Lean Score'), icon: <TrendingUp className="h-3 w-3" /> },
                                         { id: 'EXCELIO', label: 'Excel I/O', icon: <Send className="h-3 w-3" /> },
-                                        { id: 'WHATIF', label: 'What-If Sim.', icon: <TrendingUp className="h-3 w-3" /> },
+                                        { id: 'WHATIF', label: t('What-If Sim.'), icon: <TrendingUp className="h-3 w-3" /> },
                                     ].map(mod => (
                                         <label key={mod.id} className={cn("flex items-center gap-2 p-2 rounded-xl border cursor-pointer transition-all", selectedModules.includes(mod.id) ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:bg-slate-50')}>
                                             <input type="checkbox" className="mt-0.5" checked={selectedModules.includes(mod.id)} onChange={() => toggleModule(mod.id)} />
@@ -305,12 +307,12 @@ export default function ProcessDashboard() {
                                         </label>
                                     ))}
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-2">* Potrai aggiungere o rimuovere i moduli successivamente dal workspace.</p>
+                                <p className="text-[10px] text-slate-400 mt-2">{t("* Potrai aggiungere o rimuovere i moduli successivamente dal workspace.")}</p>
                             </div>
 
                             <div className="pt-4 flex justify-end gap-2 border-t mt-4">
-                                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Annulla</button>
-                                <button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-md">Crea Progetto</button>
+                                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">{t("Annulla")}</button>
+                                <button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-md">{t("Crea Progetto")}</button>
                             </div>
                         </form>
                     </div>

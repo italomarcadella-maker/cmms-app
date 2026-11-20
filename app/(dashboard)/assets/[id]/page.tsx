@@ -8,6 +8,7 @@ import { Activity, ArrowLeft, FileText, Printer, QrCode } from "lucide-react";
 
 import { useAssets } from "@/lib/assets-context";
 import { useAuth } from "@/lib/auth-context";
+import { useT, useFormat } from "@/lib/i18n/client";
 import { getAssetReliability, type AssetReliability } from "@/modules/maintenance/adapters/actions/asset-reliability-actions";
 import { AssetStatusBadge } from "@/components/assets/asset-status-badge";
 import { WOStatusBadge } from "@/components/work-orders/wo-status-badge";
@@ -18,6 +19,10 @@ import { AssetHealthCard } from "@/components/assets/asset-health-card";
 import { AssetAIChat } from "@/components/assets/asset-ai-chat";
 import { TagGeneratorDialog } from "@/components/assets/tag-generator-dialog";
 import { AssetSOPList } from "@/components/assets/asset-sop-list";
+import { AssetBomPanel } from "@/components/assets/asset-bom";
+import { AssetComponentsSection } from "@/components/assets/asset-components-section";
+import { getAssetPath } from "@/modules/maintenance/domain/asset-hierarchy";
+import { ENGINEERING, hasRole } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { usePrompt } from "@/components/ui/prompt-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,16 +32,19 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function Field({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
+    const t = useT();
     return (
         <div>
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className={mono ? "font-mono text-sm" : "text-sm font-medium"}>{value || "N/D"}</dd>
+            <dd className={mono ? "font-mono text-sm" : "text-sm font-medium"}>{value || t("N/D")}</dd>
         </div>
     );
 }
 
 export default function AssetDetailsPage() {
     const params = useParams();
+    const t = useT();
+    const fmt = useFormat();
     const { assets, updateAsset } = useAssets();
     const { user } = useAuth();
     const { ask, dialog } = usePrompt();
@@ -52,6 +60,8 @@ export default function AssetDetailsPage() {
     const [healthReload, setHealthReload] = useState(0);
     // Come lato server: i piani li creano solo amministratori e responsabili di plant
     const canManagePlans = user?.role === "ADMIN" || user?.role === "PLANT_MANAGER";
+    // Come lato server: la distinta ricambi la modificano amministratori, responsabili di plant, supervisor e ingegneri di processo
+    const canEditBom = hasRole(user?.role, ENGINEERING);
 
     useEffect(() => {
         if (asset?.id) {
@@ -80,12 +90,12 @@ export default function AssetDetailsPage() {
     if (!asset) {
         return (
             <EmptyState
-                title="Asset non trovato"
-                description={`L'asset con ID ${params.id} non esiste o non è visibile nello stabilimento selezionato.`}
+                title={t("Asset non trovato")}
+                description={t("L'asset con ID {id} non esiste o non è visibile nello stabilimento selezionato.", { id: String(params.id) })}
                 action={
                     <Button asChild variant="outline">
                         <Link href="/assets">
-                            <ArrowLeft className="mr-1.5 h-4 w-4" /> Torna alla lista
+                            <ArrowLeft className="mr-1.5 h-4 w-4" /> {t("Torna alla lista")}
                         </Link>
                     </Button>
                 }
@@ -93,15 +103,24 @@ export default function AssetDetailsPage() {
         );
     }
 
+    // Gerarchia: percorso "Macchina > Gruppo > Componente" e componenti diretti
+    const hierarchyItems = assets.map((a) => ({ id: a.id, name: a.name, parentId: a.parentId ?? null, plantId: a.plantId ?? null }));
+    const ancestors = getAssetPath(hierarchyItems, asset.id).slice(0, -1);
+    const childAssets = assets.filter((a) => a.parentId === asset.id);
+
     return (
         <div className="space-y-6 pb-10">
             <PageHeader
                 title={asset.name}
                 description={[asset.vendor, asset.model].filter(Boolean).join(" · ")}
-                breadcrumb={[{ label: "Asset e macchinari", href: "/assets" }, { label: asset.name }]}
+                breadcrumb={[
+                    { label: t("Asset e macchinari"), href: "/assets" },
+                    ...ancestors.map((a) => ({ label: a.name, href: `/assets/${a.id}` })),
+                    { label: asset.name },
+                ]}
                 actions={
                     <Button variant="outline" onClick={() => setShowTagGenerator(true)}>
-                        <Printer className="mr-1.5 h-4 w-4" /> Stampa etichetta
+                        <Printer className="mr-1.5 h-4 w-4" /> {t("Stampa etichetta")}
                     </Button>
                 }
             />
@@ -110,7 +129,7 @@ export default function AssetDetailsPage() {
                 {/* Main column */}
                 <div className="space-y-6 lg:col-span-2">
                     <div className="grid items-start gap-4 md:grid-cols-3">
-                        <StatCard label="Stato" value={<AssetStatusBadge status={asset.status} className="text-sm" />} tone="neutral" icon={<Activity />} />
+                        <StatCard label={t("Stato")} value={<AssetStatusBadge status={asset.status} className="text-sm" />} tone="neutral" icon={<Activity />} />
                         <div className="md:col-span-2">
                             <AssetHealthCard assetId={asset.id} reloadKey={healthReload} />
                         </div>
@@ -120,12 +139,15 @@ export default function AssetDetailsPage() {
 
                     <Tabs defaultValue="overview">
                         <TabsList>
-                            <TabsTrigger value="overview">Panoramica</TabsTrigger>
-                            <TabsTrigger value="history">Storico interventi</TabsTrigger>
-                            <TabsTrigger value="docs">Documenti e SOP</TabsTrigger>
+                            <TabsTrigger value="overview">{t("Panoramica")}</TabsTrigger>
+                            <TabsTrigger value="bom">{t("Distinta ricambi")}</TabsTrigger>
+                            <TabsTrigger value="history">{t("Storico interventi")}</TabsTrigger>
+                            <TabsTrigger value="docs">{t("Documenti e SOP")}</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="overview" className="mt-4 space-y-6">
+                            {childAssets.length > 0 && <AssetComponentsSection assetId={asset.id} items={childAssets} />}
+
                             <AssetReliabilityPanel
                                 data={reliability}
                                 loading={reliabilityLoading && !reliability}
@@ -135,11 +157,11 @@ export default function AssetDetailsPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Ordini e richieste attive</CardTitle>
+                                    <CardTitle>{t("Ordini e richieste attive")}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {activeWOs.length === 0 ? (
-                                        <EmptyState title="Nessun lavoro in corso" description="Non ci sono ordini di lavoro aperti su questo asset." className="py-8" />
+                                        <EmptyState title={t("Nessun lavoro in corso")} description={t("Non ci sono ordini di lavoro aperti su questo asset.")} className="py-8" />
                                     ) : (
                                         <ul className="space-y-2">
                                             {activeWOs.map((wo) => (
@@ -148,7 +170,7 @@ export default function AssetDetailsPage() {
                                                         <div className="min-w-0">
                                                             <div className="truncate text-sm font-medium">{wo.title}</div>
                                                             <div className="text-xs text-muted-foreground">
-                                                                {new Date(wo.createdAt).toLocaleDateString("it-IT")} · {wo.id.substring(0, 10)}
+                                                                {fmt.date(wo.createdAt)} · {wo.id.substring(0, 10)}
                                                             </div>
                                                         </div>
                                                         <WOStatusBadge status={wo.status} />
@@ -173,6 +195,10 @@ export default function AssetDetailsPage() {
                             </Card>
                         </TabsContent>
 
+                        <TabsContent value="bom" className="mt-4">
+                            <AssetBomPanel assetId={asset.id} canEdit={canEditBom} />
+                        </TabsContent>
+
                         <TabsContent value="history" className="mt-4">
                             <AssetHistory assetId={asset.id} />
                         </TabsContent>
@@ -181,27 +207,27 @@ export default function AssetDetailsPage() {
                             <Card>
                                 <CardHeader className="flex-row items-start justify-between space-y-0">
                                     <div className="space-y-1.5">
-                                        <CardTitle>Documenti tecnici</CardTitle>
-                                        <CardDescription>Manuali, schemi e certificazioni.</CardDescription>
+                                        <CardTitle>{t("Documenti tecnici")}</CardTitle>
+                                        <CardDescription>{t("Manuali, schemi e certificazioni.")}</CardDescription>
                                     </div>
                                     <Button
                                         size="sm"
                                         variant="outline"
                                         onClick={async () => {
-                                            const docName = await ask({ title: "Aggiungi documento", label: "Nome del documento (es. Manuale uso)", required: true, confirmLabel: "Avanti" });
+                                            const docName = await ask({ title: t("Aggiungi documento"), label: t("Nome del documento (es. Manuale uso)"), required: true, confirmLabel: t("Avanti") });
                                             if (docName) {
-                                                const docType = (await ask({ title: "Tipo di documento", label: "Tipo (PDF, DOCX, IMG)", defaultValue: "PDF" })) || "PDF";
+                                                const docType = (await ask({ title: t("Tipo di documento"), label: t("Tipo (PDF, DOCX, IMG)"), defaultValue: "PDF" })) || "PDF";
                                                 const newDoc = { name: docName, type: docType, url: "#", date: new Date().toISOString() };
                                                 updateAsset(asset.id, { documents: [...(asset.documents || []), newDoc] });
                                             }
                                         }}
                                     >
-                                        Aggiungi documento
+                                        {t("Aggiungi documento")}
                                     </Button>
                                 </CardHeader>
                                 <CardContent>
                                     {!asset.documents || asset.documents.length === 0 ? (
-                                        <EmptyState icon={<FileText />} title="Nessun documento allegato" description="Aggiungi manuali, schemi o certificazioni." className="py-8" />
+                                        <EmptyState icon={<FileText />} title={t("Nessun documento allegato")} description={t("Aggiungi manuali, schemi o certificazioni.")} className="py-8" />
                                     ) : (
                                         <ul className="space-y-2">
                                             {asset.documents.map((doc, idx) => (
@@ -213,7 +239,7 @@ export default function AssetDetailsPage() {
                                                         <div>
                                                             <div className="text-sm font-medium">{doc.name}</div>
                                                             <div className="text-xs text-muted-foreground">
-                                                                {doc.type} · {new Date(doc.date || Date.now()).toLocaleDateString("it-IT")}
+                                                                {doc.type} · {fmt.date(doc.date || Date.now())}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -226,8 +252,8 @@ export default function AssetDetailsPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>SOP e ricette macchina</CardTitle>
-                                    <CardDescription>Parametri di processo standard estratti da HMI tramite AI.</CardDescription>
+                                    <CardTitle>{t("SOP e ricette macchina")}</CardTitle>
+                                    <CardDescription>{t("Parametri di processo standard estratti da HMI tramite AI.")}</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <AssetSOPList assetId={asset.id} />
@@ -242,40 +268,40 @@ export default function AssetDetailsPage() {
                     <Card>
                         <CardHeader className="items-center pb-3 text-center">
                             <CardTitle className="flex items-center gap-2 text-sm">
-                                <QrCode className="h-4 w-4 text-muted-foreground" /> Etichetta asset
+                                <QrCode className="h-4 w-4 text-muted-foreground" /> {t("Etichetta asset")}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-col items-center gap-3 text-center">
                             <div className="rounded-lg border bg-white p-3">
                                 <QRCode value={assetUrl} size={140} />
                             </div>
-                            <p className="max-w-[220px] text-xs text-muted-foreground">Scansiona per vedere dettagli, cronologia e segnalare problemi.</p>
+                            <p className="max-w-[220px] text-xs text-muted-foreground">{t("Scansiona per vedere dettagli, cronologia e segnalare problemi.")}</p>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm">Ubicazione</CardTitle>
+                            <CardTitle className="text-sm">{t("Ubicazione")}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <dl className="space-y-3">
-                                <Field label="Stabilimento" value={asset.plant} />
-                                <Field label="Reparto" value={asset.department} />
-                                <Field label="Linea" value={asset.line} />
+                                <Field label={t("Stabilimento")} value={asset.plant} />
+                                <Field label={t("Reparto")} value={asset.department} />
+                                <Field label={t("Linea")} value={asset.line} />
                             </dl>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm">Dettagli</CardTitle>
+                            <CardTitle className="text-sm">{t("Dettagli")}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <dl className="space-y-3">
-                                <Field label="Numero seriale" value={asset.serialNumber} mono />
-                                <Field label="Costruttore" value={asset.vendor} />
-                                <Field label="Codice cespite" value={asset.cespite} mono />
-                                <Field label="Data di acquisto" value={asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString("it-IT") : null} />
+                                <Field label={t("Numero seriale")} value={asset.serialNumber} mono />
+                                <Field label={t("Costruttore")} value={asset.vendor} />
+                                <Field label={t("Codice cespite")} value={asset.cespite} mono />
+                                <Field label={t("Data di acquisto")} value={asset.purchaseDate ? fmt.date(asset.purchaseDate) : null} />
                             </dl>
                         </CardContent>
                     </Card>

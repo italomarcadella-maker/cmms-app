@@ -18,6 +18,8 @@ export const assetSchema = z.object({
         return isNaN(date.getTime()) ? new Date() : date;
     }),
     healthScore: z.coerce.number().min(0).max(100).default(100),
+    // Asset di cui questo e' parte (gerarchia macchina -> gruppo -> componente); vuoto = nessun padre
+    parentId: z.string().optional().nullable().transform(v => (v === undefined ? undefined : v || null)),
 });
 
 // --- Work Order Validation ---

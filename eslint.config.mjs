@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Script di servizio in CommonJS (strumenti di traduzione): fuori dalla configurazione di Next
+    "**/*.cjs",
   ]),
   {
     rules: {

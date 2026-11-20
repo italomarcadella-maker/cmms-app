@@ -6,6 +6,7 @@ import { Bell } from "lucide-react";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useFormat, useT } from "@/lib/i18n/client";
 import { useNotifications } from "@/lib/notifications-context";
 import { workOrderIdFromLink } from "@/modules/maintenance/domain/maintainer-visibility";
 import { cn } from "@/lib/utils";
@@ -17,13 +18,14 @@ function mobileHref(link: string | null): string | null {
     return id ? `/mobile/orders/${encodeURIComponent(id)}` : link;
 }
 
-const formatWhen = (d: Date | string) =>
-    new Date(d).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
-
 /** Campanella con il numero di notifiche non lette. Si aggiorna ogni minuto (come nella versione completa) e quando l'app torna in primo piano. */
 export function MobileNotifications() {
     const { notifications, unreadCount, markAsRead, refreshNotifications } = useNotifications();
     const [open, setOpen] = useState(false);
+    const t = useT();
+    const fmt = useFormat();
+    const formatWhen = (d: Date | string) =>
+        fmt.dateTime(d, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome" });
 
     // Tornando sull'app (dallo sfondo o da un'altra scheda) si ricaricano subito le notifiche, senza aspettare il prossimo giro
     useEffect(() => {
@@ -37,7 +39,7 @@ export function MobileNotifications() {
             <SheetTrigger asChild>
                 <button
                     type="button"
-                    aria-label={unreadCount > 0 ? `Notifiche: ${unreadCount} non lette` : "Notifiche"}
+                    aria-label={unreadCount > 0 ? t("Notifiche: {count} non lette", { count: unreadCount }) : t("Notifiche")}
                     className="relative flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                     <Bell className="h-6 w-6" aria-hidden />
@@ -50,12 +52,12 @@ export function MobileNotifications() {
             </SheetTrigger>
             <SheetContent side="bottom" className="flex max-h-[85vh] flex-col gap-0 rounded-t-2xl p-0">
                 <SheetHeader className="border-b p-4 text-left">
-                    <SheetTitle>Notifiche</SheetTitle>
-                    <SheetDescription>{unreadCount === 0 ? "Sei in pari: nessuna notifica da leggere." : `${unreadCount} ${unreadCount === 1 ? "non letta" : "non lette"}`}</SheetDescription>
+                    <SheetTitle>{t("Notifiche")}</SheetTitle>
+                    <SheetDescription>{unreadCount === 0 ? t("Sei in pari: nessuna notifica da leggere.") : unreadCount === 1 ? t("1 non letta") : t("{count} non lette", { count: unreadCount })}</SheetDescription>
                 </SheetHeader>
                 <div className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
                     {notifications.length === 0 ? (
-                        <EmptyState icon={<Bell />} title="Nessuna notifica" description="Quando ti viene assegnato un ordine lo trovi qui." className="py-10" />
+                        <EmptyState icon={<Bell />} title={t("Nessuna notifica")} description={t("Quando ti viene assegnato un ordine lo trovi qui.")} className="py-10" />
                     ) : (
                         <ul className="divide-y">
                             {notifications.map(n => {
@@ -65,10 +67,10 @@ export function MobileNotifications() {
                                         <span className={cn("mt-2 h-2.5 w-2.5 shrink-0 rounded-full", n.read ? "bg-transparent" : "bg-primary")} aria-hidden />
                                         <span className="min-w-0 flex-1">
                                             <span className="flex items-start justify-between gap-2">
-                                                <span className={cn("text-base font-medium leading-snug", n.read && "text-muted-foreground")}>{n.title}</span>
+                                                <span className={cn("text-base font-medium leading-snug", n.read && "text-muted-foreground")}>{t(n.title)}</span>
                                                 <span className="shrink-0 text-xs text-muted-foreground">{formatWhen(n.createdAt)}</span>
                                             </span>
-                                            <span className="mt-0.5 block whitespace-pre-line text-sm text-muted-foreground">{n.message}</span>
+                                            <span className="mt-0.5 block whitespace-pre-line text-sm text-muted-foreground">{t(n.message)}</span>
                                         </span>
                                     </>
                                 );

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 import type { SkillMatrix } from "@/modules/maintenance/adapters/actions/skill-matrix-actions";
 import {
     DEFAULT_MIN_LEVEL, SKILL_LEVEL_LABEL, coverage, isQualificationValid, skillLevelLabel, type SkillLevel,
@@ -27,6 +28,7 @@ function csvField(value: string | number): string {
 }
 
 export function SkillMatrixView({ initial, onReload }: { initial: SkillMatrix; onReload: () => void }) {
+    const t = useT();
     const [data, setData] = useState(initial);
     // Quando la pagina passa dati nuovi (cambio di stabilimento, ricarica) si riparte da quelli
     const [seen, setSeen] = useState(initial);
@@ -131,32 +133,32 @@ export function SkillMatrixView({ initial, onReload }: { initial: SkillMatrix; o
             {/* Controlli (non si stampano) */}
             <div className="flex flex-wrap items-end gap-3 print:hidden">
                 <div className="grid gap-1.5">
-                    <Label htmlFor="matrix-search" className="text-xs">Cerca per nome</Label>
+                    <Label htmlFor="matrix-search" className="text-xs">{t("Cerca per nome")}</Label>
                     <div className="relative">
                         <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden />
-                        <Input id="matrix-search" className="w-full pl-8 sm:w-56" placeholder="Nome del tecnico" value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <Input id="matrix-search" className="w-full pl-8 sm:w-56" placeholder={t("Nome del tecnico")} value={search} onChange={(e) => setSearch(e.target.value)} />
                     </div>
                 </div>
                 {hasColumns && (
                     <div className="grid gap-1.5">
-                        <Label htmlFor="matrix-filter" className="flex items-center gap-1.5 text-xs"><Filter className="h-3.5 w-3.5" aria-hidden /> Mostra solo chi ha</Label>
+                        <Label htmlFor="matrix-filter" className="flex items-center gap-1.5 text-xs"><Filter className="h-3.5 w-3.5" aria-hidden /> {t("Mostra solo chi ha")}</Label>
                         <Select value={activeFilter} onValueChange={setFilter}>
                             <SelectTrigger id="matrix-filter" className="w-full sm:w-64"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={ALL}>Tutti i tecnici</SelectItem>
-                                {qualificationTypes.map(q => <SelectItem key={q.id} value={`q:${q.id}`}>Abilitazione valida: {q.name}</SelectItem>)}
-                                {skillTypes.map(s => <SelectItem key={s.id} value={`s:${s.id}`}>Competenza: {s.name}</SelectItem>)}
+                                <SelectItem value={ALL}>{t("Tutti i tecnici")}</SelectItem>
+                                {qualificationTypes.map(q => <SelectItem key={q.id} value={`q:${q.id}`}>{t("Abilitazione valida: {name}", { name: q.name })}</SelectItem>)}
+                                {skillTypes.map(s => <SelectItem key={s.id} value={`s:${s.id}`}>{t("Competenza: {name}", { name: s.name })}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
                 )}
                 {activeFilter.startsWith("s:") && (
                     <div className="grid gap-1.5">
-                        <Label htmlFor="matrix-min" className="text-xs">Livello minimo</Label>
+                        <Label htmlFor="matrix-min" className="text-xs">{t("Livello minimo")}</Label>
                         <Select value={minLevel} onValueChange={setMinLevel}>
                             <SelectTrigger id="matrix-min" className="w-full sm:w-52"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                                {([1, 2, 3, 4] as SkillLevel[]).map(l => <SelectItem key={l} value={String(l)}>{l} - {skillLevelLabel(l)}</SelectItem>)}
+                                {([1, 2, 3, 4] as SkillLevel[]).map(l => <SelectItem key={l} value={String(l)}>{l} - {t(skillLevelLabel(l))}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
@@ -165,11 +167,11 @@ export function SkillMatrixView({ initial, onReload }: { initial: SkillMatrix; o
                     {canManageTypes && (
                         <SkillTypesDialog
                             onChanged={onReload}
-                            trigger={<Button type="button" variant="outline"><Settings2 className="mr-1.5 h-4 w-4" /> Gestisci competenze</Button>}
+                            trigger={<Button type="button" variant="outline"><Settings2 className="mr-1.5 h-4 w-4" /> {t("Gestisci competenze")}</Button>}
                         />
                     )}
-                    <Button type="button" variant="outline" onClick={() => window.print()}><Printer className="mr-1.5 h-4 w-4" /> Stampa</Button>
-                    <Button type="button" variant="outline" onClick={exportCsv} disabled={technicians.length === 0}><Download className="mr-1.5 h-4 w-4" /> Esporta CSV</Button>
+                    <Button type="button" variant="outline" onClick={() => window.print()}><Printer className="mr-1.5 h-4 w-4" /> {t("Stampa")}</Button>
+                    <Button type="button" variant="outline" onClick={exportCsv} disabled={technicians.length === 0}><Download className="mr-1.5 h-4 w-4" /> {t("Esporta CSV")}</Button>
                 </div>
             </div>
 
@@ -177,15 +179,15 @@ export function SkillMatrixView({ initial, onReload }: { initial: SkillMatrix; o
                 <Card>
                     <EmptyState
                         icon={<Users />}
-                        title="Nessun tecnico da mostrare"
-                        description="Non ci sono tecnici nello stabilimento selezionato. Aggiungi un tecnico dalla pagina Team tecnico."
+                        title={t("Nessun tecnico da mostrare")}
+                        description={t("Non ci sono tecnici nello stabilimento selezionato. Aggiungi un tecnico dalla pagina Team tecnico.")}
                     />
                 </Card>
             ) : !hasColumns ? (
                 <Card>
                     <EmptyState
-                        title="Nessuna abilitazione o competenza definita"
-                        description={canManageTypes ? "Aggiungi le competenze con il pulsante «Gestisci competenze»; le abilitazioni si gestiscono da Team tecnico." : "Chiedi a un responsabile di definire le competenze."}
+                        title={t("Nessuna abilitazione o competenza definita")}
+                        description={canManageTypes ? t("Aggiungi le competenze con il pulsante «Gestisci competenze»; le abilitazioni si gestiscono da Team tecnico.") : t("Chiedi a un responsabile di definire le competenze.")}
                     />
                 </Card>
             ) : (
@@ -195,16 +197,16 @@ export function SkillMatrixView({ initial, onReload }: { initial: SkillMatrix; o
                             <thead>
                                 <tr className="border-b bg-muted/40">
                                     <th scope="col" rowSpan={2} className="sticky left-0 z-20 min-w-[11rem] border-r bg-card px-3 py-2 text-left align-bottom text-xs font-semibold uppercase tracking-wide text-muted-foreground print:static">
-                                        Tecnico
+                                        {t("Tecnico")}
                                     </th>
                                     {qualificationTypes.length > 0 && (
                                         <th scope="colgroup" colSpan={qualificationTypes.length} className="border-r px-2 py-1.5 text-center text-xs font-semibold uppercase tracking-wide text-foreground">
-                                            Abilitazioni
+                                            {t("Abilitazioni")}
                                         </th>
                                     )}
                                     {skillTypes.length > 0 && (
                                         <th scope="colgroup" colSpan={skillTypes.length} className="px-2 py-1.5 text-center text-xs font-semibold uppercase tracking-wide text-foreground">
-                                            Competenze
+                                            {t("Competenze")}
                                         </th>
                                     )}
                                 </tr>
@@ -225,7 +227,7 @@ export function SkillMatrixView({ initial, onReload }: { initial: SkillMatrix; o
                                 {visible.length === 0 ? (
                                     <tr>
                                         <td colSpan={1 + qualificationTypes.length + skillTypes.length} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                                            Nessun tecnico corrisponde ai filtri.
+                                            {t("Nessun tecnico corrisponde ai filtri.")}
                                         </td>
                                     </tr>
                                 ) : visible.map(t => (
@@ -267,13 +269,13 @@ export function SkillMatrixView({ initial, onReload }: { initial: SkillMatrix; o
                             <tfoot>
                                 <tr className="border-t-2 bg-muted/40">
                                     <th scope="row" className="sticky left-0 z-10 min-w-[11rem] border-r bg-card px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground print:static">
-                                        Copertura
+                                        {t("Copertura")}
                                     </th>
                                     {qualificationTypes.map((q, i) => {
                                         const n = qualCoverage(q.id);
                                         return (
                                             <td key={q.id} className={cn("px-1 py-2 text-center text-sm font-bold", n === 0 ? "text-critical-strong" : "text-foreground", i === qualificationTypes.length - 1 && "border-r")}>
-                                                <span title={`${n} persone con abilitazione valida`}>{n}</span>
+                                                <span title={t("{count} persone con abilitazione valida", { count: n })}>{n}</span>
                                             </td>
                                         );
                                     })}
@@ -281,7 +283,7 @@ export function SkillMatrixView({ initial, onReload }: { initial: SkillMatrix; o
                                         const n = skillCoverage(s.id);
                                         return (
                                             <td key={s.id} className={cn("border-l px-1 py-2 text-center text-sm font-bold", n === 0 ? "text-critical-strong" : "text-foreground")}>
-                                                <span title={`${n} persone con livello ${DEFAULT_MIN_LEVEL} (${SKILL_LEVEL_LABEL[DEFAULT_MIN_LEVEL]}) o superiore`}>{n}</span>
+                                                <span title={t("{count} persone con livello {level} ({label}) o superiore", { count: n, level: DEFAULT_MIN_LEVEL, label: t(SKILL_LEVEL_LABEL[DEFAULT_MIN_LEVEL]) })}>{n}</span>
                                             </td>
                                         );
                                     })}
@@ -295,16 +297,17 @@ export function SkillMatrixView({ initial, onReload }: { initial: SkillMatrix; o
             {technicians.length > 0 && hasColumns && (
                 <div className="space-y-1 text-xs text-muted-foreground">
                     <p>
-                        <span className="font-semibold text-foreground">Livelli: </span>
-                        {([1, 2, 3, 4] as SkillLevel[]).map(l => `${l} ${SKILL_LEVEL_LABEL[l]}`).join(" · ")}.
-                        {" "}Un trattino significa nessuna competenza.
+                        <span className="font-semibold text-foreground">{t("Livelli:")} </span>
+                        {([1, 2, 3, 4] as SkillLevel[]).map(l => `${l} ${t(SKILL_LEVEL_LABEL[l])}`).join(" · ")}.
+                        {" "}{t("Un trattino significa nessuna competenza.")}
                     </p>
                     <p>
-                        <span className="font-semibold text-foreground">Copertura: </span>
-                        persone con abilitazione valida (non scaduta) o con livello {DEFAULT_MIN_LEVEL} ({SKILL_LEVEL_LABEL[DEFAULT_MIN_LEVEL]}) o superiore, su tutti i {technicians.length} tecnici
-                        {visible.length !== technicians.length ? ` (qui ne vedi ${visible.length})` : ""}.
+                        <span className="font-semibold text-foreground">{t("Copertura:")} </span>
+                        {visible.length !== technicians.length
+                            ? t("persone con abilitazione valida (non scaduta) o con livello {level} ({label}) o superiore, su tutti i {count} tecnici (qui ne vedi {visible}).", { level: DEFAULT_MIN_LEVEL, label: t(SKILL_LEVEL_LABEL[DEFAULT_MIN_LEVEL]), count: technicians.length, visible: visible.length })
+                            : t("persone con abilitazione valida (non scaduta) o con livello {level} ({label}) o superiore, su tutti i {count} tecnici.", { level: DEFAULT_MIN_LEVEL, label: t(SKILL_LEVEL_LABEL[DEFAULT_MIN_LEVEL]), count: technicians.length })}
                     </p>
-                    {canEdit && <p className="print:hidden">Clicca su una cella per modificarla.</p>}
+                    {canEdit && <p className="print:hidden">{t("Clicca su una cella per modificarla.")}</p>}
                 </div>
             )}
         </div>

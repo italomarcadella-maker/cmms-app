@@ -8,8 +8,8 @@ const PUBLIC_EXACT = new Set(['/favicon.ico', '/icon.svg', '/manifest.json', '/s
 
 export function isPublicPath(pathname: string): boolean {
     if (PUBLIC_EXACT.has(pathname)) return true;
-    // File generati da next-pwa (workbox-<hash>.js) nella radice
-    if (/^\/workbox-[A-Za-z0-9]+\.js$/.test(pathname)) return true;
+    // File generati da next-pwa nella radice: workbox-<hash>.js e il worker personalizzato delle notifiche push, worker-<hash>.js
+    if (/^\/(workbox|worker)-[A-Za-z0-9]+\.js$/.test(pathname)) return true;
     // Con la barra finale per i prefissi di cartella; /login e /api/* anche senza
     return PUBLIC_PREFIXES.some(p => (p.endsWith('/') ? pathname.startsWith(p) : pathname === p || pathname.startsWith(p + '/')));
 }

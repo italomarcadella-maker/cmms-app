@@ -12,14 +12,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { BackToDashboardButton } from "@/components/ui/back-button";
 import { cn } from "@/lib/utils";
 import { usePrompt } from "@/components/ui/prompt-dialog";
 import { getHealthConfig, updateHealthConfig } from "@/modules/maintenance/adapters/actions/asset-health-actions";
-import { defaultHealthConfig, type HealthConfig } from "@/modules/maintenance/domain/asset-health";
+import { DEFAULT_HEALTH_CONFIG, defaultHealthConfig, type HealthConfig } from "@/modules/maintenance/domain/asset-health";
+import { useT } from "@/lib/i18n/client";
 
 export default function SettingsPage() {
+    const t = useT();
     const router = useRouter();
     const { ask, dialog } = usePrompt();
 
@@ -44,7 +46,7 @@ export default function SettingsPage() {
     };
 
     const handleReset = async () => {
-        const typed = await ask({ title: "Reset totale del database", description: "Questa azione è irreversibile e cancella Ordini, Asset, Tecnici e Utenti non-admin.", label: "Per confermare scrivi: ELIMINA TUTTO", mustType: "ELIMINA TUTTO", confirmLabel: "Elimina tutto", variant: "destructive" });
+        const typed = await ask({ title: t("Reset totale del database"), description: t("Questa azione è irreversibile e cancella Ordini, Asset, Tecnici e Utenti non-admin."), label: t("Per confermare scrivi: ELIMINA TUTTO"), mustType: "ELIMINA TUTTO", confirmLabel: t("Elimina tutto"), variant: "destructive" });
         if (typed !== null) {
             try {
                 const result = await resetDatabase(typed);
@@ -66,17 +68,17 @@ export default function SettingsPage() {
             <BackToDashboardButton />
             <div>
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                    Impostazioni
+                    {t("Impostazioni")}
                 </h1>
-                <p className="text-muted-foreground mt-1">Gestisci la piattaforma, le preferenze utente e le configurazioni di sistema.</p>
+                <p className="text-muted-foreground mt-1">{t("Gestisci la piattaforma, le preferenze utente e le configurazioni di sistema.")}</p>
             </div>
 
             <Tabs defaultValue="general" className="w-full">
                 <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
-                    <TabsTrigger value="general">Generale</TabsTrigger>
-                    <TabsTrigger value="notifications">Notifiche</TabsTrigger>
-                    <TabsTrigger value="system">Sistema</TabsTrigger>
-                    <TabsTrigger value="advanced" className="text-amber-600 data-[state=active]:text-amber-700">Avanzate</TabsTrigger>
+                    <TabsTrigger value="general">{t("Generale")}</TabsTrigger>
+                    <TabsTrigger value="notifications">{t("Notifiche")}</TabsTrigger>
+                    <TabsTrigger value="system">{t("Sistema")}</TabsTrigger>
+                    <TabsTrigger value="advanced" className="text-amber-600 data-[state=active]:text-amber-700">{t("Avanzate")}</TabsTrigger>
                 </TabsList>
 
                 {/* --- GENERAL TAB --- */}
@@ -84,28 +86,28 @@ export default function SettingsPage() {
                     {/* Profile Section */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> Profilo Utente</CardTitle>
-                            <CardDescription>Gestisci le tue informazioni personali e aziendali.</CardDescription>
+                            <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> {t("Profilo Utente")}</CardTitle>
+                            <CardDescription>{t("Gestisci le tue informazioni personali e aziendali.")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Nome Azienda</Label>
+                                    <Label>{t("Nome Azienda")}</Label>
                                     <Input defaultValue="My Factory S.p.A." />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Nome Utente</Label>
+                                    <Label>{t("Nome Utente")}</Label>
                                     <Input defaultValue="Mario Rossi" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Email Aziendale</Label>
+                                    <Label>{t("Email Aziendale")}</Label>
                                     <Input defaultValue="mario.rossi@factory.it" readOnly className="bg-muted" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Lingua Interfaccia</Label>
+                                    <Label>{t("Lingua Interfaccia")}</Label>
                                     <Select defaultValue="it">
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Seleziona lingua" />
+                                            <SelectValue placeholder={t("Seleziona lingua")} />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="it">Italiano</SelectItem>
@@ -118,7 +120,7 @@ export default function SettingsPage() {
                         </CardContent>
                         <CardFooter className="border-t px-6 py-4 bg-muted/20">
                             <Button onClick={() => toast.success("Profilo aggiornato")} className="ml-auto">
-                                <Save className="h-4 w-4 mr-2" /> Salva Modifiche
+                                <Save className="h-4 w-4 mr-2" /> {t("Salva Modifiche")}
                             </Button>
                         </CardFooter>
                     </Card>
@@ -126,16 +128,16 @@ export default function SettingsPage() {
                     {/* Security Placeholder */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" /> Sicurezza</CardTitle>
-                            <CardDescription>Gestione password e accessi.</CardDescription>
+                            <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" /> {t("Sicurezza")}</CardTitle>
+                            <CardDescription>{t("Gestione password e accessi.")}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="flex items-center justify-between p-4 border rounded-lg">
                                 <div>
-                                    <div className="font-medium">Password</div>
-                                    <div className="text-sm text-muted-foreground">Ultima modifica 30 giorni fa</div>
+                                    <div className="font-medium">{t("Password")}</div>
+                                    <div className="text-sm text-muted-foreground">{t("Ultima modifica 30 giorni fa")}</div>
                                 </div>
-                                <Button variant="outline">Cambia Password</Button>
+                                <Button variant="outline">{t("Cambia Password")}</Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -145,32 +147,32 @@ export default function SettingsPage() {
                 <TabsContent value="notifications" className="space-y-6 mt-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5" /> Preferenze Notifiche</CardTitle>
-                            <CardDescription>Decidi come e quando essere avvisato.</CardDescription>
+                            <CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5" /> {t("Preferenze Notifiche")}</CardTitle>
+                            <CardDescription>{t("Decidi come e quando essere avvisato.")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
-                                    <Label className="text-base">Notifiche Push</Label>
-                                    <p className="text-sm text-muted-foreground">Ricevi notifiche in tempo reale nel browser.</p>
+                                    <Label className="text-base">{t("Notifiche Push")}</Label>
+                                    <p className="text-sm text-muted-foreground">{t("Ricevi notifiche in tempo reale nel browser.")}</p>
                                 </div>
                                 <Switch defaultChecked onCheckedChange={() => toast("Impostazione salvata")} />
                             </div>
                             <Separator />
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
-                                    <Label className="text-base">Report Settimanale Email</Label>
-                                    <p className="text-sm text-muted-foreground">Ricevi un riepilogo delle attività ogni lunedì.</p>
+                                    <Label className="text-base">{t("Report Settimanale Email")}</Label>
+                                    <p className="text-sm text-muted-foreground">{t("Ricevi un riepilogo delle attività ogni lunedì.")}</p>
                                 </div>
                                 <Switch defaultChecked onCheckedChange={() => toast("Impostazione salvata")} />
                             </div>
                             <Separator />
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
-                                    <Label className="text-base">Allerte Critiche Asset</Label>
-                                    <p className="text-sm text-muted-foreground">Notifica immediata se un asset va in stato CRITICAL.</p>
+                                    <Label className="text-base">{t("Allerte Critiche Asset")}</Label>
+                                    <p className="text-sm text-muted-foreground">{t("Notifica immediata se un asset va in stato CRITICAL.")}</p>
                                 </div>
-                                <Switch defaultChecked disabled title="Sempre attivo per la sicurezza" />
+                                <Switch defaultChecked disabled title={t("Sempre attivo per la sicurezza")} />
                             </div>
                         </CardContent>
                     </Card>
@@ -189,17 +191,17 @@ export default function SettingsPage() {
                 <TabsContent value="advanced" className="space-y-6 mt-6">
                     <Card className="border-amber-200 bg-amber-50/10">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-amber-700"><AlertTriangle className="h-5 w-5" /> Zona Pericolo</CardTitle>
-                            <CardDescription>Azioni che possono comportare perdita di dati.</CardDescription>
+                            <CardTitle className="flex items-center gap-2 text-amber-700"><AlertTriangle className="h-5 w-5" /> {t("Zona Pericolo")}</CardTitle>
+                            <CardDescription>{t("Azioni che possono comportare perdita di dati.")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between p-4 border border-amber-200 bg-white rounded-lg">
                                 <div>
-                                    <div className="font-medium">Esporta Backup Completo</div>
-                                    <div className="text-sm text-muted-foreground">Scarica un file JSON con tutti i dati del sistema.</div>
+                                    <div className="font-medium">{t("Esporta Backup Completo")}</div>
+                                    <div className="text-sm text-muted-foreground">{t("Scarica un file JSON con tutti i dati del sistema.")}</div>
                                 </div>
                                 <Button onClick={handleExport} variant="outline" className="border-amber-200 hover:bg-amber-50">
-                                    <Download className="h-4 w-4 mr-2" /> Esporta Dati
+                                    <Download className="h-4 w-4 mr-2" /> {t("Esporta Dati")}
                                 </Button>
                             </div>
 
@@ -207,11 +209,11 @@ export default function SettingsPage() {
 
                             <div className="flex items-center justify-between p-4 border border-red-200 bg-red-50/30 rounded-lg">
                                 <div>
-                                    <div className="font-medium text-red-700">Factory Reset</div>
-                                    <div className="text-sm text-red-600/80">Cancella tutti i dati operativi (ordini, asset, etc). Mantiene gli admin.</div>
+                                    <div className="font-medium text-red-700">{t("Factory Reset")}</div>
+                                    <div className="text-sm text-red-600/80">{t("Cancella tutti i dati operativi (ordini, asset, etc). Mantiene gli admin.")}</div>
                                 </div>
                                 <Button onClick={handleReset} variant="destructive">
-                                    <Trash2 className="h-4 w-4 mr-2" /> Reset Totale
+                                    <Trash2 className="h-4 w-4 mr-2" /> {t("Reset Totale")}
                                 </Button>
                             </div>
                         </CardContent>
@@ -224,6 +226,7 @@ export default function SettingsPage() {
 }
 
 function EWOSettingsSection() {
+    const t = useT();
     const [threshold, setThreshold] = useState<number>(0);
 
     useEffect(() => {
@@ -243,13 +246,13 @@ function EWOSettingsSection() {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-indigo-600">
-                    <AlertTriangle className="h-5 w-5" /> Configurazione EWO
+                    <AlertTriangle className="h-5 w-5" /> {t("Configurazione EWO")}
                 </CardTitle>
-                <CardDescription>Regole per l'apertura automatica di Emergency Work Order.</CardDescription>
+                <CardDescription>{t("Regole per l'apertura automatica di Emergency Work Order.")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="grid gap-2">
-                    <Label>Soglia Ore Intervento</Label>
+                    <Label>{t("Soglia Ore Intervento")}</Label>
                     <div className="flex gap-4">
                         <Input
                             type="number"
@@ -260,10 +263,10 @@ function EWOSettingsSection() {
                             className="w-32"
                         />
                         <div className="flex-1 text-sm text-muted-foreground self-center">
-                            ore. Se superata, l'ordine richiede EWO obbligatorio. (0 = Disabilitato)
+                            {t("ore. Se superata, l'ordine richiede EWO obbligatorio. (0 = Disabilitato)")}
                         </div>
                         <Button onClick={handleSave} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                            Aggiorna Regola
+                            {t("Aggiorna Regola")}
                         </Button>
                     </div>
                 </div>
@@ -273,6 +276,7 @@ function EWOSettingsSection() {
 }
 
 function CostSettingsSection() {
+    const t = useT();
     const [values, setValues] = useState({
         downtimeCostPerMinute: 100,
         defaultLaborHourlyRate: 30,
@@ -321,20 +325,20 @@ function CostSettingsSection() {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-indigo-600">
-                    <Server className="h-5 w-5" /> Costi &amp; Tariffe
+                    <Server className="h-5 w-5" /> {t("Costi & Tariffe")}
                 </CardTitle>
-                <CardDescription>Valori usati per stimare costi di fermo macchina, manodopera e sostenibilità. Sostituiscono le costanti fisse usate finora nei KPI.</CardDescription>
+                <CardDescription>{t("Valori usati per stimare costi di fermo macchina, manodopera e sostenibilità. Sostituiscono le costanti fisse usate finora nei KPI.")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {field('downtimeCostPerMinute', 'Costo Fermo Macchina', '€/min', '1')}
-                    {field('defaultLaborHourlyRate', 'Tariffa Manodopera (fallback)', '€/h', '1')}
-                    {field('electricityPricePerKwh', 'Tariffa Elettricità', '€/kWh')}
-                    {field('waterPricePerM3', 'Tariffa Acqua', '€/m³')}
-                    {field('co2FactorPerKwh', 'Fattore Emissione CO2', 'kg/kWh')}
+                    {field('downtimeCostPerMinute', t("Costo Fermo Macchina"), '€/min', '1')}
+                    {field('defaultLaborHourlyRate', t("Tariffa Manodopera (fallback)"), '€/h', '1')}
+                    {field('electricityPricePerKwh', t("Tariffa Elettricità"), '€/kWh')}
+                    {field('waterPricePerM3', t("Tariffa Acqua"), '€/m³')}
+                    {field('co2FactorPerKwh', t("Fattore Emissione CO2"), 'kg/kWh')}
                 </div>
                 <Button onClick={handleSave} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                    Salva Costi &amp; Tariffe
+                    {t("Salva Costi & Tariffe")}
                 </Button>
             </CardContent>
         </Card>
@@ -360,6 +364,8 @@ function healthToForm(c: HealthConfig): HealthForm {
 }
 
 function HealthSettingsSection() {
+    const t = useT();
+    const d = DEFAULT_HEALTH_CONFIG;
     const [base, setBase] = useState<HealthConfig>(defaultHealthConfig());
     const [form, setForm] = useState<HealthForm>(healthToForm(defaultHealthConfig()));
     const [saving, setSaving] = useState(false);
@@ -388,7 +394,7 @@ function HealthSettingsSection() {
         try {
             const res = await updateHealthConfig({ ...base, ...values });
             if (res.success && res.config) { setBase(res.config); setForm(healthToForm(res.config)); toast.success(res.message); }
-            else toast.error(res.message ?? "Errore salvataggio.");
+            else toast.error(res.message ?? t("Errore salvataggio."));
         } finally { setSaving(false); }
     };
 
@@ -397,7 +403,7 @@ function HealthSettingsSection() {
         try {
             const res = await updateHealthConfig(null);
             if (res.success && res.config) { setBase(res.config); setForm(healthToForm(res.config)); toast.success(res.message); }
-            else toast.error(res.message ?? "Errore ripristino.");
+            else toast.error(res.message ?? t("Errore ripristino."));
         } finally { setSaving(false); }
     };
 
@@ -421,55 +427,60 @@ function HealthSettingsSection() {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-indigo-600">
-                    <Activity className="h-5 w-5" /> Salute degli asset
+                    <Activity className="h-5 w-5" /> {t("Salute degli asset")}
                 </CardTitle>
                 <CardDescription>
-                    Il punteggio 0-100 di ogni macchina è calcolato, non inserito a mano: media pesata di tre componenti. Regola con i valori predefiniti:
-                    Stato attuale: 100 senza guasti aperti, 50 con un guasto aperto, 0 se il guasto ferma la macchina.
-                    Frequenza: punti-evento degli ultimi mesi (guasto, guasto che ferma la macchina, richiesta), a gradini: 0 punti = 100, fino a 1 = 80, fino a 2 = 60, fino a 3 = 40, oltre = 20.
-                    Manutenzione programmata: 25 punti in meno per ogni piano in ritardo, limitato dalla quota di interventi chiusi entro la scadenza.
-                    Senza piani di manutenzione il terzo componente non è valutabile e il punteggio non supera il tetto. Se i dati non bastano, la macchina risulta "n.d.".
+                    {t("Il punteggio 0-100 di ogni macchina è calcolato, non inserito a mano: media pesata di tre componenti. Regola con i valori predefiniti:")}{" "}
+                    {t("Stato attuale: {ok} senza guasti aperti, {fault} con un guasto aperto, {stopped} se il guasto ferma la macchina.", { ok: d.currentScores.ok, fault: d.currentScores.fault, stopped: d.currentScores.stopped })}{" "}
+                    {t("Frequenza: punti-evento degli ultimi mesi (guasto, guasto che ferma la macchina, richiesta), a gradini: 0 punti = {s0}, fino a {p1} = {s1}, fino a {p2} = {s2}, fino a {p3} = {s3}, oltre = {sb}.", {
+                        s0: d.frequencySteps[0].score, p1: d.frequencySteps[1].maxPoints, s1: d.frequencySteps[1].score,
+                        p2: d.frequencySteps[2].maxPoints, s2: d.frequencySteps[2].score,
+                        p3: d.frequencySteps[3].maxPoints, s3: d.frequencySteps[3].score, sb: d.frequencyBeyondScore,
+                    })}{" "}
+                    {t("Manutenzione programmata: {penalty} punti in meno per ogni piano in ritardo, limitato dalla quota di interventi chiusi entro la scadenza.", { penalty: d.overduePenalty })}{" "}
+                    {t("Senza piani di manutenzione il terzo componente non è valutabile e il punteggio non supera il tetto. Se i dati non bastano, la macchina risulta \"n.d.\".")}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div>
-                    <div className="text-sm font-medium mb-3">Pesi dei componenti</div>
+                    <div className="text-sm font-medium mb-3">{t("Pesi dei componenti")}</div>
                     <div className="grid gap-4 sm:grid-cols-3">
-                        {field('wCurrent', 'Stato attuale', 'peso')}
-                        {field('wFrequency', 'Frequenza degli eventi', 'peso')}
-                        {field('wSchedule', 'Manutenzione programmata', 'peso', 'I pesi si leggono in proporzione: non serve che sommino 100.')}
+                        {field('wCurrent', t("Stato attuale"), t("peso"))}
+                        {field('wFrequency', t("Frequenza degli eventi"), t("peso"))}
+                        {field('wSchedule', t("Manutenzione programmata"), t("peso"), t("I pesi si leggono in proporzione: non serve che sommino 100."))}
                     </div>
                 </div>
                 <div>
-                    <div className="text-sm font-medium mb-3">Punti-evento e finestra</div>
+                    <div className="text-sm font-medium mb-3">{t("Punti-evento e finestra")}</div>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        {field('pFault', 'Guasto', 'punti')}
-                        {field('pStopping', 'Guasto che ferma la macchina', 'punti')}
-                        {field('pRequest', 'Richiesta', 'punti')}
-                        {field('windowMonths', 'Finestra di osservazione', 'mesi', 'Predefinita: 12.')}
+                        {field('pFault', t("Guasto"), t("punti"))}
+                        {field('pStopping', t("Guasto che ferma la macchina"), t("punti"))}
+                        {field('pRequest', t("Richiesta"), t("punti"))}
+                        {field('windowMonths', t("Finestra di osservazione"), t("mesi"), t("Predefinita: {value}.", { value: d.windowMonths }))}
                     </div>
                 </div>
                 <div>
-                    <div className="text-sm font-medium mb-3">Senza piano di manutenzione</div>
+                    <div className="text-sm font-medium mb-3">{t("Senza piano di manutenzione")}</div>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        {field('noPlanCap', 'Tetto del punteggio', 'su 100', 'Predefinito: 70.')}
+                        {field('noPlanCap', t("Tetto del punteggio"), t("su 100"), t("Predefinito: {value}.", { value: d.noPlanCap }))}
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
                     <Button onClick={handleSave} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                        Salva
+                        {t("Salva")}
                     </Button>
                     <Button onClick={handleReset} disabled={saving} variant="outline">
-                        Ripristina valori predefiniti
+                        {t("Ripristina valori predefiniti")}
                     </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">Dopo il salvataggio i punteggi di tutte le macchine vengono ricalcolati.</p>
+                <p className="text-xs text-muted-foreground">{t("Dopo il salvataggio i punteggi di tutte le macchine vengono ricalcolati.")}</p>
             </CardContent>
         </Card>
     );
 }
 
 function IntegrationsSection() {
+    const t = useT();
     const [erpUrl, setErpUrl] = useState("");
     const [iotUrl, setIotUrl] = useState("");
     const [saved, setSaved] = useState({ erp: "", iot: "" });
@@ -514,7 +525,7 @@ function IntegrationsSection() {
                         <div>
                             <div className="font-medium">{title}</div>
                             <div className={cn("text-xs font-medium", isConfigured ? "text-emerald-600" : "text-muted-foreground")}>
-                                {isConfigured ? "CONFIGURATO" : "NON CONFIGURATO"}
+                                {isConfigured ? t("CONFIGURATO") : t("NON CONFIGURATO")}
                             </div>
                         </div>
                     </div>
@@ -527,7 +538,7 @@ function IntegrationsSection() {
                         onChange={(e) => setValue(e.target.value)}
                         className="flex-1"
                     />
-                    <Button variant="outline" size="sm" onClick={onSave}>Salva</Button>
+                    <Button variant="outline" size="sm" onClick={onSave}>{t("Salva")}</Button>
                 </div>
             </div>
         );
@@ -536,14 +547,14 @@ function IntegrationsSection() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Plug className="h-5 w-5" /> Integrazioni</CardTitle>
-                <CardDescription>Connessioni con sistemi esterni. Lo stato riflette solo se un endpoint è stato configurato qui — non testa una connessione live.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><Plug className="h-5 w-5" /> {t("Integrazioni")}</CardTitle>
+                <CardDescription>{t("Connessioni con sistemi esterni. Lo stato riflette solo se un endpoint è stato configurato qui — non testa una connessione live.")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
                 {integration(
                     <Server className="h-4 w-4 text-emerald-600" />,
-                    "ERP Corporate",
-                    "Endpoint dell'ERP aziendale per la sincronizzazione di costi e fermi macchina. Nessuna chiamata reale è ancora collegata: salvare qui prepara il campo per la futura integrazione.",
+                    t("ERP Corporate"),
+                    t("Endpoint dell'ERP aziendale per la sincronizzazione di costi e fermi macchina. Nessuna chiamata reale è ancora collegata: salvare qui prepara il campo per la futura integrazione."),
                     erpUrl,
                     setErpUrl,
                     saved.erp,
@@ -551,8 +562,8 @@ function IntegrationsSection() {
                 )}
                 {integration(
                     <Smartphone className="h-4 w-4 text-gray-600" />,
-                    "IoT Gateway",
-                    "Endpoint del gateway IoT per l'acquisizione automatica di letture sensori/contatori. Nessuna chiamata reale è ancora collegata.",
+                    t("IoT Gateway"),
+                    t("Endpoint del gateway IoT per l'acquisizione automatica di letture sensori/contatori. Nessuna chiamata reale è ancora collegata."),
                     iotUrl,
                     setIotUrl,
                     saved.iot,
@@ -564,6 +575,7 @@ function IntegrationsSection() {
 }
 
 function SchedulerTriggerSection() {
+    const t = useT();
     const [loading, setLoading] = useState(false);
 
     const handleRunScheduler = async () => {
@@ -572,9 +584,9 @@ function SchedulerTriggerSection() {
             const res = await fetch('/api/scheduler/run');
             const data = await res.json();
             if (data.success) {
-                toast.success(`Controllo completato: ${data.count} ordini generati.`);
+                toast.success(t("Controllo completato: {count} ordini generati.", { count: data.count }));
             } else {
-                toast.error(`Errore: ${data.error}`);
+                toast.error(t("Errore: {error}", { error: data.error }));
             }
         } catch (e) {
             toast.error("Errore di connessione al server.");
@@ -586,16 +598,16 @@ function SchedulerTriggerSection() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Manutenzione Programmata</CardTitle>
-                <CardDescription>Gestione del motore di schedulazione preventiva.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> {t("Manutenzione Programmata")}</CardTitle>
+                <CardDescription>{t("Gestione del motore di schedulazione preventiva.")}</CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
                 <div>
-                    <div className="font-medium">Esecuzione Manuale</div>
-                    <div className="text-sm text-muted-foreground">Forza il controllo delle scadenze e genera gli ordini di lavoro dovuti.</div>
+                    <div className="font-medium">{t("Esecuzione Manuale")}</div>
+                    <div className="text-sm text-muted-foreground">{t("Forza il controllo delle scadenze e genera gli ordini di lavoro dovuti.")}</div>
                 </div>
                 <Button onClick={handleRunScheduler} disabled={loading} variant="secondary">
-                    {loading ? "Esecuzione in corso..." : "Esegui Controllo Ora"}
+                    {loading ? t("Esecuzione in corso...") : t("Esegui Controllo Ora")}
                 </Button>
             </CardContent>
         </Card>

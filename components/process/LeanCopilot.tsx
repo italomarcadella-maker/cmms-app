@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Brain, X, Send, Sparkles, AlertTriangle, ChevronRight, BarChart3, ShieldAlert } from "lucide-react";
 import { askLeanCopilot } from "@/lib/process-actions";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useFormat } from "@/lib/i18n/client";
 
 interface Message {
     sender: "user" | "copilot";
@@ -138,10 +139,12 @@ function formatText(text: string) {
 }
 
 export function LeanCopilot({ isOpen, onClose, fpesData }: LeanCopilotProps) {
+    const t = useT();
+    const fmt = useFormat();
     const [messages, setMessages] = useState<Message[]>([
         {
             sender: "copilot",
-            text: "Ciao! Sono il tuo **Lean Copilot**. Ho caricato e analizzato in tempo reale i carichi di lavoro, l'ergonomia e i parametri logistici della tua linea.\n\nVuoi trovare all'istante la configurazione ottimale e bilanciare la linea? Clicca sul pulsante **Ottimizza** in alto o chiedimi consigli specifici!",
+            text: t("Ciao! Sono il tuo **Lean Copilot**. Ho caricato e analizzato in tempo reale i carichi di lavoro, l'ergonomia e i parametri logistici della tua linea.\n\nVuoi trovare all'istante la configurazione ottimale e bilanciare la linea? Clicca sul pulsante **Ottimizza** in alto o chiedimi consigli specifici!"),
             timestamp: new Date()
         }
     ]);
@@ -177,10 +180,10 @@ export function LeanCopilot({ isOpen, onClose, fpesData }: LeanCopilotProps) {
             setMessages(prev => [...prev, copilotMsg]);
         } catch (error) {
             console.error("Lean Copilot action error", error);
-            toast.error("Errore di connessione a Lean Copilot.");
+            toast.error(t("Errore di connessione a Lean Copilot."));
             setMessages(prev => [...prev, {
                 sender: "copilot",
-                text: "Scusami, ho riscontrato un problema nel calcolo dei flussi lean della cella. Controlla che le stazioni e i carichi di lavoro siano valorizzati correttamente e riprova.",
+                text: t("Scusami, ho riscontrato un problema nel calcolo dei flussi lean della cella. Controlla che le stazioni e i carichi di lavoro siano valorizzati correttamente e riprova."),
                 timestamp: new Date()
             }]);
         } finally {
@@ -206,7 +209,7 @@ export function LeanCopilot({ isOpen, onClose, fpesData }: LeanCopilotProps) {
                         <h2 className="font-extrabold text-sm tracking-wider uppercase">Lean Copilot</h2>
                         <p className="text-[10px] text-cyan-400 font-bold flex items-center gap-1">
                             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-                            AI Generativa Attiva
+                            {t("AI Generativa Attiva")}
                         </p>
                     </div>
                 </div>
@@ -223,7 +226,7 @@ export function LeanCopilot({ isOpen, onClose, fpesData }: LeanCopilotProps) {
                     className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white py-2 px-3 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                     <Sparkles className="h-3.5 w-3.5" />
-                    Ottimizza Bilanciamento
+                    {t("Ottimizza Bilanciamento")}
                 </button>
                 <button
                     onClick={() => handleSendMessage("Mostra linee guida ergonomia")}
@@ -231,7 +234,7 @@ export function LeanCopilot({ isOpen, onClose, fpesData }: LeanCopilotProps) {
                     className="bg-slate-100 hover:bg-slate-200 text-slate-700 border py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-50"
                 >
                     <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />
-                    Ergonomia
+                    {t("Ergonomia")}
                 </button>
             </div>
 
@@ -250,7 +253,7 @@ export function LeanCopilot({ isOpen, onClose, fpesData }: LeanCopilotProps) {
                                 <p className="text-xs leading-relaxed">{m.text}</p>
                             )}
                             <div className={`text-[9px] mt-1.5 text-right ${m.sender === "user" ? "text-indigo-200" : "text-slate-400"}`}>
-                                {m.timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                                {fmt.time(m.timestamp)}
                             </div>
                         </div>
                     </div>
@@ -265,7 +268,7 @@ export function LeanCopilot({ isOpen, onClose, fpesData }: LeanCopilotProps) {
                                 <span className="h-2 w-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
                                 <span className="h-2 w-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                             </div>
-                            <span className="text-[10px] text-slate-400 font-bold">Lean Copilot sta analizzando i carichi...</span>
+                            <span className="text-[10px] text-slate-400 font-bold">{t("Lean Copilot sta analizzando i carichi...")}</span>
                         </div>
                     </div>
                 )}
@@ -281,7 +284,7 @@ export function LeanCopilot({ isOpen, onClose, fpesData }: LeanCopilotProps) {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     disabled={isLoading}
-                    placeholder="Chiedi bilanciamento stazioni, ergo, timwoods..."
+                    placeholder={t("Chiedi bilanciamento stazioni, ergo, timwoods...")}
                     className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all disabled:opacity-50"
                 />
                 <button

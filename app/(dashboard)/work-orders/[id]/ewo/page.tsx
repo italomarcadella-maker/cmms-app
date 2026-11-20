@@ -1,6 +1,8 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useFormat } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, AlertTriangle, FileText, CheckCircle2, Wand2, Printer, Wrench, Microscope, Camera, Timer, Factory, Box, Trash2, Users, Settings, Package, BookOpen, Ruler, ThermometerSun, PlusCircle, MinusCircle, Calculator, CalendarPlus } from "lucide-react";
@@ -11,33 +13,39 @@ import { BackToDashboardButton } from "@/components/ui/back-button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 // --- PREDEFINED OPTIONS ---
+// Etichette e tag restano in italiano nei dati salvati (si confrontano con quanto registrato): si traducono solo quando vengono mostrati
 const ISHIKAWA_CATEGORIES = [
-    { id: "machine", title: "Macchina", icon: <Settings className="h-5 w-5" />, color: "text-blue-600", bg: "bg-blue-50/50", border: "border-blue-200", defaultTags: ["Usura", "Rottura Meccanica", "Guasto Elettrico", "Guasto Pneumatico/Idraulico"] },
-    { id: "man", title: "Uomo", icon: <Users className="h-5 w-5" />, color: "text-orange-600", bg: "bg-orange-50/50", border: "border-orange-200", defaultTags: ["Errore Operativo", "Mancanza Addestramento", "Disattenzione", "Velocità eccessiva"] },
-    { id: "method", title: "Metodo", icon: <BookOpen className="h-5 w-5" />, color: "text-purple-600", bg: "bg-purple-50/50", border: "border-purple-200", defaultTags: ["Procedura Errata", "Procedura Mancante", "Set-up Errato", "Standard non chiaro"] },
-    { id: "material", title: "Materiale", icon: <Package className="h-5 w-5" />, color: "text-amber-600", bg: "bg-amber-50/50", border: "border-amber-200", defaultTags: ["Difetto di Fabbrica", "Materiale Scadente", "Specifiche Errate", "Usura Anomala"] },
-    { id: "measurement", title: "Misura", icon: <Ruler className="h-5 w-5" />, color: "text-emerald-600", bg: "bg-emerald-50/50", border: "border-emerald-200", defaultTags: ["Sensore Guasto", "Taratura Errata", "Tolleranza Errata", "Strumento Inadeguato"] },
-    { id: "environment", title: "Ambiente", icon: <ThermometerSun className="h-5 w-5" />, color: "text-cyan-600", bg: "bg-cyan-50/50", border: "border-cyan-200", defaultTags: ["Temperatura", "Umidità", "Polvere/Sporcizia", "Vibrazioni/Rumore"] }
+    { id: "machine", title: tk("Macchina"), icon: <Settings className="h-5 w-5" />, color: "text-blue-600", bg: "bg-blue-50/50", border: "border-blue-200", defaultTags: [tk("Usura"), tk("Rottura Meccanica"), tk("Guasto Elettrico"), tk("Guasto Pneumatico/Idraulico")] },
+    { id: "man", title: tk("Uomo"), icon: <Users className="h-5 w-5" />, color: "text-orange-600", bg: "bg-orange-50/50", border: "border-orange-200", defaultTags: [tk("Errore Operativo"), tk("Mancanza Addestramento"), tk("Disattenzione"), tk("Velocità eccessiva")] },
+    { id: "method", title: tk("Metodo"), icon: <BookOpen className="h-5 w-5" />, color: "text-purple-600", bg: "bg-purple-50/50", border: "border-purple-200", defaultTags: [tk("Procedura Errata"), tk("Procedura Mancante"), tk("Set-up Errato"), tk("Standard non chiaro")] },
+    { id: "material", title: tk("Materiale"), icon: <Package className="h-5 w-5" />, color: "text-amber-600", bg: "bg-amber-50/50", border: "border-amber-200", defaultTags: [tk("Difetto di Fabbrica"), tk("Materiale Scadente"), tk("Specifiche Errate"), tk("Usura Anomala")] },
+    { id: "measurement", title: tk("Misura"), icon: <Ruler className="h-5 w-5" />, color: "text-emerald-600", bg: "bg-emerald-50/50", border: "border-emerald-200", defaultTags: [tk("Sensore Guasto"), tk("Taratura Errata"), tk("Tolleranza Errata"), tk("Strumento Inadeguato")] },
+    { id: "environment", title: tk("Ambiente"), icon: <ThermometerSun className="h-5 w-5" />, color: "text-cyan-600", bg: "bg-cyan-50/50", border: "border-cyan-200", defaultTags: [tk("Temperatura"), tk("Umidità"), tk("Polvere/Sporcizia"), tk("Vibrazioni/Rumore")] }
 ];
 
 const COMMON_SOLUTIONS = [
-    { id: "sostituzione", label: "Sostituzione Componente", icon: "🔄" },
-    { id: "riparazione", label: "Riparazione / Saldatura", icon: "🛠️" },
-    { id: "pulizia", label: "Pulizia Approfondita", icon: "✨" },
-    { id: "regolazione", label: "Regolazione / Taratura", icon: "🎚️" },
-    { id: "ripristino", label: "Reset / Riavvio", icon: "🔁" },
-    { id: "lubrificazione", label: "Lubrificazione", icon: "🛢️" },
-    { id: "modifica", label: "Modifica Impianto", icon: "🏗️" },
-    { id: "altro", label: "Altro (Specifica)", icon: "📝" },
+    { id: "sostituzione", label: tk("Sostituzione Componente"), icon: "🔄" },
+    { id: "riparazione", label: tk("Riparazione / Saldatura"), icon: "🛠️" },
+    { id: "pulizia", label: tk("Pulizia Approfondita"), icon: "✨" },
+    { id: "regolazione", label: tk("Regolazione / Taratura"), icon: "🎚️" },
+    { id: "ripristino", label: tk("Reset / Riavvio"), icon: "🔁" },
+    { id: "lubrificazione", label: tk("Lubrificazione"), icon: "🛢️" },
+    { id: "modifica", label: tk("Modifica Impianto"), icon: "🏗️" },
+    { id: "altro", label: tk("Altro (Specifica)"), icon: "📝" },
 ];
 
 const IMPACT_LEVELS = [
-    { id: "NONE", label: "Nessuno (Impianto in marcia)", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-    { id: "SLOWDOWN", label: "Rallentamento / Marcia Degradata", color: "bg-amber-100 text-amber-800 border-amber-200" },
-    { id: "STOPPAGE", label: "FERMO IMPIANTO TOTALE", color: "bg-red-100 text-red-800 border-red-200 animate-pulse" },
+    { id: "NONE", label: tk("Nessuno (Impianto in marcia)"), color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+    { id: "SLOWDOWN", label: tk("Rallentamento / Marcia Degradata"), color: "bg-amber-100 text-amber-800 border-amber-200" },
+    { id: "STOPPAGE", label: tk("FERMO IMPIANTO TOTALE"), color: "bg-red-100 text-red-800 border-red-200 animate-pulse" },
 ];
 
+// Frequenza salvata nel piano preventivo (valore interno in italiano, indipendente dalla lingua mostrata)
+const PREVENTIVE_FREQUENCY_BY_DAYS: Record<number, string> = { 7: "SETTIMANALE", 30: "MENSILE", 90: "TRIMESTRALE", 180: "SEMESTRALE", 365: "MANUALE" };
+
 export default function EWOFormPage({ params }: { params: Promise<{ id: string }> }) {
+    const t = useT();
+    const fmt = useFormat();
     const { id } = React.use(params);
     const { confirm, dialog } = useConfirm();
     const [loading, setLoading] = useState(false);
@@ -181,7 +189,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
         setIshikawaData(prev => {
             const catData = prev[category] || { tags: [], notes: "" };
             const newTags = catData.tags.includes(tag)
-                ? catData.tags.filter(t => t !== tag)
+                ? catData.tags.filter(x => x !== tag)
                 : [...catData.tags, tag];
             return { ...prev, [category]: { ...catData, tags: newTags } };
         });
@@ -223,7 +231,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
 
     const handleAIAnalysis = async () => {
         if (!formData.description) {
-            toast.warning("Inserisci una descrizione del guasto per avviare l'analisi AI.");
+            toast.warning(t("Inserisci una descrizione del guasto per avviare l'analisi AI."));
             return;
         }
         setAiLoading(true);
@@ -263,7 +271,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
             }));
         } catch (e) {
             console.error(e);
-            toast.error("Errore AI.");
+            toast.error(t("Errore AI."));
         } finally {
             setAiLoading(false);
         }
@@ -307,7 +315,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
             solutionDetails
         ].filter(Boolean).join(", ");
 
-        if (!(await confirm({ title: "Confermi la registrazione dell'EWO?", confirmLabel: "Registra" }))) return;
+        if (!(await confirm({ title: t("Confermi la registrazione dell'EWO?"), confirmLabel: t("Registra") }))) return;
 
         setLoading(true);
         try {
@@ -325,11 +333,11 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                 router.push(`/work-orders/${id}`);
                 router.refresh();
             } else {
-                toast.error("Errore: " + res.message);
+                toast.error(t("Errore: {message}", { message: t(res.message) }));
             }
         } catch (error) {
             console.error(error);
-            toast.error("Errore imprevisto.");
+            toast.error(t("Errore imprevisto."));
         } finally {
             setLoading(false);
         }
@@ -338,7 +346,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
     // Auto-generate preventive action
     const handleCreatePreventive = async () => {
         if (!formData.preventiveActions) {
-            toast.warning("Scrivi prima l'azione preventiva da generare.");
+            toast.warning(t("Scrivi prima l'azione preventiva da generare."));
             return;
         }
 
@@ -360,19 +368,19 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
             );
 
             if (res.success) {
-                toast.success("Piano preventivo creato con successo!");
+                toast.success(t("Piano preventivo creato con successo!"));
             } else {
-                toast.error("Errore: " + res.message);
+                toast.error(t("Errore: {message}", { message: t(res.message) }));
             }
         } catch (e) {
             console.error(e);
-            toast.error("Errore creazione piano preventivo.");
+            toast.error(t("Errore creazione piano preventivo."));
         } finally {
             setGeneratingPreventive(false);
         }
     }
 
-    if (initialLoading) return <div className="p-8 text-center print:hidden">Caricamento modulo EWO...</div>;
+    if (initialLoading) return <div className="p-8 text-center print:hidden">{t("Caricamento modulo EWO...")}</div>;
 
     return (
         <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in py-6 print:py-0 print:max-w-none print:bg-white print:text-black">
@@ -395,22 +403,22 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-2">
                             <AlertTriangle className="h-6 w-6 text-amber-500" />
-                            EWO Evoluto
+                            {t("EWO Evoluto")}
                         </h1>
                     </div>
                 </div>
                 {isViewMode && (
                     <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium">
-                        <Printer className="h-4 w-4" /> Stampa PDF
+                        <Printer className="h-4 w-4" /> {t("Stampa PDF")}
                     </button>
                 )}
             </div>
 
             {/* Print Header */}
             <div className="hidden print:block mb-8 border-b pb-4">
-                <h1 className="text-3xl font-bold mb-2">EWO - Rapporto Emergenza</h1>
-                <p className="text-lg">Riferimento Ordine: #{id}</p>
-                <p className="text-sm">Stampato il: {new Date().toLocaleDateString('it-IT')}</p>
+                <h1 className="text-3xl font-bold mb-2">{t("EWO - Rapporto Emergenza")}</h1>
+                <p className="text-lg">{t("Riferimento Ordine: #{id}", { id })}</p>
+                <p className="text-sm">{t("Stampato il: {date}", { date: fmt.date(new Date()) })}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -419,12 +427,12 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                 <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
                     <h3 className="font-semibold text-lg flex items-center gap-2 text-red-600">
                         <Timer className="h-5 w-5" />
-                        Impatto Operativo
+                        {t("Impatto Operativo")}
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-3">
-                            <label className="text-sm font-medium">Livello Impatto Produzione</label>
+                            <label className="text-sm font-medium">{t("Livello Impatto Produzione")}</label>
                             <div className="flex flex-col gap-2">
                                 {IMPACT_LEVELS.map(lvl => (
                                     <label key={lvl.id} className={cn(
@@ -440,7 +448,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                                             onChange={e => setFormData({ ...formData, productionImpact: e.target.value })}
                                             className="h-4 w-4"
                                         />
-                                        <span className="font-medium">{lvl.label}</span>
+                                        <span className="font-medium">{t(lvl.label)}</span>
                                     </label>
                                 ))}
                             </div>
@@ -449,7 +457,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs font-semibold uppercase text-muted-foreground">Inizio Guasto</label>
+                                    <label className="text-xs font-semibold uppercase text-muted-foreground">{t("Inizio Guasto")}</label>
                                     <input
                                         type="datetime-local"
                                         disabled={isViewMode}
@@ -459,7 +467,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-semibold uppercase text-muted-foreground">Fine Intervento</label>
+                                    <label className="text-xs font-semibold uppercase text-muted-foreground">{t("Fine Intervento")}</label>
                                     <input
                                         type="datetime-local"
                                         disabled={isViewMode}
@@ -473,22 +481,22 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                             {/* NEW: REALTIME COST CARD */}
                             <div className="p-4 bg-slate-50 rounded-lg flex flex-col gap-3 border">
                                 <div className="flex items-center justify-between">
-                                    <span className="font-medium text-slate-600 flex items-center gap-2"><Timer className="h-4 w-4" /> Fermo Macchina:</span>
-                                    <span className="text-lg font-bold font-mono">{calculateDowntime()} min</span>
+                                    <span className="font-medium text-slate-600 flex items-center gap-2"><Timer className="h-4 w-4" /> {t("Fermo Macchina:")}</span>
+                                    <span className="text-lg font-bold font-mono">{calculateDowntime()} {t("min")}</span>
                                 </div>
                                 <div className="h-px bg-slate-200" />
                                 <div className="flex flex-col gap-1 text-sm">
                                     <div className="flex justify-between text-slate-500">
-                                        <span>Costo Ricambi:</span>
-                                        <span>€ {calculateTotalCost().parts.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span>{t("Costo Ricambi:")}</span>
+                                        <span>€ {fmt.number(calculateTotalCost().parts, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="flex justify-between text-slate-500">
-                                        <span>Costo Manodopera ({technicianHourlyRate}€/h):</span>
-                                        <span>€ {calculateTotalCost().labor.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span>{t("Costo Manodopera ({rate}€/h):", { rate: technicianHourlyRate })}</span>
+                                        <span>€ {fmt.number(calculateTotalCost().labor, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="flex justify-between font-bold text-slate-800 mt-1 pt-1 border-t">
-                                        <span className="flex items-center gap-1"><Calculator className="h-4 w-4" /> Costo Evento Totale:</span>
-                                        <span className="text-red-600">€ {calculateTotalCost().total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="flex items-center gap-1"><Calculator className="h-4 w-4" /> {t("Costo Evento Totale:")}</span>
+                                        <span className="text-red-600">€ {fmt.number(calculateTotalCost().total, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
                             </div>
@@ -501,14 +509,14 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                     <div className="md:col-span-2 bg-card border rounded-xl p-6 shadow-sm space-y-4">
                         <h3 className="font-semibold text-lg flex items-center gap-2 text-primary">
                             <FileText className="h-5 w-5" />
-                            Descrizione Evento
+                            {t("Descrizione Evento")}
                         </h3>
                         <div className="relative">
                             <textarea
                                 required
                                 disabled={isViewMode}
                                 className="w-full min-h-[120px] p-3 rounded-md border bg-background text-sm focus:ring-2 focus:ring-primary/20 transition-all"
-                                placeholder="Descrivi dettagliatamente cosa è successo..."
+                                placeholder={t("Descrivi dettagliatamente cosa è successo...")}
                                 value={formData.description}
                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
                             />
@@ -520,7 +528,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                                     className="absolute right-2 bottom-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-md hover:bg-purple-200 flex items-center gap-1 font-medium transition-colors"
                                 >
                                     <Wand2 className="h-3 w-3" />
-                                    {aiLoading ? "..." : "AI Help"}
+                                    {aiLoading ? "..." : t("AI Help")}
                                 </button>
                             )}
                         </div>
@@ -529,21 +537,21 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                     <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
                         <h3 className="font-semibold text-lg flex items-center gap-2 text-purple-600">
                             <Camera className="h-5 w-5" />
-                            Foto
+                            {t("Foto")}
                         </h3>
                         <div className="grid grid-cols-1 gap-4">
                             <div>
-                                <label className="text-xs font-medium mb-1 block">Prima (Guasto)</label>
+                                <label className="text-xs font-medium mb-1 block">{t("Prima (Guasto)")}</label>
                                 {formData.imageBefore ? (
-                                    <img src={formData.imageBefore} alt="Before" className="w-full h-32 object-cover rounded-md border" />
+                                    <img src={formData.imageBefore} alt={t("Prima (Guasto)")} className="w-full h-32 object-cover rounded-md border" />
                                 ) : (
                                     <input type="file" disabled={isViewMode} accept="image/*" onChange={e => handleFileChange(e, 'imageBefore')} className="text-xs" />
                                 )}
                             </div>
                             <div>
-                                <label className="text-xs font-medium mb-1 block">Dopo (Soluzione)</label>
+                                <label className="text-xs font-medium mb-1 block">{t("Dopo (Soluzione)")}</label>
                                 {formData.imageAfter ? (
-                                    <img src={formData.imageAfter} alt="After" className="w-full h-32 object-cover rounded-md border" />
+                                    <img src={formData.imageAfter} alt={t("Dopo (Soluzione)")} className="w-full h-32 object-cover rounded-md border" />
                                 ) : (
                                     <input type="file" disabled={isViewMode} accept="image/*" onChange={e => handleFileChange(e, 'imageAfter')} className="text-xs" />
                                 )}
@@ -557,7 +565,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                     <div className="flex justify-between items-center mb-2">
                         <h3 className="font-semibold text-lg flex items-center gap-2 text-primary">
                             <Microscope className="h-5 w-5" />
-                            Analisi Cause Radice (Ishikawa)
+                            {t("Analisi Cause Radice (Ishikawa)")}
                         </h3>
                     </div>
 
@@ -566,7 +574,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                             <div key={cat.id} className={cn("border rounded-lg p-4 flex flex-col gap-3", cat.bg, cat.border)}>
                                 <div className={cn("flex items-center gap-2 font-semibold", cat.color)}>
                                     {cat.icon}
-                                    {cat.title}
+                                    {t(cat.title)}
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
@@ -585,7 +593,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                                                         : "bg-white/50 text-slate-600 hover:bg-white border-transparent hover:border-slate-200"
                                                 )}
                                             >
-                                                {tag}
+                                                {t(tag)}
                                             </button>
                                         );
                                     })}
@@ -594,7 +602,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                                 <input
                                     type="text"
                                     disabled={isViewMode}
-                                    placeholder={`Altre cause relative a ${cat.title.toLowerCase()}...`}
+                                    placeholder={t("Altre cause relative a {category}...", { category: t(cat.title).toLowerCase() })}
                                     className="w-full text-xs p-2 rounded-md border-white/60 bg-white/70 focus:bg-white/90 focus:ring-1 transition-all mt-auto"
                                     value={ishikawaData[cat.id]?.notes || ""}
                                     onChange={e => updateIshikawaNotes(cat.id, e.target.value)}
@@ -605,7 +613,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
 
                     {legacyCauseDetails && (
                         <div className="mt-4">
-                            <label className="text-sm font-medium text-slate-700 block mb-1">Note Aggiuntive / Storico Cause / AI</label>
+                            <label className="text-sm font-medium text-slate-700 block mb-1">{t("Note Aggiuntive / Storico Cause / AI")}</label>
                             <textarea
                                 disabled={isViewMode}
                                 className="w-full p-3 text-sm border rounded-md bg-slate-50"
@@ -619,10 +627,10 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                     {/* NEW: 5 WHYS SECTION */}
                     <div className="mt-6 pt-4 border-t">
                         <h4 className="font-semibold text-md text-slate-800 mb-3 flex items-center justify-between">
-                            Metodo dei 5 Perché (5 Whys)
+                            {t("Metodo dei 5 Perché (5 Whys)")}
                             {!isViewMode && whys.length < 5 && (
                                 <button type="button" onClick={addWhy} className="text-xs flex items-center gap-1 bg-slate-100 px-2 py-1 rounded text-slate-600 hover:bg-slate-200">
-                                    <PlusCircle className="h-3 w-3" /> Aggiungi Perché
+                                    <PlusCircle className="h-3 w-3" /> {t("Aggiungi Perché")}
                                 </button>
                             )}
                         </h4>
@@ -631,13 +639,13 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                             {whys.map((why, index) => (
                                 <div key={index} className="flex gap-2 items-center">
                                     <span className="text-sm font-bold text-slate-400 w-24 text-right shrink-0">
-                                        {index + 1}° Perché?
+                                        {t("{n}° Perché?", { n: index + 1 })}
                                     </span>
                                     <input
                                         disabled={isViewMode}
                                         type="text"
                                         className="flex-1 text-sm p-2 rounded-md border bg-white focus:bg-slate-50 focus:ring-1"
-                                        placeholder={`Es. ${index === 0 ? 'Perché è saltato il fusibile?' : 'Perché ha lavorato sotto sforzo?'}`}
+                                        placeholder={index === 0 ? t("Es. Perché è saltato il fusibile?") : t("Es. Perché ha lavorato sotto sforzo?")}
                                         value={why}
                                         onChange={e => updateWhy(index, e.target.value)}
                                     />
@@ -656,7 +664,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                 <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
                     <h3 className="font-semibold text-lg flex items-center gap-2 text-emerald-600">
                         <Wrench className="h-5 w-5" />
-                        Intervento Eseguito / Soluzione
+                        {t("Intervento Eseguito / Soluzione")}
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {COMMON_SOLUTIONS.map(sol => (
@@ -671,13 +679,13 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                                 )}
                             >
                                 <span className="text-lg mb-1">{sol.icon}</span>
-                                <span className="text-xs font-medium text-center">{sol.label}</span>
+                                <span className="text-xs font-medium text-center">{t(sol.label)}</span>
                             </button>
                         ))}
                     </div>
                     <input
                         disabled={isViewMode}
-                        placeholder="Dettagli intervento... Es. Sostituzione cuscinetto SKF"
+                        placeholder={t("Dettagli intervento... Es. Sostituzione cuscinetto SKF")}
                         className="w-full p-3 text-sm border rounded-md bg-background"
                         value={solutionDetails}
                         onChange={e => setSolutionDetails(e.target.value)}
@@ -688,26 +696,26 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                 <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
                     <h3 className="font-semibold text-lg flex items-center gap-2 text-orange-600">
                         <Box className="h-5 w-5" />
-                        Ricambi Utilizzati
+                        {t("Ricambi Utilizzati")}
                     </h3>
 
                     {!isViewMode && (
                         <div className="flex gap-2 items-end bg-muted/20 p-4 rounded-lg">
                             <div className="flex-1">
-                                <label className="text-xs font-medium block mb-1">Seleziona Ricambio</label>
+                                <label className="text-xs font-medium block mb-1">{t("Seleziona Ricambio")}</label>
                                 <select
                                     className="w-full p-2 border rounded-md text-sm"
                                     value={selectedPartId}
                                     onChange={e => setSelectedPartId(e.target.value)}
                                 >
-                                    <option value="">-- Seleziona --</option>
+                                    <option value="">{t("-- Seleziona --")}</option>
                                     {availableParts.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name} (Disp: {p.quantity})</option>
+                                        <option key={p.id} value={p.id}>{t("{name} (Disp: {qty})", { name: p.name, qty: p.quantity })}</option>
                                     ))}
                                 </select>
                             </div>
                             <div className="w-24">
-                                <label className="text-xs font-medium block mb-1">Q.tà</label>
+                                <label className="text-xs font-medium block mb-1">{t("Q.tà")}</label>
                                 <input
                                     type="number"
                                     min="1"
@@ -721,7 +729,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                                 onClick={addPart}
                                 className="px-4 py-2 bg-slate-800 text-white rounded-md text-sm font-medium hover:bg-slate-700"
                             >
-                                Aggiungi
+                                {t("Aggiungi")}
                             </button>
                         </div>
                     )}
@@ -740,7 +748,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                             ))}
                         </ul>
                     ) : (
-                        <p className="text-sm text-muted-foreground italic">Nessun ricambio registrato.</p>
+                        <p className="text-sm text-muted-foreground italic">{t("Nessun ricambio registrato.")}</p>
                     )}
                 </div>
 
@@ -748,12 +756,12 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                 <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
                     <h3 className="font-semibold text-lg flex items-center gap-2 text-blue-600">
                         <CheckCircle2 className="h-5 w-5" />
-                        Prevenzione
+                        {t("Prevenzione")}
                     </h3>
                     <textarea
                         disabled={isViewMode}
                         className="w-full min-h-[60px] p-3 rounded-md border bg-background text-sm"
-                        placeholder="Azioni preventive..."
+                        placeholder={t("Azioni preventive...")}
                         value={formData.preventiveActions}
                         onChange={e => setFormData({ ...formData, preventiveActions: e.target.value })}
                     />
@@ -766,13 +774,13 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                             className="mt-1 h-4 w-4"
                         />
                         <div className="flex-1">
-                            <label className="font-medium text-sm">Richiedi Follow-up (Nuovo Ordine)</label>
+                            <label className="font-medium text-sm">{t("Richiedi Follow-up (Nuovo Ordine)")}</label>
                             {formData.needsFollowUp && (
                                 <input
                                     type="text"
                                     disabled={isViewMode}
                                     className="w-full mt-2 p-2 rounded-md border text-sm"
-                                    placeholder="Dettagli richiesta..."
+                                    placeholder={t("Dettagli richiesta...")}
                                     value={formData.followUpDetail}
                                     onChange={e => setFormData({ ...formData, followUpDetail: e.target.value })}
                                 />
@@ -786,10 +794,10 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                             <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
                                 <div className="flex-1 space-y-1">
                                     <h4 className="font-semibold text-sm flex items-center gap-2">
-                                        <CalendarPlus className="h-4 w-4 text-primary" /> Strategia a Lungo Termine
+                                        <CalendarPlus className="h-4 w-4 text-primary" /> {t("Strategia a Lungo Termine")}
                                     </h4>
                                     <p className="text-xs text-muted-foreground">
-                                        Trasforma le azioni preventive scritte sopra in un programma ricorrente nel calendario del CMMS.
+                                        {t("Trasforma le azioni preventive scritte sopra in un programma ricorrente nel calendario del CMMS.")}
                                     </p>
                                 </div>
 
@@ -799,14 +807,14 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                                         value={preventiveFrequencyDays}
                                         onChange={e => {
                                             setPreventiveFrequencyDays(parseInt(e.target.value));
-                                            setPreventiveFrequency(e.target.options[e.target.selectedIndex].text.toUpperCase());
+                                            setPreventiveFrequency(PREVENTIVE_FREQUENCY_BY_DAYS[parseInt(e.target.value)] ?? e.target.options[e.target.selectedIndex].text.toUpperCase());
                                         }}
                                     >
-                                        <option value={7}>Settimanale</option>
-                                        <option value={30}>Mensile</option>
-                                        <option value={90}>Trimestrale</option>
-                                        <option value={180}>Semestrale</option>
-                                        <option value={365}>Manuale</option>
+                                        <option value={7}>{t("Settimanale")}</option>
+                                        <option value={30}>{t("Mensile")}</option>
+                                        <option value={90}>{t("Trimestrale")}</option>
+                                        <option value={180}>{t("Semestrale")}</option>
+                                        <option value={365}>{t("Manuale")}</option>
                                     </select>
 
                                     <button
@@ -815,7 +823,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                                         disabled={generatingPreventive || !formData.preventiveActions}
                                         className="whitespace-nowrap px-4 py-2 bg-white border shadow-sm text-primary font-medium rounded-md hover:bg-slate-50 text-sm disabled:opacity-50"
                                     >
-                                        {generatingPreventive ? "Creazione..." : "Salva come Piano Ricorrente"}
+                                        {generatingPreventive ? t("Creazione...") : t("Salva come Piano Ricorrente")}
                                     </button>
                                 </div>
                             </div>
@@ -830,14 +838,14 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                             onClick={() => router.back()}
                             className="px-6 py-2 rounded-lg border bg-background hover:bg-muted font-medium"
                         >
-                            Annulla
+                            {t("Annulla")}
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
                             className="px-8 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-bold flex items-center gap-2 shadow-sm transition-transform active:scale-95"
                         >
-                            {loading ? "Registrazione..." : <><Save className="h-4 w-4" /> REGISTRA EWO</>}
+                            {loading ? t("Registrazione...") : <><Save className="h-4 w-4" /> {t("REGISTRA EWO")}</>}
                         </button>
                     </div>
                 )}
@@ -849,7 +857,7 @@ export default function EWOFormPage({ params }: { params: Promise<{ id: string }
                             onClick={() => setIsViewMode(false)}
                             className="px-6 py-2 rounded-lg border bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium"
                         >
-                            Modifica Dati
+                            {t("Modifica Dati")}
                         </button>
                     </div>
                 )}

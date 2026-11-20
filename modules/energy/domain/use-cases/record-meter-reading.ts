@@ -1,4 +1,5 @@
 import { MeterReading } from '../entities/meter-reading';
+import { isCumulative as isCumulativeMeterType } from '../meter-types';
 import { IMeterRepository } from '../ports/meter-repository';
 import { IMeterReadingRepository } from '../ports/meter-reading-repository';
 
@@ -34,7 +35,7 @@ export const makeRecordMeterReading = (meterRepo: IMeterRepository, readingRepo:
 
         // I controlli di anomalia valgono per i contatori cumulativi (energia, acqua, gas): pressioni, temperature e
         // livelli salgono e scendono normalmente, quindi un valore piu' basso del precedente non e' un errore.
-        const isCumulative = ['ELEC', 'WATER', 'GAS'].includes(meter.type);
+        const isCumulative = isCumulativeMeterType(meter.type); // anche ore di funzionamento e cicli
 
         if (isCumulative && recentReadings.length > 0) {
             const lastReading = recentReadings[0];

@@ -14,6 +14,8 @@
  * ai predefiniti i valori mancanti o assurdi.
  */
 
+import { tk } from '@/lib/i18n/translate';
+
 export type HealthComponentKey = 'current' | 'frequency' | 'schedule';
 
 export interface FrequencyStep {
@@ -227,12 +229,12 @@ export interface AssetHealthResult {
 }
 
 export const COMPONENT_LABELS: Record<HealthComponentKey, string> = {
-    current: 'Stato attuale',
-    frequency: 'Frequenza degli eventi',
-    schedule: 'Manutenzione programmata',
+    current: tk('Stato attuale'),
+    frequency: tk('Frequenza degli eventi'),
+    schedule: tk('Manutenzione programmata'),
 };
 
-export const NO_PLAN_REASON = 'nessun piano di manutenzione';
+export const NO_PLAN_REASON = tk('nessun piano di manutenzione');
 
 // --- Utilita' ---
 
@@ -338,7 +340,7 @@ export function computeAssetHealth(input: HealthInput, config?: HealthConfig): A
 
     const emptyComponents = (): HealthComponent[] =>
         (['current', 'frequency', 'schedule'] as HealthComponentKey[]).map(key => ({
-            key, label: COMPONENT_LABELS[key], score: null, weight: cfg.weights[key], detail: 'Dati non sufficienti',
+            key, label: COMPONENT_LABELS[key], score: null, weight: cfg.weights[key], detail: tk('Dati non sufficienti'),
         }));
 
     if (!hasEvents && !hasPlans && (young || !hasHistory)) {
@@ -347,7 +349,7 @@ export function computeAssetHealth(input: HealthInput, config?: HealthConfig): A
             evaluable: false,
             notEvaluableReason: young
                 ? `asset inserito da meno di ${cfg.minHistoryDays} giorni, senza guasti, richieste né piani di manutenzione: dati insufficienti per valutarlo`
-                : 'nessun guasto, richiesta, piano di manutenzione né storia registrata: dati insufficienti per valutarlo',
+                : tk('nessun guasto, richiesta, piano di manutenzione né storia registrata: dati insufficienti per valutarlo'),
             components: emptyComponents(),
             losses: [],
             capped: false,
@@ -371,7 +373,7 @@ export function computeAssetHealth(input: HealthInput, config?: HealthConfig): A
         currentDetail = `${plural(openFaults, 'guasto aperto', 'guasti aperti')}, la macchina non è ferma`;
     } else {
         currentScore = cfg.currentScores.ok;
-        currentDetail = 'Nessun guasto aperto';
+        currentDetail = tk('Nessun guasto aperto');
     }
 
     // --- Componente 2: frequenza ---
@@ -394,7 +396,7 @@ export function computeAssetHealth(input: HealthInput, config?: HealthConfig): A
     let overdueLoss = 0; // sulla scala del componente (0-100)
     let lateLoss = 0;
     if (!hasPlans) {
-        schedDetail = 'Nessun piano di manutenzione: non valutabile';
+        schedDetail = tk('Nessun piano di manutenzione: non valutabile');
     } else {
         const penaltyScore = Math.max(0, 100 - overduePlans * cfg.overduePenalty);
         let score = penaltyScore;

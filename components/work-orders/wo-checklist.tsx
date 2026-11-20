@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckSquare, Square, Save } from "lucide-react";
 import { ChecklistItem } from "@/lib/types";
+import { useT } from "@/lib/i18n/client";
 
 // Interface removed as it's defined inline or not used
 
@@ -16,6 +17,7 @@ export function WorkOrderChecklist({ workOrderId, items, onUpdate }: {
     initialItems?: ChecklistItem[];
 }) {
     // If items are passed from parent (controlled mode), use them. 
+    const t = useT();
     // Otherwise fall back to local state (uncontrolled mode) initialized from initialItems
     const [localItems, setLocalItems] = useState(items || []);
 
@@ -48,9 +50,9 @@ export function WorkOrderChecklist({ workOrderId, items, onUpdate }: {
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold flex items-center gap-2">
                     <CheckSquare className="h-5 w-5 text-primary" />
-                    Checklist Esecuzione
+                    {t("Checklist Esecuzione")}
                 </h3>
-                <span className="text-sm text-muted-foreground">{progress}% Completato</span>
+                <span className="text-sm text-muted-foreground">{t("{progress}% Completato", { progress })}</span>
             </div>
 
             <div className="w-full bg-secondary h-2 rounded-full overflow-hidden mb-6">
@@ -58,7 +60,7 @@ export function WorkOrderChecklist({ workOrderId, items, onUpdate }: {
             </div>
 
             <div className="space-y-2">
-                {checklistItems.length === 0 && <p className="text-muted-foreground text-sm italic">Nessuna voce nella checklist.</p>}
+                {checklistItems.length === 0 && <p className="text-muted-foreground text-sm italic">{t("Nessuna voce nella checklist.")}</p>}
                 {checklistItems.map(item => (
                     <div
                         key={item.id}

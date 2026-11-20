@@ -18,6 +18,8 @@ export interface AssetProps {
     lastMaintenance?: Date | null;
     type?: AssetType;
     warrantyExpiration?: Date | null;
+    /** Asset di cui questo e' parte (macchina -> gruppo -> componente); null per una macchina principale. */
+    parentId?: string | null;
 }
 
 export class Asset {
@@ -54,6 +56,7 @@ export class Asset {
     public get lastMaintenance(): Date | null | undefined { return this.props.lastMaintenance; }
     public get type(): AssetType { return this.props.type || 'MACHINE'; }
     public get warrantyExpiration(): Date | null | undefined { return this.props.warrantyExpiration; }
+    public get parentId(): string | null | undefined { return this.props.parentId; }
 
     public updateHealthScore(score: number): void {
         if (score < 0 || score > 100) {

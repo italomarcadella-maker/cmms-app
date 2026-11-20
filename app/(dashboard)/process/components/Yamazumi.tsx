@@ -3,12 +3,22 @@
 import React from "react";
 import { C } from "@/lib/fpes-utils";
 import { BarChart2 } from "lucide-react";
+import { useT } from "@/lib/i18n/client";
+
+// Compone una frase tradotta con segnaposto {nome} resi in grassetto (la traduzione puo' spostarli liberamente)
+function richText(template: string, vals: Record<string, { node: React.ReactNode; cls: string }>) {
+  return template.split(/(\{\w+\})/).map((part, i) => {
+    const m = part.match(/^\{(\w+)\}$/);
+    return m && vals[m[1]] ? <strong key={i} className={vals[m[1]].cls}>{vals[m[1]].node}</strong> : part;
+  });
+}
 
 export default function Yamazumi({ project, upd, cr }: { project: any; upd: (patch: any) => void; cr: any }) {
+  const t = useT();
   const { active, takt, bot, lineEff, vaAvg } = cr;
   
   if (!active || active.length === 0) {
-    return <div className="p-8 text-center text-slate-400">Nessuna postazione attiva.</div>;
+    return <div className="p-8 text-center text-slate-400">{t("Nessuna postazione attiva.")}</div>;
   }
 
   const maxC = Math.max(...active.map((s:any) => s.cicloS), takt, 1);
@@ -26,26 +36,26 @@ export default function Yamazumi({ project, upd, cr }: { project: any; upd: (pat
     <div className="w-full">
       <div className="flex items-center gap-4 mb-4">
         <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-          <BarChart2 className="h-4 w-4 text-slate-500" /> Bilanciamento & Yamazumi
+          <BarChart2 className="h-4 w-4 text-slate-500" /> {t("Bilanciamento & Yamazumi")}
         </h2>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-white border-t-4 border-t-blue-500 border rounded-xl p-4 shadow-sm">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Takt Time</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t("Takt Time")}</p>
           <p className="text-2xl font-bold text-blue-600 font-mono">{takt}s</p>
         </div>
         <div className="bg-white border-t-4 border-t-red-500 border rounded-xl p-4 shadow-sm">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Bottleneck</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t("Bottleneck")}</p>
           <p className="text-2xl font-bold text-red-600 truncate">{bot ? bot.nome : "—"}</p>
           {bot && <p className="text-xs text-slate-400 mt-1">{bot.cicloS}s</p>}
         </div>
         <div className={`bg-white border-t-4 border rounded-xl p-4 shadow-sm ${lineEff >= 85 ? 'border-t-emerald-500' : lineEff >= 70 ? 'border-t-amber-500' : 'border-t-red-500'}`}>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Efficienza</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t("Efficienza")}</p>
           <p className={`text-2xl font-bold font-mono ${lineEff >= 85 ? 'text-emerald-600' : lineEff >= 70 ? 'text-amber-500' : 'text-red-600'}`}>{lineEff}%</p>
         </div>
         <div className={`bg-white border-t-4 border rounded-xl p-4 shadow-sm ${vaAvg >= 70 ? 'border-t-emerald-500' : 'border-t-amber-500'}`}>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">% VA Medio</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t("% VA Medio")}</p>
           <p className={`text-2xl font-bold font-mono ${vaAvg >= 70 ? 'text-emerald-600' : 'text-amber-500'}`}>{vaAvg}%</p>
         </div>
       </div>
@@ -53,10 +63,10 @@ export default function Yamazumi({ project, upd, cr }: { project: any; upd: (pat
       <div className="bg-white border rounded-xl p-5 shadow-sm mb-6 overflow-hidden">
         <div className="flex gap-4 mb-4 flex-wrap">
           {[
-            { c: "#22c55e", l: "VA (Valore Aggiunto)" },
-            { c: C.orange, l: "NVA (Non Valore)" },
-            { c: C.red, l: "Attesa / Spreco" },
-            { c: C.blue, l: "Takt Time Target" }
+            { c: "#22c55e", l: t("VA (Valore Aggiunto)") },
+            { c: C.orange, l: t("NVA (Non Valore)") },
+            { c: C.red, l: t("Attesa / Spreco") },
+            { c: C.blue, l: t("Takt Time Target") }
           ].map((x, i) => (
             <div key={i} className="flex items-center gap-2">
               <div className="rounded-sm" style={{ width: 12, height: i === 3 ? 3 : 12, background: x.c }} />
@@ -70,7 +80,7 @@ export default function Yamazumi({ project, upd, cr }: { project: any; upd: (pat
             {taktY !== null && (
               <g>
                 <line x1={40} y1={taktY} x2={svgW - 10} y2={taktY} stroke={C.blue} strokeWidth={2} strokeDasharray="6,4" />
-                <text x={44} y={taktY - 4} fill={C.blue} fontSize={10} fontWeight="bold">TAKT {takt}s</text>
+                <text x={44} y={taktY - 4} fill={C.blue} fontSize={10} fontWeight="bold">{t("TAKT {n}s", { n: takt })}</text>
               </g>
             )}
             {active.map((s:any, i:number) => {
@@ -113,7 +123,7 @@ export default function Yamazumi({ project, upd, cr }: { project: any; upd: (pat
       </div>
 
       <div className="bg-white border rounded-xl p-5 shadow-sm">
-        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Modifica Tempi (What-If)</h3>
+        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{t("Modifica Tempi (What-If)")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {active.map((s:any) => (
             <div key={s.id} className="border rounded-lg p-4" style={{ borderLeft: `4px solid ${s.colore}`, background: s.colore+"08" }}>
@@ -121,15 +131,15 @@ export default function Yamazumi({ project, upd, cr }: { project: any; upd: (pat
               
               <div className="space-y-3">
                 <div>
-                  <div className="flex justify-between text-[10px] font-bold uppercase mb-1"><span className="text-emerald-600">VA (Valore)</span> <span>{s.va}s</span></div>
+                  <div className="flex justify-between text-[10px] font-bold uppercase mb-1"><span className="text-emerald-600">{t("VA (Valore)")}</span> <span>{s.va}s</span></div>
                   <input type="range" min={0} max={s.cicloS} value={s.va} onChange={e => upd({ stazioni: project.stazioni.map((st:any) => st.id === s.id ? { ...st, va: +e.target.value } : st) })} className="w-full accent-emerald-500" />
                 </div>
                 <div>
-                  <div className="flex justify-between text-[10px] font-bold uppercase mb-1"><span className="text-amber-500">NVA (Non Valore)</span> <span>{s.nva}s</span></div>
+                  <div className="flex justify-between text-[10px] font-bold uppercase mb-1"><span className="text-amber-500">{t("NVA (Non Valore)")}</span> <span>{s.nva}s</span></div>
                   <input type="range" min={0} max={s.cicloS} value={s.nva} onChange={e => upd({ stazioni: project.stazioni.map((st:any) => st.id === s.id ? { ...st, nva: +e.target.value } : st) })} className="w-full accent-amber-500" />
                 </div>
                 <div>
-                  <div className="flex justify-between text-[10px] font-bold uppercase mb-1"><span className="text-red-500">Attesa</span> <span>{s.attesa}s</span></div>
+                  <div className="flex justify-between text-[10px] font-bold uppercase mb-1"><span className="text-red-500">{t("Attesa")}</span> <span>{s.attesa}s</span></div>
                   <input type="range" min={0} max={s.cicloS} value={s.attesa} onChange={e => upd({ stazioni: project.stazioni.map((st:any) => st.id === s.id ? { ...st, attesa: +e.target.value } : st) })} className="w-full accent-red-500" />
                 </div>
               </div>
@@ -147,11 +157,16 @@ export default function Yamazumi({ project, upd, cr }: { project: any; upd: (pat
             </div>
             <div className="flex-1">
               <h3 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">
-                Lean Recommendation Engine — Ottimizzazione Bilanciamento
+                {t("Lean Recommendation Engine — Ottimizzazione Bilanciamento")}
               </h3>
               <p className="text-sm text-slate-700 leading-relaxed mb-4">
-                L'efficienza attuale della linea è al <strong className="text-amber-700 font-semibold">{lineEff}%</strong>. 
-                Il forte sbilanciamento è causato dal collo di bottiglia su <strong className="text-slate-900 font-semibold">{bot?.nome}</strong> ({bot?.cicloS}s) rispetto alla postazione più scarica <strong className="text-slate-900 font-semibold">{lightest?.nome}</strong> ({lightest?.cicloS}s).
+                {richText(t("L'efficienza attuale della linea è al {eff}%. Il forte sbilanciamento è causato dal collo di bottiglia su {bot} ({botS}s) rispetto alla postazione più scarica {light} ({lightS}s)."), {
+                  eff: { node: lineEff, cls: "text-amber-700 font-semibold" },
+                  bot: { node: bot?.nome, cls: "text-slate-900 font-semibold" },
+                  botS: { node: bot?.cicloS, cls: "" },
+                  light: { node: lightest?.nome, cls: "text-slate-900 font-semibold" },
+                  lightS: { node: lightest?.cicloS, cls: "" },
+                })}
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -159,10 +174,14 @@ export default function Yamazumi({ project, upd, cr }: { project: any; upd: (pat
                 <div className="bg-white/80 border border-amber-100 rounded-xl p-3.5 shadow-sm">
                   <h4 className="text-xs font-bold text-slate-800 uppercase mb-1.5 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    Spostamento Carico Lavoro
+                    {t("Spostamento Carico Lavoro")}
                   </h4>
                   <p className="text-xs text-slate-600">
-                    Sposta circa <strong className="text-slate-800 font-semibold">{transferSec} secondi</strong> di compiti/attività MURI-MUDA da <strong className="text-slate-800 font-semibold">{bot?.nome}</strong> a <strong className="text-slate-800 font-semibold">{lightest?.nome}</strong> per livellare la linea e portare l'efficienza sopra l'85%.
+                    {richText(t("Sposta circa {sec} secondi di compiti/attività MURI-MUDA da {bot} a {light} per livellare la linea e portare l'efficienza sopra l'85%."), {
+                      sec: { node: transferSec, cls: "text-slate-800 font-semibold" },
+                      bot: { node: bot?.nome, cls: "text-slate-800 font-semibold" },
+                      light: { node: lightest?.nome, cls: "text-slate-800 font-semibold" },
+                    })}
                   </p>
                 </div>
                 
@@ -170,10 +189,14 @@ export default function Yamazumi({ project, upd, cr }: { project: any; upd: (pat
                 <div className="bg-white/80 border border-amber-100 rounded-xl p-3.5 shadow-sm">
                   <h4 className="text-xs font-bold text-slate-800 uppercase mb-1.5 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                    Chaku-Chaku / Multi-Station Op
+                    {t("Chaku-Chaku / Multi-Station Op")}
                   </h4>
                   <p className="text-xs text-slate-600">
-                    La postazione <strong className="text-slate-800 font-semibold">{lightest?.nome}</strong> ha una saturazione di valore aggiunto del <strong className="text-slate-800 font-semibold">{lightest ? Math.round((lightest.va/Math.max(lightest.cicloS,1))*100) : 0}%</strong>. Valuta di accorpare le sue attività con <strong className="text-slate-800 font-semibold">{active.find((s:any)=>s.id !== lightest?.id && s.id !== bot?.id)?.nome || 'un\'altra postazione'}</strong> per liberare un operatore.
+                    {richText(t("La postazione {light} ha una saturazione di valore aggiunto del {pct}%. Valuta di accorpare le sue attività con {other} per liberare un operatore."), {
+                      light: { node: lightest?.nome, cls: "text-slate-800 font-semibold" },
+                      pct: { node: lightest ? Math.round((lightest.va/Math.max(lightest.cicloS,1))*100) : 0, cls: "text-slate-800 font-semibold" },
+                      other: { node: active.find((s:any)=>s.id !== lightest?.id && s.id !== bot?.id)?.nome || t("un'altra postazione"), cls: "text-slate-800 font-semibold" },
+                    })}
                   </p>
                 </div>
               </div>

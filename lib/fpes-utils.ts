@@ -1,4 +1,5 @@
 // fpes-utils.ts
+import { tk } from "@/lib/i18n/translate";
 export const C = {
   bg:"#f0f4f8",surface:"#fff",s2:"#f7fafc",s3:"#eef4f9",
   border:"#d4e0ec",bhi:"#b0c8dc",
@@ -18,12 +19,12 @@ export const C = {
 export const SCOLS=["#0069a8","#067a52","#c96500","#5b21b6","#b91c1c","#0f766e","#a16207","#64748b"];
 
 export const LAYOUTS = {
-  U: {label:"Cella a U",icon:"⊓",desc:"Flusso a U"},
-  C: {label:"Cella a C",icon:"⊂",desc:"Apertura laterale"},
-  LINE: {label:"Lineare",icon:"═",desc:"Rettilineo"},
-  L: {label:"Forma a L",icon:"⌐",desc:"Svolta 90°"},
-  ISLAND: {label:"Isola",icon:"⬡",desc:"Radiale"},
-  DU: {label:"Doppia U",icon:"⊓⊓",desc:"Due celle"}
+  U: {label:tk("Cella a U"),icon:"⊓",desc:tk("Flusso a U")},
+  C: {label:tk("Cella a C"),icon:"⊂",desc:tk("Apertura laterale")},
+  LINE: {label:tk("Lineare"),icon:"═",desc:tk("Rettilineo")},
+  L: {label:tk("Forma a L"),icon:"⌐",desc:tk("Svolta 90°")},
+  ISLAND: {label:tk("Isola"),icon:"⬡",desc:tk("Radiale")},
+  DU: {label:tk("Doppia U"),icon:"⊓⊓",desc:tk("Due celle")}
 };
 
 export function uid(){return "_"+Math.random().toString(36).slice(2,9);}
@@ -119,11 +120,11 @@ export function calcP(p: any) {
 
 // ERGONOMICS CONSTANTS
 export const NZ=[
-  {h1:0,h2:35,c:"#b91c1c",l:"ROSSO",ok:false,desc:"Zona proibita"},
-  {h1:35,h2:75,c:"#c96500",l:"ARANCIO",ok:false,desc:"Con ausili"},
-  {h1:75,h2:125,c:"#067a52",l:"VERDE",ok:true,desc:"Ottimale"},
-  {h1:125,h2:145,c:"#c96500",l:"ARANCIO",ok:false,desc:"Con ausili"},
-  {h1:145,h2:220,c:"#b91c1c",l:"ROSSO",ok:false,desc:"Zona proibita"},
+  {h1:0,h2:35,c:"#b91c1c",l:tk("ROSSO"),ok:false,desc:tk("Zona proibita")},
+  {h1:35,h2:75,c:"#c96500",l:tk("ARANCIO"),ok:false,desc:tk("Con ausili")},
+  {h1:75,h2:125,c:"#067a52",l:tk("VERDE"),ok:true,desc:tk("Ottimale")},
+  {h1:125,h2:145,c:"#c96500",l:tk("ARANCIO"),ok:false,desc:tk("Con ausili")},
+  {h1:145,h2:220,c:"#b91c1c",l:tk("ROSSO"),ok:false,desc:tk("Zona proibita")},
 ];
 
 export function nZone(h:number){
@@ -133,91 +134,91 @@ export function nZone(h:number){
 
 // TIMWOODS CONSTANTS
 export const TW_DEF=[
-  {k:"T",n:"Transport",i:"🚛",d:"Spostamento non necessario",col:"#c96500"},
-  {k:"I",n:"Inventory",i:"📦",d:"Scorte eccessive",col:"#a16207"},
-  {k:"M",n:"Motion",i:"🚶",d:"Movimenti operatore",col:"#0069a8"},
-  {k:"W",n:"Waiting",i:"⏳",d:"Attese",col:"#5b21b6"},
-  {k:"O",n:"Overproduction",i:"⚙️",d:"Produzione anticipata",col:"#0f766e"},
-  {k:"P",n:"Overprocessing",i:"🔧",d:"Lavorazioni non richieste",col:"#64748b"},
-  {k:"D",n:"Defects",i:"❌",d:"Scarti, rilavorazioni",col:"#b91c1c"},
-  {k:"S",n:"Skills",i:"🧠",d:"Talenti non valorizzati",col:"#6d28d9"},
+  {k:"T",n:"Transport",i:"🚛",d:tk("Spostamento non necessario"),col:"#c96500"},
+  {k:"I",n:"Inventory",i:"📦",d:tk("Scorte eccessive"),col:"#a16207"},
+  {k:"M",n:"Motion",i:"🚶",d:tk("Movimenti operatore"),col:"#0069a8"},
+  {k:"W",n:"Waiting",i:"⏳",d:tk("Attese"),col:"#5b21b6"},
+  {k:"O",n:"Overproduction",i:"⚙️",d:tk("Produzione anticipata"),col:"#0f766e"},
+  {k:"P",n:"Overprocessing",i:"🔧",d:tk("Lavorazioni non richieste"),col:"#64748b"},
+  {k:"D",n:"Defects",i:"❌",d:tk("Scarti, rilavorazioni"),col:"#b91c1c"},
+  {k:"S",n:"Skills",i:"🧠",d:tk("Talenti non valorizzati"),col:"#6d28d9"},
 ];
 
 export const VA_TYPES: Record<string, any> = {
-  VA:{label:"VA",full:"Valore Aggiunto",col:"#067a52",bg:"#e5f7f0"},
-  NVA:{label:"NVA",full:"Non Valore Aggiunto",col:"#b91c1c",bg:"#fef2f2"},
-  NNVA:{label:"NNVA",full:"Necessario Non VA",col:"#c96500",bg:"#fff4e6"},
+  VA:{label:"VA",full:tk("Valore Aggiunto"),col:"#067a52",bg:"#e5f7f0"},
+  NVA:{label:"NVA",full:tk("Non Valore Aggiunto"),col:"#b91c1c",bg:"#fef2f2"},
+  NNVA:{label:"NNVA",full:tk("Necessario Non VA"),col:"#c96500",bg:"#fff4e6"},
 };
 
 export const MOVE_TYPES: Record<string, any> = {
-  OPERARE:{label:"Operare",icon:"🔧",timw:"O"},
-  TRASPORTARE:{label:"Trasportare",icon:"🚛",timw:"T"},
-  CAMMINARE:{label:"Camminare",icon:"🚶",timw:"M"},
-  PRENDERE:{label:"Prendere",icon:"✋",timw:"M"},
-  POSARE:{label:"Posare",icon:"📥",timw:"M"},
-  ISPEZIONARE:{label:"Ispezionare",icon:"🔍",timw:"D"},
-  ATTENDERE:{label:"Attendere",icon:"⏳",timw:"W"},
-  CERCARE:{label:"Cercare",icon:"🔎",timw:"M"},
-  ALTRO:{label:"Altro",icon:"📌",timw:"S"},
+  OPERARE:{label:tk("Operare"),icon:"🔧",timw:"O"},
+  TRASPORTARE:{label:tk("Trasportare"),icon:"🚛",timw:"T"},
+  CAMMINARE:{label:tk("Camminare"),icon:"🚶",timw:"M"},
+  PRENDERE:{label:tk("Prendere"),icon:"✋",timw:"M"},
+  POSARE:{label:tk("Posare"),icon:"📥",timw:"M"},
+  ISPEZIONARE:{label:tk("Ispezionare"),icon:"🔍",timw:"D"},
+  ATTENDERE:{label:tk("Attendere"),icon:"⏳",timw:"W"},
+  CERCARE:{label:tk("Cercare"),icon:"🔎",timw:"M"},
+  ALTRO:{label:tk("Altro"),icon:"📌",timw:"S"},
 };
 export const MK = Object.keys(MOVE_TYPES);
 
 export const PARAM_TYPES: Record<string, any> = {
-  TEMP:{label:"Temperatura",icon:"🌡️",unit:"°C",color:C.red},
-  PRESS:{label:"Pressione",icon:"⬛",unit:"bar",color:C.orange},
-  SPEED:{label:"Velocità",icon:"⚡",unit:"rpm",color:C.blue},
-  FLOW:{label:"Portata",icon:"💧",unit:"l/min",color:C.blue},
-  TIME:{label:"Tempo",icon:"⏱",unit:"s",color:C.purple},
-  WEIGHT:{label:"Peso",icon:"⚖️",unit:"kg",color:C.green},
-  DISTANCE:{label:"Distanza",icon:"📏",unit:"mm",color:C.mid},
-  PERCENT:{label:"Percentuale",icon:"📊",unit:"%",color:C.teal},
-  CUSTOM:{label:"Custom",icon:"⚙️",unit:"",color:C.mid},
+  TEMP:{label:tk("Temperatura"),icon:"🌡️",unit:"°C",color:C.red},
+  PRESS:{label:tk("Pressione"),icon:"⬛",unit:"bar",color:C.orange},
+  SPEED:{label:tk("Velocità"),icon:"⚡",unit:"rpm",color:C.blue},
+  FLOW:{label:tk("Portata"),icon:"💧",unit:"l/min",color:C.blue},
+  TIME:{label:tk("Tempo"),icon:"⏱",unit:"s",color:C.purple},
+  WEIGHT:{label:tk("Peso"),icon:"⚖️",unit:"kg",color:C.green},
+  DISTANCE:{label:tk("Distanza"),icon:"📏",unit:"mm",color:C.mid},
+  PERCENT:{label:tk("Percentuale"),icon:"📊",unit:"%",color:C.teal},
+  CUSTOM:{label:tk("Custom"),icon:"⚙️",unit:"",color:C.mid},
 };
 export const PK = Object.keys(PARAM_TYPES);
 
 export const SAFETY_TYPES: Record<string, any> = {
-  DANGER:{label:"PERICOLO",icon:"☠️",col:C.red,bg:C.rlt},
-  WARNING:{label:"AVVISO",icon:"⚠️",col:C.orange,bg:C.olt},
-  CAUTION:{label:"ATTENZIONE",icon:"⚡",col:C.yellow,bg:C.ylt},
-  INFO:{label:"NOTA",icon:"ℹ️",col:C.blue,bg:C.blt},
-  PPE:{label:"DPI",icon:"🦺",col:C.green,bg:C.glt},
+  DANGER:{label:tk("PERICOLO"),icon:"☠️",col:C.red,bg:C.rlt},
+  WARNING:{label:tk("AVVISO"),icon:"⚠️",col:C.orange,bg:C.olt},
+  CAUTION:{label:tk("ATTENZIONE"),icon:"⚡",col:C.yellow,bg:C.ylt},
+  INFO:{label:tk("NOTA"),icon:"ℹ️",col:C.blue,bg:C.blt},
+  PPE:{label:tk("DPI"),icon:"🦺",col:C.green,bg:C.glt},
 };
 export const SK = Object.keys(SAFETY_TYPES);
 
 export const TASK_TYPES: Record<string, any> = {
-  KAIZEN:{label:"Kaizen",icon:"💡",col:"#067a52"},
-  MAINTENANCE:{label:"Manutenzione",icon:"🔧",col:"#c96500"},
-  ENGINEERING:{label:"Ingegneria",icon:"⚙️",col:"#0069a8"},
-  AUDIT:{label:"Audit",icon:"📋",col:"#5b21b6"},
-  TRAINING:{label:"Formazione",icon:"🎓",col:"#0f766e"},
-  MILESTONE:{label:"Milestone",icon:"🏁",col:"#b91c1c"},
-  OTHER:{label:"Altro",icon:"📌",col:"#64748b"},
+  KAIZEN:{label:tk("Kaizen"),icon:"💡",col:"#067a52"},
+  MAINTENANCE:{label:tk("Manutenzione"),icon:"🔧",col:"#c96500"},
+  ENGINEERING:{label:tk("Ingegneria"),icon:"⚙️",col:"#0069a8"},
+  AUDIT:{label:tk("Audit"),icon:"📋",col:"#5b21b6"},
+  TRAINING:{label:tk("Formazione"),icon:"🎓",col:"#0f766e"},
+  MILESTONE:{label:tk("Milestone"),icon:"🏁",col:"#b91c1c"},
+  OTHER:{label:tk("Altro"),icon:"📌",col:"#64748b"},
 };
 export const TTK = Object.keys(TASK_TYPES);
 
 export const TS: Record<string, any> = {
-  TODO:{label:"Da fare",col:"#8aacbc"},
-  INPROGRESS:{label:"In corso",col:"#0069a8"},
-  BLOCKED:{label:"Bloccato",col:"#b91c1c"},
-  REVIEW:{label:"In verifica",col:"#c96500"},
-  DONE:{label:"Completato",col:"#067a52"},
+  TODO:{label:tk("Da fare"),col:"#8aacbc"},
+  INPROGRESS:{label:tk("In corso"),col:"#0069a8"},
+  BLOCKED:{label:tk("Bloccato"),col:"#b91c1c"},
+  REVIEW:{label:tk("In verifica"),col:"#c96500"},
+  DONE:{label:tk("Completato"),col:"#067a52"},
 };
 export const TSK = Object.keys(TS);
 
 export const PRIO: Record<string, any> = {
-  LOW:{label:"Bassa",col:"#8aacbc"},
-  MEDIUM:{label:"Media",col:"#c96500"},
-  HIGH:{label:"Alta",col:"#b91c1c"},
-  CRITICAL:{label:"Critica",col:"#7c0000"},
+  LOW:{label:tk("Bassa"),col:"#8aacbc"},
+  MEDIUM:{label:tk("Media"),col:"#c96500"},
+  HIGH:{label:tk("Alta"),col:"#b91c1c"},
+  CRITICAL:{label:tk("Critica"),col:"#7c0000"},
 };
 export const PRIOK = Object.keys(PRIO);
 
 export const GZ = [
-  {id:"a",y1:185,y2:160,col:C.red,label:"Rosso alto",ok:false,desc:"Sopra spalle"},
-  {id:"b",y1:160,y2:130,col:C.orange,label:"Arancio alto",ok:false,desc:"Spalle"},
-  {id:"c",y1:130,y2:70,col:C.green,label:"Golden Zone",ok:true,desc:"Ottimale 70–130cm"},
-  {id:"d",y1:70,y2:35,col:C.orange,label:"Arancio basso",ok:false,desc:"Sotto creste iliache"},
-  {id:"e",y1:35,y2:0,col:C.red,label:"Rosso basso",ok:false,desc:"Piegamento"},
+  {id:"a",y1:185,y2:160,col:C.red,label:tk("Rosso alto"),ok:false,desc:tk("Sopra spalle")},
+  {id:"b",y1:160,y2:130,col:C.orange,label:tk("Arancio alto"),ok:false,desc:tk("Spalle")},
+  {id:"c",y1:130,y2:70,col:C.green,label:tk("Golden Zone"),ok:true,desc:tk("Ottimale 70–130cm")},
+  {id:"d",y1:70,y2:35,col:C.orange,label:tk("Arancio basso"),ok:false,desc:tk("Sotto creste iliache")},
+  {id:"e",y1:35,y2:0,col:C.red,label:tk("Rosso basso"),ok:false,desc:tk("Piegamento")},
 ];
 
 export function sCol(s: number){return s>=75?C.green:s>=50?C.orange:C.red;}

@@ -112,6 +112,8 @@ model User {
   // AI & FPES
   simulationSnapshots LineSimulationVersion[]
   materialRequests MaterialRequest[] @relation("MaterialRequestRequester")
+  pushSubscriptions PushSubscription[]
+  locale String? // lingua scelta dall'utente (it, en, fr, pl, zh); vuoto = lingua del browser o italiano
 }
 
 model Account {
@@ -191,6 +193,11 @@ model Asset {
   @@index([plantId])
   @@index([vendor, model])
   createdAt       DateTime @default(now()) // quando e' stato inserito: serve a sapere quanta storia c'e' per valutarlo
+  parentId        String?
+  parent          Asset?   @relation("AssetHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Asset[]  @relation("AssetHierarchy")
+  parts           AssetPart[]
+  @@index([parentId])
 }
 
 model AssetDocument {
@@ -268,6 +275,7 @@ model WorkOrder {
   @@index([plantId, status])
   @@index([plantId, createdAt])
   completedAt          DateTime? // quando l'ordine e' stato chiuso (serve a sapere se un intervento programmato e' stato fatto in tempo)
+  permits WorkPermit[]
 }
 
 
@@ -408,6 +416,136 @@ model PreventiveSchedule {
 
   @@index([nextDueDate])
   @@index([assetId])
+  triggerType   String   @default("TIME") // TIME = a scadenza di tempo, METER = a consumo di un contatore (ore di funzionamento, cicli...)
+  meterId       String?
+  meter         Meter?   @relation(fields: [meterId], references: [id], onDelete: SetNull)
+  meterInterval Float?   // ogni quante unita' del contatore va fatta la manutenzione (es. 500 ore)
+  lastMeterValue Float?  // valore del contatore all'ultima esecuzione
+  isRegulatory  Boolean  @default(false) // manutenzione/verifica richiesta da una norma
+  legalReference String? // riferimento normativo (es. norma o decreto)
+  authority     String?  // ente o soggetto che esegue o riceve la verifica
+  @@index([meterId])
+}
+
+// --- DISTINTA RICAMBI PER MACCHINA ---
+model AssetPart {
+  id        String    @id @default(cuid())
+  assetId   String
+  asset     Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  partId    String
+  part      SparePart @relation(fields: [partId], references: [id], onDelete: Cascade)
+  quantity  Int       @default(1) // quanti pezzi di questo ricambio monta la macchina
+  notes     String?
+  createdAt DateTime  @default(now())
+
+  @@unique([assetId, partId])
+  @@index([partId])
+}
+
+// --- PERMESSI DI LAVORO (lavori in quota, spazi confinati, lock-out...) ---
+model WorkPermitType {
+  id                      String   @id @default(cuid())
+  name                    String   @unique
+  description             String?
+  requiredQualificationId String?  // chi lavora deve avere questa abilitazione valida
+  requiredQualification   QualificationType? @relation(fields: [requiredQualificationId], references: [id], onDelete: SetNull)
+  requiresApproval        Boolean  @default(true)
+  defaultValidityHours    Int?
+  precautions             String[] @default([]) // precauzioni da spuntare prima di iniziare
+  isActive                Boolean  @default(true)
+  sortOrder               Int      @default(0)
+
+  permits WorkPermit[]
+}
+
+model WorkPermit {
+  id               String   @id @default(cuid())
+  workOrderId      String
+  workOrder        WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  typeId           String
+  type             WorkPermitType @relation(fields: [typeId], references: [id])
+  status           String   @default("REQUESTED") // REQUESTED, APPROVED, ACTIVE, CLOSED, REJECTED, CANCELED
+  requestedById    String?
+  requestedByName  String
+  approvedByName   String?
+  approvedAt       DateTime?
+  rejectionReason  String?
+  validFrom        DateTime?
+  validTo          DateTime?
+  place            String?
+  notes            String?
+  precautionsDone  Json?    // elenco {label, checked} al momento dell'attivazione
+  closedAt         DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([workOrderId])
+  @@index([status])
+}
+
+// --- STORICO MOVIMENTI E INVENTARIO DI MAGAZZINO ---
+model StockMovement {
+  id           String    @id @default(cuid())
+  partId       String?
+  part         SparePart? @relation(fields: [partId], references: [id], onDelete: SetNull)
+  partName     String    // copia del nome: lo storico resta leggibile anche se l'articolo viene eliminato
+  plantId      String?
+  type         String    // RECEIPT, CONSUMPTION, RETURN, ADJUSTMENT, TRANSFER_OUT, TRANSFER_IN, INVENTORY, MATERIAL_REQUEST, INITIAL
+  delta        Int       // positivo = entra, negativo = esce
+  balanceAfter Int       // giacenza dopo il movimento
+  reference    String?   // es. "WO:<id>", "MR:<id>", "PR:<id>"
+  note         String?
+  userId       String?
+  userName     String?
+  createdAt    DateTime  @default(now())
+
+  @@index([partId, createdAt])
+  @@index([plantId, createdAt])
+}
+
+model StockCount {
+  id            String   @id @default(cuid())
+  plantId       String
+  plant         Plant    @relation(fields: [plantId], references: [id])
+  status        String   @default("OPEN") // OPEN, CLOSED
+  note          String?
+  createdById   String?
+  createdByName String
+  createdAt     DateTime @default(now())
+  closedAt      DateTime?
+
+  lines StockCountLine[]
+
+  @@index([plantId, status])
+}
+
+model StockCountLine {
+  id          String     @id @default(cuid())
+  countId     String
+  count       StockCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  partId      String
+  part        SparePart  @relation(fields: [partId], references: [id], onDelete: Cascade)
+  partName    String
+  expectedQty Int        // giacenza a sistema al momento dell'apertura
+  countedQty  Int?       // quanto e' stato contato (vuoto = non ancora contato)
+
+  @@unique([countId, partId])
+  @@index([partId])
+}
+
+// --- NOTIFICHE SUL TELEFONO (Web Push) ---
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userId])
 }
 
 // --- RICHIESTE DI MATERIALE AL MAGAZZINO MANUTENZIONE (dai reparti) ---
@@ -480,6 +618,7 @@ model QualificationType {
   isActive   Boolean  @default(true)
 
   technicians TechnicianQualification[]
+  permitTypes WorkPermitType[]
 }
 
 model TechnicianQualification {
@@ -534,6 +673,7 @@ model Meter {
   @@index([plantId])
   @@index([assetId])
   @@index([nextReadingDue])
+  schedules PreventiveSchedule[]
 }
 
 model MeterReading {
@@ -580,6 +720,9 @@ model SparePart {
   @@index([plantId])
   @@index([catalogId])
   materialItems MaterialRequestItem[]
+  assetUses AssetPart[]
+  movements StockMovement[]
+  countLines StockCountLine[]
 }
 
 /// Catalogo ricambi di gruppo: un articolo logico, riconosciuto dalla descrizione normalizzata.
@@ -984,6 +1127,7 @@ model Plant {
   safetyEvents SafetyEvent[]
   contractorContracts ContractorContract[]
   materialRequests MaterialRequest[]
+  stockCounts StockCount[]
 }
 
 /// Registro degli eventi di sicurezza di uno stabilimento. Serve al contatore "giorni senza infortuni".

@@ -11,12 +11,14 @@ import { WorkOrder } from '../../domain/entities/work-order';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { logAction } from '@/lib/audit';
+import { applyStockChange, InsufficientStockError } from '@/lib/stock-ledger';
 import { usersToNotify } from '@/lib/plant-users';
 import { runUnscoped } from '@/lib/plant-scope';
 import { safeRefreshAssetHealth, safeRefreshHealthOfOrder } from '@/lib/asset-health-sync';
 import { syncCompletedAt } from '@/lib/work-order-completion';
 import { ensureSystemAsset } from '@/lib/system-assets';
 import { canSeeWorkOrder, scopeWorkOrderWhere } from '@/lib/maintainer-scope';
+import { isPermitExpired } from '../../domain/work-permits';
 import { workOrderSchema } from '@/lib/validations';
 import { WorkOrderPriority, WorkOrderCategory, WorkOrderStatus } from '@prisma/client';
 
@@ -555,10 +557,10 @@ export async function reviewWorkOrder(id: string, decision: 'APPROVE' | 'REJECT'
 
                 await prisma.preventiveSchedule.update({
                     where: { id: sched.id },
-                    data: {
-                        lastRunDate: new Date(),
-                        nextDueDate: nextDate
-                    }
+                    data: sched.triggerType === 'METER'
+                        // Piano a consumo: la scadenza e' stimata dal contatore (la base e' gia' stata spostata alla generazione dell'ordine)
+                        ? { lastRunDate: new Date() }
+                        : { lastRunDate: new Date(), nextDueDate: nextDate }
                 });
             }
             await safeRefreshAssetHealth(wo.assetId); // dopo la data del piano: chiusura e scadenza pesano insieme
@@ -767,6 +769,21 @@ export async function startWorkSession(workOrderId: string) {
     const session = await auth();
     if (!session?.user) return { success: false, message: 'Non autorizzato' };
 
+    // Permessi di lavoro: se ne e' stato richiesto uno e nessuno e' attivo, il lavoro non parte (senza permessi nessun obbligo)
+    const openPermits = await prisma.workPermit.findMany({
+        where: { workOrderId, status: { in: ['REQUESTED', 'APPROVED', 'ACTIVE'] } },
+        select: { status: true, validTo: true, type: { select: { name: true } } },
+    });
+    if (openPermits.length > 0) {
+        const now = new Date();
+        if (!openPermits.some(p => p.status === 'ACTIVE' && !isPermitExpired(p.status, p.validTo, now))) {
+            const why = openPermits
+                .map(p => `«${p.type.name}» ${p.status === 'REQUESTED' ? 'è in attesa di approvazione' : p.status === 'APPROVED' ? 'è approvato ma non ancora attivato' : 'è scaduto'}`)
+                .join('; ');
+            return { success: false, message: `Serve un permesso di lavoro attivo: ${why}.` };
+        }
+    }
+
     try {
         await prisma.workOrderTimer.updateMany({
             where: { workOrderId, userId: session.user.id, endTime: null },
@@ -929,6 +946,12 @@ export async function completeWorkOrder(workOrderId: string, note?: string) {
             return { success: false, message: `Checklist incompleta: ${pendingItems.length} voci rimanenti.` };
         }
 
+        // Un permesso di lavoro ancora attivo va chiuso prima di concludere l'ordine
+        const activePermits = await prisma.workPermit.findMany({ where: { workOrderId, status: 'ACTIVE' }, select: { type: { select: { name: true } } } });
+        if (activePermits.length > 0) {
+            return { success: false, message: `Chiudi prima il permesso di lavoro attivo: ${activePermits.map(p => `«${p.type.name}»`).join(', ')}.` };
+        }
+
         const stopNote = note || "Ordine Completato";
         await stopWorkSession(workOrderId, stopNote);
 
@@ -1062,18 +1085,18 @@ export async function addWorkOrderPart(workOrderId: string, partId: string, quan
         let updatedPart;
         try {
             updatedPart = await prisma.$transaction(async tx => {
-                const res = await tx.sparePart.updateMany({
-                    where: { id: partId, quantity: { gte: qty } },
-                    data: { quantity: { decrement: qty }, lastUpdated: new Date() },
+                // Scarico e movimento di magazzino: se il movimento non si scrive, nemmeno la giacenza cambia
+                await applyStockChange(tx, {
+                    partId, delta: -qty, type: 'CONSUMPTION', reference: `WO:${workOrderId}`,
+                    note: 'Ricambio aggiunto all\'ordine', actor: { id: session.user.id, name: session.user.name },
                 });
-                if (res.count !== 1) throw new Error('INSUFFICIENT_STOCK');
                 await tx.workOrderPart.create({
                     data: { workOrderId, partId, partName: part.name, quantity: qty, unitCost: part.unitCost || 0, dateAdded: new Date() },
                 });
                 return tx.sparePart.findUniqueOrThrow({ where: { id: partId } });
             });
         } catch (e) {
-            if (e instanceof Error && e.message === 'INSUFFICIENT_STOCK') {
+            if (e instanceof InsufficientStockError) {
                 return { success: false, message: `Quantità insufficiente in magazzino (Disponibile: ${part.quantity})` };
             }
             throw e;
@@ -1119,9 +1142,10 @@ export async function removeWorkOrderPart(id: string) {
         await prisma.$transaction(async tx => {
             const deleted = await tx.workOrderPart.deleteMany({ where: { id } });
             if (deleted.count !== 1) throw new Error('ALREADY_REMOVED');
-            await tx.sparePart.updateMany({
-                where: { id: woPart.partId },
-                data: { quantity: { increment: woPart.quantity }, lastUpdated: new Date() },
+            // Rientro a magazzino: se l'articolo non esiste piu' (o il movimento non si scrive) la rimozione si annulla, non si perdono pezzi
+            await applyStockChange(tx, {
+                partId: woPart.partId, delta: woPart.quantity, type: 'RETURN', reference: `WO:${woPart.workOrderId}`,
+                note: 'Ricambio rimosso dall\'ordine', actor: { id: session.user.id, name: session.user.name },
             });
         });
 
@@ -1190,18 +1214,17 @@ async function consumeSparePart(workOrderId: string, partId: string, qty: number
     if (!part) return { ok: false, reason: 'NOT_FOUND' };
     try {
         await prisma.$transaction(async tx => {
-            const res = await tx.sparePart.updateMany({
-                where: { id: partId, quantity: { gte: qty } },
-                data: { quantity: { decrement: qty }, lastUpdated: new Date() },
+            await applyStockChange(tx, {
+                partId, delta: -qty, type: 'CONSUMPTION', reference: `WO:${workOrderId}`,
+                note: 'Ricambio consumato (EWO)',
             });
-            if (res.count !== 1) throw new Error('INSUFFICIENT_STOCK');
             await tx.workOrderPart.create({
                 data: { workOrderId, partId, partName: part.name, quantity: qty, unitCost: part.unitCost || 0, dateAdded: new Date() },
             });
         });
         return { ok: true };
     } catch (e) {
-        if (e instanceof Error && e.message === 'INSUFFICIENT_STOCK') return { ok: false, reason: 'INSUFFICIENT', available: part.quantity };
+        if (e instanceof InsufficientStockError) return { ok: false, reason: 'INSUFFICIENT', available: part.quantity };
         throw e;
     }
 }

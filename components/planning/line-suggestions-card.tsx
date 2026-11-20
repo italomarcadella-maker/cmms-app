@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { tk } from "@/lib/i18n/translate";
+import { useT, useFormat } from "@/lib/i18n/client";
+import type { TFunction } from "@/lib/i18n/client";
 import { CalendarClock, ClipboardList, ExternalLink, Factory } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,8 +23,6 @@ import {
     type LineOpportunityItemDTO,
 } from "@/modules/maintenance/adapters/actions/line-opportunity-actions";
 
-const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("it-IT") : "-");
-
 // Lo stato e' sempre scritto per esteso: il colore da solo non basta
 const STATE_VARIANT: Record<OpportunityState, "critical" | "warning" | "info" | "neutral"> = {
     OVERDUE: "critical",
@@ -30,27 +31,27 @@ const STATE_VARIANT: Record<OpportunityState, "critical" | "warning" | "info" | 
     PENDING: "neutral",
 };
 
-const ORDER_TYPE: Record<string, string> = { FAULT: "Guasto", ROUTINE: "Manutenzione programmata", REQUEST: "Richiesta" };
+const ORDER_TYPE: Record<string, string> = { FAULT: tk("Guasto"), ROUTINE: tk("Manutenzione programmata"), REQUEST: tk("Richiesta") };
 
 function StateBadge({ item }: { item: LineOpportunityItemDTO }) {
     return <Badge variant={STATE_VARIANT[item.state]}>{item.stateLabel}</Badge>;
 }
 
-function kindLabel(item: LineOpportunityItemDTO): string {
+function kindLabel(item: LineOpportunityItemDTO, t: TFunction): string {
     switch (item.kind) {
-        case "ORDER": return ORDER_TYPE[item.orderType ?? ""] ?? "Ordine di lavoro";
-        case "CONTRACTOR": return item.contractorName ? `Ditta esterna: ${item.contractorName}` : "Ditta esterna";
-        case "METER": return "Lettura contatore";
-        default: return "Manutenzione programmata";
+        case "ORDER": return t(ORDER_TYPE[item.orderType ?? ""] ?? tk("Ordine di lavoro"));
+        case "CONTRACTOR": return item.contractorName ? t("Ditta esterna: {name}", { name: item.contractorName }) : t("Ditta esterna");
+        case "METER": return t("Lettura contatore");
+        default: return t("Manutenzione programmata");
     }
 }
 
 /** Dove si apre la voce: l'ordine, la ditta, la pagina Impianti per le letture. */
-function openLink(item: LineOpportunityItemDTO): { href: string; label: string } | null {
+function openLink(item: LineOpportunityItemDTO, t: TFunction): { href: string; label: string } | null {
     switch (item.kind) {
-        case "ORDER": return { href: `/work-orders/${item.refId}`, label: "Apri ordine" };
-        case "CONTRACTOR": return item.contractorId ? { href: `/contractors/${item.contractorId}`, label: "Apri ditta" } : null;
-        case "METER": return { href: "/impianti", label: "Apri impianti" };
+        case "ORDER": return { href: `/work-orders/${item.refId}`, label: t("Apri ordine") };
+        case "CONTRACTOR": return item.contractorId ? { href: `/contractors/${item.contractorId}`, label: t("Apri ditta") } : null;
+        case "METER": return { href: "/impianti", label: t("Apri impianti") };
         default: return null;
     }
 }
@@ -60,27 +61,29 @@ function AssetLink({ item }: { item: LineOpportunityItemDTO }) {
 }
 
 function PendingTable({ items }: { items: LineOpportunityItemDTO[] }) {
+    const t = useT();
+    const fmt = useFormat();
     return (
         <Table>
             <TableHeader>
                 <TableRow>
-                    <TableHead>Titolo</TableHead>
-                    <TableHead>Macchina</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Priorità / stato</TableHead>
-                    <TableHead>Scadenza</TableHead>
-                    <TableHead>Assegnatario</TableHead>
-                    <TableHead className="w-[1%]"><span className="sr-only">Apri</span></TableHead>
+                    <TableHead>{t("Titolo")}</TableHead>
+                    <TableHead>{t("Macchina")}</TableHead>
+                    <TableHead>{t("Tipo")}</TableHead>
+                    <TableHead>{t("Priorità / stato")}</TableHead>
+                    <TableHead>{t("Scadenza")}</TableHead>
+                    <TableHead>{t("Assegnatario")}</TableHead>
+                    <TableHead className="w-[1%]"><span className="sr-only">{t("Apri")}</span></TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
                 {items.map(item => {
-                    const link = openLink(item);
+                    const link = openLink(item, t);
                     return (
                         <TableRow key={item.key}>
                             <TableCell className="font-medium">{item.title}</TableCell>
                             <TableCell className="text-sm"><AssetLink item={item} /></TableCell>
-                            <TableCell className="text-sm">{kindLabel(item)}</TableCell>
+                            <TableCell className="text-sm">{kindLabel(item, t)}</TableCell>
                             <TableCell>
                                 {item.kind === "ORDER" ? (
                                     <div className="flex flex-wrap items-center gap-1.5">
@@ -91,11 +94,11 @@ function PendingTable({ items }: { items: LineOpportunityItemDTO[] }) {
                             </TableCell>
                             <TableCell>
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-sm tabular-nums">{fmt(item.dueDate)}</span>
+                                    <span className="text-sm tabular-nums">{fmt.date(item.dueDate)}</span>
                                     <StateBadge item={item} />
                                 </div>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{item.assigneeName ?? "Non assegnato"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{item.assigneeName ?? t("Non assegnato")}</TableCell>
                             <TableCell>
                                 {link && (
                                     <Button asChild size="sm" variant="ghost">
@@ -119,17 +122,19 @@ interface PlansTableProps {
 }
 
 function PlansTable({ items, canGenerate, selected, onToggle }: PlansTableProps) {
+    const t = useT();
+    const fmt = useFormat();
     return (
         <Table>
             <TableHeader>
                 <TableRow>
-                    {canGenerate && <TableHead className="w-[1%]"><span className="sr-only">Seleziona</span></TableHead>}
-                    <TableHead>Piano</TableHead>
-                    <TableHead>Macchina</TableHead>
-                    <TableHead>Frequenza</TableHead>
-                    <TableHead>Ultima esecuzione</TableHead>
-                    <TableHead>Scadenza</TableHead>
-                    <TableHead>Stato</TableHead>
+                    {canGenerate && <TableHead className="w-[1%]"><span className="sr-only">{t("Seleziona")}</span></TableHead>}
+                    <TableHead>{t("Piano")}</TableHead>
+                    <TableHead>{t("Macchina")}</TableHead>
+                    <TableHead>{t("Frequenza")}</TableHead>
+                    <TableHead>{t("Ultima esecuzione")}</TableHead>
+                    <TableHead>{t("Scadenza")}</TableHead>
+                    <TableHead>{t("Stato")}</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -138,7 +143,7 @@ function PlansTable({ items, canGenerate, selected, onToggle }: PlansTableProps)
                         {canGenerate && (
                             <TableCell>
                                 <Checkbox
-                                    aria-label={`Seleziona ${item.title}`}
+                                    aria-label={t("Seleziona {title}", { title: item.title })}
                                     checked={selected.includes(item.refId)}
                                     onCheckedChange={checked => onToggle(item.refId, checked)}
                                 />
@@ -146,9 +151,9 @@ function PlansTable({ items, canGenerate, selected, onToggle }: PlansTableProps)
                         )}
                         <TableCell className="font-medium">{item.title}</TableCell>
                         <TableCell className="text-sm"><AssetLink item={item} /></TableCell>
-                        <TableCell className="text-sm">{frequencyLabel(item.frequency)}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{item.lastRunDate ? fmt(item.lastRunDate) : "Mai eseguita"}</TableCell>
-                        <TableCell className="text-sm tabular-nums">{fmt(item.dueDate)}</TableCell>
+                        <TableCell className="text-sm">{t(frequencyLabel(item.frequency))}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{item.lastRunDate ? fmt.date(item.lastRunDate) : t("Mai eseguita")}</TableCell>
+                        <TableCell className="text-sm tabular-nums">{fmt.date(item.dueDate)}</TableCell>
                         <TableCell><StateBadge item={item} /></TableCell>
                     </TableRow>
                 ))}
@@ -159,6 +164,7 @@ function PlansTable({ items, canGenerate, selected, onToggle }: PlansTableProps)
 
 /** Scheda di una linea senza calendario: attività pendenti e manutenzioni programmate eseguibili ora. */
 export function LineSuggestionsCard({ line, canGenerate, onChanged }: { line: LineOpportunityDTO; canGenerate: boolean; onChanged: () => void }) {
+    const t = useT();
     const { confirm, dialog } = useConfirm();
     const [picked, setPicked] = useState<string[]>([]);
     const [generating, setGenerating] = useState(false);
@@ -174,15 +180,15 @@ export function LineSuggestionsCard({ line, canGenerate, onChanged }: { line: Li
     const generate = async () => {
         const n = selected.length;
         const ok = await confirm({
-            title: n === 1 ? "Generare 1 scheda di lavoro?" : `Generare ${n} schede di lavoro?`,
-            description: "Per ogni manutenzione selezionata si crea un ordine di lavoro con data di oggi. La scadenza del piano si sposta in avanti, come se fosse stato eseguito oggi: le date non si ripristinano da questa pagina.",
-            confirmLabel: "Genera le schede",
+            title: n === 1 ? t("Generare 1 scheda di lavoro?") : t("Generare {n} schede di lavoro?", { n }),
+            description: t("Per ogni manutenzione selezionata si crea un ordine di lavoro con data di oggi. La scadenza del piano si sposta in avanti, come se fosse stato eseguito oggi: le date non si ripristinano da questa pagina."),
+            confirmLabel: t("Genera le schede"),
         });
         if (!ok) return;
         setGenerating(true);
         try {
             const res = await generateWorkOrdersFromPlans(selected);
-            const titleOf = (id: string) => line.executable.find(i => i.refId === id)?.title ?? "Manutenzione";
+            const titleOf = (id: string) => line.executable.find(i => i.refId === id)?.title ?? t("Manutenzione");
             const details = res.errors.map(e => `${titleOf(e.scheduleId)}: ${e.message}`).join(" · ");
             if (res.created > 0 && res.errors.length === 0) toast.success(res.message);
             else if (res.created > 0) toast.warning(res.message, { description: details });
@@ -190,7 +196,7 @@ export function LineSuggestionsCard({ line, canGenerate, onChanged }: { line: Li
             setPicked([]);
             if (res.created > 0 || res.errors.length > 0) onChanged();
         } catch {
-            toast.error("Impossibile generare le schede. Riprova.");
+            toast.error(t("Impossibile generare le schede. Riprova."));
         } finally {
             setGenerating(false);
         }
@@ -206,46 +212,46 @@ export function LineSuggestionsCard({ line, canGenerate, onChanged }: { line: Li
                             <Factory className="h-4 w-4 text-muted-foreground" aria-hidden />
                             {line.line}
                         </h2>
-                        <p className="text-xs text-muted-foreground">{line.plantName ? `Stabilimento ${line.plantName}` : "Stabilimento non indicato"}</p>
+                        <p className="text-xs text-muted-foreground">{line.plantName ? t("Stabilimento {name}", { name: line.plantName }) : t("Stabilimento non indicato")}</p>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                        <Badge variant="info">{c.pending} {c.pending === 1 ? "attività pendente" : "attività pendenti"}</Badge>
-                        <Badge variant="info">{c.executable} {c.executable === 1 ? "manutenzione eseguibile" : "manutenzioni eseguibili"}</Badge>
-                        {c.overdue > 0 && <Badge variant="critical">{c.overdue} in ritardo</Badge>}
+                        <Badge variant="info">{c.pending === 1 ? t("1 attività pendente") : t("{n} attività pendenti", { n: c.pending })}</Badge>
+                        <Badge variant="info">{c.executable === 1 ? t("1 manutenzione eseguibile") : t("{n} manutenzioni eseguibili", { n: c.executable })}</Badge>
+                        {c.overdue > 0 && <Badge variant="critical">{t("{n} in ritardo", { n: c.overdue })}</Badge>}
                     </div>
                 </div>
 
-                <section aria-label={`Attività pendenti, ${line.line}`} className="space-y-2">
-                    <h3 className="flex items-center gap-2 text-sm font-semibold"><ClipboardList className="h-4 w-4 text-muted-foreground" aria-hidden /> Attività pendenti</h3>
+                <section aria-label={t("Attività pendenti, {line}", { line: line.line })} className="space-y-2">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold"><ClipboardList className="h-4 w-4 text-muted-foreground" aria-hidden /> {t("Attività pendenti")}</h3>
                     {line.pending.length === 0 ? (
-                        <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">Nessuna attività pendente su questa linea.</p>
+                        <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">{t("Nessuna attività pendente su questa linea.")}</p>
                     ) : (
                         <div className="overflow-x-auto rounded-lg border"><PendingTable items={line.pending} /></div>
                     )}
                 </section>
 
-                <section aria-label={`Manutenzioni programmate eseguibili, ${line.line}`} className="space-y-2">
+                <section aria-label={t("Manutenzioni programmate eseguibili, {line}", { line: line.line })} className="space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="flex items-center gap-2 text-sm font-semibold"><CalendarClock className="h-4 w-4 text-muted-foreground" aria-hidden /> Manutenzioni programmate eseguibili</h3>
+                        <h3 className="flex items-center gap-2 text-sm font-semibold"><CalendarClock className="h-4 w-4 text-muted-foreground" aria-hidden /> {t("Manutenzioni programmate eseguibili")}</h3>
                         {canGenerate && line.executable.length > 0 && (
                             <div className="flex flex-wrap items-center gap-2">
                                 <Button size="sm" variant="outline" onClick={toggleAll} disabled={generating}>
-                                    {allSelected ? "Deseleziona tutte" : "Seleziona tutte"}
+                                    {allSelected ? t("Deseleziona tutte") : t("Seleziona tutte")}
                                 </Button>
                                 <Button size="sm" onClick={generate} disabled={generating || selected.length === 0}>
-                                    {generating ? "Generazione in corso..." : `Genera le schede selezionate${selected.length > 0 ? ` (${selected.length})` : ""}`}
+                                    {generating ? t("Generazione in corso...") : selected.length > 0 ? t("Genera le schede selezionate ({n})", { n: selected.length }) : t("Genera le schede selezionate")}
                                 </Button>
                             </div>
                         )}
                     </div>
                     {line.executable.length === 0 ? (
-                        <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">Nessuna manutenzione programmata da eseguire entro l&apos;orizzonte scelto.</p>
+                        <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">{t("Nessuna manutenzione programmata da eseguire entro l'orizzonte scelto.")}</p>
                     ) : (
                         <>
                             <div className="overflow-x-auto rounded-lg border">
                                 <PlansTable items={line.executable} canGenerate={canGenerate} selected={selected} onToggle={toggle} />
                             </div>
-                            {!canGenerate && <p className="text-xs text-muted-foreground">La generazione delle schede è riservata a supervisor, responsabili di plant e amministratori.</p>}
+                            {!canGenerate && <p className="text-xs text-muted-foreground">{t("La generazione delle schede è riservata a supervisor, responsabili di plant e amministratori.")}</p>}
                         </>
                     )}
                 </section>

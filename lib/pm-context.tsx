@@ -1,6 +1,6 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { PreventiveSchedule, WorkOrder } from "@/lib/types";
 import { useWorkOrders } from "./work-orders-context";

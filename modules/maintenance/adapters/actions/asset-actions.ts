@@ -12,6 +12,7 @@ import { PrismaScheduleRepository } from '../db/prisma-schedule-repository';
 import { makeCreateAsset } from '../../domain/use-cases/create-asset';
 import { makeDeleteAsset } from '../../domain/use-cases/delete-asset';
 import { Asset, AssetProps } from '../../domain/entities/asset';
+import { countChildAssets, validateParentAssignment } from '../db/asset-hierarchy-queries';
 
 // Register dependencies if not already registered (idempotent for dev reload)
 try {
@@ -53,6 +54,13 @@ export async function addAsset(rawData: any) {
         }
         const data = validation.data;
 
+        // Gerarchia: il padre deve essere dello stesso stabilimento, non di sistema e non oltre la profondita' massima
+        const parentId = data.parentId ?? null;
+        if (parentId) {
+            const check = await validateParentAssignment(null, parentId, data.plant || null);
+            if (!check.ok) return { success: false, message: check.message };
+        }
+
         const assetProps: AssetProps = {
             name: data.name,
             model: data.model,
@@ -67,6 +75,7 @@ export async function addAsset(rawData: any) {
             line: data.line || null,
             cespite: data.cespite || null,
             vendor: data.vendor || null,
+            parentId,
         };
 
         const createAssetUseCase = makeCreateAsset(getAssetRepo());
@@ -109,13 +118,39 @@ export async function updateAsset(id: string, rawData: any) {
         // Apply modifications on the Domain Entity
         const props = existingAsset.toJSON();
         // La salute e' calcolata: un valore arrivato dal browser (es. quello vecchio di una lista) non deve sovrascriverla
-        const { plant, line, healthScore: _ignoredHealth, ...restData } = data;
-        
+        const { plant, line, healthScore: _ignoredHealth, parentId: requestedParent, ...restData } = data;
+
+        // Gerarchia (macchina -> gruppo -> componente)
+        const finalPlantId = (plant !== undefined ? plant : props.plantId) || null;
+        const plantChanged = finalPlantId !== (props.plantId ?? null);
+        const currentParent = props.parentId ?? null;
+        let finalParent = currentParent;
+        let parentNote = '';
+        if (plantChanged) {
+            const childCount = await countChildAssets(id);
+            if (childCount > 0) {
+                return {
+                    success: false,
+                    message: `Impossibile cambiare stabilimento: l'asset ha ${childCount} ${childCount === 1 ? 'componente collegato' : 'componenti collegati'}. Scollega o sposta prima i componenti.`,
+                };
+            }
+        }
+        // Il padre si controlla solo se e' cambiato: una scheda aperta da tempo puo' riportare un valore vecchio
+        if (requestedParent !== undefined && requestedParent !== currentParent) {
+            const check = await validateParentAssignment(id, requestedParent, finalPlantId);
+            if (!check.ok) return { success: false, message: check.message };
+            finalParent = requestedParent;
+        } else if (plantChanged && currentParent) {
+            finalParent = null;
+            parentNote = " Il legame con l'asset padre è stato rimosso perché lo stabilimento è cambiato.";
+        }
+
         const updatedProps = {
             ...props,
             ...restData,
             plantId: plant !== undefined ? plant : props.plantId,
-            line: line !== undefined ? line : props.line
+            line: line !== undefined ? line : props.line,
+            parentId: finalParent,
         };
 
         const updatedAsset = new Asset(updatedProps as any);
@@ -124,7 +159,7 @@ export async function updateAsset(id: string, rawData: any) {
         await logAction('UPDATE_ASSET', id, 'Updated asset details');
         revalidatePath('/');
         revalidateAssets();
-        return { success: true, message: 'Asset aggiornato', data: savedAsset.toJSON() };
+        return { success: true, message: 'Asset aggiornato.' + parentNote, data: savedAsset.toJSON() };
     } catch (error) {
         console.error('[asset-actions]', error);
         return { success: false, message: 'Errore aggiornamento asset' };
@@ -136,6 +171,8 @@ export async function deleteAsset(id: string) {
     if (!authorized) return { success: false, message };
 
     try {
+        // I componenti non si eliminano con la macchina: il database li lascia senza padre (diventano radici)
+        const orphaned = await countChildAssets(id);
         const deleteAssetUseCase = makeDeleteAsset(getAssetRepo(), getWorkOrderRepo(), getScheduleRepo());
         const result = await deleteAssetUseCase(id);
 
@@ -143,6 +180,12 @@ export async function deleteAsset(id: string) {
             await logAction('DELETE_ASSET', id, 'Deleted asset');
             revalidatePath('/');
             revalidateAssets();
+            if (orphaned > 0) {
+                return {
+                    ...result,
+                    message: `${result.message}. ${orphaned === 1 ? "Un componente è rimasto" : `${orphaned} componenti sono rimasti`} senza asset padre.`,
+                };
+            }
         }
         return result;
     } catch (error) {

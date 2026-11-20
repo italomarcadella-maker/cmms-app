@@ -10,11 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Camera, AlertTriangle, Mic, MicOff, CheckCircle, Search, ChevronRight } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { useAssets } from "@/lib/assets-context";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AssetSelector } from "@/components/assets/asset-selector";
+import { useT, useFormat } from "@/lib/i18n/client";
 
 // Augmented Window interface for SpeechRecognition
 declare global {
@@ -32,6 +33,8 @@ interface RequestFormProps {
 }
 
 export function RequestForm({ initialAssetId, initialCategory, forceAssetSelection, onCancel }: RequestFormProps) {
+    const t = useT();
+    const fmt = useFormat();
     const router = useRouter();
     const { user } = useAuth();
     const { assets } = useAssets();
@@ -73,7 +76,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
 
     const toggleListening = () => {
         if (!speechSupported) {
-            toast.error("Il tuo browser non supporta la dettatura vocale.");
+            toast.error(t("Il tuo browser non supporta la dettatura vocale."));
             return;
         }
 
@@ -92,13 +95,13 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
 
-        recognition.lang = 'it-IT';
+        recognition.lang = fmt.intl; // la dettatura segue la lingua dell'interfaccia
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
             setIsListening(true);
-            toast.info("In ascolto...", { duration: 2000 });
+            toast.info(t("In ascolto..."), { duration: 2000 });
         };
 
         recognition.onend = () => {
@@ -109,7 +112,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
             console.error("Speech error", event.error);
             setIsListening(false);
             if (event.error === 'not-allowed') {
-                toast.error("Permesso microfono negato.");
+                toast.error(t("Permesso microfono negato."));
             }
         };
 
@@ -121,7 +124,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                     const newDesc = prev.description ? `${prev.description} ${transcript}` : transcript;
                     return { ...prev, description: newDesc };
                 });
-                toast.success("Testo acquisito!");
+                toast.success(t("Testo acquisito!"));
             }
         };
 
@@ -156,7 +159,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
         setLoading(true);
 
         if (!formData.title || !formData.assetId) {
-            toast.error("Compila i campi obbligatori");
+            toast.error(t("Compila i campi obbligatori"));
             setLoading(false);
             return;
         }
@@ -169,7 +172,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
 
             const qualityCheck = await validateDescriptionQuality(formData.description);
             if (!qualityCheck.valid) {
-                toast.warning("Attenzione: Descrizione Insufficiente", {
+                toast.warning(t("Attenzione: Descrizione Insufficiente"), {
                     description: qualityCheck.reason,
                     duration: 5000,
                     icon: <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -191,16 +194,16 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
             });
 
             if (result.success) {
-                toast.success("Richiesta inviata con successo!");
+                toast.success(t("Richiesta inviata con successo!"));
                 router.push("/requests");
                 router.refresh();
             } else {
-                toast.error(result.message || "Errore nell'invio della richiesta");
+                toast.error(result.message ? t(result.message) : t("Errore nell'invio della richiesta"));
                 console.error("Submission failed:", result);
             }
         } catch (error) {
             console.error("Request Form Error:", error);
-            toast.error("Errore di connessione: " + (error as any).message);
+            toast.error(t("Errore di connessione: {message}", { message: (error as any).message }));
         } finally {
             setLoading(false);
         }
@@ -209,9 +212,9 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
     return (
         <Card className="w-full max-w-2xl mx-auto">
             <CardHeader>
-                <CardTitle>Nuova Richiesta di Intervento</CardTitle>
+                <CardTitle>{t("Nuova Richiesta di Intervento")}</CardTitle>
                 <CardDescription>
-                    Segnala un guasto o richiedi un intervento di manutenzione.
+                    {t("Segnala un guasto o richiedi un intervento di manutenzione.")}
                 </CardDescription>
                 {/* Explicit Duplicate Warning Header */}
                 {pendingRequests.length > 0 && (
@@ -220,8 +223,8 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                             <AlertTriangle className="h-4 w-4" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-red-800 text-sm">Attenzione: Segnalazioni già presenti!</h4>
-                            <p className="text-xs text-red-700 mb-2">Esistono già {pendingRequests.length} richieste aperte per questo asset.</p>
+                            <h4 className="font-bold text-red-800 text-sm">{t("Attenzione: Segnalazioni già presenti!")}</h4>
+                            <p className="text-xs text-red-700 mb-2">{pendingRequests.length === 1 ? t("Esiste già 1 richiesta aperta per questo asset.") : t("Esistono già {count} richieste aperte per questo asset.", { count: pendingRequests.length })}</p>
                             <ul className="text-xs text-red-800 space-y-1 list-disc list-inside bg-white/50 p-2 rounded">
                                 {pendingRequests.map(req => (
                                     <li key={req.id}>"{req.title}" - <span className="font-mono">{req.status}</span></li>
@@ -233,7 +236,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                 {checkingDuplicates && (
                     <div className="mt-2 text-xs text-blue-600 flex items-center gap-2 bg-blue-50 p-2 rounded">
                         <Loader2 className="h-3 w-3 animate-spin" />
-                        Verifica richieste in corso...
+                        {t("Verifica richieste in corso...")}
                     </div>
                 )}
             </CardHeader>
@@ -241,10 +244,10 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <label className="text-sm font-medium">
-                            {formData.category === 'SAFETY' ? "Richiesta/Codice Segnalazione *" : "Titolo Richiesta *"}
+                            {formData.category === 'SAFETY' ? t("Richiesta/Codice Segnalazione *") : t("Titolo Richiesta *")}
                         </label>
                         <Input
-                            placeholder={formData.category === 'SAFETY' ? "Es. SEGNALAZIONE-2024-001" : "Es. Perdita d'acqua linea 1"}
+                            placeholder={formData.category === 'SAFETY' ? t("Es. SEGNALAZIONE-2024-001") : t("Es. Perdita d'acqua linea 1")}
                             value={formData.title}
                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                             required
@@ -254,7 +257,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                     {/* Asset Selection: Show if forced OR if no asset ID provided (and not a system asset) */}
                     {(forceAssetSelection || !formData.assetId || !formData.assetId.startsWith('SYS-')) && (
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Asset / Macchinario *</label>
+                            <label className="text-sm font-medium">{t("Asset / Macchinario *")}</label>
 
                             {/* NEW: Tree-based selection via Dialog */}
                             <div className="flex gap-2">
@@ -272,14 +275,14 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                                             ) : (
                                                 <>
                                                     <Search className="mr-2 h-4 w-4" />
-                                                    Sfoglia e seleziona macchinario...
+                                                    {t("Sfoglia e seleziona macchinario...")}
                                                 </>
                                             )}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col bg-background/95 backdrop-blur-xl">
                                         <DialogHeader>
-                                            <DialogTitle>Seleziona Macchinario</DialogTitle>
+                                            <DialogTitle>{t("Seleziona Macchinario")}</DialogTitle>
                                         </DialogHeader>
                                         <div className="flex-1 overflow-y-auto pr-2">
                                             <AssetSelector
@@ -296,7 +299,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
 
                             {checkingDuplicates && (
                                 <div className="text-xs text-muted-foreground animate-pulse flex items-center gap-1">
-                                    <Loader2 className="h-3 w-3 animate-spin" /> Controllo segnalazioni aperte...
+                                    <Loader2 className="h-3 w-3 animate-spin" /> {t("Controllo segnalazioni aperte...")}
                                 </div>
                             )}
                         </div>
@@ -304,28 +307,28 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">
-                            {formData.category === 'SAFETY' ? "Priorità Segnalazione" : "Priorità Percepita"}
+                            {formData.category === 'SAFETY' ? t("Priorità Segnalazione") : t("Priorità Percepita")}
                         </label>
                         <Select
                             value={formData.priority}
                             onValueChange={(val) => setFormData({ ...formData, priority: val })}
                         >
                             <SelectTrigger>
-                                <SelectValue placeholder="Seleziona Priorità" />
+                                <SelectValue placeholder={t("Seleziona Priorità")} />
                             </SelectTrigger>
                             <SelectContent>
                                 {formData.category === 'SAFETY' ? (
                                     <>
-                                        <SelectItem value="HIGH">Alta (Pericolo Immediato)</SelectItem>
-                                        <SelectItem value="MEDIUM">Media (Attenzione Richiesta)</SelectItem>
-                                        <SelectItem value="LOW">Bassa (Suggerimento/Osservazione)</SelectItem>
+                                        <SelectItem value="HIGH">{t("Alta (Pericolo Immediato)")}</SelectItem>
+                                        <SelectItem value="MEDIUM">{t("Media (Attenzione Richiesta)")}</SelectItem>
+                                        <SelectItem value="LOW">{t("Bassa (Suggerimento/Osservazione)")}</SelectItem>
                                     </>
                                 ) : (
                                     <>
-                                        <SelectItem value="NOT_PRODUCTION">Non in Produzione (Meno Grave)</SelectItem>
-                                        <SelectItem value="WORKING">In Lavoro (Monitorare)</SelectItem>
-                                        <SelectItem value="MALFUNCTIONING">Malfunzionante (Intervento Richiesto)</SelectItem>
-                                        <SelectItem value="STOPPED">Ferma (Urgentissimo)</SelectItem>
+                                        <SelectItem value="NOT_PRODUCTION">{t("Non in Produzione (Meno Grave)")}</SelectItem>
+                                        <SelectItem value="WORKING">{t("In Lavoro (Monitorare)")}</SelectItem>
+                                        <SelectItem value="MALFUNCTIONING">{t("Malfunzionante (Intervento Richiesto)")}</SelectItem>
+                                        <SelectItem value="STOPPED">{t("Ferma (Urgentissimo)")}</SelectItem>
                                     </>
                                 )}
                             </SelectContent>
@@ -337,7 +340,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                             <label className="text-sm font-medium flex items-center gap-2">
                                 <Camera className="h-4 w-4" />
-                                Carica Disegno Tecnico / Foto
+                                {t("Carica Disegno Tecnico / Foto")}
                             </label>
                             <Input
                                 type="file"
@@ -349,12 +352,12 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                                 <div className="mt-2 relative group w-full max-w-[200px] rounded-lg overflow-hidden border shadow-sm">
                                     <img
                                         src={formData.requestImage}
-                                        alt="Preview"
+                                        alt={t("Anteprima")}
                                         className="w-full h-auto object-cover max-h-[150px]"
                                     />
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <p className="text-white text-xs font-medium flex items-center ml-1">
-                                            <CheckCircle className="h-3 w-3 mr-1" /> Caricata
+                                            <CheckCircle className="h-3 w-3 mr-1" /> {t("Caricata")}
                                         </p>
                                     </div>
                                 </div>
@@ -364,7 +367,7 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
 
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium">Descrizione Dettagliata</label>
+                            <label className="text-sm font-medium">{t("Descrizione Dettagliata")}</label>
                             {speechSupported && (
                                 <button
                                     type="button"
@@ -375,22 +378,22 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                                             ? "bg-red-100 text-red-600 border-red-200 animate-pulse font-bold"
                                             : "bg-background text-muted-foreground hover:bg-muted border-border"
                                     )}
-                                    title="Dettatura Vocale"
+                                    title={t("Dettatura Vocale")}
                                 >
                                     {isListening ? (
                                         <>
-                                            <MicOff className="h-3 w-3" /> Stop Dettatura
+                                            <MicOff className="h-3 w-3" /> {t("Stop Dettatura")}
                                         </>
                                     ) : (
                                         <>
-                                            <Mic className="h-3 w-3" /> Dettatura Vocale
+                                            <Mic className="h-3 w-3" /> {t("Dettatura Vocale")}
                                         </>
                                     )}
                                 </button>
                             )}
                         </div>
                         <Textarea
-                            placeholder="Descrivi il problema riscontrato..."
+                            placeholder={t("Descrivi il problema riscontrato...")}
                             className={cn("min-h-[100px]", isListening && "border-red-400 ring-1 ring-red-400")}
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -398,31 +401,31 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                         <button
                             type="button"
                             onClick={() => {
-                                if (!formData.description) return toast.error("Scrivi una descrizione per analizzarla.");
+                                if (!formData.description) return toast.error(t("Scrivi una descrizione per analizzarla."));
                                 setLoading(true); // Artificial delay
                                 setTimeout(() => {
                                     setLoading(false);
                                     const desc = formData.description.toLowerCase();
                                     let suggestedPriority = "WORKING";
-                                    let suggestionReason = "Analisi standard";
+                                    let suggestionReason = t("Analisi standard");
 
                                     // Heuristic Analysis
                                     if (desc.includes("fuoco") || desc.includes("fumo") || desc.includes("pericolo") || desc.includes("fermo") || desc.includes("blocc")) {
                                         suggestedPriority = "STOPPED";
-                                        suggestionReason = "Parole chiave critiche rilevate (Sicurezza/Fermo Impianto)";
+                                        suggestionReason = t("Parole chiave critiche rilevate (Sicurezza/Fermo Impianto)");
                                     } else if (desc.includes("rumore") || desc.includes("lento") || desc.includes("vibrazion")) {
                                         suggestedPriority = "MALFUNCTIONING";
-                                        suggestionReason = "Potenziale usura o malfunzionamento che non ferma la produzione";
+                                        suggestionReason = t("Potenziale usura o malfunzionamento che non ferma la produzione");
                                     } else if (desc.includes("spia") || desc.includes("osservazione")) {
                                         suggestedPriority = "WORKING";
-                                        suggestionReason = "Anomalia lieve, macchinario in lavoro";
+                                        suggestionReason = t("Anomalia lieve, macchinario in lavoro");
                                     } else {
                                         suggestedPriority = "NOT_PRODUCTION";
-                                        suggestionReason = "Nessuna criticità evidente rilevata";
+                                        suggestionReason = t("Nessuna criticità evidente rilevata");
                                     }
 
                                     setFormData(prev => ({ ...prev, priority: suggestedPriority }));
-                                    toast.info(`AI Suggestion: Priorità impostata su ${suggestedPriority}`, {
+                                    toast.info(t("AI Suggestion: Priorità impostata su {priority}", { priority: suggestedPriority }), {
                                         description: suggestionReason,
                                         icon: <div className="text-lg">🤖</div>
                                     });
@@ -430,17 +433,17 @@ export function RequestForm({ initialAssetId, initialCategory, forceAssetSelecti
                             }}
                             className="text-xs flex items-center gap-1 mt-1 text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded transition-colors w-fit ml-auto"
                         >
-                            ✨ Analizza con AI
+                            ✨ {t("Analizza con AI")}
                         </button>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="ghost" type="button" onClick={() => onCancel ? onCancel() : router.back()}>
-                        {onCancel ? "Indietro" : "Annulla"}
+                        {onCancel ? t("Indietro") : t("Annulla")}
                     </Button>
                     <Button type="submit" disabled={loading || isListening}>
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Invia Richiesta
+                        {t("Invia Richiesta")}
                     </Button>
                 </CardFooter>
             </form>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 
 interface Option {
     id: string;
@@ -19,6 +20,7 @@ interface MultiSelectProps {
 }
 
 export function MultiSelect({ label, options, value, onChange, placeholder, onCreate }: MultiSelectProps) {
+    const t = useT();
     const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState("");
     const containerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +61,7 @@ export function MultiSelect({ label, options, value, onChange, placeholder, onCr
                     className="min-h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-primary cursor-pointer flex flex-wrap gap-2"
                     onClick={() => setIsOpen(!isOpen)}
                 >
-                    {selectedLabels.length === 0 && <span className="text-muted-foreground">{placeholder || "Select..."}</span>}
+                    {selectedLabels.length === 0 && <span className="text-muted-foreground">{placeholder || t("Seleziona...")}</span>}
                     {selectedLabels.map((label, idx) => (
                         <span key={idx} className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1">
                             {label}
@@ -80,7 +82,7 @@ export function MultiSelect({ label, options, value, onChange, placeholder, onCr
                             <div className="flex gap-2 p-2 border-b mb-1">
                                 <input
                                     className="flex-1 bg-transparent text-sm outline-none"
-                                    placeholder="Create new..."
+                                    placeholder={t("Crea nuovo...")}
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
                                     onClick={(e) => e.stopPropagation()}
@@ -91,7 +93,7 @@ export function MultiSelect({ label, options, value, onChange, placeholder, onCr
                                     onClick={(e) => { e.stopPropagation(); handleCreate(); }}
                                     className="text-xs font-medium text-primary"
                                 >
-                                    Add
+                                    {t("Aggiungi")}
                                 </button>
                             </div>
                         )}

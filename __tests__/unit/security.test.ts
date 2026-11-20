@@ -15,7 +15,7 @@ describe('percorsi pubblici', () => {
     });
 
     it('le risorse statiche note sono pubbliche', () => {
-        for (const p of ['/brand/FITT-logo-bianco.svg', '/icon.svg', '/manifest.json', '/sw.js', '/workbox-4754cb34.js', '/_next/static/chunks/app.js', '/favicon.ico']) {
+        for (const p of ['/brand/FITT-logo-bianco.svg', '/icon.svg', '/manifest.json', '/sw.js', '/workbox-4754cb34.js', '/worker-1a2b3c4d.js', '/_next/static/chunks/app.js', '/favicon.ico']) {
             expect(isPublicPath(p), p).toBe(true);
         }
     });

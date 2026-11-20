@@ -1,6 +1,7 @@
 "use client";
 
 import { escapeHtml } from '@/lib/html';
+import { useT } from "@/lib/i18n/client";
 import { useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ interface TagGeneratorDialogProps {
 }
 
 export function TagGeneratorDialog({ assets, onClose, assetId, assetName }: TagGeneratorDialogProps) {
+    const t = useT();
     // Backward compatibility for single props
     const items = assets || (assetId && assetName ? [{ id: assetId, name: assetName }] : []);
     const printRef = useRef<HTMLDivElement>(null);
@@ -25,7 +27,7 @@ export function TagGeneratorDialog({ assets, onClose, assetId, assetName }: TagG
 
         const printWindow = window.open('', '', 'height=700,width=850');
         if (printWindow) {
-            printWindow.document.write('<html><head><title>Stampa Tag Asset - Smart Plant</title>');
+            printWindow.document.write(`<html><head><title>${escapeHtml(t("Stampa Tag Asset - Smart Plant"))}</title>`);
             printWindow.document.write(`
                 <style>
                     body { 
@@ -136,7 +138,7 @@ export function TagGeneratorDialog({ assets, onClose, assetId, assetName }: TagG
                                 </svg>
                             </div>
                             <div class="serial">SN: ${escapeHtml(item.id.toUpperCase().substring(0, 16))}</div>
-                            <div class="footer-text">SCANSIONA PER SEGNALAZIONE RAPIDA</div>
+                            <div class="footer-text">${escapeHtml(t("SCANSIONA PER SEGNALAZIONE RAPIDA"))}</div>
                         </div>
                     </div>
                 `);
@@ -155,7 +157,7 @@ export function TagGeneratorDialog({ assets, onClose, assetId, assetName }: TagG
             <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-                        Genera Tag Industriali ({items.length})
+                        {t("Genera Tag Industriali ({count})", { count: items.length })}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -198,7 +200,7 @@ export function TagGeneratorDialog({ assets, onClose, assetId, assetName }: TagG
                                         </span>
                                     </div>
                                     <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mt-3">
-                                        Scansione Rapida Manutenzione
+                                        {t("Scansione Rapida Manutenzione")}
                                     </p>
                                 </div>
                             );
@@ -208,10 +210,10 @@ export function TagGeneratorDialog({ assets, onClose, assetId, assetName }: TagG
 
                 <DialogFooter className="sm:justify-between gap-2 border-t border-zinc-100 dark:border-zinc-800/80 pt-4">
                     <Button variant="ghost" onClick={onClose} className="rounded-xl font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-900">
-                        Chiudi
+                        {t("Chiudi")}
                     </Button>
                     <Button onClick={handlePrint} className="gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl shadow-md font-semibold px-5">
-                        <Printer className="h-4 w-4" /> Stampa Tag
+                        <Printer className="h-4 w-4" /> {t("Stampa Tag")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

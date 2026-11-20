@@ -2,11 +2,13 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
+import { rankWarehouseParts } from '../../domain/warehouse-search';
 import { requireLogin, requireRole } from '@/lib/auth-guard';
 import { logAction } from '@/lib/audit';
 import { OPERATIVE, hasRole } from '@/lib/roles';
 import { PlantScopeError, resolveWritePlantId } from '@/lib/plant-scope';
 import { usersToNotify } from '@/lib/plant-users';
+import { applyStockChange, InsufficientStockError, StockPartNotFoundError } from '@/lib/stock-ledger';
 import {
     MATERIAL_STATUS_LABELS, canTransition, normalizeMaterialItems, parseNeededBy, staleStatusMessage, statesBefore,
     type MaterialItemInput, type MaterialStatus,
@@ -63,6 +65,8 @@ export interface WarehousePartHit {
     name: string;
     available: number;
     location: string | null;
+    /** Corrispondenza forte con quanto scritto: l'articolo e' "consigliato". */
+    strong: boolean;
 }
 
 export interface MaterialRequestInput {
@@ -76,19 +80,29 @@ export interface MaterialRequestInput {
 
 // --- Letture ---
 
-/** Ricerca nel magazzino manutenzione per nome. Nessun costo: i reparti vedono solo nome, disponibilita' e ubicazione. */
+/**
+ * Suggerimento dei materiali del magazzino manutenzione mentre si scrive: confronto per parole (maiuscole, accenti, plurali e ordine non contano,
+ * anche parole ancora a meta'), vedi modules/inventory/domain/warehouse-search.ts. Nessun costo: i reparti vedono solo nome, disponibilita' e ubicazione.
+ */
 export async function searchWarehouseParts(query: string, plantId?: string): Promise<WarehousePartHit[]> {
     const { authorized } = await requireLogin();
     if (!authorized) return [];
     const q = (query ?? '').trim().slice(0, 80);
     if (!q) return [];
+    // Il magazzino di uno stabilimento e' piccolo: si leggono gli articoli (con tetto) e si ordinano per somiglianza
     const parts = await prisma.sparePart.findMany({
-        where: { name: { contains: q, mode: 'insensitive' }, ...(plantId ? { plantId } : {}) },
-        select: { id: true, name: true, quantity: true, location: true },
+        where: plantId ? { plantId } : {},
+        select: { id: true, name: true, description: true, quantity: true, location: true },
         orderBy: { name: 'asc' },
-        take: 20,
+        take: 1500,
     });
-    return parts.map(p => ({ id: p.id, name: p.name, available: Math.max(0, p.quantity), location: p.location }));
+    return rankWarehouseParts(q, parts).map(m => ({
+        id: m.item.id,
+        name: m.item.name,
+        available: Math.max(0, m.item.quantity),
+        location: m.item.location,
+        strong: m.strong,
+    }));
 }
 
 export async function listMaterialRequests(scope: 'mine' | 'all'): Promise<MaterialRequestRow[]> {
@@ -258,12 +272,21 @@ async function applyTransition(id: string, to: 'READY' | 'DELIVERED' | 'REJECTED
                 const items = await tx.materialRequestItem.findMany({ where: { requestId: id }, orderBy: { id: 'asc' } });
                 for (const item of items) {
                     if (item.partId) {
-                        const res = await tx.sparePart.updateMany({
-                            where: { id: item.partId, quantity: { gte: item.quantity } },
-                            data: { quantity: { decrement: item.quantity }, lastUpdated: new Date() },
-                        });
-                        if (res.count !== 1) {
-                            throw new UserFacingError(`Giacenza insufficiente per "${item.description}" (richiesti ${item.quantity} pz): la richiesta non è stata consegnata.`);
+                        // Scarico e movimento nella stessa transazione: se uno dei due fallisce la consegna non avviene
+                        try {
+                            await applyStockChange(tx, {
+                                partId: item.partId,
+                                delta: -item.quantity,
+                                type: 'MATERIAL_REQUEST',
+                                reference: `MR:${id}`,
+                                note: 'Consegna al richiedente',
+                                actor: handler,
+                            });
+                        } catch (e) {
+                            if (e instanceof InsufficientStockError || e instanceof StockPartNotFoundError) {
+                                throw new UserFacingError(`Giacenza insufficiente per "${item.description}" (richiesti ${item.quantity} pz): la richiesta non è stata consegnata.`);
+                            }
+                            throw e;
                         }
                     }
                     await tx.materialRequestItem.updateMany({ where: { id: item.id }, data: { deliveredQty: item.quantity } });

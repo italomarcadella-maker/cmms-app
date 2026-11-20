@@ -2,14 +2,18 @@
  * Tipi di contatore/punto di lettura. Energia, acqua e gas sono cumulativi (il valore cresce nel tempo);
  * pressioni, temperature e livelli sono istantanei (salgono e scendono).
  */
+import { tk } from '@/lib/i18n/translate';
+
 export const METER_TYPES = [
-    { id: 'ELEC', label: 'Elettricità', unit: 'kWh', cumulative: true },
-    { id: 'WATER', label: 'Acqua', unit: 'm3', cumulative: true },
-    { id: 'GAS', label: 'Gas', unit: 'm3', cumulative: true },
-    { id: 'PRESSURE', label: 'Pressione', unit: 'bar', cumulative: false },
-    { id: 'TEMP', label: 'Temperatura', unit: '°C', cumulative: false },
-    { id: 'LEVEL', label: 'Livello', unit: '%', cumulative: false },
-    { id: 'OTHER', label: 'Altro', unit: '', cumulative: false },
+    { id: 'ELEC', label: tk('Elettricità'), unit: 'kWh', cumulative: true },
+    { id: 'WATER', label: tk('Acqua'), unit: 'm3', cumulative: true },
+    { id: 'GAS', label: tk('Gas'), unit: 'm3', cumulative: true },
+    { id: 'PRESSURE', label: tk('Pressione'), unit: 'bar', cumulative: false },
+    { id: 'TEMP', label: tk('Temperatura'), unit: '°C', cumulative: false },
+    { id: 'LEVEL', label: tk('Livello'), unit: '%', cumulative: false },
+    { id: 'HOURS', label: tk('Ore di funzionamento'), unit: 'h', cumulative: true },
+    { id: 'CYCLES', label: tk('Cicli'), unit: 'cicli', cumulative: true },
+    { id: 'OTHER', label: tk('Altro'), unit: '', cumulative: false },
 ] as const;
 
 export type MeterTypeId = (typeof METER_TYPES)[number]['id'];

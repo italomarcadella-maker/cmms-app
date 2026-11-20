@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { suggestActivitiesForDowntime } from "@/lib/ai-service"; // Ensure this is exported
 import { Loader2, Sparkles, Check, AlertTriangle } from "lucide-react";
 import { differenceInHours } from "date-fns";
+import { useT } from "@/lib/i18n/client";
 
 interface AISuggestionDialogProps {
     slot: { line: string, startTime: string | Date, endTime: string | Date, type: string };
@@ -13,6 +14,7 @@ interface AISuggestionDialogProps {
 }
 
 export function AISuggestionDialog({ slot, onClose }: AISuggestionDialogProps) {
+    const t = useT();
     const [loading, setLoading] = useState(true);
     const [result, setResult] = useState<{ message: string, suggestions: any[] } | null>(null);
 
@@ -33,7 +35,7 @@ export function AISuggestionDialog({ slot, onClose }: AISuggestionDialogProps) {
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-indigo-500" />
-                        Analisi AI Copilot
+                        {t("Analisi AI Copilot")}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -41,7 +43,7 @@ export function AISuggestionDialog({ slot, onClose }: AISuggestionDialogProps) {
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-8 gap-4 text-muted-foreground">
                             <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-                            <p>Analizzo lo stato della linea "{slot.line}"...</p>
+                            <p>{t("Analizzo lo stato della linea \"{line}\"...", { line: slot.line })}</p>
                         </div>
                     ) : (
                         <div className="space-y-4 animate-in fade-in">
@@ -71,7 +73,7 @@ export function AISuggestionDialog({ slot, onClose }: AISuggestionDialogProps) {
                 </div>
 
                 <DialogFooter>
-                    <Button onClick={onClose}>Chiudi</Button>
+                    <Button onClick={onClose}>{t("Chiudi")}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

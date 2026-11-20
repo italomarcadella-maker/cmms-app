@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Calendar as CalendarIcon, Filter } from "lucide-react";
 import { format, subDays, isWithinInterval, parseISO } from "date-fns";
+import { useT, useFormat } from "@/lib/i18n/client";
 
 export function EnergyDashboard({
     stats,
@@ -37,6 +38,8 @@ export function EnergyDashboard({
     meters: any[],
     externalDateRange?: { start: string, end: string }
 }) {
+    const t = useT();
+    const fmt = useFormat();
     const [selectedMeterId, setSelectedMeterId] = useState<string>("all");
     const [selectedType, setSelectedType] = useState<string>("ALL"); // ALL, ELEC, WATER, GAS
     const [prevExternalDateRange, setPrevExternalDateRange] = useState(externalDateRange);
@@ -75,16 +78,16 @@ export function EnergyDashboard({
             }));
         }
 
-        const filtered = baseTrends.filter(t => {
-            const d = parseISO(t.date);
+        const filtered = baseTrends.filter(row => {
+            const d = parseISO(row.date);
             return isWithinInterval(d, { start, end });
         });
 
         const totals = { ELEC: 0, WATER: 0, GAS: 0 };
-        filtered.forEach(t => {
-            if (t.elec) totals.ELEC += t.elec;
-            if (t.water) totals.WATER += t.water;
-            if (t.gas) totals.GAS += t.gas;
+        filtered.forEach(row => {
+            if (row.elec) totals.ELEC += row.elec;
+            if (row.water) totals.WATER += row.water;
+            if (row.gas) totals.GAS += row.gas;
         });
 
         return {
@@ -100,20 +103,20 @@ export function EnergyDashboard({
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                        Monitoraggio Consumi
+                        {t("Monitoraggio Consumi")}
                     </h1>
-                    <p className="text-muted-foreground mt-1">Gestione energetica e rilevamento anomalie.</p>
+                    <p className="text-muted-foreground mt-1">{t("Gestione energetica e rilevamento anomalie.")}</p>
                 </div>
                 <div className="flex gap-2">
                     <Select value={selectedMeterId} onValueChange={setSelectedMeterId}>
                         <SelectTrigger className="w-[220px]">
-                            <SelectValue placeholder="Tutti i contatori" />
+                            <SelectValue placeholder={t("Tutti i contatori")} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">Tutti i Contatori</SelectItem>
+                            <SelectItem value="all">{t("Tutti i Contatori")}</SelectItem>
                             {elecMeters.length > 0 && (
                                 <>
-                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Elettricità</div>
+                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{t("Elettricità")}</div>
                                     {elecMeters.map((m: any) => (
                                         <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                                     ))}
@@ -121,7 +124,7 @@ export function EnergyDashboard({
                             )}
                             {waterMeters.length > 0 && (
                                 <>
-                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Acqua</div>
+                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{t("Acqua")}</div>
                                     {waterMeters.map((m: any) => (
                                         <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                                     ))}
@@ -129,7 +132,7 @@ export function EnergyDashboard({
                             )}
                             {gasMeters.length > 0 && (
                                 <>
-                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Gas</div>
+                                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{t("Gas")}</div>
                                     {gasMeters.map((m: any) => (
                                         <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                                     ))}
@@ -146,7 +149,7 @@ export function EnergyDashboard({
             <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div className="space-y-2">
                     <label className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-1">
-                        <CalendarIcon className="h-3 w-3" /> Inizio
+                        <CalendarIcon className="h-3 w-3" /> {t("Inizio")}
                     </label>
                     <Input 
                         type="date" 
@@ -157,7 +160,7 @@ export function EnergyDashboard({
                 </div>
                 <div className="space-y-2">
                     <label className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-1">
-                        <CalendarIcon className="h-3 w-3" /> Fine
+                        <CalendarIcon className="h-3 w-3" /> {t("Fine")}
                     </label>
                     <Input 
                         type="date" 
@@ -168,22 +171,22 @@ export function EnergyDashboard({
                 </div>
                 <div className="space-y-2">
                     <label className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-1">
-                        <Filter className="h-3 w-3" /> Tipo Consumo
+                        <Filter className="h-3 w-3" /> {t("Tipo Consumo")}
                     </label>
                     <Select value={selectedType} onValueChange={setSelectedType}>
                         <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Tipo" />
+                            <SelectValue placeholder={t("Tipo")} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="ALL">Tutti i tipi</SelectItem>
-                            <SelectItem value="ELEC">Elettricità</SelectItem>
-                            <SelectItem value="WATER">Acqua</SelectItem>
-                            <SelectItem value="GAS">Gas</SelectItem>
+                            <SelectItem value="ALL">{t("Tutti i tipi")}</SelectItem>
+                            <SelectItem value="ELEC">{t("Elettricità")}</SelectItem>
+                            <SelectItem value="WATER">{t("Acqua")}</SelectItem>
+                            <SelectItem value="GAS">{t("Gas")}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                 <div className="space-y-2 text-right">
-                    <p className="text-[10px] text-slate-400 italic">Dati basati sulle letture dei contatori nel periodo selezionato.</p>
+                    <p className="text-[10px] text-slate-400 italic">{t("Dati basati sulle letture dei contatori nel periodo selezionato.")}</p>
                 </div>
             </div>
 
@@ -198,13 +201,13 @@ export function EnergyDashboard({
                     }}
                 >
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Elettricità</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t("Elettricità")}</CardTitle>
                         <Zap className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{filteredStats.totals.ELEC.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh</div>
+                        <div className="text-2xl font-bold">{fmt.number(filteredStats.totals.ELEC, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Nel periodo selezionato
+                            {t("Nel periodo selezionato")}
                         </p>
                     </CardContent>
                 </Card>
@@ -219,13 +222,13 @@ export function EnergyDashboard({
                     }}
                 >
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Acqua</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t("Acqua")}</CardTitle>
                         <Droplets className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{filteredStats.totals.WATER.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m³</div>
+                        <div className="text-2xl font-bold">{fmt.number(filteredStats.totals.WATER, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m³</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Nel periodo selezionato
+                            {t("Nel periodo selezionato")}
                         </p>
                     </CardContent>
                 </Card>
@@ -240,13 +243,13 @@ export function EnergyDashboard({
                     }}
                 >
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Gas</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t("Gas")}</CardTitle>
                         <Flame className="h-4 w-4 text-orange-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{filteredStats.totals.GAS.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m³</div>
+                        <div className="text-2xl font-bold">{fmt.number(filteredStats.totals.GAS, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m³</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Nel periodo selezionato
+                            {t("Nel periodo selezionato")}
                         </p>
                     </CardContent>
                 </Card>

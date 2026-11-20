@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
 
 interface VoiceInputProps {
     onTranscript: (text: string) => void;
@@ -14,7 +15,8 @@ interface VoiceInputProps {
     onListeningChange?: (isListening: boolean) => void;
 }
 
-export function VoiceInput({ onTranscript, placeholder = "Parla ora...", className, isListening: externalIsListening, onListeningChange }: VoiceInputProps) {
+export function VoiceInput({ onTranscript, placeholder, className, isListening: externalIsListening, onListeningChange }: VoiceInputProps) {
+    const t = useT();
     const [listening, setListening] = useState(false);
     const [supported, setSupported] = useState(() => {
         if (typeof window === 'undefined') return true;
@@ -106,10 +108,10 @@ export function VoiceInput({ onTranscript, placeholder = "Parla ora...", classNa
             size="icon"
             className={cn("transition-all duration-200", listening && "animate-pulse ring-2 ring-red-500", className)}
             onClick={toggleListening}
-            title={listening ? "Interrompi dettatura" : "Avvia dettatura vocale"}
+            title={listening ? t("Interrompi dettatura") : t("Avvia dettatura vocale")}
         >
             {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            <span className="sr-only">{listening ? 'Stop' : 'Parla'}</span>
+            <span className="sr-only">{listening ? t("Stop") : t("Parla")}</span>
         </Button>
     );
 }

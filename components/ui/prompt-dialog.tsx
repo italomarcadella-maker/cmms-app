@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
+import { useT } from "@/lib/i18n/client"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -40,6 +41,7 @@ export interface PromptOptions {
  *   return <>{...}{dialog}</>
  */
 export function usePrompt() {
+    const t = useT()
     const [options, setOptions] = React.useState<PromptOptions | null>(null)
     const [value, setValue] = React.useState("")
     const resolver = React.useRef<((value: string | null) => void) | null>(null)
@@ -81,9 +83,9 @@ export function usePrompt() {
                         />
                     </div>
                     <DialogFooter className="gap-2 sm:gap-0">
-                        <Button type="button" variant="outline" onClick={() => settle(null)}>Annulla</Button>
+                        <Button type="button" variant="outline" onClick={() => settle(null)}>{t("Annulla")}</Button>
                         <Button type="submit" variant={options?.variant === "destructive" ? "destructive" : "default"} disabled={blocked}>
-                            {options?.confirmLabel ?? "Conferma"}
+                            {options?.confirmLabel ?? t("Conferma")}
                         </Button>
                     </DialogFooter>
                 </form>

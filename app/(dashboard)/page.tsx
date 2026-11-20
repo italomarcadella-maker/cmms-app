@@ -11,9 +11,11 @@ import { FailuresByShiftCard } from "@/components/dashboard/failures-by-shift";
 import { WeekCalendar } from "@/components/dashboard/week-calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
+import { getT } from "@/lib/i18n/server";
 
 export default async function Home() {
   const session = await auth();
+  const { t } = await getT();
   const canSeeKpi = ["ADMIN", "PLANT_MANAGER", "PROCESS_ENGINEER"].includes(session?.user?.role ?? "");
 
   return (
@@ -63,7 +65,7 @@ export default async function Home() {
           <Card className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:border-primary/40">
             <span className="flex items-center gap-3 text-sm">
               <LineChart className="h-5 w-5 text-primary" aria-hidden />
-              <span><span className="font-medium">Andamento e costi</span> <span className="text-muted-foreground">· trend settimanali, costi di manutenzione e analisi nei KPI e report</span></span>
+              <span><span className="font-medium">{t("Andamento e costi")}</span> <span className="text-muted-foreground">· {t("trend settimanali, costi di manutenzione e analisi nei KPI e report")}</span></span>
             </span>
             <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden />
           </Card>

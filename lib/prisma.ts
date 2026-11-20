@@ -1,5 +1,7 @@
 import { basePrisma } from '@/lib/prisma-base';
 import { getPlantScope, PlantScope, PlantScopeError } from '@/lib/plant-scope';
+import { dispatchNotificationPushes } from '@/lib/push';
+import { extractNotificationPushes } from '@/modules/shared/domain/push-payload';
 
 /**
  * Client Prisma dell'applicazione.
@@ -26,6 +28,8 @@ const DIRECT: Record<string, string> = {
     SafetyEvent: 'plantId',
     ContractorContract: 'plantId',
     MaterialRequest: 'plantId',
+    StockMovement: 'plantId',
+    StockCount: 'plantId',
 };
 
 /** Modelli che ereditano il plant da un padre (percorso di relazione fino a una colonna plantId). */
@@ -52,6 +56,9 @@ const VIA: Record<string, string[]> = {
     ContractorActivity: ['contract'],
     ContractorExecution: ['activity', 'contract'],
     MaterialRequestItem: ['request'],
+    AssetPart: ['asset'],
+    WorkPermit: ['workOrder'],
+    StockCountLine: ['count'],
 };
 
 /** Come VIA, ma il padre e' facoltativo: i record senza padre restano visibili a tutti (conoscenza condivisa). */
@@ -156,6 +163,9 @@ const PARENT: Record<string, ParentRule> = {
     SopFeedback: { fk: 'sopId', table: 'sopDocument', via: ['asset'] },
     ContractorExecution: { fk: 'activityId', table: 'contractorActivity', via: ['contract'] },
     MaterialRequestItem: { fk: 'requestId', table: 'materialRequest' },
+    AssetPart: { fk: 'assetId', table: 'asset' },
+    WorkPermit: { fk: 'workOrderId', table: 'workOrder' },
+    StockCountLine: { fk: 'countId', table: 'stockCount' },
 };
 
 /** Plant del padre (null = padre condiviso, undefined = padre inesistente). Lettura con il client grezzo. */
@@ -256,7 +266,7 @@ const scoped = basePrisma.$extends({
 
 const AUDITED = ['WorkOrder', 'SparePart', 'User', 'PreventiveSchedule', 'SopDocument', 'ProcessAnomaly'];
 
-export const prisma = scoped.$extends({
+const audited = scoped.$extends({
     name: 'audit-log',
     query: {
         $allModels: {
@@ -278,6 +288,38 @@ export const prisma = scoped.$extends({
         },
     },
 });
+
+/**
+ * 3. Notifiche push sul telefono: dopo ogni scrittura di una Notification (create / createMany) parte, senza attendere e
+ *    senza mai far fallire la creazione, la push agli utenti destinatari (lib/push.ts; non fa nulla se le chiavi VAPID
+ *    non sono configurate). Cosi' le decine di punti che creano notifiche non vanno toccati uno per uno.
+ *    Il modello Notification non e' soggetto a scope per stabilimento: questo hook non interferisce con il punto 1.
+ */
+export const prisma = audited.$extends({
+    name: 'push-notifications',
+    query: {
+        notification: {
+            async create({ args, query }) {
+                const result = await query(args);
+                firePush(args.data);
+                return result;
+            },
+            async createMany({ args, query }) {
+                const result = await query(args);
+                firePush(args.data);
+                return result;
+            },
+        },
+    },
+});
+
+function firePush(data: unknown) {
+    try {
+        dispatchNotificationPushes(extractNotificationPushes(data));
+    } catch (err) {
+        console.warn('[push] hook notifiche:', (err as Error)?.message ?? err);
+    }
+}
 
 async function logMutation(model: string, action: string, resourceId: string | undefined, details: any) {
     try {

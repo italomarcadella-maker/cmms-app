@@ -7,7 +7,7 @@ import { useReference } from "@/lib/reference-context";
 import { approveRequest } from "@/lib/actions";
 import { User, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import {
     Select,
     SelectContent,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useWorkOrders } from "@/lib/work-orders-context";
+import { useT } from "@/lib/i18n/client";
 
 interface WOApproveDialogProps {
     workOrderId: string;
@@ -25,6 +26,7 @@ interface WOApproveDialogProps {
 }
 
 export function WOApproveDialog({ workOrderId, isOpen, onClose }: WOApproveDialogProps) {
+    const t = useT();
     const { technicians } = useReference();
     const { refreshWorkOrders } = useWorkOrders();
     const [selectedTechId, setSelectedTechId] = useState<string | undefined>(undefined);
@@ -60,31 +62,31 @@ export function WOApproveDialog({ workOrderId, isOpen, onClose }: WOApproveDialo
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Approva Richiesta</DialogTitle>
+                    <DialogTitle>{t("Approva Richiesta")}</DialogTitle>
                     <DialogDescription>
-                        Assegna un tecnico e una priorità per convertire questa richiesta in ordine di lavoro.
+                        {t("Assegna un tecnico e una priorità per convertire questa richiesta in ordine di lavoro.")}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
                     {/* Priority Config */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Priorità</label>
+                        <label className="text-sm font-medium">{t("Priorità")}</label>
                         <Select value={priority} onValueChange={setPriority}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Seleziona Priorità" />
+                                <SelectValue placeholder={t("Seleziona Priorità")} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="LOW">Bassa</SelectItem>
-                                <SelectItem value="MEDIUM">Media</SelectItem>
-                                <SelectItem value="HIGH">Alta</SelectItem>
+                                <SelectItem value="LOW">{t("Bassa")}</SelectItem>
+                                <SelectItem value="MEDIUM">{t("Media")}</SelectItem>
+                                <SelectItem value="HIGH">{t("Alta")}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
                     {/* Technician Selection */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Assegna Tecnico</label>
+                        <label className="text-sm font-medium">{t("Assegna Tecnico")}</label>
                         <div className="grid gap-2 max-h-[250px] overflow-y-auto pr-2 border rounded-md p-2 bg-muted/20">
                             {technicians.map((tech) => (
                                 <div
@@ -112,10 +114,10 @@ export function WOApproveDialog({ workOrderId, isOpen, onClose }: WOApproveDialo
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={loading}>Annulla</Button>
+                    <Button variant="outline" onClick={onClose} disabled={loading}>{t("Annulla")}</Button>
                     <Button onClick={handleApprove} disabled={loading || !selectedTechId}>
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Approva e Assegna
+                        {t("Approva e Assegna")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

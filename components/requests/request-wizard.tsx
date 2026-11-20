@@ -8,13 +8,15 @@ import { NewMaterialRequestForm } from "@/components/material-requests/new-reque
 import { cn } from "@/lib/utils";
 import { RequestForm } from "./request-form";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 
 // Categories Configuration
 const CATEGORIES = [
     {
         id: 'safety',
-        label: 'Sicurezza',
-        description: 'Segnala un pericolo o un problema di sicurezza.',
+        label: tk("Sicurezza"),
+        description: tk("Segnala un pericolo o un problema di sicurezza."),
         icon: ShieldAlert,
         color: 'text-red-500',
         virtualAssetId: 'SYS-SAFETY',
@@ -22,8 +24,8 @@ const CATEGORIES = [
     },
     {
         id: 'kaizen',
-        label: 'Quick Kaizen',
-        description: 'Proponi un miglioramento rapido.',
+        label: tk("Quick Kaizen"),
+        description: tk("Proponi un miglioramento rapido."),
         icon: Lightbulb,
         color: 'text-yellow-500',
         virtualAssetId: 'SYS-KAIZEN',
@@ -31,8 +33,8 @@ const CATEGORIES = [
     },
     {
         id: 'plant',
-        label: 'Impianti',
-        description: 'Manutenzione generale stabilimento (Luce, Acqua, Aria).',
+        label: tk("Impianti"),
+        description: tk("Manutenzione generale stabilimento (Luce, Acqua, Aria)."),
         icon: Factory,
         color: 'text-green-600',
         virtualAssetId: null, // Enable asset selection
@@ -40,8 +42,8 @@ const CATEGORIES = [
     },
     {
         id: 'workshop',
-        label: 'Officina',
-        description: 'Richiesta di lavorazione meccanica.',
+        label: tk("Officina"),
+        description: tk("Richiesta di lavorazione meccanica."),
         icon: Wrench,
         color: 'text-blue-500',
         virtualAssetId: 'SYS-WORKSHOP',
@@ -49,8 +51,8 @@ const CATEGORIES = [
     },
     {
         id: 'material',
-        label: 'Materiale dal magazzino ricambi',
-        description: 'Chiedi alla manutenzione materiali e ricambi dal suo magazzino.',
+        label: tk("Materiale dal magazzino ricambi"),
+        description: tk("Chiedi alla manutenzione materiali e ricambi dal suo magazzino."),
         icon: PackageOpen,
         color: 'text-cyan-600',
         virtualAssetId: null,
@@ -58,8 +60,8 @@ const CATEGORIES = [
     },
     {
         id: 'other',
-        label: 'Altro',
-        description: 'Altre richieste generiche.',
+        label: tk("Altro"),
+        description: tk("Altre richieste generiche."),
         icon: Package,
         color: 'text-gray-500',
         virtualAssetId: 'SYS-OTHER',
@@ -67,8 +69,8 @@ const CATEGORIES = [
     },
     {
         id: 'production',
-        label: 'Linee Produttive',
-        description: 'Guasto su un macchinario specifico.',
+        label: tk("Linee Produttive"),
+        description: tk("Guasto su un macchinario specifico."),
         icon: Factory,
         color: 'text-purple-500',
         virtualAssetId: null, // Requires selection
@@ -77,6 +79,7 @@ const CATEGORIES = [
 ];
 
 export function RequestWizard() {
+    const t = useT();
     const router = useRouter();
     const [step, setStep] = useState<1 | 2>(1);
     const [selectedCategory, setSelectedCategory] = useState<typeof CATEGORIES[0] | null>(null);
@@ -96,8 +99,8 @@ export function RequestWizard() {
             {step === 1 ? (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center space-y-2 mb-8">
-                        <h1 className="text-3xl font-bold tracking-tight">Nuova Richiesta</h1>
-                        <p className="text-muted-foreground">Seleziona la tipologia di richiesta per procedere</p>
+                        <h1 className="text-3xl font-bold tracking-tight">{t("Nuova Richiesta")}</h1>
+                        <p className="text-muted-foreground">{t("Seleziona la tipologia di richiesta per procedere")}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -113,8 +116,8 @@ export function RequestWizard() {
                                     <div className={cn("p-2 w-fit rounded-lg bg-muted mb-2", cat.color.replace('text-', 'bg-') + '/10')}>
                                         <cat.icon className={cn("h-6 w-6", cat.color)} />
                                     </div>
-                                    <CardTitle className="text-xl">{cat.label}</CardTitle>
-                                    <CardDescription>{cat.description}</CardDescription>
+                                    <CardTitle className="text-xl">{t(cat.label)}</CardTitle>
+                                    <CardDescription>{t(cat.description)}</CardDescription>
                                 </CardHeader>
                             </Card>
                         ))}
@@ -124,18 +127,18 @@ export function RequestWizard() {
                 <div className="animate-in fade-in slide-in-from-right-8 duration-500">
                     <div className="mb-6 flex items-center gap-2">
                         <Button variant="ghost" size="sm" onClick={handleBack} className="gap-1 pl-0 text-muted-foreground hover:text-foreground">
-                            <ChevronLeft className="h-4 w-4" /> Indietro
+                            <ChevronLeft className="h-4 w-4" /> {t("Indietro")}
                         </Button>
                         <span className="text-muted-foreground">/</span>
-                        <span className="font-semibold">{selectedCategory?.label}</span>
+                        <span className="font-semibold">{selectedCategory ? t(selectedCategory.label) : null}</span>
                     </div>
 
                     {selectedCategory?.id === 'material' ? (
                         // Non e' un ordine di lavoro: e' una richiesta di materiale al magazzino manutenzione, con il suo modulo
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-xl">Richiesta di materiale al magazzino ricambi</CardTitle>
-                                <CardDescription>Se l'articolo è nel magazzino manutenzione vedi subito quanti pezzi ci sono. Potrai seguire la richiesta in "Richieste di materiale".</CardDescription>
+                                <CardTitle className="text-xl">{t("Richiesta di materiale al magazzino ricambi")}</CardTitle>
+                                <CardDescription>{t("Se l'articolo è nel magazzino manutenzione vedi subito quanti pezzi ci sono. Potrai seguire la richiesta in \"Richieste di materiale\".")}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <NewMaterialRequestForm onDone={() => router.push("/requests/material")} />

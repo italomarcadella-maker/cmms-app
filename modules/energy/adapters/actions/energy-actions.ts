@@ -7,7 +7,8 @@ import { PrismaMeterReadingRepository } from '../db/prisma-meter-reading-reposit
 import { Meter } from '../../domain/entities/meter';
 import { makeRecordMeterReading } from '../../domain/use-cases/record-meter-reading';
 import { requireRole } from '@/lib/auth-guard';
-import { getEffectiveSettings } from '@/lib/actions';
+import { getEffectiveSettings, revalidateWorkOrders } from '@/lib/actions';
+import { checkMeterPlansNow } from '@/lib/scheduler';
 
 import { format, subDays, addDays, parseISO, differenceInDays } from "date-fns";
 import { it } from "date-fns/locale";
@@ -93,6 +94,18 @@ export async function addMeterReading(data: { meterId: string, value: number, da
             return { success: false, isAnomaly: false, aiAnalysis: null as string | null, message: 'Esiste gia\' una lettura di questo contatore per la stessa data.' };
         }
         throw e;
+    }
+
+    // Piani di manutenzione a consumo di questo contatore: se la lettura fa scattare la scadenza genera l'ordine e aggiorna la stima.
+    // Mai bloccante: la lettura e' gia' salvata.
+    try {
+        const plans = await checkMeterPlansNow(data.meterId);
+        if (plans.generated > 0) {
+            await revalidateWorkOrders();
+            revalidatePath('/maintenance/schedule');
+        }
+    } catch (e) {
+        console.error('[energy-actions] checkMeterPlansNow', e);
     }
 
     revalidatePath('/energy');

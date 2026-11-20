@@ -9,10 +9,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Euro, TrendingUp, TrendingDown, Hammer, Component } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, subMonths, isSameMonth } from "date-fns";
-import { it } from "date-fns/locale";
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { useT, useFormat, useDateFnsLocale } from "@/lib/i18n/client";
 
 export default function CostsPage() {
+    const t = useT();
+    const fmt = useFormat();
+    const dfLocale = useDateFnsLocale();
     const { workOrders } = useWorkOrders();
     const { assets } = useAssets();
 
@@ -23,7 +26,7 @@ export default function CostsPage() {
     useEffect(() => {
         getEffectiveSettings().then(st => { if (st?.defaultLaborHourlyRate) setDefaultRate(st.defaultLaborHourlyRate); }).catch(() => { });
     }, []);
-    const rateOf = (technicianId: string) => technicians.find(t => t.id === technicianId)?.hourlyRate || defaultRate;
+    const rateOf = (technicianId: string) => technicians.find(x => x.id === technicianId)?.hourlyRate || defaultRate;
     const laborCostOf = (logs: { hours: number; technicianId: string }[] | undefined) =>
         (logs || []).reduce((sum, log) => sum + log.hours * rateOf(log.technicianId), 0);
 
@@ -75,7 +78,7 @@ export default function CostsPage() {
     // 2. Costs Trend (Last 6 Months)
     const last6Months = Array.from({ length: 6 }).map((_, i) => {
         const date = subMonths(new Date(), 5 - i);
-        const monthName = format(date, "MMM", { locale: it });
+        const monthName = format(date, "MMM", { locale: dfLocale });
 
         const wosInMonth = workOrders.filter(wo => isSameMonth(new Date(wo.createdAt), date));
 
@@ -97,44 +100,44 @@ export default function CostsPage() {
     // Variazione reale rispetto al mese precedente (non un valore fisso)
     const prevMonth = last6Months[4]?.cost ?? 0;
     const thisMonth = last6Months[5]?.cost ?? 0;
-    const monthTrend = prevMonth > 0 ? `${thisMonth >= prevMonth ? "+" : ""}${Math.round(((thisMonth - prevMonth) / prevMonth) * 100)}% vs mese scorso` : undefined;
+    const monthTrend = prevMonth > 0 ? t("{pct}% vs mese scorso", { pct: `${thisMonth >= prevMonth ? "+" : ""}${Math.round(((thisMonth - prevMonth) / prevMonth) * 100)}` }) : undefined;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <BackToDashboardButton />
             <div>
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                    Analisi Costi
+                    {t("Analisi Costi")}
                 </h1>
-                <p className="text-muted-foreground mt-1">Monitoraggio spese di manutenzione, manodopera e ricambi.</p>
+                <p className="text-muted-foreground mt-1">{t("Monitoraggio spese di manutenzione, manodopera e ricambi.")}</p>
             </div>
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <KPICard
-                    title="Costo Totale"
-                    value={`€ ${totalMaintenanceCost.toLocaleString('it-IT')}`}
+                    title={t("Costo Totale")}
+                    value={`€ ${fmt.number(totalMaintenanceCost)}`}
                     icon={Euro}
                     trend={monthTrend}
                     color="text-emerald-600"
                 />
                 <KPICard
-                    title="Manodopera"
-                    value={`€ ${totalLaborCost.toLocaleString('it-IT')}`}
+                    title={t("Manodopera")}
+                    value={`€ ${fmt.number(totalLaborCost)}`}
                     icon={Hammer}
-                    sub={`${totalLaborHours} ore totali`}
+                    sub={t("{n} ore totali", { n: totalLaborHours })}
                     color="text-blue-600"
                 />
                 <KPICard
-                    title="Ricambi"
-                    value={`€ ${totalPartsCost.toLocaleString('it-IT')}`}
+                    title={t("Ricambi")}
+                    value={`€ ${fmt.number(totalPartsCost)}`}
                     icon={Component}
-                    sub="Stima su interventi chiusi"
+                    sub={t("Stima su interventi chiusi")}
                     color="text-amber-600"
                 />
                 <KPICard
-                    title="Costo Medio / Asset"
-                    value={`€ ${Math.round(totalMaintenanceCost / (assets.length || 1)).toLocaleString('it-IT')}`}
+                    title={t("Costo Medio / Asset")}
+                    value={`€ ${fmt.number(Math.round(totalMaintenanceCost / (assets.length || 1)))}`}
                     icon={TrendingUp}
                     color="text-purple-600"
                 />
@@ -143,7 +146,7 @@ export default function CostsPage() {
             <div className="grid lg:grid-cols-2 gap-6">
                 {/* Cost by Asset Chart */}
                 <div className="bg-card border rounded-xl shadow-sm p-6">
-                    <h3 className="font-semibold mb-6">Primi 10 asset per costo di manutenzione</h3>
+                    <h3 className="font-semibold mb-6">{t("Primi 10 asset per costo di manutenzione")}</h3>
                     <div className="h-[420px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={assetCosts} layout="vertical" margin={{ left: 40 }}>
@@ -152,8 +155,8 @@ export default function CostsPage() {
                                 <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
                                 <Tooltip formatter={(value) => `€ ${value}`} cursor={{ fill: 'transparent' }} />
                                 <Legend />
-                                <Bar dataKey="labor" name="Manodopera" stackId="a" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
-                                <Bar dataKey="parts" name="Ricambi" stackId="a" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
+                                <Bar dataKey="labor" name={t("Manodopera")} stackId="a" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
+                                <Bar dataKey="parts" name={t("Ricambi")} stackId="a" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -161,7 +164,7 @@ export default function CostsPage() {
 
                 {/* Trend Chart */}
                 <div className="bg-card border rounded-xl shadow-sm p-6">
-                    <h3 className="font-semibold mb-6">Andamento Spese (Semestrale)</h3>
+                    <h3 className="font-semibold mb-6">{t("Andamento Spese (Semestrale)")}</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={last6Months}>
@@ -169,7 +172,7 @@ export default function CostsPage() {
                                 <XAxis dataKey="name" />
                                 <YAxis />
                                 <Tooltip formatter={(value) => `€ ${value}`} />
-                                <Line type="monotone" dataKey="cost" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                <Line type="monotone" dataKey="cost" name={t("Costo")} stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>

@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Activity, GripVertical, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { tk } from "@/lib/i18n/translate";
+import { useT, useFormat } from "@/lib/i18n/client";
 
 type ActionItem = {
     id: string;
@@ -22,6 +24,8 @@ type ActionItem = {
 };
 
 export function ActionItemsKanban() {
+    const t = useT();
+    const fmt = useFormat();
     const [items, setItems] = useState<ActionItem[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -37,7 +41,7 @@ export function ActionItemsKanban() {
                 setItems(data);
             }
         } catch (e) {
-            toast.error("Errore nel caricamento Kanaban");
+            toast.error(t("Errore nel caricamento Kanaban"));
         } finally {
             setLoading(false);
         }
@@ -67,17 +71,17 @@ export function ActionItemsKanban() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id, status: newStatus })
             });
-            toast.success("Task aggiornato");
+            toast.success(t("Task aggiornato"));
         } catch (err) {
-            toast.error("Errore salvataggio status");
+            toast.error(t("Errore salvataggio status"));
             fetchItems(); // revert
         }
     };
 
     const columns = [
-        { id: "OPEN", title: "Da Iniziare", icon: AlertCircle, color: "text-rose-500", border: "border-rose-200", bg: "bg-rose-50/50" },
-        { id: "IN_PROGRESS", title: "In Lavorazione", icon: Clock, color: "text-amber-500", border: "border-amber-200", bg: "bg-amber-50/50" },
-        { id: "RESOLVED", title: "Completati", icon: CheckCircle2, color: "text-emerald-500", border: "border-emerald-200", bg: "bg-emerald-50/50" },
+        { id: "OPEN", title: tk("Da Iniziare"), icon: AlertCircle, color: "text-rose-500", border: "border-rose-200", bg: "bg-rose-50/50" },
+        { id: "IN_PROGRESS", title: tk("In Lavorazione"), icon: Clock, color: "text-amber-500", border: "border-amber-200", bg: "bg-amber-50/50" },
+        { id: "RESOLVED", title: tk("Completati"), icon: CheckCircle2, color: "text-emerald-500", border: "border-emerald-200", bg: "bg-emerald-50/50" },
     ];
 
     if (loading) {
@@ -99,7 +103,7 @@ export function ActionItemsKanban() {
                     >
                         <div className="p-3 border-b flex items-center justify-between bg-white/50 dark:bg-black/20 rounded-t-lg">
                             <h3 className={`font-semibold text-sm flex items-center gap-2 ${col.color}`}>
-                                <Icon className="h-4 w-4" /> {col.title}
+                                <Icon className="h-4 w-4" /> {t(col.title)}
                             </h3>
                             <Badge variant="secondary" className="rounded-full px-2">{colItems.length}</Badge>
                         </div>
@@ -107,7 +111,7 @@ export function ActionItemsKanban() {
                         <div className="p-3 flex-1 flex flex-col gap-3 min-h-[300px]">
                             {colItems.length === 0 && (
                                 <div className="text-xs text-muted-foreground text-center py-8 italic opacity-50">
-                                    Nessun task in questa colonna
+                                    {t("Nessun task in questa colonna")}
                                 </div>
                             )}
                             {colItems.map(item => (
@@ -135,10 +139,10 @@ export function ActionItemsKanban() {
 
                                         <div className="flex justify-between items-center text-xs text-muted-foreground">
                                             <span className="truncate max-w-[120px]">
-                                                {item.assigneeName ? `👤 ${item.assigneeName}` : 'In attesa'}
+                                                {item.assigneeName ? `👤 ${item.assigneeName}` : t("In attesa")}
                                             </span>
                                             <span>
-                                                {new Date(item.createdAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}
+                                                {fmt.date(item.createdAt, { day: '2-digit', month: 'short' })}
                                             </span>
                                         </div>
                                     </CardContent>

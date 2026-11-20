@@ -7,6 +7,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { NotificationsProvider } from "@/lib/notifications-context";
 import { PlantProvider } from "@/lib/plant-context";
 import { SWRegister } from "@/components/pwa/sw-register";
+import { I18nProvider } from "@/lib/i18n/client";
+import { getLocale } from "@/lib/i18n/server";
+import { getDictionary } from "@/lib/i18n/dictionaries";
+import { LOCALE_INFO } from "@/lib/i18n/config";
 
 export const metadata: Metadata = {
   title: "FITT CMMS",
@@ -24,14 +28,17 @@ export const viewport: Viewport = {
   themeColor: "#101214",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const dictionary = getDictionary(locale);
   return (
-    <html lang="it" suppressHydrationWarning>
+    <html lang={LOCALE_INFO[locale].html} suppressHydrationWarning>
       <body className="antialiased">
+        <I18nProvider locale={locale} dictionary={dictionary}>
         <AuthProvider>
           <PlantProvider>
             <NotificationsProvider>
@@ -45,6 +52,7 @@ export default function RootLayout({
             </NotificationsProvider>
           </PlantProvider>
         </AuthProvider>
+        </I18nProvider>
       </body>
     </html>
   );

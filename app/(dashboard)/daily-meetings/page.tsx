@@ -7,8 +7,10 @@ import { PlusCircle, Calendar, Users, Briefcase, FileText, LayoutDashboard } fro
 import { useRouter } from "next/navigation";
 import { ActionItemsKanban } from "@/components/daily/action-items-kanban";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useT } from "@/lib/i18n/client";
 
 export default function DailyMeetingHub() {
+    const t = useT();
     const router = useRouter();
     const [loadingDep, setLoadingDep] = useState<string | null>(null);
 
@@ -30,16 +32,16 @@ export default function DailyMeetingHub() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Daily Meetings</h1>
+                <h1 className="text-3xl font-bold tracking-tight">{t("Daily Meetings")}</h1>
                 <p className="text-muted-foreground">
-                    Gestione delle riunioni giornaliere dei reparti. Traccia i KPIs di Sicurezza, Qualità, Produzione e Manutenzione.
+                    {t("Gestione delle riunioni giornaliere dei reparti. Traccia i KPIs di Sicurezza, Qualità, Produzione e Manutenzione.")}
                 </p>
             </div>
 
             <Tabs defaultValue="meetings" className="mt-8">
                 <TabsList className="grid w-full max-w-[400px] grid-cols-2">
-                    <TabsTrigger value="meetings">Svolgimento Meetings</TabsTrigger>
-                    <TabsTrigger value="kanban" className="gap-2"><LayoutDashboard className="h-4 w-4" /> Kanban Follow-Up</TabsTrigger>
+                    <TabsTrigger value="meetings">{t("Svolgimento Meetings")}</TabsTrigger>
+                    <TabsTrigger value="kanban" className="gap-2"><LayoutDashboard className="h-4 w-4" /> {t("Kanban Follow-Up")}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="meetings" className="mt-6">
@@ -50,10 +52,10 @@ export default function DailyMeetingHub() {
                             <CardHeader className="bg-indigo-50/50 dark:bg-indigo-950/20 pb-4">
                                 <div className="flex justify-between items-center">
                                     <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 text-xl font-bold">
-                                        <Briefcase className="h-5 w-5" /> Reparto Retinato
+                                        <Briefcase className="h-5 w-5" /> {t("Reparto Retinato")}
                                     </CardTitle>
                                 </div>
-                                <CardDescription>Avvia un nuovo Daily Meeting per il reparto Retinato.</CardDescription>
+                                <CardDescription>{t("Avvia un nuovo Daily Meeting per il reparto Retinato.")}</CardDescription>
                             </CardHeader>
                             <CardContent className="pt-6">
                                 <Button
@@ -61,8 +63,8 @@ export default function DailyMeetingHub() {
                                     disabled={!!loadingDep}
                                     className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-lg"
                                 >
-                                    {loadingDep === "RETINATO" ? "Creazione in corso..." : (
-                                        <><PlusCircle className="mr-2 h-5 w-5" /> Avvia Daily Meeting</>
+                                    {loadingDep === "RETINATO" ? t("Creazione in corso...") : (
+                                        <><PlusCircle className="mr-2 h-5 w-5" /> {t("Avvia Daily Meeting")}</>
                                     )}
                                 </Button>
                             </CardContent>
@@ -73,10 +75,10 @@ export default function DailyMeetingHub() {
                             <CardHeader className="bg-amber-50/50 dark:bg-amber-950/20 pb-4">
                                 <div className="flex justify-between items-center">
                                     <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-xl font-bold">
-                                        <Users className="h-5 w-5" /> Reparto Magliato
+                                        <Users className="h-5 w-5" /> {t("Reparto Magliato")}
                                     </CardTitle>
                                 </div>
-                                <CardDescription>Avvia un nuovo Daily Meeting per il reparto Magliato.</CardDescription>
+                                <CardDescription>{t("Avvia un nuovo Daily Meeting per il reparto Magliato.")}</CardDescription>
                             </CardHeader>
                             <CardContent className="pt-6">
                                 <Button
@@ -84,8 +86,8 @@ export default function DailyMeetingHub() {
                                     disabled={!!loadingDep}
                                     className="w-full bg-amber-600 hover:bg-amber-700 h-12 text-lg"
                                 >
-                                    {loadingDep === "MAGLIATO" ? "Creazione in corso..." : (
-                                        <><PlusCircle className="mr-2 h-5 w-5" /> Avvia Daily Meeting</>
+                                    {loadingDep === "MAGLIATO" ? t("Creazione in corso...") : (
+                                        <><PlusCircle className="mr-2 h-5 w-5" /> {t("Avvia Daily Meeting")}</>
                                     )}
                                 </Button>
                             </CardContent>
@@ -95,18 +97,18 @@ export default function DailyMeetingHub() {
 
                     <div className="mt-8">
                         <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                            <Calendar className="h-5 w-5 text-muted-foreground" /> Archivio Meeting (Bozza)
+                            <Calendar className="h-5 w-5 text-muted-foreground" /> {t("Archivio Meeting (Bozza)")}
                         </h3>
                         <div className="text-center p-12 border border-dashed rounded-xl bg-muted/20 text-muted-foreground">
                             <FileText className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                            <p>Usa la funzionalità di esportazione all'interno del meeting per vedere i verbali.</p>
+                            <p>{t("Usa la funzionalità di esportazione all'interno del meeting per vedere i verbali.")}</p>
                         </div>
                     </div>
                 </TabsContent>
 
                 <TabsContent value="kanban" className="mt-6">
                     <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                        <LayoutDashboard className="h-5 w-5 text-muted-foreground" /> Task Emergenti dai Meeting
+                        <LayoutDashboard className="h-5 w-5 text-muted-foreground" /> {t("Task Emergenti dai Meeting")}
                     </h3>
                     <ActionItemsKanban />
                 </TabsContent>

@@ -1,4 +1,5 @@
 import { VectorMemory } from "./memory";
+import { getT } from '@/lib/i18n/server';
 import { AICortexResponse, AIIntent } from "./types";
 import { prisma } from "@/lib/prisma";
 import { callLLM } from "./llm-service";
@@ -17,6 +18,7 @@ export class CortexEngine {
     }
 
     async generateDailyInsights(): Promise<import("./types").DailyInsight[]> {
+        const { t, format } = await getT();
         const insights: import("./types").DailyInsight[] = [];
         try {
             // 0. Global Search for correlations (Memory based)
@@ -32,9 +34,9 @@ export class CortexEngine {
                 insights.push({
                     id: 'safety-alert',
                     type: 'ALERT',
-                    title: 'Sicurezza Prioritaria',
-                    message: `Sono presenti ${openSafety} segnalazioni di sicurezza aperte. La sicurezza dei tecnici è la priorità assoluta.`,
-                    actionLabel: 'Vai a Sicurezza',
+                    title: t('Sicurezza Prioritaria'),
+                    message: t('Sono presenti {n} segnalazioni di sicurezza aperte. La sicurezza dei tecnici è la priorità assoluta.', { n: openSafety }),
+                    actionLabel: t('Vai a Sicurezza'),
                     actionUrl: '/requests/safety'
                 });
             }
@@ -43,9 +45,9 @@ export class CortexEngine {
                 insights.push({
                     id: 'critical-wo',
                     type: 'ALERT',
-                    title: 'Interventi Critici',
-                    message: `Ci sono ${criticalWOs} interventi ad alta priorità in attesa. Rischio fermo produzione prolungato.`,
-                    actionLabel: 'Visualizza',
+                    title: t('Interventi Critici'),
+                    message: t('Ci sono {n} interventi ad alta priorità in attesa. Rischio fermo produzione prolungato.', { n: criticalWOs }),
+                    actionLabel: t('Visualizza'),
                     actionUrl: '/work-orders?priority=STOPPED'
                 });
             }
@@ -64,9 +66,9 @@ export class CortexEngine {
                     insights.push({
                         id: 'sustainability-cost',
                         type: 'INFO',
-                        title: 'Efficienza Energetica',
-                        message: `Costo energetico stimato ultimi 7 giorni: €${totalCost.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}. Consumo medio elevato rilevato.`,
-                        actionLabel: 'Dettaglio Consumi',
+                        title: t('Efficienza Energetica'),
+                        message: t('Costo energetico stimato ultimi 7 giorni: €{cost}. Consumo medio elevato rilevato.', { cost: format.number(totalCost, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }),
+                        actionLabel: t('Dettaglio Consumi'),
                         actionUrl: '/sustainability'
                     });
                 }
@@ -81,9 +83,9 @@ export class CortexEngine {
                 insights.push({
                     id: 'process-anomaly',
                     type: 'WARNING',
-                    title: 'Anomalie di Processo',
-                    message: `Rilevate ${recentAnomalies} derive dai parametri SOP nelle ultime 24h. Possibile usura meccanica latente.`,
-                    actionLabel: 'Analisi Deriva',
+                    title: t('Anomalie di Processo'),
+                    message: t('Rilevate {n} derive dai parametri SOP nelle ultime 24h. Possibile usura meccanica latente.', { n: recentAnomalies }),
+                    actionLabel: t('Analisi Deriva'),
                     actionUrl: '/process/optimization'
                 });
             }
@@ -94,9 +96,9 @@ export class CortexEngine {
                 insights.push({
                     id: 'overdue',
                     type: 'WARNING',
-                    title: 'Scadenze Superate',
-                    message: `${overdue} ordini di lavoro sono in ritardo sulla tabella di marcia.`,
-                    actionLabel: 'Gestisci Ritardi',
+                    title: t('Scadenze Superate'),
+                    message: t('{n} ordini di lavoro sono in ritardo sulla tabella di marcia.', { n: overdue }),
+                    actionLabel: t('Gestisci Ritardi'),
                     actionUrl: '/work-orders'
                 });
             }
@@ -108,9 +110,9 @@ export class CortexEngine {
                 insights.push({
                     id: 'pred-risk',
                     type: 'WARNING',
-                    title: 'Rischio Guasti Alto',
-                    message: `${criticalAssets} macchinari mostrano segnali di guasto imminente (MTBF superato).`,
-                    actionLabel: 'Analisi Predittiva',
+                    title: t('Rischio Guasti Alto'),
+                    message: t('{n} macchinari mostrano segnali di guasto imminente (MTBF superato).', { n: criticalAssets }),
+                    actionLabel: t('Analisi Predittiva'),
                     actionUrl: '/maintenance/predictive'
                 });
             }
@@ -129,8 +131,8 @@ export class CortexEngine {
                 insights.push({
                     id: 'success-yest',
                     type: 'SUCCESS',
-                    title: 'Produttività Ieri',
-                    message: `Il team ha registrato ${logs._sum.hours} ore di lavoro ieri.`
+                    title: t('Produttività Ieri'),
+                    message: t('Il team ha registrato {hours} ore di lavoro ieri.', { hours: logs._sum.hours ?? 0 })
                 });
             }
 
@@ -138,9 +140,9 @@ export class CortexEngine {
                 insights.push({
                     id: 'info-calm',
                     type: 'INFO',
-                    title: 'Tutto Tranquillo',
-                    message: "Nessuna criticità immediata rilevata. È un buon momento per la manutenzione preventiva.",
-                    actionLabel: 'Piano Manutenzione',
+                    title: t('Tutto Tranquillo'),
+                    message: t('Nessuna criticità immediata rilevata. È un buon momento per la manutenzione preventiva.'),
+                    actionLabel: t('Piano Manutenzione'),
                     actionUrl: '/assets'
                 });
             }
@@ -153,9 +155,9 @@ export class CortexEngine {
                     insights.push({
                         id: 'lines-no-calendar',
                         type: 'INFO',
-                        title: 'Linee senza calendario di produzione',
+                        title: t('Linee senza calendario di produzione'),
                         message: summarizeTotals(totals),
-                        actionLabel: 'Vedi i suggerimenti',
+                        actionLabel: t('Vedi i suggerimenti'),
                         actionUrl: '/planning/line-suggestions'
                     });
                 }
@@ -167,8 +169,8 @@ export class CortexEngine {
             insights.push({
                 id: 'err-gen',
                 type: 'WARNING',
-                title: 'Sistema AI momentaneamente non disponibile',
-                message: `Impossibile generare suggerimenti: ${e.message || 'Errore di connessione'}. Riprova più tardi.`
+                title: t('Sistema AI momentaneamente non disponibile'),
+                message: t('Impossibile generare suggerimenti: {reason}. Riprova più tardi.', { reason: e.message || t('Errore di connessione') })
             });
         }
         return insights;

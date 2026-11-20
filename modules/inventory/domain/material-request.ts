@@ -3,15 +3,17 @@
  * Logica pura, senza dipendenze: si usa sia nelle azioni del server sia nell'interfaccia.
  */
 
+import { tk } from '@/lib/i18n/translate';
+
 export const MATERIAL_STATUSES = ['REQUESTED', 'READY', 'DELIVERED', 'REJECTED', 'CANCELED'] as const;
 export type MaterialStatus = (typeof MATERIAL_STATUSES)[number];
 
 export const MATERIAL_STATUS_LABELS: Record<MaterialStatus, string> = {
-    REQUESTED: 'Richiesta',
-    READY: 'Pronto da ritirare',
-    DELIVERED: 'Consegnata',
-    REJECTED: 'Rifiutata',
-    CANCELED: 'Annullata',
+    REQUESTED: tk('Richiesta'),
+    READY: tk('Pronto da ritirare'),
+    DELIVERED: tk('Consegnata'),
+    REJECTED: tk('Rifiutata'),
+    CANCELED: tk('Annullata'),
 };
 
 export const MAX_ITEMS = 30;

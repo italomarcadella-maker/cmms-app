@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Play, Pause, StopCircle, Clock, CheckCircle } from "lucide-react";
 import { startWorkSession, pauseWorkSession, stopWorkSession, completeWorkOrder } from "@/lib/actions";
 import { WorkOrder, WorkOrderTimer } from "@/lib/types";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useT, useFormat } from "@/lib/i18n/client";
 
 interface TimerControlsProps {
     workOrder: WorkOrder;
@@ -18,6 +19,8 @@ interface TimerControlsProps {
 }
 
 export function TimerControls({ workOrder, currentUserId, canManage = false }: TimerControlsProps) {
+    const t = useT();
+    const fmt = useFormat();
     const router = useRouter();
     const [elapsed, setElapsed] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -29,10 +32,10 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
     const [completeNote, setCompleteNote] = useState("");
 
     // Find active timer for this user
-    const activeTimer = workOrder.timers?.find(t => t.userId === currentUserId && !t.endTime);
+    const activeTimer = workOrder.timers?.find(tm => tm.userId === currentUserId && !tm.endTime);
 
     // Calculate total duration (historical + current)
-    const historicalMinutes = workOrder.timers?.reduce((acc, t) => acc + (t.duration || 0), 0) || 0;
+    const historicalMinutes = workOrder.timers?.reduce((acc, tm) => acc + (tm.duration || 0), 0) || 0;
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -66,7 +69,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
         setIsLoading(true);
         const res = await startWorkSession(workOrder.id);
         if (!res.success) toast.error(res.message);
-        else toast.success("Lavoro avviato");
+        else toast.success(t("Lavoro avviato"));
         setIsLoading(false);
     };
 
@@ -75,7 +78,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
         const res = await pauseWorkSession(workOrder.id, pauseNote);
         if (!res.success) toast.error(res.message);
         else {
-            toast.success("Lavoro in pausa");
+            toast.success(t("Lavoro in pausa"));
             setShowPauseDialog(false);
             setPauseNote("");
         }
@@ -93,7 +96,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
         const res = await completeWorkOrder(workOrder.id, completeNote);
         if (!res.success) toast.error(res.message);
         else {
-            toast.success("Ordine completato!");
+            toast.success(t("Ordine completato!"));
             setShowCompleteDialog(false);
         }
         setIsLoading(false);
@@ -104,7 +107,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
         const res = await stopWorkSession(workOrder.id, stopNote);
         if (!res.success) toast.error(res.message);
         else {
-            toast.success("Sessione fermata e registrata");
+            toast.success(t("Sessione fermata e registrata"));
             setShowStopDialog(false);
             setStopNote("");
         }
@@ -112,7 +115,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
     };
 
     const isAssignedToMe = workOrder.assignedTechnicianId === currentUserId ||
-        (workOrder.technicians?.some((t: any) => t.id === currentUserId) ?? false);
+        (workOrder.technicians?.some((tc: any) => tc.id === currentUserId) ?? false);
 
     const canInteract = isAssignedToMe || canManage;
 
@@ -120,7 +123,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
         return (
             <div className="flex items-center gap-2 text-muted-foreground text-sm border p-3 rounded-lg bg-muted/20">
                 <Clock className="h-4 w-4" />
-                <span>Tempo totale registrato: {historicalMinutes} min</span>
+                <span>{t("Tempo totale registrato: {minutes} min", { minutes: historicalMinutes })}</span>
             </div>
         );
     }
@@ -129,7 +132,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
         return (
             <div className="flex items-center gap-2 text-green-600 text-sm border border-green-200 bg-green-50 p-3 rounded-lg">
                 <Clock className="h-4 w-4" />
-                <span className="font-medium">Tempo totale finale: {historicalMinutes} min</span>
+                <span className="font-medium">{t("Tempo totale finale: {minutes} min", { minutes: historicalMinutes })}</span>
             </div>
         );
     }
@@ -142,13 +145,13 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                         <Clock className="h-5 w-5" />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-muted-foreground">Tempo Sessione</p>
+                        <p className="text-sm font-medium text-muted-foreground">{t("Tempo Sessione")}</p>
                         <p className="text-2xl font-mono font-bold">{formatTime(elapsed)}</p>
                     </div>
                 </div>
                 <div className="text-right">
-                    <p className="text-xs text-muted-foreground mb-1">Totale Accumulato</p>
-                    <p className="font-mono font-semibold text-sm">{historicalMinutes} min</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("Totale Accumulato")}</p>
+                    <p className="font-mono font-semibold text-sm">{historicalMinutes} {t("min")}</p>
                 </div>
             </div>
 
@@ -160,7 +163,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                     >
                         <Play className="h-4 w-4 mr-2" />
-                        {workOrder.status === 'ON_HOLD' ? 'Riprendi Lavoro' : 'Avvia Lavoro'}
+                        {workOrder.status === 'ON_HOLD' ? t("Riprendi Lavoro") : t("Avvia Lavoro")}
                     </Button>
                 ) : (
                     <Button
@@ -170,7 +173,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                         className="flex-1"
                     >
                         <Pause className="h-4 w-4 mr-2" />
-                        Pausa
+                        {t("Pausa")}
                     </Button>
                 )}
 
@@ -181,7 +184,7 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                     className="flex-1"
                 >
                     <StopCircle className="h-4 w-4 mr-2" />
-                    Stop
+                    {t("Stop")}
                 </Button>
 
                 <Button
@@ -191,26 +194,26 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
                     className="flex-1 border-blue-200 hover:bg-blue-50 text-blue-700"
                 >
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Completa
+                    {t("Completa")}
                 </Button>
             </div>
 
             <Dialog open={showPauseDialog} onOpenChange={setShowPauseDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Metti in Pausa</DialogTitle>
+                        <DialogTitle>{t("Metti in Pausa")}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label>Motivo Pausa (Opzionale)</Label>
+                            <Label>{t("Motivo Pausa (Opzionale)")}</Label>
                             <Textarea
-                                placeholder="Es. Fine turno, Mancanza ricambi..."
+                                placeholder={t("Es. Fine turno, Mancanza ricambi...")}
                                 value={pauseNote}
                                 onChange={(e) => setPauseNote(e.target.value)}
                             />
                         </div>
                         <Button onClick={handlePause} className="w-full">
-                            Conferma Pausa
+                            {t("Conferma Pausa")}
                         </Button>
                     </div>
                 </DialogContent>
@@ -219,22 +222,22 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
             <Dialog open={showStopDialog} onOpenChange={setShowStopDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Ferma Attività (Fine Giornata)</DialogTitle>
+                        <DialogTitle>{t("Ferma Attività (Fine Giornata)")}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label>Note Attività Svolta (Opzionale)</Label>
+                            <Label>{t("Note Attività Svolta (Opzionale)")}</Label>
                             <Textarea
-                                placeholder="Descrivi brevemente cosa hai fatto oggi..."
+                                placeholder={t("Descrivi brevemente cosa hai fatto oggi...")}
                                 value={stopNote}
                                 onChange={(e) => setStopNote(e.target.value)}
                             />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Il tempo registrato verrà salvato come Manodopera e l'ordine andrà in Pausa (ON HOLD).
+                            {t("Il tempo registrato verrà salvato come Manodopera e l'ordine andrà in Pausa (ON HOLD).")}
                         </p>
                         <Button onClick={handleStop} variant="destructive" className="w-full">
-                            Ferma e Salva
+                            {t("Ferma e Salva")}
                         </Button>
                     </div>
                 </DialogContent>
@@ -243,23 +246,23 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
             <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Completa Ordine</DialogTitle>
+                        <DialogTitle>{t("Completa Ordine")}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <p className="text-sm text-muted-foreground">
-                            Confermando, l'ordine verrà segnato come completato e il timer verrà fermato.
+                            {t("Confermando, l'ordine verrà segnato come completato e il timer verrà fermato.")}
                         </p>
                         <div className="space-y-2">
-                            <Label>Note Finali (Opzionale)</Label>
+                            <Label>{t("Note Finali (Opzionale)")}</Label>
                             <Textarea
-                                placeholder="Note sulla risoluzione..."
+                                placeholder={t("Note sulla risoluzione...")}
                                 value={completeNote}
                                 onChange={(e) => setCompleteNote(e.target.value)}
                             />
                         </div>
                         <Button onClick={confirmComplete} className="w-full bg-green-600 hover:bg-green-700">
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Conferma Completamento
+                            {t("Conferma Completamento")}
                         </Button>
                     </div>
                 </DialogContent>
@@ -268,12 +271,12 @@ export function TimerControls({ workOrder, currentUserId, canManage = false }: T
             {/* Recent Sessions List */}
             {workOrder.laborLogs && workOrder.laborLogs.length > 0 && (
                 <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sessioni Recenti</h4>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("Sessioni Recenti")}</h4>
                     <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                         {workOrder.laborLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log) => (
                             <div key={log.id} className="flex justify-between items-start text-sm p-2 bg-muted/40 rounded-md">
                                 <div>
-                                    <div className="font-medium">{new Date(log.date).toLocaleDateString('it-IT')} {new Date(log.date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</div>
+                                    <div className="font-medium">{fmt.date(log.date)} {fmt.time(log.date)}</div>
                                     {(log as any).note && <div className="text-xs text-muted-foreground mt-1 italic">"{(log as any).note}"</div>}
                                 </div>
                                 <div className="text-right">

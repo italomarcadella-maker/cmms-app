@@ -22,8 +22,10 @@ import {
 import { Plus, Loader2, UserPlus } from 'lucide-react';
 import { createUser } from '@/lib/actions';
 import { PlantPicker, type PlantChoice } from './plant-picker';
+import { useT } from '@/lib/i18n/client';
 
 export function AddUserDialog({ plants = [] }: { plants?: PlantChoice[] }) {
+    const t = useT();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -53,7 +55,7 @@ export function AddUserDialog({ plants = [] }: { plants?: PlantChoice[] }) {
         setSuccess('');
 
         if (formData.password.length < 3) {
-            setError('La password deve essere di almeno 3 caratteri.');
+            setError(t("La password deve essere di almeno 3 caratteri."));
             setLoading(false);
             return;
         }
@@ -61,14 +63,14 @@ export function AddUserDialog({ plants = [] }: { plants?: PlantChoice[] }) {
         try {
             const result = await createUser({ ...formData, plantIds });
             if (result.success) {
-                setSuccess('Utente creato con successo!');
+                setSuccess(t("Utente creato con successo!"));
                 setFormData({ name: '', email: '', password: '', role: 'USER' });
                 setTimeout(() => setOpen(false), 2000);
             } else {
-                setError(result.message || 'Errore sconosciuto.');
+                setError(result.message ? t(result.message) : t("Errore sconosciuto."));
             }
         } catch (err) {
-            setError('Si è verificato un errore.');
+            setError(t("Si è verificato un errore."));
         } finally {
             setLoading(false);
         }
@@ -85,23 +87,23 @@ export function AddUserDialog({ plants = [] }: { plants?: PlantChoice[] }) {
             <DialogTrigger asChild>
                 <Button className="gap-2">
                     <UserPlus className="h-4 w-4" />
-                    Aggiungi Utente
+                    {t("Aggiungi Utente")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Aggiungi Nuovo Utente</DialogTitle>
+                    <DialogTitle>{t("Aggiungi Nuovo Utente")}</DialogTitle>
                     <DialogDescription>
-                        Crea un nuovo utente per accedere alla piattaforma.
+                        {t("Crea un nuovo utente per accedere alla piattaforma.")}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">
-                        <label htmlFor="name" className="text-sm font-medium">Nome</label>
+                        <label htmlFor="name" className="text-sm font-medium">{t("Nome")}</label>
                         <Input
                             id="name"
                             name="name"
-                            placeholder="Mario Rossi"
+                            placeholder={t("Mario Rossi")}
                             value={formData.name}
                             onChange={handleChange}
                             required
@@ -109,12 +111,12 @@ export function AddUserDialog({ plants = [] }: { plants?: PlantChoice[] }) {
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="email" className="text-sm font-medium">Email</label>
+                        <label htmlFor="email" className="text-sm font-medium">{t("Email")}</label>
                         <Input
                             id="email"
                             name="email"
                             type="email"
-                            placeholder="mario@cmms.it"
+                            placeholder={t("mario@cmms.it")}
                             value={formData.email}
                             onChange={handleChange}
                             required
@@ -122,12 +124,12 @@ export function AddUserDialog({ plants = [] }: { plants?: PlantChoice[] }) {
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="password" className="text-sm font-medium">Password</label>
+                        <label htmlFor="password" className="text-sm font-medium">{t("Password")}</label>
                         <Input
                             id="password"
                             name="password"
                             type="password"
-                            placeholder="Password"
+                            placeholder={t("Password")}
                             value={formData.password}
                             onChange={handleChange}
                             required
@@ -135,17 +137,18 @@ export function AddUserDialog({ plants = [] }: { plants?: PlantChoice[] }) {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Ruolo</label>
+                        <label className="text-sm font-medium">{t("Ruolo")}</label>
                         <Select value={formData.role} onValueChange={handleRoleChange}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Seleziona Ruolo" />
+                                <SelectValue placeholder={t("Seleziona Ruolo")} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="USER">User</SelectItem>
-                                <SelectItem value="MAINTAINER">Manutentore</SelectItem>
-                                <SelectItem value="PROCESS_ENGINEER">Ingegnere di Processo</SelectItem>
-                                <SelectItem value="SUPERVISOR">Supervisor</SelectItem>                                <SelectItem value="PLANT_MANAGER">Responsabile di plant</SelectItem>
-                                <SelectItem value="ADMIN">Admin</SelectItem>
+                                <SelectItem value="USER">{t("User")}</SelectItem>
+                                <SelectItem value="MAINTAINER">{t("Manutentore")}</SelectItem>
+                                <SelectItem value="PROCESS_ENGINEER">{t("Ingegnere di Processo")}</SelectItem>
+                                <SelectItem value="SUPERVISOR">{t("Supervisor")}</SelectItem>
+                                <SelectItem value="PLANT_MANAGER">{t("Responsabile di plant")}</SelectItem>
+                                <SelectItem value="ADMIN">{t("Admin")}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -167,7 +170,7 @@ export function AddUserDialog({ plants = [] }: { plants?: PlantChoice[] }) {
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Crea Utente
+                            {t("Crea Utente")}
                         </Button>
                     </DialogFooter>
                 </form>

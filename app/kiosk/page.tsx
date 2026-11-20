@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AlertTriangle, Wrench, CheckCircle2, Siren, ArrowLeft } from "lucide-react";
 import { createWorkOrder } from "@/lib/actions"; // We'll assume a wrapper or direct call
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function KioskPage() {
+    const t = useT();
     const [step, setStep] = useState<'HOME' | 'REPORT_FAULT' | 'SUCCESS'>('HOME');
     const [faultData, setFaultData] = useState({ title: '', description: '', priority: 'MEDIUM' });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,10 +35,10 @@ export default function KioskPage() {
                     setFaultData({ title: '', description: '', priority: 'MEDIUM' });
                 }, 5000);
             } else {
-                toast.error("Errore invio richiesta");
+                toast.error(t("Errore invio richiesta"));
             }
         } catch (e) {
-            toast.error("Errore di connessione");
+            toast.error(t("Errore di connessione"));
         } finally {
             setIsSubmitting(false);
         }
@@ -48,10 +50,10 @@ export default function KioskPage() {
                 <div className="bg-green-100 p-8 rounded-full">
                     <CheckCircle2 className="h-32 w-32 text-green-600" />
                 </div>
-                <h2 className="text-4xl font-bold text-green-800">Richiesta Inviata!</h2>
-                <p className="text-xl text-muted-foreground">Un tecnico prenderà in carico la segnalazione.</p>
+                <h2 className="text-4xl font-bold text-green-800">{t("Richiesta Inviata!")}</h2>
+                <p className="text-xl text-muted-foreground">{t("Un tecnico prenderà in carico la segnalazione.")}</p>
                 <Button size="lg" onClick={() => setStep('HOME')} variant="outline" className="mt-8 text-xl h-16 px-12">
-                    Nuova Segnalazione
+                    {t("Nuova Segnalazione")}
                 </Button>
             </div>
         );
@@ -61,27 +63,27 @@ export default function KioskPage() {
         return (
             <div className="max-w-2xl mx-auto space-y-8">
                 <Button onClick={() => setStep('HOME')} variant="ghost" className="mb-4">
-                    <ArrowLeft className="mr-2 h-6 w-6" /> Indietro
+                    <ArrowLeft className="mr-2 h-6 w-6" /> {t("Indietro")}
                 </Button>
 
-                <h2 className="text-3xl font-bold mb-8">Nuova Segnalazione Guasto</h2>
+                <h2 className="text-3xl font-bold mb-8">{t("Nuova Segnalazione Guasto")}</h2>
 
                 <div className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-lg font-medium">Titolo Problema</label>
+                        <label className="text-lg font-medium">{t("Titolo Problema")}</label>
                         <Input
                             className="text-lg p-6"
-                            placeholder="Es. Motore fermo..."
+                            placeholder={t("Es. Motore fermo...")}
                             value={faultData.title}
                             onChange={e => setFaultData({ ...faultData, title: e.target.value })}
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-lg font-medium">Descrizione</label>
+                        <label className="text-lg font-medium">{t("Descrizione")}</label>
                         <Textarea
                             className="text-lg p-6 min-h-[150px]"
-                            placeholder="Descrivi cosa è successo..."
+                            placeholder={t("Descrivi cosa è successo...")}
                             value={faultData.description}
                             onChange={e => setFaultData({ ...faultData, description: e.target.value })}
                         />
@@ -95,7 +97,7 @@ export default function KioskPage() {
                             onClick={() => setFaultData({ ...faultData, priority: 'MEDIUM' })}
                         >
                             <Wrench className="h-8 w-8" />
-                            Guasto Normale
+                            {t("Guasto Normale")}
                         </Button>
                         <Button
                             type="button"
@@ -104,7 +106,7 @@ export default function KioskPage() {
                             onClick={() => setFaultData({ ...faultData, priority: 'STOPPED' })}
                         >
                             <Siren className="h-8 w-8" />
-                            FERMO MACCHINA!
+                            {t("FERMO MACCHINA!")}
                         </Button>
                     </div>
 
@@ -114,7 +116,7 @@ export default function KioskPage() {
                         onClick={handleSubmit}
                         disabled={!faultData.title || isSubmitting}
                     >
-                        {isSubmitting ? "Invio in corso..." : "INVIA SEGNALAZIONE"}
+                        {isSubmitting ? t("Invio in corso...") : t("INVIA SEGNALAZIONE")}
                     </Button>
                 </div>
             </div>
@@ -133,21 +135,21 @@ export default function KioskPage() {
                     <AlertTriangle className="h-24 w-24 text-red-600" />
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-bold text-slate-800">Segnala Guasto</h2>
-                    <p className="text-lg text-slate-500">Richiedi un intervento tecnico immediato</p>
+                    <h2 className="text-3xl font-bold text-slate-800">{t("Segnala Guasto")}</h2>
+                    <p className="text-lg text-slate-500">{t("Richiedi un intervento tecnico immediato")}</p>
                 </div>
             </button>
 
             <button
-                onClick={() => toast.info("Funzionalità in arrivo...")}
+                onClick={() => toast.info(t("Funzionalità in arrivo..."))}
                 className="group relative flex flex-col items-center justify-center gap-6 bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-3xl p-12 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
             >
                 <div className="p-6 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                     <CheckCircle2 className="h-24 w-24 text-blue-600" />
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-bold text-slate-800">Tutto OK</h2>
-                    <p className="text-lg text-slate-500">Registra controllo di routine</p>
+                    <h2 className="text-3xl font-bold text-slate-800">{t("Tutto OK")}</h2>
+                    <p className="text-lg text-slate-500">{t("Registra controllo di routine")}</p>
                 </div>
             </button>
 

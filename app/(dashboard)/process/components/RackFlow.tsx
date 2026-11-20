@@ -3,8 +3,10 @@
 import React, { useState } from "react";
 import { uid, SCOLS, C, nZone, NZ } from "@/lib/fpes-utils";
 import { PackageSearch, Plus, Trash2 } from "lucide-react";
+import { useT } from "@/lib/i18n/client";
 
 export default function RackFlow({ project, upd, cr }: { project: any; upd: (patch: any) => void; cr: any }) {
+  const t = useT();
   const { cod, profRack, bufRack, copMin, livelli, hTotRack, okSp } = cr;
   const [selCod, setSelCod] = useState<string | null>(null);
 
@@ -39,14 +41,14 @@ export default function RackFlow({ project, upd, cr }: { project: any; upd: (pat
     <div className="w-full">
       <div className="flex items-center gap-4 mb-4">
         <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-          <PackageSearch className="h-4 w-4 text-slate-500" /> Logistica di Linea & Rack Flow
+          <PackageSearch className="h-4 w-4 text-slate-500" /> {t("Logistica di Linea & Rack Flow")}
         </h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         <div className="flex flex-col gap-6">
           <div className="bg-white border rounded-xl p-5 shadow-sm">
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Codici Matassa</h3>
+            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{t("Codici Matassa")}</h3>
             
             <div className="flex flex-col gap-2 mb-4">
               {rackCodici.map((c: any) => (
@@ -68,7 +70,7 @@ export default function RackFlow({ project, upd, cr }: { project: any; upd: (pat
                         onClick={(e) => { e.stopPropagation(); setAtt(c.id); }} 
                         className="text-[10px] px-1.5 py-0.5 bg-emerald-100 border border-emerald-200 text-emerald-700 rounded cursor-pointer hover:bg-emerald-200"
                       >
-                        ✓ Set
+                        {t("✓ Set")}
                       </button>
                     )}
                   </div>
@@ -76,19 +78,19 @@ export default function RackFlow({ project, upd, cr }: { project: any; upd: (pat
                   {selCod === c.id && (
                     <div className="p-3 pt-1 grid grid-cols-2 gap-2 bg-white border-t border-slate-100" onClick={e => e.stopPropagation()}>
                       <div className="col-span-2">
-                        <label className="text-[10px] font-semibold text-slate-500">Nome</label>
+                        <label className="text-[10px] font-semibold text-slate-500">{t("Nome")}</label>
                         <input value={c.nome} onChange={e => updCod(c.id, "nome", e.target.value)} className="w-full border rounded p-1 text-xs" />
                       </div>
                       <div>
-                        <label className="text-[10px] font-semibold text-slate-500">Ø Esterno (cm)</label>
+                        <label className="text-[10px] font-semibold text-slate-500">{t("Ø Esterno (cm)")}</label>
                         <input type="number" value={c.dExt} onChange={e => updCod(c.id, "dExt", e.target.value)} className="w-full border rounded p-1 text-xs" />
                       </div>
                       <div>
-                        <label className="text-[10px] font-semibold text-slate-500">Altezza (cm)</label>
+                        <label className="text-[10px] font-semibold text-slate-500">{t("Altezza (cm)")}</label>
                         <input type="number" value={c.sp} onChange={e => updCod(c.id, "sp", e.target.value)} className="w-full border rounded p-1 text-xs" />
                       </div>
                       <div>
-                        <label className="text-[10px] font-semibold text-slate-500">Peso (kg)</label>
+                        <label className="text-[10px] font-semibold text-slate-500">{t("Peso (kg)")}</label>
                         <input type="number" value={c.peso} onChange={e => updCod(c.id, "peso", e.target.value)} className="w-full border rounded p-1 text-xs" />
                       </div>
                     </div>
@@ -99,41 +101,41 @@ export default function RackFlow({ project, upd, cr }: { project: any; upd: (pat
             
             {rackCodici.length < 8 && (
               <button onClick={addCod} className="flex items-center justify-center gap-1 w-full bg-blue-50 text-blue-600 border border-blue-200 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-100">
-                <Plus className="h-3 w-3" /> Nuovo Codice
+                <Plus className="h-3 w-3" /> {t("Nuovo Codice")}
               </button>
             )}
           </div>
 
           <div className="bg-white border rounded-xl p-5 shadow-sm">
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Dimensionamento Rack</h3>
+            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{t("Dimensionamento Rack")}</h3>
             
             <div className="space-y-4">
               <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Livelli Rack</span> <span className="text-emerald-600 font-bold">{rack.livelli}</span></div>
+                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>{t("Livelli Rack")}</span> <span className="text-emerald-600 font-bold">{rack.livelli}</span></div>
                 <input type="range" min="1" max="4" step="1" value={rack.livelli} onChange={e => updRack("livelli", +e.target.value)} className="w-full accent-emerald-500" />
               </div>
               <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Matasse per Livello</span> <span className="text-emerald-600 font-bold">{rack.mxLiv}</span></div>
+                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>{t("Matasse per Livello")}</span> <span className="text-emerald-600 font-bold">{rack.mxLiv}</span></div>
                 <input type="range" min="1" max="12" step="1" value={rack.mxLiv} onChange={e => updRack("mxLiv", +e.target.value)} className="w-full accent-emerald-500" />
               </div>
               <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Inclinazione (°)</span> <span className="text-emerald-600 font-bold">{rack.inclin}°</span></div>
+                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>{t("Inclinazione (°)")}</span> <span className="text-emerald-600 font-bold">{rack.inclin}°</span></div>
                 <input type="range" min="2" max="10" step="0.5" value={rack.inclin} onChange={e => updRack("inclin", +e.target.value)} className="w-full accent-emerald-500" />
               </div>
               <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Clearance lat. (cm)</span> <span className="text-emerald-600 font-bold">{rack.clearLat} cm</span></div>
+                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>{t("Clearance lat. (cm)")}</span> <span className="text-emerald-600 font-bold">{rack.clearLat} cm</span></div>
                 <input type="range" min="5" max="30" value={rack.clearLat} onChange={e => updRack("clearLat", +e.target.value)} className="w-full accent-emerald-500" />
               </div>
               <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Gap tra livelli (cm)</span> <span className="text-emerald-600 font-bold">{rack.gapLiv} cm</span></div>
+                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>{t("Gap tra livelli (cm)")}</span> <span className="text-emerald-600 font-bold">{rack.gapLiv} cm</span></div>
                 <input type="range" min="5" max="30" value={rack.gapLiv} onChange={e => updRack("gapLiv", +e.target.value)} className="w-full accent-emerald-500" />
               </div>
               <div>
-                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Altezza Base (cm)</span> <span className="text-emerald-600 font-bold">{rack.hBase} cm</span></div>
+                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>{t("Altezza Base (cm)")}</span> <span className="text-emerald-600 font-bold">{rack.hBase} cm</span></div>
                 <input type="range" min="0" max="40" value={rack.hBase} onChange={e => updRack("hBase", +e.target.value)} className="w-full accent-emerald-500" />
               </div>
               <div className="pt-2 border-t">
-                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Spazio a Layout (cm)</span> <span className="text-amber-500 font-bold">{rack.spazioDisp} cm</span></div>
+                <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>{t("Spazio a Layout (cm)")}</span> <span className="text-amber-500 font-bold">{rack.spazioDisp} cm</span></div>
                 <input type="range" min="50" max="300" value={rack.spazioDisp} onChange={e => updRack("spazioDisp", +e.target.value)} className="w-full accent-amber-500" />
               </div>
             </div>
@@ -143,22 +145,22 @@ export default function RackFlow({ project, upd, cr }: { project: any; upd: (pat
         <div>
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="bg-white border-t-4 border-t-emerald-500 border rounded-xl p-4 shadow-sm">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Buffer Rack</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t("Buffer Rack")}</p>
               <p className="text-2xl font-bold text-emerald-600 font-mono">{bufRack} <span className="text-sm">pz</span></p>
             </div>
             <div className={`bg-white border-t-4 border rounded-xl p-4 shadow-sm ${+copMin >= 30 ? 'border-t-emerald-500' : 'border-t-amber-500'}`}>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Copertura</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t("Copertura")}</p>
               <p className={`text-2xl font-bold font-mono ${+copMin >= 30 ? 'text-emerald-600' : 'text-amber-500'}`}>{copMin} <span className="text-sm">min</span></p>
             </div>
             <div className={`bg-white border-t-4 border rounded-xl p-4 shadow-sm ${okSp ? 'border-t-emerald-500' : 'border-t-red-500'}`}>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Ingombro</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t("Ingombro")}</p>
               <p className={`text-2xl font-bold font-mono ${okSp ? 'text-emerald-600' : 'text-red-600'}`}>{profRack} <span className="text-sm">cm</span></p>
-              <p className="text-[10px] text-slate-400">max {rack.spazioDisp}cm</p>
+              <p className="text-[10px] text-slate-400">{t("max {n}cm", { n: rack.spazioDisp })}</p>
             </div>
           </div>
 
           <div className="bg-white border rounded-xl p-5 shadow-sm overflow-hidden">
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Sezione Frontale & Zone NIOSH</h3>
+            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{t("Sezione Frontale & Zone NIOSH")}</h3>
             <div className="overflow-x-auto">
               <svg width={W} height={H} className="block border rounded-lg bg-slate-50">
                 <rect width={W} height={H} fill="#f8fafc" />
@@ -171,7 +173,7 @@ export default function RackFlow({ project, upd, cr }: { project: any; upd: (pat
                   return (
                     <g key={i}>
                       <rect x={0} y={Math.max(0, yT)} width={100} height={Math.min(H, yB) - Math.max(0, yT)} fill={z.c} opacity={0.08} />
-                      <text x={50} y={(gY - ((z.h1 + z.h2) / 2) * S) + 4} textAnchor="middle" fill={z.c} fontSize={10} fontWeight="bold">{z.l}</text>
+                      <text x={50} y={(gY - ((z.h1 + z.h2) / 2) * S) + 4} textAnchor="middle" fill={z.c} fontSize={10} fontWeight="bold">{t(z.l)}</text>
                     </g>
                   );
                 })}

@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { differenceInDays } from "date-fns";
 
 import { usePlant } from "@/lib/plant-context";
+import { useT, useFormat } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import { getEnergyMetrics } from "@/lib/energy-actions";
 import { getMeters, getEnergyStats } from "@/lib/actions";
@@ -24,6 +25,8 @@ import { Input } from "@/components/ui/input";
 
 
 export default function SustainabilityDashboard() {
+    const t = useT();
+    const fmt = useFormat();
     const { activePlant } = usePlant();
     const [metrics, setMetrics] = useState<any>(null);
     const [meters, setMeters] = useState<any[]>([]);
@@ -111,9 +114,9 @@ export default function SustainabilityDashboard() {
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-slate-800 flex items-center gap-3">
                             <Leaf className="h-8 w-8 text-emerald-500" />
-                            Sostenibilità & Energy Management
+                            {t("Sostenibilità & Energy Management")}
                         </h1>
-                        <p className="text-slate-500 mt-2">Monitoraggio consumi energetici, emissioni CO₂ e ottimizzazioni AI.</p>
+                        <p className="text-slate-500 mt-2">{t("Monitoraggio consumi energetici, emissioni CO₂ e ottimizzazioni AI.")}</p>
                     </div>
                     <BackToDashboardButton />
                 </div>
@@ -123,12 +126,12 @@ export default function SustainabilityDashboard() {
                         <Zap className="h-10 w-10 text-indigo-400" />
                     </div>
                     <h2 className="text-2xl font-bold text-slate-800">
-                        {hasNoDataAtAll ? "Nessun dato disponibile" : "Nessuna lettura negli ultimi 30 giorni"}
+                        {hasNoDataAtAll ? t("Nessun dato disponibile") : t("Nessuna lettura negli ultimi 30 giorni")}
                     </h2>
                     <p className="text-slate-500 mt-2 max-w-md mx-auto">
                         {hasNoDataAtAll 
-                            ? "Inizia inserendo le letture dei contatori o collegando i log energetici della pianta per visualizzare analisi e trend."
-                            : "Esistono letture nel passato, ma non nel periodo attuale. Prova ad espandere la visualizzazione per vedere i trend storici."
+                            ? t("Inizia inserendo le letture dei contatori o collegando i log energetici della pianta per visualizzare analisi e trend.")
+                            : t("Esistono letture nel passato, ma non nel periodo attuale. Prova ad espandere la visualizzazione per vedere i trend storici.")
                         }
                     </p>
                     <div className="mt-8 flex justify-center gap-4">
@@ -139,7 +142,7 @@ export default function SustainabilityDashboard() {
                             })} 
                             className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition"
                         >
-                            Visualizza l'ultimo anno
+                            {t("Visualizza l'ultimo anno")}
                         </button>
                     </div>
 
@@ -151,8 +154,8 @@ export default function SustainabilityDashboard() {
 
     if (!metrics) return null;
 
-    const formattedCosts = metrics?.estimatedCosts?.total?.toLocaleString('it-IT', { maximumFractionDigits: 0 }) || "0";
-    const formattedTotalCo2 = metrics?.totalCo2?.toLocaleString('it-IT', { maximumFractionDigits: 0 }) || "0";
+    const formattedCosts = fmt.number(metrics?.estimatedCosts?.total ?? 0, { maximumFractionDigits: 0 });
+    const formattedTotalCo2 = fmt.number(metrics?.totalCo2 ?? 0, { maximumFractionDigits: 0 });
     const hasScore = metrics?.sustainabilityScore !== null && metrics?.sustainabilityScore !== undefined;
 
     const scoreValue = metrics?.sustainabilityScore ?? 0;
@@ -172,14 +175,14 @@ export default function SustainabilityDashboard() {
                 <div className="flex items-center gap-3">
                     <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
                         <Leaf className="h-10 w-10 text-emerald-500" />
-                        Sostenibilità & AI
+                        {t("Sostenibilità & AI")}
                     </h1>
                     <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full animate-in fade-in slide-in-from-left-4 duration-1000">
                          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                         <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Sistema Online</span>
+                         <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">{t("Sistema Online")}</span>
                     </div>
                 </div>
-                <p className="text-slate-500 mt-2 font-medium">Monitoraggio consumi reali e analisi d'impatto ambientale dai log di macchina.</p>
+                <p className="text-slate-500 mt-2 font-medium">{t("Monitoraggio consumi reali e analisi d'impatto ambientale dai log di macchina.")}</p>
 
                 <BackToDashboardButton />
             </div>
@@ -195,19 +198,19 @@ export default function SustainabilityDashboard() {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <h3 className="text-xl font-bold text-slate-900 flex items-center gap-1 cursor-help underline decoration-dotted decoration-slate-300">
-                                            Eco Score <Info className="h-4 w-4 text-slate-400" />
+                                            {t("Eco Score")} <Info className="h-4 w-4 text-slate-400" />
                                         </h3>
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-[300px] p-4 bg-white shadow-2xl border-slate-200">
-                                        <p className="font-medium text-slate-800 mb-1">Criterio di Calcolo</p>
+                                        <p className="font-medium text-slate-800 mb-1">{t("Criterio di Calcolo")}</p>
                                         <p className="text-xs text-slate-500 leading-relaxed">
-                                            L'Eco Score valuta l'efficienza energetica confrontando i consumi attuali con i benchmark storici. 
+                                            {t("L'Eco Score valuta l'efficienza energetica confrontando i consumi attuali con i benchmark storici.")}
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
                         </div>
-                        <p className="text-sm text-slate-500 mb-8 font-medium italic">Basato su efficienza reale</p>
+                        <p className="text-sm text-slate-500 mb-8 font-medium italic">{t("Basato su efficienza reale")}</p>
                         <div className="relative h-48 w-48 mx-auto">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
@@ -231,8 +234,8 @@ export default function SustainabilityDashboard() {
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-5xl font-black text-slate-900 tracking-tighter">{hasScore ? metrics.sustainabilityScore : "N/D"}</span>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Sostenibilità</span>
+                                <span className="text-5xl font-black text-slate-900 tracking-tighter">{hasScore ? metrics.sustainabilityScore : t("N/D")}</span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">{t("Sostenibilità")}</span>
                             </div>
                         </div>
                     </div>
@@ -240,10 +243,10 @@ export default function SustainabilityDashboard() {
                         <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100 w-full">
                             <h4 className="text-emerald-900 font-bold mb-2 flex items-center gap-2">
                                 <Leaf className="h-5 w-5 text-emerald-500" />
-                                Monitoraggio Ottimizzato
+                                {t("Monitoraggio Ottimizzato")}
                             </h4>
                             <p className="text-emerald-700 text-sm font-medium">
-                                Le analisi correnti sono calcolate esclusivamente sulla base delle letture reali dei contatori per la massima precisione.
+                                {t("Le analisi correnti sono calcolate esclusivamente sulla base delle letture reali dei contatori per la massima precisione.")}
                             </p>
                         </div>
                     </div>
@@ -256,11 +259,11 @@ export default function SustainabilityDashboard() {
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-6">
                             <p className="text-emerald-400 font-black text-xs uppercase tracking-[0.3em] flex items-center gap-2 border-b border-white/10 pb-1">
-                                <Leaf className="h-4 w-4" /> Impatto Carbonico
+                                <Leaf className="h-4 w-4" /> {t("Impatto Carbonico")}
                             </p>
                         </div>
                         <div className="text-6xl font-black mb-3 tracking-tighter">{formattedTotalCo2} <span className="text-2xl font-light opacity-50">kg</span></div>
-                        <p className="text-lg font-medium text-slate-300 leading-tight">Emissioni stimate nel periodo selezionato</p>
+                        <p className="text-lg font-medium text-slate-300 leading-tight">{t("Emissioni stimate nel periodo selezionato")}</p>
                     </div>
                     <div className="relative z-10 mt-10 pt-8 border-t border-white/10">
                         <div className="flex items-center gap-4">
@@ -268,8 +271,8 @@ export default function SustainabilityDashboard() {
                                 <Leaf className="h-6 w-6" />
                             </div>
                             <div>
-                                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Equivalenza Green</p>
-                                <p className="text-sm font-medium">Circa <strong>{((metrics?.totalCo2 || 0) / 21).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} alberi</strong> piantati.</p>
+                                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{t("Equivalenza Green")}</p>
+                                <p className="text-sm font-medium">{t("Circa {n} alberi piantati.", { n: fmt.number((metrics?.totalCo2 || 0) / 21, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) })}</p>
                             </div>
                         </div>
                     </div>
@@ -283,9 +286,9 @@ export default function SustainabilityDashboard() {
                         <Gauge className="h-6 w-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Media Giornaliera ({rangeDays}d)</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t("Media Giornaliera ({days}d)", { days: rangeDays })}</p>
                         <div className="flex items-baseline gap-2">
-                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{metrics?.averageKwh?.toLocaleString('it-IT', { maximumFractionDigits: 0 }) || "0"}</div>
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{fmt.number(metrics?.averageKwh ?? 0, { maximumFractionDigits: 0 })}</div>
                             <span className="text-[10px] font-bold text-slate-400">kWh/d</span>
                         </div>
                     </div>
@@ -295,9 +298,9 @@ export default function SustainabilityDashboard() {
                         <Bolt className="h-6 w-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Energia Totale</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t("Energia Totale")}</p>
                         <div className="flex items-baseline gap-2">
-                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{(metrics.totalKwh || 0).toLocaleString('it-IT')}</div>
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{fmt.number(metrics.totalKwh || 0)}</div>
                             <span className="text-[10px] font-bold text-slate-400 font-mono">kWh</span>
                         </div>
                     </div>
@@ -307,9 +310,9 @@ export default function SustainabilityDashboard() {
                         <Flame className="h-6 w-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Gas Totale</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t("Gas Totale")}</p>
                         <div className="flex items-baseline gap-2">
-                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{(metrics.totalGas || 0).toLocaleString('it-IT')}</div>
+                            <div className="text-3xl font-black text-slate-900 tracking-tighter">{fmt.number(metrics.totalGas || 0)}</div>
                             <span className="text-[10px] font-bold text-slate-400 font-mono">m³</span>
                         </div>
                     </div>
@@ -324,7 +327,7 @@ export default function SustainabilityDashboard() {
                             <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200">
                                 <BrainCircuit className="h-6 w-6" />
                             </div>
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Analisi Dinamiche AI</h3>
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">{t("Analisi Dinamiche AI")}</h3>
                         </div>
                         <div className="flex gap-2">
                             {insights.map((_: any, i: number) => (
@@ -344,11 +347,11 @@ export default function SustainabilityDashboard() {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-8 border-t border-slate-50">
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Azione Consigliata</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("Azione Consigliata")}</p>
                                         <p className="text-lg font-bold text-indigo-700">{insights[activeInsight]?.suggestion}</p>
                                     </div>
                                     <div className="space-y-1 sm:text-right">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Risparmio Stimato</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("Risparmio Stimato")}</p>
                                         <div className="text-2xl font-black text-emerald-600 flex items-center gap-2 sm:justify-end">
                                             <TrendingDown className="h-6 w-6" /> {insights[activeInsight]?.savings}
                                         </div>
@@ -364,15 +367,15 @@ export default function SustainabilityDashboard() {
             <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm">
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 mb-12">
                     <div>
-                        <h3 className="text-3xl font-black text-slate-900 tracking-tight">Monitoraggio Analitico Multi-Contatore</h3>
-                        <p className="text-slate-500 font-medium mt-1 italic">Dettaglio progressivo per ogni punto di misura</p>
+                        <h3 className="text-3xl font-black text-slate-900 tracking-tight">{t("Monitoraggio Analitico Multi-Contatore")}</h3>
+                        <p className="text-slate-500 font-medium mt-1 italic">{t("Dettaglio progressivo per ogni punto di misura")}</p>
                     </div>
                     <div className="flex flex-wrap gap-3 bg-slate-50 p-2 rounded-[1.5rem] border border-slate-100">
                         <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm">
                             {[
-                                { id: 'kwh', label: 'Energia', icon: Zap, color: 'text-amber-500' },
-                                { id: 'water', label: 'Acqua', icon: Droplets, color: 'text-blue-500' },
-                                { id: 'gas', label: 'Gas', icon: Flame, color: 'text-orange-500' }
+                                { id: 'kwh', label: t('Energia'), icon: Zap, color: 'text-amber-500' },
+                                { id: 'water', label: t('Acqua'), icon: Droplets, color: 'text-blue-500' },
+                                { id: 'gas', label: t('Gas'), icon: Flame, color: 'text-orange-500' }
                             ].map(type => (
                                 <button
                                     key={type.id}
@@ -411,7 +414,7 @@ export default function SustainabilityDashboard() {
                             <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#f1f5f9" />
                             <XAxis
                                 dataKey="date"
-                                tickFormatter={(val) => new Date(val).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}
+                                tickFormatter={(val) => fmt.date(val, { day: '2-digit', month: 'short' })}
                                 tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }}
                                 axisLine={false}
                                 tickLine={false}
@@ -427,7 +430,7 @@ export default function SustainabilityDashboard() {
                                 contentStyle={{ borderRadius: '24px', border: 'none', padding: '20px', background: '#0f172a', color: '#f8fafc' }}
                                 itemStyle={{ color: '#f8fafc', fontWeight: 800, fontSize: '14px' }}
                                 labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontWeight: 600, fontSize: '10px' }}
-                                labelFormatter={(val) => new Date(val).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                labelFormatter={(val) => fmt.dateTime(val, { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             />
                             <Legend verticalAlign="top" height={36} />
                             {activeMetersByType.map((meter: any, idx: number) => (
@@ -456,7 +459,7 @@ export default function SustainabilityDashboard() {
                      <div className="pt-8 border-t border-slate-200">
                         <div className="mb-6 flex items-center gap-2">
                             <Gauge className="h-6 w-6 text-indigo-600" />
-                            <h2 className="text-2xl font-bold tracking-tight text-slate-800">Gestione Contatori (Meters)</h2>
+                            <h2 className="text-2xl font-bold tracking-tight text-slate-800">{t("Gestione Contatori (Meters)")}</h2>
                         </div>
                         <MetersList initialMeters={meters} />
                     </div>
@@ -464,7 +467,7 @@ export default function SustainabilityDashboard() {
                     <div className="pt-8 border-t border-slate-200">
                         <div className="mb-6 flex items-center gap-2">
                             <Gauge className="h-6 w-6 text-indigo-600" />
-                            <h2 className="text-2xl font-bold tracking-tight text-slate-800">Dettaglio Monitoraggio Energetico</h2>
+                            <h2 className="text-2xl font-bold tracking-tight text-slate-800">{t("Dettaglio Monitoraggio Energetico")}</h2>
                         </div>
                         <EnergyDashboard 
                             stats={stats} 

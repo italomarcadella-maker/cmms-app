@@ -4,7 +4,7 @@ import React from "react";
 import { PlantBadge } from "@/components/ui/plant-badge";
 import { useRouter } from "next/navigation";
 import { Calendar, User } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 
 import { useWorkOrders } from "@/lib/work-orders-context";
 import { useAuth } from "@/lib/auth-context";
@@ -13,21 +13,25 @@ import { cn } from "@/lib/utils";
 import { PriorityPill, toneBarClass, type Tone } from "@/components/ui/status-badge";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { WOAssignDialog } from "./wo-assign-dialog";
+import { useT, useFormat } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 
 // Every active status has a column, so no work order disappears from the board.
 // Cancelled orders live in the "Storico" tab.
 const COLUMNS: { id: WorkOrderStatus; label: string; tone: Tone }[] = [
-    { id: "PENDING_APPROVAL", label: "Da approvare", tone: "warning" },
-    { id: "APPROVED", label: "Approvato", tone: "info" },
-    { id: "ASSIGNED", label: "Assegnato", tone: "info" },
-    { id: "IN_PROGRESS", label: "In corso", tone: "progress" },
-    { id: "ON_HOLD", label: "In attesa", tone: "neutral" },
-    { id: "PENDING_REVIEW", label: "Da verificare", tone: "warning" },
-    { id: "COMPLETED", label: "Eseguito", tone: "success" },
-    { id: "CLOSED", label: "Validato", tone: "neutral" },
+    { id: "PENDING_APPROVAL", label: tk("Da approvare"), tone: "warning" },
+    { id: "APPROVED", label: tk("Approvato"), tone: "info" },
+    { id: "ASSIGNED", label: tk("Assegnato"), tone: "info" },
+    { id: "IN_PROGRESS", label: tk("In corso"), tone: "progress" },
+    { id: "ON_HOLD", label: tk("In attesa"), tone: "neutral" },
+    { id: "PENDING_REVIEW", label: tk("Da verificare"), tone: "warning" },
+    { id: "COMPLETED", label: tk("Eseguito"), tone: "success" },
+    { id: "CLOSED", label: tk("Validato"), tone: "neutral" },
 ];
 
 export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
+    const t = useT();
+    const fmt = useFormat();
     const router = useRouter();
     const { updateWorkOrderStatus } = useWorkOrders();
     const { user } = useAuth();
@@ -51,9 +55,9 @@ export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
 
     const handleSelfAssign = async (woId: string) => {
         const ok = await confirm({
-            title: "Prendere in carico questo ordine?",
-            description: "L'ordine di lavoro verrà assegnato a te.",
-            confirmLabel: "Prendi in carico",
+            title: t("Prendere in carico questo ordine?"),
+            description: t("L'ordine di lavoro verrà assegnato a te."),
+            confirmLabel: t("Prendi in carico"),
         });
         if (!ok) return;
 
@@ -75,7 +79,7 @@ export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
                     return (
                         <section
                             key={col.id}
-                            aria-label={col.label}
+                            aria-label={t(col.label)}
                             className={cn(
                                 "flex h-full w-72 shrink-0 flex-col rounded-xl border bg-muted/50 transition-colors",
                                 dragOver === col.id && "border-primary bg-accent"
@@ -90,7 +94,7 @@ export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
                             <div className="flex items-center justify-between border-b px-3 py-2.5">
                                 <h3 className="flex items-center gap-2 text-sm font-semibold">
                                     <span aria-hidden className={cn("h-2 w-2 rounded-full", toneBarClass[col.tone])} />
-                                    {col.label}
+                                    {t(col.label)}
                                 </h3>
                                 <span className="rounded-full bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
                                     {items.length}
@@ -134,16 +138,16 @@ export function WorkOrderKanban({ workOrders }: { workOrders: WorkOrder[] }) {
                                                         if (isAdminOrSupervisor) setAssigningWo({ id: wo.id, techId: wo.assignedTechnicianId });
                                                         else if (canSelfAssign) handleSelfAssign(wo.id);
                                                     }}
-                                                    title={isAdminOrSupervisor ? "Cambia assegnazione" : canSelfAssign ? "Prendi in carico" : undefined}
+                                                    title={isAdminOrSupervisor ? t("Cambia assegnazione") : canSelfAssign ? t("Prendi in carico") : undefined}
                                                 >
                                                     <User className={cn("h-3 w-3", unassigned && "text-warning-strong")} />
                                                     <span className={cn(unassigned && "font-medium text-warning-strong")}>
-                                                        {unassigned ? (isMaintainer ? "Prendi in carico" : "Da assegnare") : wo.assignedTo.split(" ")[0]}
+                                                        {unassigned ? (isMaintainer ? t("Prendi in carico") : t("Da assegnare")) : wo.assignedTo.split(" ")[0]}
                                                     </span>
                                                 </button>
                                                 <span className="flex items-center gap-1 tabular-nums">
                                                     <Calendar className="h-3 w-3" />
-                                                    {wo.dueDate ? new Date(wo.dueDate).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) : "--/--"}
+                                                    {wo.dueDate ? fmt.date(wo.dueDate, { day: "2-digit", month: "2-digit" }) : "--/--"}
                                                 </span>
                                             </div>
                                         </article>

@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useInventory } from "@/lib/inventory-context";
+import { useT } from "@/lib/i18n/client";
 import { Upload, FileText, Check, AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ImportPartsDialog() {
+    const t = useT();
     const { addPart } = useInventory();
     const [isOpen, setIsOpen] = useState(false);
     const [csvContent, setCsvContent] = useState("");
@@ -35,12 +37,12 @@ export function ImportPartsDialog() {
             }).filter(Boolean);
 
             if (parsed.length === 0) {
-                setError("Nessun dato valido trovato. Usa il formato: Nome, Categoria, Magazzino, Quantità, Posizione");
+                setError(t("Nessun dato valido trovato. Usa il formato: Nome, Categoria, Magazzino, Quantità, Posizione"));
             } else {
                 setPreview(parsed);
             }
         } catch (e) {
-            setError("Errore durante il parsing del testo.");
+            setError(t("Errore durante il parsing del testo."));
         }
     };
 
@@ -60,7 +62,7 @@ export function ImportPartsDialog() {
                 className="inline-flex items-center gap-2 rounded-md border bg-card px-4 py-2 text-sm font-medium hover:bg-muted shadow-sm transition-colors"
             >
                 <Upload className="h-4 w-4 text-muted-foreground" />
-                Importa Excel/CSV
+                {t("Importa Excel/CSV")}
             </button>
         );
     }
@@ -70,7 +72,7 @@ export function ImportPartsDialog() {
             <div className="w-full max-w-2xl bg-card rounded-xl shadow-xl border animate-in zoom-in-95 flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between p-4 border-b shrink-0">
                     <h3 className="font-semibold text-lg flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" /> Importazione Massiva
+                        <FileText className="h-5 w-5 text-primary" /> {t("Importazione Massiva")}
                     </h3>
                     <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-muted rounded text-muted-foreground">
                         <X className="h-5 w-5" />
@@ -81,9 +83,9 @@ export function ImportPartsDialog() {
                     <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-sm text-blue-800 flex gap-2">
                         <div className="shrink-0"><AlertCircle className="h-4 w-4" /></div>
                         <div>
-                            <p className="font-medium">Formato supportato (CSV):</p>
-                            <p className="font-mono text-xs mt-1">Nome Articolo, Categoria, Magazzino, Quantità, Ubicazione</p>
-                            <p className="mt-1 opacity-80">Copia e incolla le righe dal tuo file Excel qui sotto.</p>
+                            <p className="font-medium">{t("Formato supportato (CSV):")}</p>
+                            <p className="font-mono text-xs mt-1">{t("Nome Articolo, Categoria, Magazzino, Quantità, Ubicazione")}</p>
+                            <p className="mt-1 opacity-80">{t("Copia e incolla le righe dal tuo file Excel qui sotto.")}</p>
                         </div>
                     </div>
 
@@ -98,7 +100,7 @@ export function ImportPartsDialog() {
                             onClick={handleParse}
                             className="text-sm text-primary hover:underline font-medium"
                         >
-                            Anteprima Dati
+                            {t("Anteprima Dati")}
                         </button>
                     </div>
 
@@ -113,9 +115,9 @@ export function ImportPartsDialog() {
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-muted text-muted-foreground text-xs uppercase">
                                     <tr>
-                                        <th className="px-3 py-2">Articolo</th>
-                                        <th className="px-3 py-2">Qtà</th>
-                                        <th className="px-3 py-2">Magazzino</th>
+                                        <th className="px-3 py-2">{t("Articolo")}</th>
+                                        <th className="px-3 py-2">{t("Qtà")}</th>
+                                        <th className="px-3 py-2">{t("Magazzino")}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
@@ -137,14 +139,14 @@ export function ImportPartsDialog() {
                         onClick={() => setIsOpen(false)}
                         className="px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                     >
-                        Annulla
+                        {t("Annulla")}
                     </button>
                     <button
                         onClick={handleImport}
                         disabled={preview.length === 0}
                         className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Check className="h-4 w-4" /> Importa {preview.length} Articoli
+                        <Check className="h-4 w-4" /> {t("Importa {n} Articoli", { n: preview.length })}
                     </button>
                 </div>
             </div>

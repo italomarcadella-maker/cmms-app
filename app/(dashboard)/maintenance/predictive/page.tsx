@@ -5,8 +5,10 @@ import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, CheckCircle2, TrendingUp, Activity, Timer } from "lucide-react";
 import Link from "next/link";
 import { PredictiveRiskPie } from "@/components/dashboard/predictive-risk-pie";
+import { getT } from "@/lib/i18n/server";
 
 export default async function PredictiveMaintenancePage() {
+    const { t, format: fmt } = await getT();
     const ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'];
     const assets = [...(await getPredictiveInsights())].sort((a, b) => ORDER.indexOf(a.riskLevel) - ORDER.indexOf(b.riskLevel));
 
@@ -20,9 +22,9 @@ export default async function PredictiveMaintenancePage() {
             <div className="flex flex-col md:flex-row justify-between gap-8">
                 <div className="flex-1 space-y-4">
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">Manutenzione predittiva</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight">{t("Manutenzione predittiva")}</h1>
                         <p className="text-muted-foreground mt-1">
-                            Stima del prossimo guasto dall&apos;intervallo medio (MTBF) tra i guasti già chiusi di ogni asset. Servono almeno due guasti per poter stimare.
+                            {t("Stima del prossimo guasto dall'intervallo medio (MTBF) tra i guasti già chiusi di ogni asset. Servono almeno due guasti per poter stimare.")}
                         </p>
                     </div>
 
@@ -31,48 +33,48 @@ export default async function PredictiveMaintenancePage() {
                         <Card className="bg-gradient-to-br from-red-50 to-white border-red-100 shadow-sm">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
-                                    <AlertTriangle className="h-4 w-4" /> Rischio Critico
+                                    <AlertTriangle className="h-4 w-4" /> {t("Rischio Critico")}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-4xl font-bold text-red-700">{criticalCount}</div>
-                                <p className="text-xs text-red-500 mt-1">Asset richiedono ispezione immediata</p>
+                                <p className="text-xs text-red-500 mt-1">{t("Asset richiedono ispezione immediata")}</p>
                             </CardContent>
                         </Card>
 
                         <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-100 shadow-sm">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-amber-600 flex items-center gap-2">
-                                    <Activity className="h-4 w-4" /> Rischio Elevato
+                                    <Activity className="h-4 w-4" /> {t("Rischio Elevato")}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-4xl font-bold text-amber-700">{highCount}</div>
-                                <p className="text-xs text-amber-500 mt-1">Manutenzione consigliata a breve</p>
+                                <p className="text-xs text-amber-500 mt-1">{t("Manutenzione consigliata a breve")}</p>
                             </CardContent>
                         </Card>
 
                         <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100 shadow-sm">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-emerald-600 flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4" /> Operativi
+                                    <CheckCircle2 className="h-4 w-4" /> {t("Operativi")}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-4xl font-bold text-emerald-700">{safeCount}</div>
-                                <p className="text-xs text-emerald-500 mt-1">Asset stabili secondo lo storico</p>
+                                <p className="text-xs text-emerald-500 mt-1">{t("Asset stabili secondo lo storico")}</p>
                             </CardContent>
                         </Card>
 
                         <Card className="shadow-sm">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                    <Timer className="h-4 w-4" /> Dati insufficienti
+                                    <Timer className="h-4 w-4" /> {t("Dati insufficienti")}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-4xl font-bold">{unknownCount}</div>
-                                <p className="text-xs text-muted-foreground mt-1">Asset con meno di due guasti: nessuna stima</p>
+                                <p className="text-xs text-muted-foreground mt-1">{t("Asset con meno di due guasti: nessuna stima")}</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -104,9 +106,9 @@ export default async function PredictiveMaintenancePage() {
                                     asset.riskLevel === 'HIGH' ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' :
                                         asset.riskLevel === 'LOW' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-none' : ''
                                 }>
-                                    {asset.riskLevel === 'CRITICAL' ? 'CRITICO' :
-                                        asset.riskLevel === 'HIGH' ? 'ATTENZIONE' :
-                                            asset.riskLevel === 'MEDIUM' ? 'MODERATO' : asset.riskLevel === 'UNKNOWN' ? 'NON VALUTABILE' : 'OTTIMALE'}
+                                    {asset.riskLevel === 'CRITICAL' ? t("Critico").toUpperCase() :
+                                        asset.riskLevel === 'HIGH' ? t("Attenzione").toUpperCase() :
+                                            asset.riskLevel === 'MEDIUM' ? t("Moderato").toUpperCase() : asset.riskLevel === 'UNKNOWN' ? t("Non valutabile").toUpperCase() : t("Ottimale").toUpperCase()}
                                 </Badge>
                             </div>
 
@@ -114,7 +116,7 @@ export default async function PredictiveMaintenancePage() {
                                 {asset.name}
                             </h3>
                             <div className="text-sm text-muted-foreground mb-4">
-                                Health Score: <span className={
+                                {t("Health Score:")} <span className={
                                     asset.healthScore < 50 ? 'text-red-500 font-bold' :
                                         asset.healthScore < 80 ? 'text-amber-500 font-bold' : 'text-emerald-500 font-bold'
                                 }>{asset.healthScore}%</span>
@@ -122,23 +124,23 @@ export default async function PredictiveMaintenancePage() {
 
                             {!asset.mtbf ? (
                                 <div className="p-4 bg-muted/40 rounded-lg text-center text-sm text-muted-foreground italic">
-                                    Dati storici insufficienti per previsione.
+                                    {t("Dati storici insufficienti per previsione.")}
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div className="bg-background/50 p-2 rounded border">
-                                            <span className="block text-muted-foreground text-xs uppercase mb-1">MTBF Stimato</span>
+                                            <span className="block text-muted-foreground text-xs uppercase mb-1">{t("MTBF Stimato")}</span>
                                             <span className="font-mono font-medium flex items-center gap-1">
-                                                <Activity className="h-3 w-3" /> {asset.mtbf} gg
+                                                <Activity className="h-3 w-3" /> {t("{n} gg", { n: asset.mtbf })}
                                             </span>
                                         </div>
                                         <div className="bg-background/50 p-2 rounded border">
-                                            <span className="block text-muted-foreground text-xs uppercase mb-1">Prossimo Guasto</span>
+                                            <span className="block text-muted-foreground text-xs uppercase mb-1">{t("Prossimo Guasto")}</span>
                                             <span className={`font-mono font-medium flex items-center gap-1 ${asset.riskLevel === 'CRITICAL' ? 'text-red-600' : ''
                                                 }`}>
                                                 <Timer className="h-3 w-3" />
-                                                {asset.nextFailureDate?.toLocaleDateString('it-IT')}
+                                                {fmt.date(asset.nextFailureDate)}
                                             </span>
                                         </div>
                                     </div>
@@ -146,10 +148,10 @@ export default async function PredictiveMaintenancePage() {
                                     {/* Risk Progress Bar */}
                                     <div className="space-y-1.5">
                                         <div className="flex justify-between text-xs text-muted-foreground">
-                                            <span>Ciclo di Vita Stimato</span>
+                                            <span>{t("Ciclo di Vita Stimato")}</span>
                                             <span>
-                                                {asset.riskLevel === 'CRITICAL' ? 'Scaduto!' :
-                                                    asset.riskLevel === 'HIGH' ? 'In Esaurimento' : 'Ok'}
+                                                {asset.riskLevel === 'CRITICAL' ? t("Scaduto!") :
+                                                    asset.riskLevel === 'HIGH' ? t("In Esaurimento") : t("Ok")}
                                             </span>
                                         </div>
                                         <Progress value={

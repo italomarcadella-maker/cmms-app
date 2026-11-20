@@ -9,8 +9,9 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { format, addDays, differenceInDays } from "date-fns";
-import { it } from "date-fns/locale";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useFormat, useDateFnsLocale } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 import { DndContext, useDraggable, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 
 // Import FPES Utils
@@ -66,6 +67,9 @@ function DraggableTaskBar({ task, timelineStart, daysWindow, getTaskStyle, onCli
 
 // ----------------- MAIN WORKSPACE PAGE -----------------
 export default function ProjectWorkspace() {
+    const t = useT();
+    const fmt = useFormat();
+    const dfLocale = useDateFnsLocale();
     const params = useParams<{ id: string }>();
     const id = params?.id as string;
     const [project, setProject] = useState<any>(null);
@@ -136,8 +140,8 @@ export default function ProjectWorkspace() {
 
         } catch (error: any) {
             console.error("Load data error:", error);
-            setPageError(error?.message || "Errore sconosciuto durante il caricamento");
-            toast.error("Errore caricamento dati");
+            setPageError(error?.message || tk("Errore sconosciuto durante il caricamento"));
+            toast.error(t("Errore caricamento dati"));
         } finally {
             setLoading(false);
         }
@@ -169,7 +173,7 @@ export default function ProjectWorkspace() {
         }
         
         setActiveTab(modName);
-        toast.success(`Modulo attivato.`);
+        toast.success(t("Modulo attivato."));
 
         // FPES data needs to be initialized if any FPES module is selected
         const fpesModules = ['SETUP', 'LINE_DESIGNER', 'YAMAZUMI', 'ERGO', 'TIMWOODS', 'KAIZEN'];
@@ -181,7 +185,7 @@ export default function ProjectWorkspace() {
                 setFpesSimId(newSim.id);
                 setFpesData(initialData);
             } catch (e) {
-                toast.error("Errore inizializzazione dati FPES");
+                toast.error(t("Errore inizializzazione dati FPES"));
             }
         }
     };
@@ -204,9 +208,9 @@ export default function ProjectWorkspace() {
                 lineEff: cr.lineEff,
                 dataJson: fpesData
             });
-            toast.success("Dati modulo di linea salvati.");
+            toast.success(t("Dati modulo di linea salvati."));
         } catch(e) {
-            toast.error("Errore salvataggio modulo di linea.");
+            toast.error(t("Errore salvataggio modulo di linea."));
         }
     };
 
@@ -219,9 +223,9 @@ export default function ProjectWorkspace() {
             status: "TODO", dependencies: newTaskDependency ? JSON.stringify([newTaskDependency]) : undefined
         });
         if (res.success) {
-            setNewTaskTitle(""); setIsAddingTask(false); toast.success("Task aggiunto con successo"); loadData();
+            setNewTaskTitle(""); setIsAddingTask(false); toast.success(t("Task aggiunto con successo")); loadData();
         } else {
-            toast.error(`Errore: ${res.message}`);
+            toast.error(t("Errore: {message}", { message: t(res.message ?? "") }));
         }
     };
 
@@ -230,7 +234,7 @@ export default function ProjectWorkspace() {
         if (!linkingTask || !selectedAsset) return;
         const res = await linkTaskToMaintenance(linkingTask.id, selectedAsset, maintenanceDesc, id);
         if (res.success) {
-            setLinkingTask(null); setMaintenanceDesc(""); setSelectedAsset(""); loadData(); toast.success("Work Order creato!");
+            setLinkingTask(null); setMaintenanceDesc(""); setSelectedAsset(""); loadData(); toast.success(t("Work Order creato!"));
         } else toast.error(res.message);
     };
 
@@ -240,7 +244,7 @@ export default function ProjectWorkspace() {
         setIsSubmittingNote(true);
         const res = await addProjectTaskNote(viewingTask.id, newNote, id);
         if (res.success) {
-            setNewNote(""); toast.success("Nota aggiunta");
+            setNewNote(""); toast.success(t("Nota aggiunta"));
             loadData().then(() => {
                 setProject((prev: any) => {
                     const updatedTask = prev.tasks.find((t: any) => t.id === viewingTask.id);
@@ -255,7 +259,7 @@ export default function ProjectWorkspace() {
     const handleUpdateRoi = async (e: React.FormEvent) => {
         e.preventDefault();
         const res = await updateProject(id, { roi: parseFloat(tempRoi) });
-        if (res.success) { toast.success("ROI aggiornato"); setIsEditingRoi(false); loadData(); }
+        if (res.success) { toast.success(t("ROI aggiornato")); setIsEditingRoi(false); loadData(); }
         else toast.error(res.message);
     };
 
@@ -282,7 +286,7 @@ export default function ProjectWorkspace() {
             tasks: prev.tasks.map((t: any) => t.id === task.id ? { ...t, startDate: newStart, endDate: newEnd } : t)
         }));
         try { await updateTaskDates(task.id, newStart, newEnd, id); }
-        catch (error) { toast.error("Errore salvataggio date"); loadData(); }
+        catch (error) { toast.error(t("Errore salvataggio date")); loadData(); }
     };
 
     // Render Helpers
@@ -309,20 +313,20 @@ export default function ProjectWorkspace() {
                 <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <Calendar className="h-5 w-5 text-indigo-500" />
-                        <h3 className="font-bold text-slate-700">Gantt & Timeline</h3>
+                        <h3 className="font-bold text-slate-700">{t("Gantt & Timeline")}</h3>
                     </div>
                     <button onClick={() => setIsAddingTask(true)} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-700">
-                        <Plus className="h-4 w-4" /> Nuovo Task
+                        <Plus className="h-4 w-4" /> {t("Nuovo Task")}
                     </button>
                 </div>
                 {/* Gantt Implementation */}
                 {isAddingTask && (
                     <form onSubmit={handleAddTask} className="p-4 bg-indigo-50/50 border-b flex flex-wrap gap-3 items-center">
-                        <input type="text" placeholder="Titolo attività..." value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm" required autoFocus />
+                        <input type="text" placeholder={t("Titolo attività...")} value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} className="flex-1 min-w-[200px] border rounded-lg px-3 py-2 text-sm" required autoFocus />
                         <input type="date" value={newTaskStart} onChange={e => setNewTaskStart(e.target.value)} className="border rounded-lg px-3 py-2 text-sm text-slate-700" required />
                         <input type="date" value={newTaskEnd} onChange={e => setNewTaskEnd(e.target.value)} className="border rounded-lg px-3 py-2 text-sm text-slate-700" required />
-                        <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">Salva</button>
-                        <button type="button" onClick={() => setIsAddingTask(false)} className="text-slate-500 px-3 py-2 text-sm hover:bg-slate-200 rounded-lg">Annulla</button>
+                        <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">{t("Salva")}</button>
+                        <button type="button" onClick={() => setIsAddingTask(false)} className="text-slate-500 px-3 py-2 text-sm hover:bg-slate-200 rounded-lg">{t("Annulla")}</button>
                     </form>
                 )}
                 <div className="p-6 overflow-x-auto min-h-[400px]">
@@ -330,7 +334,7 @@ export default function ProjectWorkspace() {
                         <div className="flex relative border-b border-slate-200 pb-2 mb-4 ml-48">
                             {dayLabels.map((date, i) => (
                                 <div key={i} className="flex-1 text-center min-w-[30px] border-l border-slate-100 first:border-l-0">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase">{format(date, 'E', { locale: it })}</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase">{format(date, 'E', { locale: dfLocale })}</div>
                                     <div className="text-xs font-semibold text-slate-700">{format(date, 'd')}</div>
                                 </div>
                             ))}
@@ -338,7 +342,7 @@ export default function ProjectWorkspace() {
                         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
                             <div className="space-y-4">
                                 {project?.tasks?.length === 0 ? (
-                                    <div className="text-center py-10 text-slate-400 italic">Nessun task. Inizia ad aggiungere attività.</div>
+                                    <div className="text-center py-10 text-slate-400 italic">{t("Nessun task. Inizia ad aggiungere attività.")}</div>
                                 ) : (
                                     project?.tasks?.map((task: any) => (
                                         <div key={task.id} className="relative flex items-center group">
@@ -377,53 +381,53 @@ export default function ProjectWorkspace() {
         <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
             <div className="bg-red-50 text-red-700 p-6 rounded-2xl max-w-2xl text-center border border-red-200">
                 <AlertCircle className="h-10 w-10 mx-auto mb-4 text-red-500" />
-                <h2 className="text-xl font-bold mb-2">Errore Critico nel caricamento</h2>
-                <p className="text-sm">{pageError}</p>
-                <p className="text-xs mt-4 text-red-500/70">Il problema solitamente deriva dal timeout del database. Attendi qualche minuto o aggiorna la pagina (Ctrl+F5).</p>
+                <h2 className="text-xl font-bold mb-2">{t("Errore Critico nel caricamento")}</h2>
+                <p className="text-sm">{t(pageError)}</p>
+                <p className="text-xs mt-4 text-red-500/70">{t("Il problema solitamente deriva dal timeout del database. Attendi qualche minuto o aggiorna la pagina (Ctrl+F5).")}</p>
             </div>
         </div>
     );
 
-    if (!project) return <div className="text-center py-20">Progetto non trovato.</div>;
+    if (!project) return <div className="text-center py-20">{t("Progetto non trovato.")}</div>;
 
     return (
         <div className="flex h-[calc(100vh-5rem)] bg-slate-50 overflow-hidden animate-in fade-in">
             {/* WORKSPACE SIDEBAR (TABS) */}
             <div className="w-64 bg-white border-r flex flex-col z-10 shadow-sm shrink-0">
                 <div className="p-4 border-b bg-slate-900 text-white">
-                    <Link href="/process" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 mb-2"><ArrowLeft className="h-3 w-3"/> Hub Processo</Link>
+                    <Link href="/process" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 mb-2"><ArrowLeft className="h-3 w-3"/> {t("Hub Processo")}</Link>
                     <h2 className="font-bold text-lg leading-tight">{project.title}</h2>
-                    <span className="inline-block mt-2 px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] uppercase font-bold tracking-wider">Workspace</span>
+                    <span className="inline-block mt-2 px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] uppercase font-bold tracking-wider">{t("Workspace")}</span>
                 </div>
                 
                 <div className="p-3 space-y-1 overflow-y-auto flex-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 mt-2">Core</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 mt-2">{t("Core")}</p>
                     <button onClick={() => setActiveTab("DASHBOARD")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "DASHBOARD" ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50")}>
-                        <Grid className="h-4 w-4" /> Overview
+                        <Grid className="h-4 w-4" /> {t("Overview")}
                     </button>
                     {/* GANTT MODULE */}
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 mt-4">Gestione Attività</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 mt-4">{t("Gestione Attività")}</p>
                     {activeModules.includes('GANTT') ? (
                         <button onClick={() => setActiveTab("GANTT")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "GANTT" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50")}>
-                            <Calendar className="h-4 w-4" /> Gantt & Task
+                            <Calendar className="h-4 w-4" /> {t("Gantt & Task")}
                         </button>
                     ) : (
                         <button onClick={() => handleAddModule('GANTT')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-indigo-400 hover:text-indigo-600 transition-colors bg-slate-50">
-                            <span className="flex items-center gap-3"><Calendar className="h-4 w-4" /> Gantt & Task</span>
+                            <span className="flex items-center gap-3"><Calendar className="h-4 w-4" /> {t("Gantt & Task")}</span>
                             <Plus className="h-4 w-4" />
                         </button>
                     )}
 
                     {/* FPES ATOMIC MODULES */}
-                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2 px-2 mt-4">Ingegneria di Linea</p>
+                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2 px-2 mt-4">{t("Ingegneria di Linea")}</p>
                     
                     {activeModules.includes('SETUP') ? (
                         <button onClick={() => setActiveTab("SETUP")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "SETUP" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
-                            <Settings className="h-4 w-4" /> Parametri
+                            <Settings className="h-4 w-4" /> {t("Parametri")}
                         </button>
                     ) : (
                         <button onClick={() => handleAddModule('SETUP')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-blue-400 hover:text-blue-600 transition-colors bg-slate-50">
-                            <span className="flex items-center gap-3"><Settings className="h-4 w-4" /> Parametri</span>
+                            <span className="flex items-center gap-3"><Settings className="h-4 w-4" /> {t("Parametri")}</span>
                             <Plus className="h-4 w-4" />
                         </button>
                     )}
@@ -452,17 +456,17 @@ export default function ProjectWorkspace() {
 
                     {activeModules.includes('ERGO') ? (
                         <button onClick={() => setActiveTab("ERGO")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "ERGO" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50")}>
-                            <Box className="h-4 w-4" /> Ergonomia
+                            <Box className="h-4 w-4" /> {t("Ergonomia")}
                         </button>
                     ) : (
                         <button onClick={() => handleAddModule('ERGO')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-blue-400 hover:text-blue-600 transition-colors bg-slate-50">
-                            <span className="flex items-center gap-3"><Box className="h-4 w-4" /> Ergonomia</span>
+                            <span className="flex items-center gap-3"><Box className="h-4 w-4" /> {t("Ergonomia")}</span>
                             <Plus className="h-4 w-4" />
                         </button>
                     )}
 
                     {/* LEAN MODULES */}
-                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-2 px-2 mt-4">Miglioramento Continuo</p>
+                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-2 px-2 mt-4">{t("Miglioramento Continuo")}</p>
                     
                     {activeModules.includes('TIMWOODS') ? (
                         <button onClick={() => setActiveTab("TIMWOODS")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "TIMWOODS" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50")}>
@@ -477,35 +481,35 @@ export default function ProjectWorkspace() {
 
                     {activeModules.includes('WHATIF') ? (
                         <button onClick={() => setActiveTab("WHATIF")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "WHATIF" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50")}>
-                            <TrendingUp className="h-4 w-4" /> What-If Simulator
+                            <TrendingUp className="h-4 w-4" /> {t("What-If Simulator")}
                         </button>
                     ) : (
                         <button onClick={() => handleAddModule('WHATIF')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-amber-400 hover:text-amber-600 transition-colors bg-slate-50">
-                            <span className="flex items-center gap-3"><TrendingUp className="h-4 w-4" /> What-If Sim.</span>
+                            <span className="flex items-center gap-3"><TrendingUp className="h-4 w-4" /> {t("What-If Sim.")}</span>
                             <Plus className="h-4 w-4" />
                         </button>
                     )}
 
                     {activeModules.includes('KAIZEN') ? (
                         <button onClick={() => setActiveTab("KAIZEN")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "KAIZEN" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50")}>
-                            <Lightbulb className="h-4 w-4" /> Kaizen Board
+                            <Lightbulb className="h-4 w-4" /> {t("Kaizen Board")}
                         </button>
                     ) : (
                         <button onClick={() => handleAddModule('KAIZEN')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-amber-400 hover:text-amber-600 transition-colors bg-slate-50">
-                            <span className="flex items-center gap-3"><Lightbulb className="h-4 w-4" /> Kaizen Board</span>
+                            <span className="flex items-center gap-3"><Lightbulb className="h-4 w-4" /> {t("Kaizen Board")}</span>
                             <Plus className="h-4 w-4" />
                         </button>
                     )}
                     
                     {/* SOP MODULE */}
-                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-2 px-2 mt-4">Standardizzazione</p>
+                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-2 px-2 mt-4">{t("Standardizzazione")}</p>
                     {activeModules.includes('SOP') ? (
                         <button onClick={() => setActiveTab("SOP")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "SOP" ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-50")}>
-                            <FileCheck2 className="h-4 w-4" /> SOP Builder
+                            <FileCheck2 className="h-4 w-4" /> {t("SOP Builder")}
                         </button>
                     ) : (
                         <button onClick={() => handleAddModule('SOP')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-colors bg-slate-50">
-                            <span className="flex items-center gap-3"><FileCheck2 className="h-4 w-4" /> SOP Builder</span>
+                            <span className="flex items-center gap-3"><FileCheck2 className="h-4 w-4" /> {t("SOP Builder")}</span>
                             <Plus className="h-4 w-4" />
                         </button>
                     )}
@@ -523,17 +527,17 @@ export default function ProjectWorkspace() {
 
                     {activeModules.includes('LEANSCORE') ? (
                         <button onClick={() => setActiveTab("LEANSCORE")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "LEANSCORE" ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-50")}>
-                            <TrendingUp className="h-4 w-4" /> Lean Score
+                            <TrendingUp className="h-4 w-4" /> {t("Lean Score")}
                         </button>
                     ) : (
                         <button onClick={() => handleAddModule('LEANSCORE')} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold text-slate-400 border border-dashed border-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-colors bg-slate-50">
-                            <span className="flex items-center gap-3"><TrendingUp className="h-4 w-4" /> Lean Score</span>
+                            <span className="flex items-center gap-3"><TrendingUp className="h-4 w-4" /> {t("Lean Score")}</span>
                             <Plus className="h-4 w-4" />
                         </button>
                     )}
 
                     {/* DATA MODULE */}
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-4">Dati e Report</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-4">{t("Dati e Report")}</p>
                     {activeModules.includes('EXCELIO') ? (
                         <button onClick={() => setActiveTab("EXCELIO")} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors", activeTab === "EXCELIO" ? "bg-slate-100 text-slate-700" : "text-slate-600 hover:bg-slate-50")}>
                             <Send className="h-4 w-4" /> Excel I/O
@@ -552,24 +556,24 @@ export default function ProjectWorkspace() {
                 {activeTab === "DASHBOARD" && (
                     <div className="max-w-4xl mx-auto space-y-6">
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <h3 className="text-xl font-bold text-slate-800 mb-2">Workspace Overview</h3>
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">{t("Workspace Overview")}</h3>
                             <p className="text-slate-500 mb-6">{project.description}</p>
                             
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl cursor-pointer hover:bg-emerald-100 transition" onClick={() => setIsEditingRoi(true)}>
-                                    <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">ROI Stimato</p>
-                                    <p className="text-2xl font-extrabold text-emerald-900">€{project.roi?.toLocaleString('it-IT') || "0"}</p>
+                                    <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">{t("ROI Stimato")}</p>
+                                    <p className="text-2xl font-extrabold text-emerald-900">€{fmt.number(project.roi ?? 0)}</p>
                                 </div>
                                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl">
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Task Aperti</p>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t("Task Aperti")}</p>
                                     <p className="text-2xl font-extrabold text-slate-800">{project.tasks?.filter((t:any)=>t.status!=='DONE').length || 0}</p>
                                 </div>
                                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl">
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Moduli Attivi</p>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t("Moduli Attivi")}</p>
                                     <p className="text-2xl font-extrabold text-slate-800">{activeModules.length}</p>
                                 </div>
                                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl">
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Stato</p>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t("Stato")}</p>
                                     <p className="text-lg font-extrabold text-slate-800 mt-1">{project.status}</p>
                                 </div>
                             </div>
@@ -593,7 +597,7 @@ export default function ProjectWorkspace() {
                     <div className="max-w-6xl mx-auto h-full relative">
                         {(activeTab === 'SETUP' || activeTab === 'LINE_DESIGNER' || activeTab === 'YAMAZUMI' || activeTab === 'ERGO' || activeTab === 'TIMWOODS' || activeTab === 'KAIZEN') && (
                             <div className="absolute -top-4 right-0 flex gap-2 z-10">
-                                 <button onClick={handleSaveFpes} className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs font-bold hover:bg-blue-200 shadow-sm border border-blue-200">Salva Moduli Ing.</button>
+                                 <button onClick={handleSaveFpes} className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs font-bold hover:bg-blue-200 shadow-sm border border-blue-200">{t("Salva Moduli Ing.")}</button>
                             </div>
                         )}
                         {activeTab === "SETUP" && <Setup project={fpesData} upd={handleUpdateFpes} />}
@@ -615,9 +619,9 @@ export default function ProjectWorkspace() {
             {/* Keeping the ROI and Linking modals here */}
             {isEditingRoi && (
                 <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full"><h3 className="font-bold mb-4">Aggiorna ROI</h3>
+                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full"><h3 className="font-bold mb-4">{t("Aggiorna ROI")}</h3>
                     <input type="number" className="w-full border p-2 rounded mb-4" value={tempRoi} onChange={e=>setTempRoi(e.target.value)} />
-                    <div className="flex gap-2 justify-end"><button onClick={()=>setIsEditingRoi(false)}>Annulla</button><button onClick={handleUpdateRoi} className="bg-emerald-600 text-white px-4 py-2 rounded">Salva</button></div></div>
+                    <div className="flex gap-2 justify-end"><button onClick={()=>setIsEditingRoi(false)}>{t("Annulla")}</button><button onClick={handleUpdateRoi} className="bg-emerald-600 text-white px-4 py-2 rounded">{t("Salva")}</button></div></div>
                 </div>
             )}
 

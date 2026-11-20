@@ -3,6 +3,8 @@
  * Competenze: livello 0-4 (0 = nessuna riga). Abilitazioni: presenti con scadenza facoltativa.
  */
 
+import { tk } from '@/lib/i18n/translate';
+
 export type SkillLevel = 0 | 1 | 2 | 3 | 4;
 
 export const MAX_SKILL_LEVEL = 4;
@@ -10,11 +12,11 @@ export const MAX_SKILL_LEVEL = 4;
 export const DEFAULT_MIN_LEVEL = 2;
 
 export const SKILL_LEVEL_LABEL: Record<SkillLevel, string> = {
-    0: 'Nessuna',
-    1: 'Base',
-    2: 'Autonomo',
-    3: 'Esperto',
-    4: 'Può formare altri',
+    0: tk('Nessuna'),
+    1: tk('Base'),
+    2: tk('Autonomo'),
+    3: tk('Esperto'),
+    4: tk('Può formare altri'),
 };
 
 export const SKILL_LEVELS: SkillLevel[] = [0, 1, 2, 3, 4];

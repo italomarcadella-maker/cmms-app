@@ -8,8 +8,7 @@ import type { HealthComponent, HealthLoss } from "@/modules/maintenance/domain/a
 import { healthTone, toneBarClass } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-
-const NF = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 });
+import { useT, useFormat } from "@/lib/i18n/client";
 
 const toneText = {
     success: "text-success-strong",
@@ -18,28 +17,30 @@ const toneText = {
 } as const;
 
 function ComponentBar({ c }: { c: HealthComponent }) {
+    const t = useT();
+    const fmt = useFormat();
     const evaluable = c.score !== null;
     const tone = healthTone(c.score ?? 0);
     return (
         <li className="space-y-1">
             <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="font-medium">
-                    {c.label} <span className="text-xs font-normal text-muted-foreground">(peso {NF.format(c.weight)})</span>
+                    {t(c.label)} <span className="text-xs font-normal text-muted-foreground">{t("(peso {weight})", { weight: fmt.number(c.weight, { maximumFractionDigits: 1 }) })}</span>
                 </span>
                 <span className={cn("tabular-nums font-semibold", evaluable ? toneText[tone] : "text-muted-foreground")}>
-                    {evaluable ? c.score : "n.d."}
+                    {evaluable ? c.score : t("n.d.")}
                 </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-muted" role="presentation">
                 {evaluable && <div className={cn("h-full rounded-full", toneBarClass[tone])} style={{ width: `${c.score}%` }} />}
             </div>
-            <p className="text-xs text-muted-foreground">{c.detail}</p>
+            <p className="text-xs text-muted-foreground">{t(c.detail)}</p>
         </li>
     );
 }
 
-function lossLabel(l: HealthLoss) {
-    return `-${NF.format(l.points)}`;
+function lossLabel(l: HealthLoss, fmt: ReturnType<typeof useFormat>) {
+    return `-${fmt.number(l.points, { maximumFractionDigits: 1 })}`;
 }
 
 /**
@@ -47,6 +48,8 @@ function lossLabel(l: HealthLoss) {
  * `reloadKey` cambia quando i dati dell'asset sono stati modificati (es. un piano creato): la scheda si ricalcola.
  */
 export function AssetHealthCard({ assetId, reloadKey = 0 }: { assetId: string; reloadKey?: number }) {
+    const t = useT();
+    const fmt = useFormat();
     // Il caricamento si ricava confrontando la richiesta in corso con l'ultima risposta: nessun setState sincrono nell'effetto
     const requestKey = `${assetId}:${reloadKey}`;
     const [state, setState] = useState<{ key: string; data: AssetHealthDetail } | null>(null);
@@ -57,26 +60,26 @@ export function AssetHealthCard({ assetId, reloadKey = 0 }: { assetId: string; r
         let alive = true;
         getAssetHealth(assetId)
             .then((d) => alive && setState({ key: requestKey, data: d }))
-            .catch(() => alive && setState({ key: requestKey, data: { success: false, message: "Errore nel calcolo della salute", health: null, storedScore: null } }));
+            .catch(() => alive && setState({ key: requestKey, data: { success: false, message: t("Errore nel calcolo della salute"), health: null, storedScore: null } }));
         return () => {
             alive = false;
         };
-    }, [assetId, requestKey]);
+    }, [assetId, requestKey, t]);
 
     const health = data?.health ?? null;
     const score = health?.score ?? null;
     const tone = score === null ? null : healthTone(score);
 
     return (
-        <section className="rounded-xl border bg-card p-4 text-card-foreground shadow-sm" aria-label="Salute della macchina">
+        <section className="rounded-xl border bg-card p-4 text-card-foreground shadow-sm" aria-label={t("Salute della macchina")}>
             <div className="flex items-start justify-between gap-3">
                 <div>
-                    <h2 className="text-sm font-medium text-muted-foreground">Salute</h2>
+                    <h2 className="text-sm font-medium text-muted-foreground">{t("Salute")}</h2>
                     {loading && !data ? (
                         <Skeleton className="mt-2 h-9 w-24" />
                     ) : (
                         <div className={cn("mt-1 text-3xl font-semibold leading-none tracking-tight tabular-nums", tone ? toneText[tone] : "text-muted-foreground")}>
-                            {score === null ? "n.d." : `${score}%`}
+                            {score === null ? t("n.d.") : `${score}%`}
                         </div>
                     )}
                 </div>
@@ -85,11 +88,11 @@ export function AssetHealthCard({ assetId, reloadKey = 0 }: { assetId: string; r
                 </span>
             </div>
 
-            {data && !data.success && <p className="mt-3 text-sm text-muted-foreground">{data.message ?? "Salute non disponibile."}</p>}
+            {data && !data.success && <p className="mt-3 text-sm text-muted-foreground">{data.message ? t(data.message) : t("Salute non disponibile.")}</p>}
 
             {health && !health.evaluable && (
                 <p className="mt-3 rounded-lg bg-muted p-3 text-sm">
-                    Non valutabile: {health.notEvaluableReason}.
+                    {t("Non valutabile: {reason}.", { reason: health.notEvaluableReason ? t(health.notEvaluableReason) : "" })}
                 </p>
             )}
 
@@ -103,21 +106,22 @@ export function AssetHealthCard({ assetId, reloadKey = 0 }: { assetId: string; r
 
                     {health.capped && health.capValue !== null && (
                         <p className="rounded-lg bg-warning-soft p-3 text-xs text-warning-strong">
-                            Senza piano di manutenzione il punteggio non può superare {NF.format(health.capValue)}
-                            {health.uncappedScore !== null && health.uncappedScore > health.capValue ? ` (senza il tetto sarebbe ${health.uncappedScore}%)` : ""}.
+                            {health.uncappedScore !== null && health.uncappedScore > health.capValue
+                                ? t("Senza piano di manutenzione il punteggio non può superare {cap} (senza il tetto sarebbe {score}%).", { cap: fmt.number(health.capValue, { maximumFractionDigits: 1 }), score: health.uncappedScore })
+                                : t("Senza piano di manutenzione il punteggio non può superare {cap}.", { cap: fmt.number(health.capValue, { maximumFractionDigits: 1 }) })}
                         </p>
                     )}
 
                     <div>
-                        <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Punti persi</h3>
+                        <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("Punti persi")}</h3>
                         {health.losses.length === 0 ? (
-                            <p className="mt-1 text-sm text-muted-foreground">Nessun punto perso.</p>
+                            <p className="mt-1 text-sm text-muted-foreground">{t("Nessun punto perso.")}</p>
                         ) : (
                             <ul className="mt-1 space-y-1">
                                 {health.losses.map((l, i) => (
                                     <li key={`${l.component}-${i}`} className="flex gap-2 text-sm">
-                                        <span className="w-12 shrink-0 font-semibold tabular-nums text-critical-strong">{lossLabel(l)}</span>
-                                        <span>{l.reason.charAt(0).toUpperCase() + l.reason.slice(1)}</span>
+                                        <span className="w-12 shrink-0 font-semibold tabular-nums text-critical-strong">{lossLabel(l, fmt)}</span>
+                                        <span>{(() => { const r = t(l.reason); return r.charAt(0).toUpperCase() + r.slice(1); })()}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -127,7 +131,7 @@ export function AssetHealthCard({ assetId, reloadKey = 0 }: { assetId: string; r
             )}
 
             <p className="mt-4 border-t pt-3 text-xs text-muted-foreground">
-                Il punteggio riguarda la macchina, non chi segnala i guasti. Si ricalcola da guasti, richieste e manutenzione programmata.
+                {t("Il punteggio riguarda la macchina, non chi segnala i guasti. Si ricalcola da guasti, richieste e manutenzione programmata.")}
             </p>
         </section>
     );

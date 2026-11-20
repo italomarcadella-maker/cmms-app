@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useFormat } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 import { HandHelping, UserPlus } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,15 +24,17 @@ import {
 } from "@/modules/maintenance/adapters/actions/loan-actions";
 
 const STATUS: Record<string, { label: string; variant: "info" | "success" | "critical" | "neutral" | "warning" }> = {
-    REQUESTED: { label: "In attesa", variant: "warning" },
-    APPROVED: { label: "Approvato", variant: "success" },
-    REJECTED: { label: "Rifiutato", variant: "critical" },
-    CANCELED: { label: "Annullato", variant: "neutral" },
+    REQUESTED: { label: tk("In attesa"), variant: "warning" },
+    APPROVED: { label: tk("Approvato"), variant: "success" },
+    REJECTED: { label: tk("Rifiutato"), variant: "critical" },
+    CANCELED: { label: tk("Annullato"), variant: "neutral" },
 };
-const fmt = (iso: string) => new Date(iso).toLocaleDateString("it-IT");
 const today = () => new Date().toISOString().slice(0, 10);
 
 export default function TechnicianLoansPage() {
+    const t = useT();
+    const f = useFormat();
+    const fmt = (iso: string) => f.date(iso);
     const [lendable, setLendable] = useState<LendableTechnician[]>([]);
     const [loans, setLoans] = useState<LoanRow[]>([]);
     const [asking, setAsking] = useState<LendableTechnician | null>(null);
@@ -58,24 +62,24 @@ export default function TechnicianLoansPage() {
     return (
         <div className="mx-auto max-w-5xl space-y-6">
             <PageHeader
-                title="Prestiti di tecnici"
-                description="Chiedi in prestito un tecnico di un altro stabilimento per un periodo. Con il via libera del suo responsabile, sarà assegnabile nel tuo plant nelle date indicate."
+                title={t("Prestiti di tecnici")}
+                description={t("Chiedi in prestito un tecnico di un altro stabilimento per un periodo. Con il via libera del suo responsabile, sarà assegnabile nel tuo plant nelle date indicate.")}
             />
 
             <section className="space-y-2">
-                <h2 className="text-sm font-semibold">Tecnici disponibili negli altri stabilimenti</h2>
+                <h2 className="text-sm font-semibold">{t("Tecnici disponibili negli altri stabilimenti")}</h2>
                 {lendable.length === 0 ? (
-                    <Card><EmptyState icon={<HandHelping />} title="Nessun tecnico di altri stabilimenti" description="Compaiono qui i tecnici attivi assegnati ad altri plant." /></Card>
+                    <Card><EmptyState icon={<HandHelping />} title={t("Nessun tecnico di altri stabilimenti")} description={t("Compaiono qui i tecnici attivi assegnati ad altri plant.")} /></Card>
                 ) : (
                     <Card>
                         <CardContent className="divide-y p-0">
-                            {lendable.map(t => (
-                                <div key={t.technicianId} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                            {lendable.map(tech => (
+                                <div key={tech.technicianId} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                                     <div>
-                                        <p className="text-sm font-medium">{t.name} <PlantBadge force name={t.plantName} className="ml-1" /></p>
-                                        <p className="text-xs text-muted-foreground">{[t.specialty, ...t.skills].filter(Boolean).join(" · ")}</p>
+                                        <p className="text-sm font-medium">{tech.name} <PlantBadge force name={tech.plantName} className="ml-1" /></p>
+                                        <p className="text-xs text-muted-foreground">{[tech.specialty, ...tech.skills].filter(Boolean).join(" · ")}</p>
                                     </div>
-                                    <Button size="sm" variant="outline" onClick={() => setAsking(t)}><UserPlus className="h-3.5 w-3.5" /> Chiedi in prestito</Button>
+                                    <Button size="sm" variant="outline" onClick={() => setAsking(tech)}><UserPlus className="h-3.5 w-3.5" /> {t("Chiedi in prestito")}</Button>
                                 </div>
                             ))}
                         </CardContent>
@@ -84,21 +88,21 @@ export default function TechnicianLoansPage() {
             </section>
 
             <section className="space-y-2">
-                <h2 className="text-sm font-semibold">Richieste e prestiti</h2>
+                <h2 className="text-sm font-semibold">{t("Richieste e prestiti")}</h2>
                 {loans.length === 0 ? (
-                    <Card><EmptyState title="Nessun prestito" description="Le richieste di prestito tra stabilimenti compariranno qui." /></Card>
+                    <Card><EmptyState title={t("Nessun prestito")} description={t("Le richieste di prestito tra stabilimenti compariranno qui.")} /></Card>
                 ) : (
                     <Card>
                         <CardContent className="p-0">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Tecnico</TableHead>
-                                        <TableHead>Da</TableHead>
-                                        <TableHead>A</TableHead>
-                                        <TableHead>Periodo</TableHead>
-                                        <TableHead>Stato</TableHead>
-                                        <TableHead className="text-right">Azioni</TableHead>
+                                        <TableHead>{t("Tecnico")}</TableHead>
+                                        <TableHead>{t("Da")}</TableHead>
+                                        <TableHead>{t("A")}</TableHead>
+                                        <TableHead>{t("Periodo")}</TableHead>
+                                        <TableHead>{t("Stato")}</TableHead>
+                                        <TableHead className="text-right">{t("Azioni")}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -113,17 +117,17 @@ export default function TechnicianLoansPage() {
                                                 <TableCell><PlantBadge force name={l.fromPlantName} /></TableCell>
                                                 <TableCell><PlantBadge force name={l.toPlantName} /></TableCell>
                                                 <TableCell className="text-sm">{fmt(l.startDate)} - {fmt(l.endDate)}</TableCell>
-                                                <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
+                                                <TableCell><Badge variant={st.variant}>{t(st.label)}</Badge></TableCell>
                                                 <TableCell>
                                                     <div className="flex justify-end gap-2">
                                                         {l.canDecide && (
                                                             <>
-                                                                <Button size="sm" disabled={busyId === l.id} onClick={() => act(l.id, () => decideTechnicianLoan(l.id, true))}>Approva</Button>
-                                                                <Button size="sm" variant="outline" disabled={busyId === l.id} onClick={() => act(l.id, () => decideTechnicianLoan(l.id, false))}>Rifiuta</Button>
+                                                                <Button size="sm" disabled={busyId === l.id} onClick={() => act(l.id, () => decideTechnicianLoan(l.id, true))}>{t("Approva")}</Button>
+                                                                <Button size="sm" variant="outline" disabled={busyId === l.id} onClick={() => act(l.id, () => decideTechnicianLoan(l.id, false))}>{t("Rifiuta")}</Button>
                                                             </>
                                                         )}
                                                         {l.canCancel && (
-                                                            <Button size="sm" variant="ghost" disabled={busyId === l.id} onClick={() => act(l.id, () => cancelTechnicianLoan(l.id))}>Annulla</Button>
+                                                            <Button size="sm" variant="ghost" disabled={busyId === l.id} onClick={() => act(l.id, () => cancelTechnicianLoan(l.id))}>{t("Annulla")}</Button>
                                                         )}
                                                     </div>
                                                 </TableCell>
@@ -145,6 +149,7 @@ export default function TechnicianLoansPage() {
 }
 
 function RequestForm({ tech, onClose, onDone }: { tech: LendableTechnician; onClose: () => void; onDone: () => void }) {
+    const t = useT();
     const [start, setStart] = useState(today());
     const [end, setEnd] = useState(today());
     const [note, setNote] = useState("");
@@ -160,19 +165,19 @@ function RequestForm({ tech, onClose, onDone }: { tech: LendableTechnician; onCl
     return (
         <DialogContent className="sm:max-w-[440px]">
             <DialogHeader>
-                <DialogTitle>Chiedi in prestito {tech.name}</DialogTitle>
-                <DialogDescription>La richiesta va al responsabile di <strong>{tech.plantName}</strong>.</DialogDescription>
+                <DialogTitle>{t("Chiedi in prestito {name}", { name: tech.name })}</DialogTitle>
+                <DialogDescription>{t("La richiesta va al responsabile di {plant}.", { plant: tech.plantName })}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4">
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="grid gap-1.5"><Label htmlFor="ls">Dal</Label><Input id="ls" type="date" value={start} min={today()} onChange={(e) => setStart(e.target.value)} /></div>
-                    <div className="grid gap-1.5"><Label htmlFor="le">Al</Label><Input id="le" type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} /></div>
+                    <div className="grid gap-1.5"><Label htmlFor="ls">{t("Dal")}</Label><Input id="ls" type="date" value={start} min={today()} onChange={(e) => setStart(e.target.value)} /></div>
+                    <div className="grid gap-1.5"><Label htmlFor="le">{t("Al")}</Label><Input id="le" type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} /></div>
                 </div>
-                <div className="grid gap-1.5"><Label htmlFor="ln">Motivo (facoltativo)</Label><Textarea id="ln" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Es. revisione programmata del compressore" /></div>
+                <div className="grid gap-1.5"><Label htmlFor="ln">{t("Motivo (facoltativo)")}</Label><Textarea id="ln" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("Es. revisione programmata del compressore")} /></div>
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={onClose}>Annulla</Button>
-                <Button onClick={submit} disabled={busy}>{busy ? "Invio..." : "Invia richiesta"}</Button>
+                <Button variant="outline" onClick={onClose}>{t("Annulla")}</Button>
+                <Button onClick={submit} disabled={busy}>{busy ? t("Invio...") : t("Invia richiesta")}</Button>
             </DialogFooter>
         </DialogContent>
     );

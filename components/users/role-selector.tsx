@@ -9,6 +9,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { updateUserRole } from '@/lib/actions';
+import { useT } from '@/lib/i18n/client';
 
 interface RoleSelectorProps {
     userId: string;
@@ -16,6 +17,7 @@ interface RoleSelectorProps {
 }
 
 export function RoleSelector({ userId, currentRole }: RoleSelectorProps) {
+    const t = useT();
     const [role, setRole] = useState(currentRole);
     const [loading, setLoading] = useState(false);
 
@@ -38,14 +40,15 @@ export function RoleSelector({ userId, currentRole }: RoleSelectorProps) {
     return (
         <Select value={role} onValueChange={handleRoleChange} disabled={loading}>
             <SelectTrigger className="w-[140px] bg-white">
-                <SelectValue placeholder="Seleziona Ruolo" />
+                <SelectValue placeholder={t("Seleziona Ruolo")} />
             </SelectTrigger>
             <SelectContent className="bg-white">
-                <SelectItem value="USER">User</SelectItem>
-                <SelectItem value="MAINTAINER">Maintainer</SelectItem>
-                <SelectItem value="PROCESS_ENGINEER">Ingegnere di Processo</SelectItem>
-                <SelectItem value="SUPERVISOR">Supervisor</SelectItem>                <SelectItem value="PLANT_MANAGER">Responsabile di plant</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="USER">{t("User")}</SelectItem>
+                <SelectItem value="MAINTAINER">{t("Maintainer")}</SelectItem>
+                <SelectItem value="PROCESS_ENGINEER">{t("Ingegnere di Processo")}</SelectItem>
+                <SelectItem value="SUPERVISOR">{t("Supervisor")}</SelectItem>
+                <SelectItem value="PLANT_MANAGER">{t("Responsabile di plant")}</SelectItem>
+                <SelectItem value="ADMIN">{t("Admin")}</SelectItem>
             </SelectContent>
         </Select>
     );

@@ -9,6 +9,7 @@ import { DailyInsight } from '@/lib/ai/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n/client';
 
 interface AIDailyBriefProps {
     initialInsights?: DailyInsight[];
@@ -22,6 +23,7 @@ const insightStyle = {
 } as const;
 
 export function AIDailyBrief({ initialInsights = [] }: AIDailyBriefProps) {
+    const t = useT();
     const [insights, setInsights] = useState<DailyInsight[]>(initialInsights);
     const [loading, setLoading] = useState(initialInsights.length === 0);
 
@@ -51,7 +53,7 @@ export function AIDailyBrief({ initialInsights = [] }: AIDailyBriefProps) {
                     <span className="flex h-7 w-7 items-center justify-center rounded-md bg-info-soft text-info-strong">
                         <Sparkles className="h-4 w-4" />
                     </span>
-                    Briefing giornaliero
+                    {t("Briefing giornaliero")}
                 </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2">

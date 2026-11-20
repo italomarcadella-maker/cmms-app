@@ -7,6 +7,7 @@
  *  - Costo: ricambi (quantita' x costo unitario) piu' manodopera (ore x tariffa del tecnico se > 0, altrimenti tariffa predefinita
  *    dello stabilimento): stesso criterio degli indicatori della dashboard.
  */
+import { tk } from '@/lib/i18n/translate';
 
 /** Stati di un ordine ancora da lavorare (tutti tranne completato, chiuso, annullato). */
 export const OPEN_STATUSES = ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PENDING_APPROVAL', 'APPROVED', 'ON_HOLD', 'PENDING_REVIEW'] as const;
@@ -157,19 +158,20 @@ export function planDaysOverdue(nextDueDate: Date | string, now: Date = new Date
 }
 
 const FREQUENCY_LABELS: Record<string, string> = {
-    DAILY: 'Giornaliera',
-    WEEKLY: 'Settimanale',
-    BIWEEKLY: 'Quindicinale',
-    MONTHLY: 'Mensile',
-    BIMONTHLY: 'Bimestrale',
-    QUARTERLY: 'Trimestrale',
-    SEMIANNUAL: 'Semestrale',
-    ANNUAL: 'Annuale',
+    DAILY: tk('Giornaliera'),
+    WEEKLY: tk('Settimanale'),
+    BIWEEKLY: tk('Quindicinale'),
+    MONTHLY: tk('Mensile'),
+    BIMONTHLY: tk('Bimestrale'),
+    QUARTERLY: tk('Trimestrale'),
+    SEMIANNUAL: tk('Semestrale'),
+    ANNUAL: tk('Annuale'),
+    METER: tk('A consumo'),
 };
 
 /** Frequenza leggibile; un testo libero (es. proposto dall'AI) resta com'e'. */
 export function frequencyLabel(frequency: string | null | undefined): string {
-    if (!frequency) return 'Non indicata';
+    if (!frequency) return tk('Non indicata');
     return FREQUENCY_LABELS[frequency.toUpperCase()] ?? frequency;
 }
 

@@ -1,8 +1,11 @@
+"use client"
+
 import * as React from "react"
 import Link from "next/link"
 import { ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useT } from "@/lib/i18n/client"
 
 export interface Crumb {
     label: string
@@ -20,11 +23,12 @@ interface PageHeaderProps {
 
 /** Standard page heading: optional breadcrumb, title, description and actions. Replaces the hand-written headers. */
 export function PageHeader({ title, description, actions, breadcrumb, className }: PageHeaderProps) {
+    const t = useT()
     return (
         <div className={cn("mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between", className)}>
             <div className="min-w-0 space-y-1">
                 {breadcrumb && breadcrumb.length > 0 && (
-                    <nav aria-label="Percorso" className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                    <nav aria-label={t("Percorso")} className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                         {breadcrumb.map((crumb, i) => (
                             <React.Fragment key={`${crumb.label}-${i}`}>
                                 {i > 0 && <ChevronRight className="h-3 w-3" aria-hidden />}

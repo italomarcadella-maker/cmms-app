@@ -20,6 +20,8 @@ import { useWorkOrders } from "@/lib/work-orders-context";
 import { useAssets } from "@/lib/assets-context";
 import { getAdvancedKPIs } from "@/lib/actions";
 import { categoryColor, chartColors } from "@/lib/chart-colors";
+import { tk } from "@/lib/i18n/translate";
+import { useT, useFormat } from "@/lib/i18n/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -29,17 +31,19 @@ import { StatCard } from "@/components/ui/stat-card";
 const tooltipStyle = { borderRadius: 8, border: `1px solid ${chartColors.grid}`, fontSize: 12 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-    MECHANICAL: "Meccanica",
-    ELECTRICAL: "Elettrica",
-    HYDRAULIC: "Idraulica",
-    PNEUMATIC: "Pneumatica",
-    PLANT: "Impianti",
-    SAFETY: "Sicurezza",
-    IMPROVEMENT: "Miglioramento",
-    OTHER: "Altro",
+    MECHANICAL: tk("Meccanica"),
+    ELECTRICAL: tk("Elettrica"),
+    HYDRAULIC: tk("Idraulica"),
+    PNEUMATIC: tk("Pneumatica"),
+    PLANT: tk("Impianti"),
+    SAFETY: tk("Sicurezza"),
+    IMPROVEMENT: tk("Miglioramento"),
+    OTHER: tk("Altro"),
 };
 
 export default function KPIPage() {
+    const t = useT();
+    const fmt = useFormat();
     const { workOrders } = useWorkOrders();
     const { assets } = useAssets();
     const [advancedStats, setAdvancedStats] = useState<any>(null);
@@ -56,20 +60,20 @@ export default function KPIPage() {
     const departmentStats = new Map<string, { opened: number; closed: number }>();
     workOrders.forEach((wo) => {
         const asset = assets.find((a) => a.id === wo.assetId);
-        const dept = asset?.department || "Non assegnato";
+        const dept = asset?.department || t("Non assegnato");
         const stats = departmentStats.get(dept) ?? { opened: 0, closed: 0 };
         stats.opened += 1;
         if (wo.status === "COMPLETED") stats.closed += 1;
         departmentStats.set(dept, stats);
     });
-    const barChartData = Array.from(departmentStats.entries()).map(([name, s]) => ({ name, Richiesti: s.opened, Completati: s.closed }));
+    const barChartData = Array.from(departmentStats.entries()).map(([name, s]) => ({ name, opened: s.opened, closed: s.closed }));
 
     // 2. Overall status
     const totalClosed = workOrders.filter((wo) => wo.status === "COMPLETED").length;
     const totalOpen = workOrders.length - totalClosed;
     const overallData = [
-        { name: "Completati", value: totalClosed, color: chartColors.success },
-        { name: "Aperti o in corso", value: totalOpen, color: chartColors.warning },
+        { name: t("Completati"), value: totalClosed, color: chartColors.success },
+        { name: t("Aperti o in corso"), value: totalOpen, color: chartColors.warning },
     ];
 
     // 3. Work orders by category
@@ -79,56 +83,55 @@ export default function KPIPage() {
         categoryStats.set(cat, (categoryStats.get(cat) || 0) + 1);
     });
     const pieChartData = Array.from(categoryStats.entries()).map(([key, value]) => ({
-        name: CATEGORY_LABELS[key] ?? key,
+        name: CATEGORY_LABELS[key] ? t(CATEGORY_LABELS[key]) : key,
         value,
         color: categoryColor(key),
     }));
 
     const efficiency = advancedStats?.resolutionEfficiency;
-    const currency = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
     return (
         <div className="space-y-6 pb-10">
             <PageHeader
-                title="KPI e analisi delle prestazioni"
-                description="Fermi macchina, tempi di riparazione, costi e carico di lavoro."
-                breadcrumb={[{ label: "Amministrazione" }, { label: "KPI e report" }]}
+                title={t("KPI e analisi delle prestazioni")}
+                description={t("Fermi macchina, tempi di riparazione, costi e carico di lavoro.")}
+                breadcrumb={[{ label: t("Amministrazione") }, { label: t("KPI e report") }]}
             />
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
-                    label="MTTR (tempo medio di riparazione)"
+                    label={t("MTTR (tempo medio di riparazione)")}
                     value={
                         <>
                             {advancedStats?.mttr || 0}
-                            <span className="ml-1 text-base font-normal text-muted-foreground">min</span>
+                            <span className="ml-1 text-base font-normal text-muted-foreground">{t("min")}</span>
                         </>
                     }
-                    hint={`Media su ${advancedStats?.totalEWOs || 0} EWO`}
+                    hint={t("Media su {n} EWO", { n: advancedStats?.totalEWOs || 0 })}
                     icon={<Timer />}
                     tone="info"
                     loading={loading}
                 />
                 <StatCard
-                    label="Costo stimato dei fermi"
-                    value={currency.format(advancedStats?.estimatedCost || 0)}
-                    hint={`${advancedStats?.downtimeCostPerMinute ?? 100} €/min di mancata produzione (configurabile in Impostazioni)`}
+                    label={t("Costo stimato dei fermi")}
+                    value={fmt.currency(advancedStats?.estimatedCost || 0, "EUR", { maximumFractionDigits: 0 })}
+                    hint={t("{cost} €/min di mancata produzione (configurabile in Impostazioni)", { cost: advancedStats?.downtimeCostPerMinute ?? 100 })}
                     icon={<Euro />}
                     tone="critical"
                     loading={loading}
                 />
                 <StatCard
-                    label="Efficienza di risoluzione"
-                    value={efficiency === null || efficiency === undefined ? "N/D" : `${efficiency}%`}
-                    hint="EWO risolti senza un ulteriore intervento"
+                    label={t("Efficienza di risoluzione")}
+                    value={efficiency === null || efficiency === undefined ? t("N/D") : `${efficiency}%`}
+                    hint={t("EWO risolti senza un ulteriore intervento")}
                     icon={<TrendingUp />}
                     tone="success"
                     loading={loading}
                 />
                 <StatCard
-                    label="Asset più critico"
-                    value={<span className="text-xl">{advancedStats?.topAssets?.[0]?.name || "Nessun dato"}</span>}
-                    hint="Maggiore causa di fermo"
+                    label={t("Asset più critico")}
+                    value={<span className="text-xl">{advancedStats?.topAssets?.[0]?.name || t("Nessun dato")}</span>}
+                    hint={t("Maggiore causa di fermo")}
                     icon={<AlertOctagon />}
                     tone="warning"
                     loading={loading}
@@ -138,13 +141,13 @@ export default function KPIPage() {
             <div className="grid gap-4 lg:grid-cols-3">
                 <Card className="lg:col-span-1">
                     <CardHeader>
-                        <CardTitle>Top 5 asset per fermo macchina</CardTitle>
-                        <CardDescription>Macchinari con più minuti di inattività</CardDescription>
+                        <CardTitle>{t("Top 5 asset per fermo macchina")}</CardTitle>
+                        <CardDescription>{t("Macchinari con più minuti di inattività")}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="h-[300px] w-full">
                             {loading ? (
-                                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Caricamento dati...</div>
+                                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">{t("Caricamento dati...")}</div>
                             ) : advancedStats?.topAssets?.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={advancedStats.topAssets} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
@@ -152,11 +155,11 @@ export default function KPIPage() {
                                         <XAxis type="number" stroke={chartColors.axis} fontSize={12} />
                                         <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} stroke={chartColors.axis} />
                                         <Tooltip cursor={{ fill: chartColors.grid, opacity: 0.4 }} contentStyle={tooltipStyle} />
-                                        <Bar dataKey="minutes" fill={chartColors.critical} radius={[0, 4, 4, 0]} name="Minuti di fermo" />
+                                        <Bar dataKey="minutes" fill={chartColors.critical} radius={[0, 4, 4, 0]} name={t("Minuti di fermo")} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <EmptyState title="Nessun fermo registrato" description="I fermi compaiono quando vengono compilati gli EWO." className="h-full" />
+                                <EmptyState title={t("Nessun fermo registrato")} description={t("I fermi compaiono quando vengono compilati gli EWO.")} className="h-full" />
                             )}
                         </div>
                     </CardContent>
@@ -164,8 +167,8 @@ export default function KPIPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Stato degli ordini di lavoro</CardTitle>
-                        <CardDescription>Distribuzione per stato attuale</CardDescription>
+                        <CardTitle>{t("Stato degli ordini di lavoro")}</CardTitle>
+                        <CardDescription>{t("Distribuzione per stato attuale")}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="h-[300px]">
@@ -186,8 +189,8 @@ export default function KPIPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Tipologia degli interventi</CardTitle>
-                        <CardDescription>Ripartizione per categoria</CardDescription>
+                        <CardTitle>{t("Tipologia degli interventi")}</CardTitle>
+                        <CardDescription>{t("Ripartizione per categoria")}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="h-[300px]">
@@ -209,8 +212,8 @@ export default function KPIPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Attività per reparto</CardTitle>
-                    <CardDescription>Volume di lavoro per area: ordini richiesti e completati</CardDescription>
+                    <CardTitle>{t("Attività per reparto")}</CardTitle>
+                    <CardDescription>{t("Volume di lavoro per area: ordini richiesti e completati")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="h-[300px]">
@@ -221,8 +224,8 @@ export default function KPIPage() {
                                 <YAxis stroke={chartColors.axis} fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                                 <Tooltip cursor={{ fill: chartColors.grid, opacity: 0.4 }} contentStyle={tooltipStyle} />
                                 <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-                                <Bar dataKey="Richiesti" fill={chartColors.primary} radius={[4, 4, 0, 0]} maxBarSize={48} />
-                                <Bar dataKey="Completati" fill={chartColors.success} radius={[4, 4, 0, 0]} maxBarSize={48} />
+                                <Bar dataKey="opened" name={t("Richiesti")} fill={chartColors.primary} radius={[4, 4, 0, 0]} maxBarSize={48} />
+                                <Bar dataKey="closed" name={t("Completati")} fill={chartColors.success} radius={[4, 4, 0, 0]} maxBarSize={48} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

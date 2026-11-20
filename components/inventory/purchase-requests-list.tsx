@@ -1,14 +1,17 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import React, { useState } from "react";
 import { updatePurchaseRequestStatus, fulfillPurchaseRequest } from "@/lib/inventory-actions";
 import { format } from "date-fns";
-import { it } from 'date-fns/locale';
+import { useT, useFormat, useDateFnsLocale } from "@/lib/i18n/client";
 import { PackageSearch, CheckCircle2, Truck, FileText, AlertCircle } from "lucide-react";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function PurchaseRequestsList({ initialRequests }: { initialRequests: any[] }) {
+    const t = useT();
+    const fmt = useFormat();
+    const dfLocale = useDateFnsLocale();
     const [requests, setRequests] = useState(initialRequests);
     const [loadingId, setLoadingId] = useState<string | null>(null);
     const { confirm, dialog } = useConfirm();
@@ -25,7 +28,7 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
     };
 
     const handleFulfill = async (id: string) => {
-        if (!(await confirm({ title: "Confermi la ricezione della merce?", description: "La giacenza verrà aggiornata automaticamente.", confirmLabel: "Conferma ricezione" }))) return;
+        if (!(await confirm({ title: t("Confermi la ricezione della merce?"), description: t("La giacenza verrà aggiornata automaticamente."), confirmLabel: t("Conferma ricezione") }))) return;
         setLoadingId(id);
         const res = await fulfillPurchaseRequest(id);
         if (res.success) {
@@ -41,7 +44,7 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
         return (
             <div className="bg-white border rounded-xl p-12 text-center text-slate-500 flex flex-col items-center">
                 <PackageSearch className="h-12 w-12 mb-4 text-slate-300" />
-                <p>Nessuna richiesta d'acquisto presente al momento.</p>
+                <p>{t("Nessuna richiesta d'acquisto presente al momento.")}</p>
             </div>
         );
     }
@@ -59,11 +62,11 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case "DRAFT": return "Bozza (Auto)";
-            case "SUBMITTED": return "Inviata per appr.";
-            case "APPROVED": return "Approvata";
-            case "ORDERED": return "Ordinata";
-            case "RECEIVED": return "Merce Ricevuta";
+            case "DRAFT": return t("Bozza (Auto)");
+            case "SUBMITTED": return t("Inviata per appr.");
+            case "APPROVED": return t("Approvata");
+            case "ORDERED": return t("Ordinata");
+            case "RECEIVED": return t("Merce Ricevuta");
             default: return status;
         }
     };
@@ -74,20 +77,20 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
                 <table className="w-full text-sm text-left">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-medium">
                         <tr>
-                            <th className="px-6 py-4">Data Richiesta</th>
-                            <th className="px-6 py-4">Ricambio</th>
-                            <th className="px-6 py-4 text-center">Qtà Riordino</th>
-                            <th className="px-6 py-4">Stato</th>
-                            <th className="px-6 py-4">Motivo</th>
-                            <th className="px-6 py-4 text-right">Costo Stimato</th>
-                            <th className="px-6 py-4 text-right">Azioni</th>
+                            <th className="px-6 py-4">{t("Data Richiesta")}</th>
+                            <th className="px-6 py-4">{t("Ricambio")}</th>
+                            <th className="px-6 py-4 text-center">{t("Qtà Riordino")}</th>
+                            <th className="px-6 py-4">{t("Stato")}</th>
+                            <th className="px-6 py-4">{t("Motivo")}</th>
+                            <th className="px-6 py-4 text-right">{t("Costo Stimato")}</th>
+                            <th className="px-6 py-4 text-right">{t("Azioni")}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {requests.map((req) => (
                             <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
                                 <td className="px-6 py-4 whitespace-nowrap text-slate-500">
-                                    {format(new Date(req.requestedAt), "dd MMM yyyy", { locale: it })}
+                                    {format(new Date(req.requestedAt), "dd MMM yyyy", { locale: dfLocale })}
                                 </td>
                                 <td className="px-6 py-4 font-medium text-slate-800">
                                     {req.part.name}
@@ -113,7 +116,7 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
                                     {req.reason}
                                 </td>
                                 <td className="px-6 py-4 text-right font-medium">
-                                    {req.expectedCost ? `€${req.expectedCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                                    {req.expectedCost ? fmt.currency(req.expectedCost) : '-'}
                                 </td>
                                 <td className="px-6 py-4 text-right space-x-2">
                                     {req.status === "DRAFT" && (
@@ -122,7 +125,7 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
                                             onClick={() => handleStatusChange(req.id, "APPROVED")}
                                             className="text-emerald-600 hover:text-emerald-700 font-medium hover:underline text-xs"
                                         >
-                                            Approva
+                                            {t("Approva")}
                                         </button>
                                     )}
                                     {req.status === "APPROVED" && (
@@ -131,7 +134,7 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
                                             onClick={() => handleStatusChange(req.id, "ORDERED")}
                                             className="text-amber-600 hover:text-amber-700 font-medium hover:underline text-xs"
                                         >
-                                            Segna Ordinato
+                                            {t("Segna Ordinato")}
                                         </button>
                                     )}
                                     {req.status === "ORDERED" && (
@@ -140,7 +143,7 @@ export function PurchaseRequestsList({ initialRequests }: { initialRequests: any
                                             onClick={() => handleFulfill(req.id)}
                                             className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-700 transition"
                                         >
-                                            Ricevi Merce
+                                            {t("Ricevi Merce")}
                                         </button>
                                     )}
                                 </td>

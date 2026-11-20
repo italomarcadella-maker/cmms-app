@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { usePlant } from "@/lib/plant-context";
+import { useT } from "@/lib/i18n/client";
 import { getTechnicians } from "@/lib/actions";
 import { FREQUENCY_CHOICES, OUTCOMES, frequencyText } from "@/modules/maintenance/domain/contractors";
 import {
@@ -61,11 +62,12 @@ function Field({ id, label, children, hint }: { id?: string; label: string; chil
 // --- Ditta ---
 
 export function ContractorFormDialog({ contractor, trigger, onSaved }: { contractor?: ContractorSummary; trigger: ReactNode; onSaved: (id?: string) => void }) {
+    const t = useT();
     return (
         <FormDialog
             trigger={trigger}
-            title={contractor ? "Modifica la ditta" : "Nuova ditta esterna"}
-            description="L'anagrafica è di gruppo: i contratti si creano poi per ogni stabilimento. Inserisci solo contatti di lavoro."
+            title={contractor ? t("Modifica la ditta") : t("Nuova ditta esterna")}
+            description={t("L'anagrafica è di gruppo: i contratti si creano poi per ogni stabilimento. Inserisci solo contatti di lavoro.")}
         >
             {(close) => <ContractorForm contractor={contractor} onDone={(id) => { close(); onSaved(id); }} />}
         </FormDialog>
@@ -73,6 +75,7 @@ export function ContractorFormDialog({ contractor, trigger, onSaved }: { contrac
 }
 
 function ContractorForm({ contractor, onDone }: { contractor?: ContractorSummary; onDone: (id?: string) => void }) {
+    const t = useT();
     const [name, setName] = useState(contractor?.name ?? "");
     const [vat, setVat] = useState(contractor?.vatNumber ?? "");
     const [contact, setContact] = useState(contractor?.contactName ?? "");
@@ -93,18 +96,18 @@ function ContractorForm({ contractor, onDone }: { contractor?: ContractorSummary
 
     return (
         <form onSubmit={submit} className="grid gap-3">
-            <Field id="c-name" label="Ragione sociale"><Input id="c-name" value={name} onChange={(e) => setName(e.target.value)} required /></Field>
-            <Field id="c-vat" label="Partita IVA"><Input id="c-vat" value={vat} onChange={(e) => setVat(e.target.value)} /></Field>
+            <Field id="c-name" label={t("Ragione sociale")}><Input id="c-name" value={name} onChange={(e) => setName(e.target.value)} required /></Field>
+            <Field id="c-vat" label={t("Partita IVA")}><Input id="c-vat" value={vat} onChange={(e) => setVat(e.target.value)} /></Field>
             <div className="grid grid-cols-2 gap-3">
-                <Field id="c-contact" label="Referente"><Input id="c-contact" value={contact} onChange={(e) => setContact(e.target.value)} /></Field>
-                <Field id="c-phone" label="Telefono"><Input id="c-phone" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
+                <Field id="c-contact" label={t("Referente")}><Input id="c-contact" value={contact} onChange={(e) => setContact(e.target.value)} /></Field>
+                <Field id="c-phone" label={t("Telefono")}><Input id="c-phone" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
             </div>
-            <Field id="c-email" label="Email di lavoro"><Input id="c-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
-            <Field id="c-notes" label="Note"><Textarea id="c-notes" rows={2} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+            <Field id="c-email" label={t("Email di lavoro")}><Input id="c-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+            <Field id="c-notes" label={t("Note")}><Textarea id="c-notes" rows={2} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
             {contractor && (
-                <label className="flex items-center gap-2 text-sm"><Switch checked={active} onCheckedChange={setActive} /> Ditta attiva</label>
+                <label className="flex items-center gap-2 text-sm"><Switch checked={active} onCheckedChange={setActive} /> {t("Ditta attiva")}</label>
             )}
-            <DialogFooter><Button type="submit" disabled={busy}>{busy ? "Salvataggio..." : "Salva"}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" disabled={busy}>{busy ? t("Salvataggio...") : t("Salva")}</Button></DialogFooter>
         </form>
     );
 }
@@ -117,8 +120,9 @@ export function ContractFormDialog({ contractorId, contract, trigger, onSaved }:
     trigger: ReactNode;
     onSaved: () => void;
 }) {
+    const t = useT();
     return (
-        <FormDialog trigger={trigger} title={contract ? "Modifica il contratto" : "Nuovo contratto"} description="Il contratto vale per un solo stabilimento.">
+        <FormDialog trigger={trigger} title={contract ? t("Modifica il contratto") : t("Nuovo contratto")} description={t("Il contratto vale per un solo stabilimento.")}>
             {(close) => <ContractForm contractorId={contractorId} contract={contract} onDone={() => { close(); onSaved(); }} />}
         </FormDialog>
     );
@@ -130,23 +134,25 @@ export function NewContractDialog({ contractors, trigger, onSaved }: {
     trigger: ReactNode;
     onSaved: () => void;
 }) {
+    const t = useT();
     return (
-        <FormDialog trigger={trigger} title="Nuovo contratto" description="Il contratto vale per un solo stabilimento.">
+        <FormDialog trigger={trigger} title={t("Nuovo contratto")} description={t("Il contratto vale per un solo stabilimento.")}>
             {(close) => <PickContractor contractors={contractors} onDone={() => { close(); onSaved(); }} />}
         </FormDialog>
     );
 }
 
 function PickContractor({ contractors, onDone }: { contractors: { id: string; name: string }[]; onDone: () => void }) {
+    const t = useT();
     const [contractorId, setContractorId] = useState(contractors.length === 1 ? contractors[0].id : "");
     if (contractors.length === 0) {
-        return <p className="text-sm text-muted-foreground">Prima registra almeno una ditta con «Nuova ditta», poi potrai creare il suo contratto.</p>;
+        return <p className="text-sm text-muted-foreground">{t("Prima registra almeno una ditta con «Nuova ditta», poi potrai creare il suo contratto.")}</p>;
     }
     return (
         <div className="grid gap-3">
-            <Field label="Ditta">
+            <Field label={t("Ditta")}>
                 <Select value={contractorId} onValueChange={setContractorId}>
-                    <SelectTrigger><SelectValue placeholder="Scegli la ditta" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t("Scegli la ditta")} /></SelectTrigger>
                     <SelectContent>{contractors.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
             </Field>
@@ -156,6 +162,7 @@ function PickContractor({ contractors, onDone }: { contractors: { id: string; na
 }
 
 function ContractForm({ contractorId, contract, onDone }: { contractorId: string; contract?: ContractRow; onDone: () => void }) {
+    const t = useT();
     const { plants, activePlant } = usePlant();
     const [plantId, setPlantId] = useState(contract?.plantId ?? activePlant?.id ?? plants[0]?.id ?? "");
     const [title, setTitle] = useState(contract?.title ?? "");
@@ -182,26 +189,26 @@ function ContractForm({ contractorId, contract, onDone }: { contractorId: string
     return (
         <form onSubmit={submit} className="grid gap-3">
             {!contract && plants.length > 1 && (
-                <Field label="Stabilimento">
+                <Field label={t("Stabilimento")}>
                     <Select value={plantId} onValueChange={setPlantId}>
-                        <SelectTrigger><SelectValue placeholder="Scegli lo stabilimento" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder={t("Scegli lo stabilimento")} /></SelectTrigger>
                         <SelectContent>{plants.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                     </Select>
                 </Field>
             )}
-            <Field id="k-title" label="Titolo"><Input id="k-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Es. Manutenzione compressori 2026" required /></Field>
-            <Field id="k-scope" label="Cosa copre"><Textarea id="k-scope" rows={2} maxLength={500} value={scope} onChange={(e) => setScope(e.target.value)} /></Field>
+            <Field id="k-title" label={t("Titolo")}><Input id="k-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("Es. Manutenzione compressori 2026")} required /></Field>
+            <Field id="k-scope" label={t("Cosa copre")}><Textarea id="k-scope" rows={2} maxLength={500} value={scope} onChange={(e) => setScope(e.target.value)} /></Field>
             <div className="grid grid-cols-2 gap-3">
-                <Field id="k-start" label="Inizio"><Input id="k-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} required /></Field>
-                <Field id="k-end" label="Scadenza" hint="Vuota = senza scadenza"><Input id="k-end" type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} /></Field>
+                <Field id="k-start" label={t("Inizio")}><Input id="k-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} required /></Field>
+                <Field id="k-end" label={t("Scadenza")} hint={t("Vuota = senza scadenza")}><Input id="k-end" type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} /></Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-                <Field id="k-notice" label="Preavviso di rinnovo (giorni)"><Input id="k-notice" type="number" min={0} max={365} value={notice} onChange={(e) => setNotice(e.target.value)} /></Field>
-                <Field id="k-value" label="Valore annuo (€)"><Input id="k-value" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} /></Field>
+                <Field id="k-notice" label={t("Preavviso di rinnovo (giorni)")}><Input id="k-notice" type="number" min={0} max={365} value={notice} onChange={(e) => setNotice(e.target.value)} /></Field>
+                <Field id="k-value" label={t("Valore annuo (€)")}><Input id="k-value" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} /></Field>
             </div>
-            <Field id="k-notes" label="Note"><Textarea id="k-notes" rows={2} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
-            {contract && <label className="flex items-center gap-2 text-sm"><Switch checked={terminated} onCheckedChange={setTerminated} /> Contratto disdetto</label>}
-            <DialogFooter><Button type="submit" disabled={busy}>{busy ? "Salvataggio..." : "Salva"}</Button></DialogFooter>
+            <Field id="k-notes" label={t("Note")}><Textarea id="k-notes" rows={2} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+            {contract && <label className="flex items-center gap-2 text-sm"><Switch checked={terminated} onCheckedChange={setTerminated} /> {t("Contratto disdetto")}</label>}
+            <DialogFooter><Button type="submit" disabled={busy}>{busy ? t("Salvataggio...") : t("Salva")}</Button></DialogFooter>
         </form>
     );
 }
@@ -214,8 +221,9 @@ export function ActivityFormDialog({ contract, assets, trigger, onSaved }: {
     trigger: ReactNode;
     onSaved: () => void;
 }) {
+    const t = useT();
     return (
-        <FormDialog trigger={trigger} title="Nuova attività periodica" description={`${contract.title} · ${contract.plantName}`}>
+        <FormDialog trigger={trigger} title={t("Nuova attività periodica")} description={`${contract.title} · ${contract.plantName}`}>
             {(close) => <ActivityForm contract={contract} assets={assets} onDone={() => { close(); onSaved(); }} />}
         </FormDialog>
     );
@@ -224,6 +232,7 @@ export function ActivityFormDialog({ contract, assets, trigger, onSaved }: {
 const NO_VALUE = "none";
 
 function ActivityForm({ contract, assets, onDone }: { contract: ContractRow; assets: { id: string; name: string; plantId: string | null }[]; onDone: () => void }) {
+    const t = useT();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [frequency, setFrequency] = useState("90");
@@ -235,8 +244,8 @@ function ActivityForm({ contract, assets, onDone }: { contract: ContractRow; ass
 
     useEffect(() => {
         let alive = true;
-        getTechnicians().then(t => {
-            if (alive) setPeople((t as { userId?: string | null; name: string }[]).filter(x => x.userId).map(x => ({ userId: x.userId as string, name: x.name })));
+        getTechnicians().then(list => {
+            if (alive) setPeople((list as { userId?: string | null; name: string }[]).filter(x => x.userId).map(x => ({ userId: x.userId as string, name: x.name })));
         });
         return () => { alive = false; };
     }, []);
@@ -256,36 +265,36 @@ function ActivityForm({ contract, assets, onDone }: { contract: ContractRow; ass
 
     return (
         <form onSubmit={submit} className="grid gap-3">
-            <Field id="a-title" label="Attività"><Input id="a-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Es. Verifica trimestrale compressore" required /></Field>
-            <Field id="a-desc" label="Dettaglio"><Textarea id="a-desc" rows={2} maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+            <Field id="a-title" label={t("Attività")}><Input id="a-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("Es. Verifica trimestrale compressore")} required /></Field>
+            <Field id="a-desc" label={t("Dettaglio")}><Textarea id="a-desc" rows={2} maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
             <div className="grid grid-cols-2 gap-3">
-                <Field label="Frequenza">
+                <Field label={t("Frequenza")}>
                     <Select value={frequency} onValueChange={setFrequency}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>{FREQUENCY_CHOICES.map(d => <SelectItem key={d} value={String(d)}>{frequencyText(d)}</SelectItem>)}</SelectContent>
+                        <SelectContent>{FREQUENCY_CHOICES.map(d => <SelectItem key={d} value={String(d)}>{t(frequencyText(d))}</SelectItem>)}</SelectContent>
                     </Select>
                 </Field>
-                <Field id="a-due" label="Prima scadenza"><Input id="a-due" type="date" value={firstDue} onChange={(e) => setFirstDue(e.target.value)} required /></Field>
+                <Field id="a-due" label={t("Prima scadenza")}><Input id="a-due" type="date" value={firstDue} onChange={(e) => setFirstDue(e.target.value)} required /></Field>
             </div>
-            <Field label="Macchina (facoltativa)">
+            <Field label={t("Macchina (facoltativa)")}>
                 <Select value={asset} onValueChange={setAsset}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={NO_VALUE}>Nessuna macchina in particolare</SelectItem>
+                        <SelectItem value={NO_VALUE}>{t("Nessuna macchina in particolare")}</SelectItem>
                         {plantAssets.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </Field>
-            <Field label="Referente interno (facoltativo)">
+            <Field label={t("Referente interno (facoltativo)")}>
                 <Select value={assignee} onValueChange={setAssignee}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={NO_VALUE}>Nessuno</SelectItem>
+                        <SelectItem value={NO_VALUE}>{t("Nessuno")}</SelectItem>
                         {people.map(p => <SelectItem key={p.userId} value={p.userId}>{p.name}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </Field>
-            <DialogFooter><Button type="submit" disabled={busy}>{busy ? "Salvataggio..." : "Aggiungi"}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" disabled={busy}>{busy ? t("Salvataggio...") : t("Aggiungi")}</Button></DialogFooter>
         </form>
     );
 }
@@ -293,14 +302,16 @@ function ActivityForm({ contract, assets, onDone }: { contract: ContractRow; ass
 // --- Esecuzione ---
 
 export function ExecutionDialog({ activity, trigger, onSaved }: { activity: Pick<ActivityRow, "id" | "title" | "contractorName">; trigger: ReactNode; onSaved: () => void }) {
+    const t = useT();
     return (
-        <FormDialog trigger={trigger} title="Registra intervento" description={`${activity.contractorName} · ${activity.title}`}>
+        <FormDialog trigger={trigger} title={t("Registra intervento")} description={`${activity.contractorName} · ${activity.title}`}>
             {(close) => <ExecutionForm activityId={activity.id} onDone={() => { close(); onSaved(); }} />}
         </FormDialog>
     );
 }
 
 function ExecutionForm({ activityId, onDone }: { activityId: string; onDone: () => void }) {
+    const t = useT();
     const [doneAt, setDoneAt] = useState(todayKey());
     const [outcome, setOutcome] = useState<"OK" | "ISSUES">("OK");
     const [notes, setNotes] = useState("");
@@ -319,22 +330,22 @@ function ExecutionForm({ activityId, onDone }: { activityId: string; onDone: () 
     return (
         <form onSubmit={submit} className="grid gap-3">
             <div className="grid grid-cols-2 gap-3">
-                <Field id="e-date" label="Data dell'intervento"><Input id="e-date" type="date" value={doneAt} max={todayKey()} onChange={(e) => setDoneAt(e.target.value)} required /></Field>
-                <Field id="e-cost" label="Costo (€, facoltativo)"><Input id="e-cost" inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} /></Field>
+                <Field id="e-date" label={t("Data dell'intervento")}><Input id="e-date" type="date" value={doneAt} max={todayKey()} onChange={(e) => setDoneAt(e.target.value)} required /></Field>
+                <Field id="e-cost" label={t("Costo (€, facoltativo)")}><Input id="e-cost" inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} /></Field>
             </div>
-            <Field label="Esito">
+            <Field label={t("Esito")}>
                 <Select value={outcome} onValueChange={(v) => setOutcome(v as "OK" | "ISSUES")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{OUTCOMES.map(o => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}</SelectContent>
+                    <SelectContent>{OUTCOMES.map(o => <SelectItem key={o.id} value={o.id}>{t(o.label)}</SelectItem>)}</SelectContent>
                 </Select>
             </Field>
-            <Field id="e-notes" label="Note" hint={outcome === "ISSUES" ? "Descrivi la criticità: il responsabile dello stabilimento riceve una notifica." : undefined}>
+            <Field id="e-notes" label={t("Note")} hint={outcome === "ISSUES" ? t("Descrivi la criticità: il responsabile dello stabilimento riceve una notifica.") : undefined}>
                 <Textarea id="e-notes" rows={3} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </Field>
-            <Field id="e-url" label="Collegamento al rapporto (facoltativo)" hint="Indirizzo del documento, per esempio su SharePoint o sul sito della ditta.">
+            <Field id="e-url" label={t("Collegamento al rapporto (facoltativo)")} hint={t("Indirizzo del documento, per esempio su SharePoint o sul sito della ditta.")}>
                 <Input id="e-url" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
             </Field>
-            <DialogFooter><Button type="submit" disabled={busy}>{busy ? "Registrazione..." : "Registra"}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" disabled={busy}>{busy ? t("Registrazione...") : t("Registra")}</Button></DialogFooter>
         </form>
     );
 }

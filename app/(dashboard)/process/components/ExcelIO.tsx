@@ -2,8 +2,10 @@
 
 import React, { useState, useRef } from "react";
 import { C, uid, today, addDays, mkSt, mkTask, SCOLS, TW_DEF, TASK_TYPES } from "@/lib/fpes-utils";
+import { useT } from "@/lib/i18n/client";
 
 export default function ExcelIO({ project: p, upd }: { project: any; upd: (patch: any) => void; }) {
+  const t = useT();
   const [tab, setTab] = useState("export");
   const [preview, setPreview] = useState<any>(null);
   const [log, setLog] = useState<any[]>([]);
@@ -24,7 +26,7 @@ export default function ExcelIO({ project: p, upd }: { project: any; upd: (patch
         
         const twD = p.timwoods || {};
         const twH = ["Spreco", "Codice", "Score(1-5)", "Livello"];
-        const twR = TW_DEF.map(t => [t.n, t.k, twD[t.k] || 1, (twD[t.k] || 1) <= 2 ? "BASSO" : (twD[t.k] || 1) === 3 ? "MEDIO" : "ALTO"]);
+        const twR = TW_DEF.map(w => [w.n, w.k, twD[w.k] || 1, (twD[w.k] || 1) <= 2 ? "BASSO" : (twD[w.k] || 1) === 3 ? "MEDIO" : "ALTO"]);
         const ws2 = XLSX.utils.aoa_to_sheet([twH, ...twR]);
         ws2["!cols"] = [{ wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 12 }];
         XLSX.utils.book_append_sheet(wb, ws2, "TIMWOODS");
@@ -33,7 +35,7 @@ export default function ExcelIO({ project: p, upd }: { project: any; upd: (patch
       });
     } catch (e) {
       console.error(e);
-      setLog(l => [...l, { t: "err", m: "Errore nell'esportazione. Assicurati che xlsx sia installato." }]);
+      setLog(l => [...l, { t: "err", m: t("Errore nell'esportazione. Assicurati che xlsx sia installato.") }]);
     }
   };
 
@@ -97,15 +99,15 @@ export default function ExcelIO({ project: p, upd }: { project: any; upd: (patch
                 pesoSollev: parseFloat(r[cm.pesoSollev]) || 8, consumoMin: parseFloat(r[cm.consumoMin]) || 0.3,
                 x: 60 + i * 130, y: 130
               }));
-              if (stazioni.length > 0) { result.stazioni = stazioni; lg.push({ t: "ok", m: "✓ \"" + sn + "\": " + stazioni.length + " postazioni" }); }
+              if (stazioni.length > 0) { result.stazioni = stazioni; lg.push({ t: "ok", m: t("✓ \"{sheet}\": {n} postazioni", { sheet: sn, n: stazioni.length }) }); }
             }
           });
           
-          if (Object.keys(result).length === 0) lg.push({ t: "warn", m: "⚠ Nessun dato riconosciuto. Usa i template." });
+          if (Object.keys(result).length === 0) lg.push({ t: "warn", m: t("⚠ Nessun dato riconosciuto. Usa i template.") });
           setPreview(result);
           setLog(lg);
         } catch (err: any) {
-          setLog([{ t: "err", m: "✗ Errore: " + err.message }]);
+          setLog([{ t: "err", m: t("✗ Errore: {message}", { message: err.message }) }]);
         }
         setImporting(false);
       };
@@ -119,40 +121,40 @@ export default function ExcelIO({ project: p, upd }: { project: any; upd: (patch
     const patch: any = {};
     if (preview.stazioni) patch.stazioni = preview.stazioni;
     upd(patch);
-    setLog(l => [...l, { t: "ok", m: "✓ Dati applicati al progetto!" }]);
+    setLog(l => [...l, { t: "ok", m: t("✓ Dati applicati al progetto!") }]);
     setPreview(null);
   };
 
   return (
     <div className="w-full">
-      <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">IMPORT / EXPORT EXCEL</h2>
+      <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">{t("IMPORT / EXPORT EXCEL")}</h2>
       
       <div className="flex gap-2 p-1 bg-slate-100 rounded-lg w-fit mb-6">
-        <button onClick={() => setTab("export")} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${tab === "export" ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>⬇ Export Excel</button>
-        <button onClick={() => setTab("import")} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${tab === "import" ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>⬆ Import da Excel</button>
+        <button onClick={() => setTab("export")} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${tab === "export" ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t("⬇ Export Excel")}</button>
+        <button onClick={() => setTab("import")} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${tab === "import" ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t("⬆ Import da Excel")}</button>
       </div>
 
       {tab === "export" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">EXPORT COMPLETO</h3>
-            <p className="text-xs text-slate-500 leading-relaxed mb-6">Esporta l'intero progetto in un file Excel contenente più fogli: Stazioni & Cicli, TIMWOODS, Kaizen, Gantt Task e SOP Steps.</p>
-            {!p && <div className="text-xs text-red-500 mb-4 bg-red-50 p-2 rounded border border-red-100">⚠ Apri o crea un progetto per esportare.</div>}
+            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{t("EXPORT COMPLETO")}</h3>
+            <p className="text-xs text-slate-500 leading-relaxed mb-6">{t("Esporta l'intero progetto in un file Excel contenente più fogli: Stazioni & Cicli, TIMWOODS, Kaizen, Gantt Task e SOP Steps.")}</p>
+            {!p && <div className="text-xs text-red-500 mb-4 bg-red-50 p-2 rounded border border-red-100">{t("⚠ Apri o crea un progetto per esportare.")}</div>}
             <button onClick={exportFull} disabled={!p} className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-              ⬇ Esporta {p ? '"' + p.nome + '"' : "(nessun progetto)"}
+              {p ? t("⬇ Esporta \"{name}\"", { name: p.nome }) : t("⬇ Esporta (nessun progetto)")}
             </button>
           </div>
           
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">TEMPLATE PER IMPORT</h3>
-            <p className="text-xs text-slate-500 mb-4">Scarica i template pre-formattati per compilare offline i dati e re-importarli nel sistema in un secondo momento.</p>
+            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{t("TEMPLATE PER IMPORT")}</h3>
+            <p className="text-xs text-slate-500 mb-4">{t("Scarica i template pre-formattati per compilare offline i dati e re-importarli nel sistema in un secondo momento.")}</p>
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="flex-1">
-                  <div className="text-xs font-bold text-slate-700">⏱ Template Stazioni</div>
-                  <div className="text-[10px] text-slate-400">Postazioni, cicli VA/NVA, ergonomia</div>
+                  <div className="text-xs font-bold text-slate-700">{t("⏱ Template Stazioni")}</div>
+                  <div className="text-[10px] text-slate-400">{t("Postazioni, cicli VA/NVA, ergonomia")}</div>
                 </div>
-                <button onClick={() => exportTpl("stazioni")} className="px-3 py-1.5 bg-white border border-slate-200 shadow-sm rounded-md text-blue-600 text-xs font-bold hover:bg-blue-50 hover:border-blue-200">⬇ Scarica</button>
+                <button onClick={() => exportTpl("stazioni")} className="px-3 py-1.5 bg-white border border-slate-200 shadow-sm rounded-md text-blue-600 text-xs font-bold hover:bg-blue-50 hover:border-blue-200">{t("⬇ Scarica")}</button>
               </div>
             </div>
           </div>
@@ -163,27 +165,27 @@ export default function ExcelIO({ project: p, upd }: { project: any; upd: (patch
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">CARICA FILE EXCEL</h3>
+              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{t("CARICA FILE EXCEL")}</h3>
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFile} />
               <div className="border-2 border-dashed border-slate-200 rounded-xl p-10 text-center cursor-pointer hover:bg-slate-50 transition-colors mb-4" onClick={() => fileRef.current && fileRef.current.click()}>
                 <div className="text-4xl mb-3">📂</div>
-                <div className="text-sm font-bold text-slate-700">Trascina qui o clicca per scegliere il file</div>
+                <div className="text-sm font-bold text-slate-700">{t("Trascina qui o clicca per scegliere il file")}</div>
                 <div className="text-xs text-slate-400 mt-2">.xlsx · .xls · .csv</div>
               </div>
               <button onClick={() => fileRef.current && fileRef.current.click()} disabled={importing} className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 disabled:opacity-50">
-                {importing ? "⏳ Analisi in corso..." : "📂 Scegli file"}
+                {importing ? t("⏳ Analisi in corso...") : t("📂 Scegli file")}
               </button>
             </div>
             
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">ISTRUZIONI</h3>
+              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">{t("ISTRUZIONI")}</h3>
               <div className="space-y-4">
                 {[
-                  ["1", "Scarica un template", "dalla scheda Export per avere il formato corretto"],
-                  ["2", "Compila i dati", "assicurati di non modificare le intestazioni delle colonne"],
-                  ["3", "Carica il file", "il sistema rileverà automaticamente i fogli riconosciuti"],
-                  ["4", "Verifica anteprima", "controlla i dati letti prima di confermare"],
-                  ["5", "Applica", "salva i dati nel progetto corrente"]
+                  ["1", t("Scarica un template"), t("dalla scheda Export per avere il formato corretto")],
+                  ["2", t("Compila i dati"), t("assicurati di non modificare le intestazioni delle colonne")],
+                  ["3", t("Carica il file"), t("il sistema rileverà automaticamente i fogli riconosciuti")],
+                  ["4", t("Verifica anteprima"), t("controlla i dati letti prima di confermare")],
+                  ["5", t("Applica"), t("salva i dati nel progetto corrente")]
                 ].map((s, i) => (
                   <div key={i} className="flex gap-3 items-start">
                     <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold shrink-0">{s[0]}</div>
@@ -210,10 +212,10 @@ export default function ExcelIO({ project: p, upd }: { project: any; upd: (patch
           {preview && (
             <div className="bg-white rounded-xl shadow-sm border border-blue-200 p-6 animate-in fade-in slide-in-from-bottom-4">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Anteprima Dati Rilevati</h3>
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">{t("Anteprima Dati Rilevati")}</h3>
                 <div className="flex gap-2">
-                  <button onClick={() => { setPreview(null); setLog([]); }} className="px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg">Annulla</button>
-                  <button onClick={applyImport} disabled={!p} className="px-4 py-1.5 text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg shadow-sm">✓ Applica al progetto</button>
+                  <button onClick={() => { setPreview(null); setLog([]); }} className="px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg">{t("Annulla")}</button>
+                  <button onClick={applyImport} disabled={!p} className="px-4 py-1.5 text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg shadow-sm">{t("✓ Applica al progetto")}</button>
                 </div>
               </div>
               
@@ -221,7 +223,7 @@ export default function ExcelIO({ project: p, upd }: { project: any; upd: (patch
                 <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
                   <div className="text-xs font-bold text-emerald-800 mb-3 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    {preview.stazioni.length} Postazioni Rilevate
+                    {t("{n} Postazioni Rilevate", { n: preview.stazioni.length })}
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     {preview.stazioni.slice(0, 6).map((s: any, i: number) => (
@@ -231,7 +233,7 @@ export default function ExcelIO({ project: p, upd }: { project: any; upd: (patch
                         <div className="text-[10px] font-mono text-emerald-600 font-bold">{s.cicloS}s</div>
                       </div>
                     ))}
-                    {preview.stazioni.length > 6 && <div className="text-xs text-slate-400 self-end mb-2 ml-2 italic">...e altre {preview.stazioni.length - 6}</div>}
+                    {preview.stazioni.length > 6 && <div className="text-xs text-slate-400 self-end mb-2 ml-2 italic">{t("...e altre {n}", { n: preview.stazioni.length - 6 })}</div>}
                   </div>
                 </div>
               )}

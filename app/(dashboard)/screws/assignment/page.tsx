@@ -9,9 +9,11 @@ import { Asset } from "@/lib/types";
 import { Box, GripVertical, Factory, ArrowRight, ArrowLeft, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useT } from "@/lib/i18n/client";
 
 // Draggable Component Card
 function DraggableComponent({ component }: { component: ComponentItem }) {
+    const t = useT();
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: component.id,
         data: { component }
@@ -36,7 +38,7 @@ function DraggableComponent({ component }: { component: ComponentItem }) {
                 <div className="text-xs text-muted-foreground">{component.model}</div>
             </div>
             <div className="ml-auto text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                {component.warehouse === 'RETINATO' ? 'RET' : 'MAG'}
+                {component.warehouse === 'RETINATO' ? t("RET") : t("MAG")}
             </div>
         </div>
     );
@@ -44,6 +46,7 @@ function DraggableComponent({ component }: { component: ComponentItem }) {
 
 // Droppable Asset Card
 function DroppableAsset({ asset, assignedComponents }: { asset: Asset, assignedComponents: ComponentItem[] }) {
+    const t = useT();
     const { setNodeRef, isOver } = useDroppable({
         id: asset.id,
         data: { asset }
@@ -73,7 +76,7 @@ function DroppableAsset({ asset, assignedComponents }: { asset: Asset, assignedC
             <div className="space-y-2 min-h-[60px] bg-muted/20 rounded-lg p-2 border border-dashed border-transparent">
                 {assignedComponents.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-xs text-muted-foreground italic">
-                        Trascina qui viti/cilindri
+                        {t("Trascina qui viti/cilindri")}
                     </div>
                 ) : (
                     assignedComponents.map(c => (
@@ -86,6 +89,7 @@ function DroppableAsset({ asset, assignedComponents }: { asset: Asset, assignedC
 }
 
 export default function AssignmentPage() {
+    const t = useT();
     const { components, assignComponent, moveWarehouse } = useComponents();
     const { assets } = useAssets();
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -155,12 +159,12 @@ export default function AssignmentPage() {
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
                 <div className="flex items-center gap-4 shrink-0">
-                    <Link href="/screws" className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+                    <Link href="/screws" aria-label={t("Torna al database viti e cilindri")} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
                         <ArrowLeft className="h-5 w-5" />
                     </Link>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Assegnazione Componenti</h1>
-                        <p className="text-muted-foreground text-sm">Trascina i componenti dal magazzino agli asset.</p>
+                        <h1 className="text-2xl font-bold tracking-tight">{t("Assegnazione Componenti")}</h1>
+                        <p className="text-muted-foreground text-sm">{t("Trascina i componenti dal magazzino agli asset.")}</p>
                     </div>
                 </div>
 
@@ -186,12 +190,13 @@ export default function AssignmentPage() {
                     {/* Assets (Target) */}
                     <div className="lg:col-span-2 flex flex-col rounded-xl border bg-muted/10 overflow-hidden">
                         <div className="p-4 border-b bg-muted/40 font-medium text-sm flex justify-between items-center gap-4">
-                            <span>Linee di Produzione & Asset</span>
+                            <span>{t("Linee di Produzione & Asset")}</span>
                             <div className="relative w-full max-w-xs">
                                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                                 <input
                                     className="w-full pl-8 h-8 rounded-md border bg-background px-3 text-xs focus:ring-1 focus:ring-primary outline-none"
-                                    placeholder="Cerca asset..."
+                                    placeholder={t("Cerca asset...")}
+aria-label={t("Cerca asset...")}
                                     value={assetFilter}
                                     onChange={(e) => setAssetFilter(e.target.value)}
                                 />
@@ -227,6 +232,8 @@ export default function AssignmentPage() {
 
 // Droppable Warehouse Area
 function DroppableWarehouse({ type, components }: { type: 'RETINATO' | 'MAGLIATO', components: ComponentItem[] }) {
+    const t = useT();
+    const typeLabel = type === 'RETINATO' ? t("RETINATO") : t("MAGLIATO");
     const { setNodeRef, isOver } = useDroppable({
         id: type,
         data: { type }
@@ -244,7 +251,7 @@ function DroppableWarehouse({ type, components }: { type: 'RETINATO' | 'MAGLIATO
                 "p-3 border-b font-medium text-sm flex justify-between items-center",
                 type === 'RETINATO' ? "bg-amber-50/50 text-amber-900" : "bg-blue-50/50 text-blue-900"
             )}>
-                <span>Magazzino {type}</span>
+                <span>{t("Magazzino {type}", { type: typeLabel })}</span>
                 <span className="text-xs bg-white px-2 py-0.5 rounded-full border shadow-sm">{components.length}</span>
             </div>
             <div className="p-3 flex-1 overflow-y-auto min-h-[200px]">
@@ -253,7 +260,7 @@ function DroppableWarehouse({ type, components }: { type: 'RETINATO' | 'MAGLIATO
                 ))}
                 {components.length === 0 && (
                     <div className="h-full flex items-center justify-center text-xs text-muted-foreground italic border-2 border-dashed rounded-lg m-2">
-                        Trascina qui per spostare in {type}
+                        {t("Trascina qui per spostare in {type}", { type: typeLabel })}
                     </div>
                 )}
             </div>

@@ -13,25 +13,27 @@ import { WorkOrder } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
-import { it } from "date-fns/locale";
+import { useT, useDateFnsLocale } from "@/lib/i18n/client";
 
 interface RequestListProps {
     requests: WorkOrder[];
 }
 
 export function RequestList({ requests }: RequestListProps) {
+    const t = useT();
+    const dfLocale = useDateFnsLocale();
     const [open, setOpen] = useState(false);
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Le Mie Richieste</h2>
+                <h2 className="text-xl font-semibold">{t("Le Mie Richieste")}</h2>
 
                 <Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger asChild>
                         <Button className="shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-shadow">
                             <Plus className="h-4 w-4 mr-2" />
-                            Nuova Richiesta
+                            {t("Nuova Richiesta")}
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto sm:max-h-[800px] p-0 border-0 bg-transparent shadow-none">
@@ -44,7 +46,7 @@ export function RequestList({ requests }: RequestListProps) {
 
             {requests.length === 0 ? (
                 <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed">
-                    <p className="text-muted-foreground">Nessuna richiesta trovata.</p>
+                    <p className="text-muted-foreground">{t("Nessuna richiesta trovata.")}</p>
                 </div>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -57,7 +59,7 @@ export function RequestList({ requests }: RequestListProps) {
                                         {req.status}
                                     </Badge>
                                     <span className="text-xs text-muted-foreground">
-                                        {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true, locale: it })}
+                                        {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true, locale: dfLocale })}
                                     </span>
                                 </div>
                                 <div>

@@ -2,8 +2,10 @@ import { WorkOrderForm } from "@/components/work-orders/wo-form";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { getT } from "@/lib/i18n/server";
 
-export default function NewWorkOrderPage() {
+export default async function NewWorkOrderPage() {
+    const { t } = await getT();
     return (
         <div className="flex flex-col gap-6 max-w-3xl mx-auto w-full">
             <div className="flex items-center gap-4">
@@ -11,8 +13,8 @@ export default function NewWorkOrderPage() {
                     <ArrowLeft className="h-5 w-5" />
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Crea Ordine di Lavoro</h1>
-                    <p className="text-muted-foreground text-sm">Pianifica un nuovo intervento di manutenzione.</p>
+                    <h1 className="text-2xl font-bold tracking-tight">{t("Crea Ordine di Lavoro")}</h1>
+                    <p className="text-muted-foreground text-sm">{t("Pianifica un nuovo intervento di manutenzione.")}</p>
                 </div>
             </div>
 

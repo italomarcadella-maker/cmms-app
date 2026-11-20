@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
+import { useT, useFormat } from "@/lib/i18n/client";
 
 interface PrintLayoutProps {
     title: string;
@@ -10,13 +11,15 @@ interface PrintLayoutProps {
 }
 
 export function PrintLayout({ title, subtitle, children }: PrintLayoutProps) {
+    const t = useT();
+    const fmt = useFormat();
     return (
         <div className="bg-white min-h-screen text-black relative">
             {/* Screen Actions - Hidden on Print */}
             <div className="print:hidden fixed top-20 right-8 z-50">
                 <Button onClick={() => window.print()} className="shadow-lg">
                     <Printer className="mr-2 h-4 w-4" />
-                    Stampa / PDF
+                    {t("Stampa / PDF")}
                 </Button>
             </div>
 
@@ -28,8 +31,8 @@ export function PrintLayout({ title, subtitle, children }: PrintLayoutProps) {
                         {subtitle && <p className="text-gray-500 font-medium">{subtitle}</p>}
                     </div>
                     <div className="text-right text-xs text-gray-400">
-                        <p>Generato da CMMS 2.0</p>
-                        <p>{new Date().toLocaleDateString('it-IT')} {new Date().toLocaleTimeString('it-IT')}</p>
+                        <p>{t("Generato da CMMS 2.0")}</p>
+                        <p>{fmt.date(new Date())} {fmt.time(new Date(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
                     </div>
                 </header>
 
@@ -38,7 +41,7 @@ export function PrintLayout({ title, subtitle, children }: PrintLayoutProps) {
                 </main>
 
                 <footer className="mt-12 pt-4 border-t text-center text-xs text-gray-400 print:fixed print:bottom-4 print:w-full print:border-t-0">
-                    <p>Documento generato automaticamente. Firma per approvazione: __________________________</p>
+                    <p>{t("Documento generato automaticamente. Firma per approvazione:")} __________________________</p>
                 </footer>
             </div>
 

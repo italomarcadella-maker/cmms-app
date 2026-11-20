@@ -12,8 +12,23 @@ import { useAssets } from "@/lib/assets-context";
 import { Pencil, Plus } from "lucide-react";
 import { EditComponentDialog } from "@/components/components/edit-component-dialog";
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { useT, useFormat } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
+
+// Testi mostrati per stato, magazzino e tipo (i valori restano quelli salvati)
+const STATUS_LABEL: Record<string, string> = {
+    OPTIMAL: tk("OPTIMAL"),
+    WARNING: tk("WARNING"),
+    CRITICAL: tk("CRITICAL"),
+    NEEDS_NITRIDING: tk("NITRURARE"),
+    NEEDS_REGENERATION: tk("RIGENERARE"),
+    TO_ORDER: tk("DA ORDINARE"),
+};
+const WAREHOUSE_LABEL: Record<string, string> = { RETINATO: tk("RETINATO"), MAGLIATO: tk("MAGLIATO") };
 
 export default function ScrewsPage() {
+    const t = useT();
+    const fmt = useFormat();
     const { components } = useComponents();
     const { assets } = useAssets();
     const [filter, setFilter] = useState("");
@@ -44,22 +59,22 @@ export default function ScrewsPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                        Database Viti e Cilindri
+                        {t("Database Viti e Cilindri")}
                     </h1>
-                    <p className="text-muted-foreground mt-1">Gestione magazzino e stato componenti critici.</p>
+                    <p className="text-muted-foreground mt-1">{t("Gestione magazzino e stato componenti critici.")}</p>
                 </div>
                 <div className="flex gap-2">
                     <StatusLegend />
                     <AddComponentDialog>
                         <button className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 hover:bg-emerald-700">
-                            <Plus className="h-4 w-4" /> Nuovo
+                            <Plus className="h-4 w-4" /> {t("Nuovo")}
                         </button>
                     </AddComponentDialog>
                     <Link
                         href="/screws/assignment"
                         className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
                     >
-                        <RotateCcw className="h-4 w-4" /> Assegnazione Asset
+                        <RotateCcw className="h-4 w-4" /> {t("Assegnazione Asset")}
                     </Link>
                 </div>
             </div>
@@ -67,25 +82,25 @@ export default function ScrewsPage() {
             {/* Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <MetricCard
-                    label="Totale Componenti"
+                    label={t("Totale Componenti")}
                     value={components.length}
-                    sub="In inventario"
+                    sub={t("In inventario")}
                 />
                 <MetricCard
-                    label="In Allerta"
+                    label={t("In Allerta")}
                     value={components.filter(c => c.status !== 'OPTIMAL').length}
-                    sub="Richiedono attenzione"
+                    sub={t("Richiedono attenzione")}
                     alert={components.filter(c => c.status !== 'OPTIMAL').length > 0}
                 />
                 <MetricCard
-                    label="Magazzino Retinato"
+                    label={t("Magazzino Retinato")}
                     value={components.filter(c => c.warehouse === 'RETINATO' && !c.assignedAssetId).length}
-                    sub="Pezzi disponibili"
+                    sub={t("Pezzi disponibili")}
                 />
                 <MetricCard
-                    label="Magazzino Magliato"
+                    label={t("Magazzino Magliato")}
                     value={components.filter(c => c.warehouse === 'MAGLIATO' && !c.assignedAssetId).length}
-                    sub="Pezzi disponibili"
+                    sub={t("Pezzi disponibili")}
                 />
             </div>
 
@@ -96,7 +111,8 @@ export default function ScrewsPage() {
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <input
                             type="text"
-                            placeholder="Cerca per codice o modello..."
+                            placeholder={t("Cerca per codice o modello...")}
+aria-label={t("Cerca per codice o modello...")}
                             className="pl-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
                             value={filter}
                             onChange={(e) => setFilter(e.target.value)}
@@ -108,9 +124,9 @@ export default function ScrewsPage() {
                             value={warehouseFilter}
                             onChange={(e) => setWarehouseFilter(e.target.value as any)}
                         >
-                            <option value="ALL">Tutti i Magazzini</option>
-                            <option value="RETINATO">Retinato</option>
-                            <option value="MAGLIATO">Magliato</option>
+                            <option value="ALL">{t("Tutti i Magazzini")}</option>
+                            <option value="RETINATO">{t("Retinato")}</option>
+                            <option value="MAGLIATO">{t("Magliato")}</option>
                         </select>
                     </div>
                 </div>
@@ -119,20 +135,20 @@ export default function ScrewsPage() {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-muted/50 text-muted-foreground font-medium border-b">
                             <tr>
-                                <th className="px-4 py-3">Codice</th>
-                                <th className="px-4 py-3">Modello</th>
-                                <th className="px-4 py-3">Tipo</th>
-                                <th className="px-4 py-3">Stato</th>
-                                <th className="px-4 py-3">Ultima Misura</th>
-                                <th className="px-4 py-3">Assegnazione/Posizione</th>
-                                <th className="px-4 py-3 text-right">Azioni</th>
+                                <th className="px-4 py-3">{t("Codice")}</th>
+                                <th className="px-4 py-3">{t("Modello")}</th>
+                                <th className="px-4 py-3">{t("Tipo")}</th>
+                                <th className="px-4 py-3">{t("Stato")}</th>
+                                <th className="px-4 py-3">{t("Ultima Misura")}</th>
+                                <th className="px-4 py-3">{t("Assegnazione/Posizione")}</th>
+                                <th className="px-4 py-3 text-right">{t("Azioni")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y">
                             {filteredComponents.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground italic">
-                                        Nessun componente trovato.
+                                        {t("Nessun componente trovato.")}
                                     </td>
                                 </tr>
                             ) : (
@@ -142,14 +158,14 @@ export default function ScrewsPage() {
                                             <ComponentDetailsDialog component={comp}>
                                                 <button className="text-left hover:underline decoration-primary hover:text-primary transition-colors flex items-center gap-2">
                                                     {comp.code}
-                                                    {comp.isScrapped && <span className="text-[10px] bg-red-200 text-red-800 px-1 rounded">ROTTAMATA</span>}
+                                                    {comp.isScrapped && <span className="text-[10px] bg-red-200 text-red-800 px-1 rounded">{t("ROTTAMATA")}</span>}
                                                 </button>
                                             </ComponentDetailsDialog>
                                         </td>
                                         <td className="px-4 py-3">{comp.model}</td>
                                         <td className="px-4 py-3">
                                             <span className={cn("px-2 py-0.5 rounded text-xs border", comp.type === 'SCREW' ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
-                                                {comp.type === 'SCREW' ? 'VITE' : 'CILINDRO'}
+                                                {comp.type === 'SCREW' ? t("VITE") : t("CILINDRO")}
                                             </span>
                                         </td>
 
@@ -163,12 +179,7 @@ export default function ScrewsPage() {
                                                                 comp.status === 'NEEDS_REGENERATION' ? "text-purple-600" :
                                                                     comp.status === 'TO_ORDER' ? "text-sky-600" :
                                                                         "text-red-600"
-                                                )}>{
-                                                        comp.status === 'NEEDS_NITRIDING' ? 'NITRURARE' :
-                                                            comp.status === 'NEEDS_REGENERATION' ? 'RIGENERARE' :
-                                                                comp.status === 'TO_ORDER' ? 'DA ORDINARE' :
-                                                                    comp.status
-                                                    }</span>
+                                                )}>{t(STATUS_LABEL[comp.status] ?? comp.status)}</span>
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
@@ -188,7 +199,7 @@ export default function ScrewsPage() {
                                                         <div className="flex flex-col gap-1 items-start">
                                                             <span className="text-muted-foreground text-sm">{lastMeasurement.value1} mm</span>
                                                             <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-medium whitespace-nowrap", colorClass)}>
-                                                                {mDate.toLocaleDateString('it-IT')}
+                                                                {fmt.date(mDate)}
                                                             </span>
                                                         </div>
                                                     );
@@ -204,7 +215,7 @@ export default function ScrewsPage() {
                                                         <div className="flex flex-col">
                                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700 border font-medium whitespace-nowrap mb-0.5 w-fit">
                                                                 <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                                                                {asset?.name || 'Asset Sconosciuto'}
+                                                                {asset?.name || t("Asset Sconosciuto")}
                                                             </span>
                                                             {asset?.line && (
                                                                 <span className="text-[10px] text-muted-foreground ml-1">
@@ -218,7 +229,7 @@ export default function ScrewsPage() {
                                                 <div className="flex flex-col">
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border w-fit whitespace-nowrap mb-1">
                                                         <span className="w-2 h-2 rounded-full bg-amber-400 mr-2"></span>
-                                                        {comp.warehouse}
+                                                        {t(WAREHOUSE_LABEL[comp.warehouse] ?? comp.warehouse)}
                                                     </span>
                                                     <span className="text-xs text-muted-foreground ml-1">
                                                         {comp.location}
@@ -229,12 +240,12 @@ export default function ScrewsPage() {
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <EditComponentDialog component={comp}>
-                                                    <button className="p-2 hover:bg-muted rounded-md text-blue-600 transition-colors" title="Modifica Anagrafica">
+                                                    <button className="p-2 hover:bg-muted rounded-md text-blue-600 transition-colors" title={t("Modifica Anagrafica")} aria-label={t("Modifica Anagrafica")}>
                                                         <Pencil className="h-4 w-4" />
                                                     </button>
                                                 </EditComponentDialog>
                                                 <MeasureDialog component={comp}>
-                                                    <button className="p-2 hover:bg-muted rounded-md text-primary transition-colors" title="Aggiungi Misura">
+                                                    <button className="p-2 hover:bg-muted rounded-md text-primary transition-colors" title={t("Aggiungi Misura")} aria-label={t("Aggiungi Misura")}>
                                                         <Ruler className="h-4 w-4" />
                                                     </button>
                                                 </MeasureDialog>
@@ -252,6 +263,7 @@ export default function ScrewsPage() {
 }
 
 function StatusLegend() {
+    const t = useT();
     const [open, setOpen] = useState(false);
 
     return (
@@ -259,7 +271,8 @@ function StatusLegend() {
             <button
                 onClick={() => setOpen(true)}
                 className="flex items-center gap-2 bg-white text-muted-foreground border px-3 py-2 rounded-lg font-medium shadow-sm hover:bg-muted transition-colors"
-                title="Legenda Stati"
+                title={t("Legenda Stati")}
+aria-label={t("Legenda Stati")}
             >
                 <Info className="h-4 w-4" />
             </button>
@@ -270,59 +283,59 @@ function StatusLegend() {
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-semibold text-lg flex items-center gap-2">
                                 <Info className="h-5 w-5 text-primary" />
-                                Legenda Stati Usura
+                                {t("Legenda Stati Usura")}
                             </h3>
                             <button onClick={() => setOpen(false)} className="p-1 hover:bg-muted rounded text-muted-foreground">
-                                <div className="sr-only">Chiudi</div>
+                                <div className="sr-only">{t("Chiudi")}</div>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x h-5 w-5"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                             </button>
                         </div>
 
                         <div className="space-y-6">
                             <div>
-                                <h4 className="font-medium mb-2 text-sm text-muted-foreground uppercase tracking-wider">Viti (Differenza Nominale)</h4>
+                                <h4 className="font-medium mb-2 text-sm text-muted-foreground uppercase tracking-wider">{t("Viti (Differenza Nominale)")}</h4>
                                 <div className="border rounded-lg overflow-hidden text-sm">
                                     <div className="grid grid-cols-2 bg-muted/50 font-medium p-2 border-b">
-                                        <div>Soglia (mm)</div>
-                                        <div>Stato</div>
+                                        <div>{t("Soglia (mm)")}</div>
+                                        <div>{t("Stato")}</div>
                                     </div>
                                     <div className="grid grid-cols-2 p-2 border-b">
                                         <div>&lt; 0.4</div>
-                                        <div className="text-emerald-600 font-medium flex items-center gap-2"><CheckCircle2 className="h-3 w-3" /> OPTIMAL</div>
+                                        <div className="text-emerald-600 font-medium flex items-center gap-2"><CheckCircle2 className="h-3 w-3" /> {t("OPTIMAL")}</div>
                                     </div>
                                     <div className="grid grid-cols-2 p-2 border-b">
                                         <div>0.5 - 0.6</div>
-                                        <div className="text-orange-600 font-medium flex items-center gap-2"><AlertTriangle className="h-3 w-3" /> NITRURARE</div>
+                                        <div className="text-orange-600 font-medium flex items-center gap-2"><AlertTriangle className="h-3 w-3" /> {t("NITRURARE")}</div>
                                     </div>
                                     <div className="grid grid-cols-2 p-2 border-b">
                                         <div>0.61 - 1.0</div>
-                                        <div className="text-purple-600 font-medium flex items-center gap-2"><AlertTriangle className="h-3 w-3" /> RIGENERARE</div>
+                                        <div className="text-purple-600 font-medium flex items-center gap-2"><AlertTriangle className="h-3 w-3" /> {t("RIGENERARE")}</div>
                                     </div>
                                     <div className="grid grid-cols-2 p-2">
                                         <div>&gt; 1.0</div>
-                                        <div className="text-red-600 font-medium flex items-center gap-2"><AlertTriangle className="h-3 w-3" /> ROTTAMARE</div>
+                                        <div className="text-red-600 font-medium flex items-center gap-2"><AlertTriangle className="h-3 w-3" /> {t("ROTTAMARE")}</div>
                                     </div>
                                 </div>
                             </div>
 
                             <div>
-                                <h4 className="font-medium mb-2 text-sm text-muted-foreground uppercase tracking-wider">Cilindri (Differenza Nominale)</h4>
+                                <h4 className="font-medium mb-2 text-sm text-muted-foreground uppercase tracking-wider">{t("Cilindri (Differenza Nominale)")}</h4>
                                 <div className="border rounded-lg overflow-hidden text-sm">
                                     <div className="grid grid-cols-2 bg-muted/50 font-medium p-2 border-b">
-                                        <div>Soglia (mm)</div>
-                                        <div>Stato</div>
+                                        <div>{t("Soglia (mm)")}</div>
+                                        <div>{t("Stato")}</div>
                                     </div>
                                     <div className="grid grid-cols-2 p-2 border-b">
                                         <div>&lt; 0.7</div>
-                                        <div className="text-emerald-600 font-medium flex items-center gap-2"><CheckCircle2 className="h-3 w-3" /> OPTIMAL</div>
+                                        <div className="text-emerald-600 font-medium flex items-center gap-2"><CheckCircle2 className="h-3 w-3" /> {t("OPTIMAL")}</div>
                                     </div>
                                     <div className="grid grid-cols-2 p-2 border-b">
                                         <div>0.7 - 0.8</div>
-                                        <div className="text-sky-600 font-medium flex items-center gap-2"><ShoppingCart className="h-3 w-3" /> DA ORDINARE</div>
+                                        <div className="text-sky-600 font-medium flex items-center gap-2"><ShoppingCart className="h-3 w-3" /> {t("DA ORDINARE")}</div>
                                     </div>
                                     <div className="grid grid-cols-2 p-2">
                                         <div>&gt; 0.8</div>
-                                        <div className="text-red-600 font-medium flex items-center gap-2"><AlertTriangle className="h-3 w-3" /> ROTTAMARE</div>
+                                        <div className="text-red-600 font-medium flex items-center gap-2"><AlertTriangle className="h-3 w-3" /> {t("ROTTAMARE")}</div>
                                     </div>
                                 </div>
                             </div>

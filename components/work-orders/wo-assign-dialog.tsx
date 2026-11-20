@@ -8,7 +8,8 @@ import { useWorkOrders } from "@/lib/work-orders-context";
 import { User, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { updateWorkOrderAssignments } from "@/lib/actions"; // Direct import
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
 
 interface WOAssignDialogProps {
     workOrderId: string | null;
@@ -19,6 +20,7 @@ interface WOAssignDialogProps {
 import { useRouter } from "next/navigation";
 
 export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WOAssignDialogProps) {
+    const t = useT();
     const router = useRouter();
     const { technicians } = useReference();
     const { workOrders } = useWorkOrders(); // Read-only access to list
@@ -32,7 +34,7 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
     useEffect(() => {
         // Initialize selection from WO data if available, else usage of legacy prop
         if (wo && wo.technicians && wo.technicians.length > 0) {
-            setSelectedTechIds(wo.technicians.map(t => t.id));
+            setSelectedTechIds(wo.technicians.map(tc => tc.id));
         } else if (currentTechnicianId) {
             setSelectedTechIds([currentTechnicianId]);
         } else {
@@ -46,21 +48,21 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
         let bestTechId: string | null = null;
         let maxScore = -1;
 
-        technicians.forEach(t => {
+        technicians.forEach(tc => {
             const assetJobs = workOrders.filter(w =>
-                w.assignedTechnicianId === t.id &&
+                w.assignedTechnicianId === tc.id &&
                 w.assetId === wo.assetId &&
                 w.status === 'CLOSED'
             ).length;
 
             let score = assetJobs * 3;
-            if (wo.category && t.specialty && wo.category.toLowerCase().includes(t.specialty.toLowerCase())) {
+            if (wo.category && tc.specialty && wo.category.toLowerCase().includes(tc.specialty.toLowerCase())) {
                 score += 5;
             }
 
             if (score > maxScore && score > 0) {
                 maxScore = score;
-                bestTechId = t.id;
+                bestTechId = tc.id;
             }
         });
 
@@ -99,7 +101,7 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
                 // Client context might be stale until refresh.
                 router.refresh(); // Syncs server components without full reload
             } else {
-                toast.error("Errore: " + res.message);
+                toast.error(t("Errore: {message}", { message: t(res.message) }));
             }
         } catch (e) {
             toast.error("Errore disistema");
@@ -113,12 +115,12 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
         <Dialog open={!!workOrderId} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Assegna Tecnici</DialogTitle>
+                    <DialogTitle>{t("Assegna Tecnici")}</DialogTitle>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Seleziona uno o più tecnici:</h4>
+                        <h4 className="font-medium text-sm">{t("Seleziona uno o più tecnici:")}</h4>
                         <div className="grid gap-2 max-h-[300px] overflow-y-auto pr-2">
                             <div
                                 className={cn(
@@ -131,7 +133,7 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
                                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                                         <User className="h-4 w-4 text-muted-foreground" />
                                     </div>
-                                    <span className="font-medium">Nessuno (Non assegnato)</span>
+                                    <span className="font-medium">{t("Nessuno (Non assegnato)")}</span>
                                 </div>
                                 {selectedTechIds.length === 0 && <Check className="h-4 w-4 text-primary" />}
                             </div>
@@ -159,7 +161,7 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
                                                     <p className="font-medium text-sm">{tech.name}</p>
                                                     {isRecommended && (
                                                         <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                                            ⚡ Best Match
+                                                            ⚡ {t("Best Match")}
                                                         </span>
                                                     )}
                                                 </div>
@@ -175,9 +177,9 @@ export function WOAssignDialog({ workOrderId, currentTechnicianId, onClose }: WO
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={isSaving}>Annulla</Button>
+                    <Button variant="outline" onClick={onClose} disabled={isSaving}>{t("Annulla")}</Button>
                     <Button onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? "Salvataggio..." : "Conferma"}
+                        {isSaving ? t("Salvataggio...") : t("Conferma")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

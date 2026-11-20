@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { SafetyList } from "@/components/requests/safety-list";
 import { ShieldAlert, CheckCircle2 } from "lucide-react";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,7 @@ async function getSafetyRequests() {
 }
 
 export default async function SafetyDashboardPage() {
+    const { t } = await getT();
     const requests = await getSafetyRequests();
 
     // Quick Stats
@@ -37,10 +39,10 @@ export default async function SafetyDashboardPage() {
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-bold tracking-tight text-red-600 flex items-center gap-2">
                     <ShieldAlert className="h-8 w-8" />
-                    Dashboard Sicurezza
+                    {t("Dashboard Sicurezza")}
                 </h1>
                 <p className="text-muted-foreground">
-                    Gestione centralizzata delle segnalazioni di sicurezza e incidenti.
+                    {t("Gestione centralizzata delle segnalazioni di sicurezza e incidenti.")}
                 </p>
             </div>
 
@@ -51,7 +53,7 @@ export default async function SafetyDashboardPage() {
                             <ShieldAlert className="h-6 w-6 text-red-600 animate-pulse" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-red-900">Criticità Attive</p>
+                            <p className="text-sm font-medium text-red-900">{t("Criticità Attive")}</p>
                             <p className="text-3xl font-bold text-red-700">{criticalCount}</p>
                         </div>
                     </div>
@@ -63,7 +65,7 @@ export default async function SafetyDashboardPage() {
                             <ShieldAlert className="h-6 w-6 text-amber-600" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-amber-900">Segnalazioni Aperte</p>
+                            <p className="text-sm font-medium text-amber-900">{t("Segnalazioni Aperte")}</p>
                             <p className="text-3xl font-bold text-amber-700">{openCount}</p>
                         </div>
                     </div>
@@ -75,14 +77,14 @@ export default async function SafetyDashboardPage() {
                             <CheckCircle2 className="h-6 w-6 text-emerald-600" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-emerald-900">Risolti (Totale)</p>
+                            <p className="text-sm font-medium text-emerald-900">{t("Risolti (Totale)")}</p>
                             <p className="text-3xl font-bold text-emerald-700">{resolvedCount}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Caricamento sicurezza...</div>}>
+            <Suspense fallback={<div className="p-8 text-center text-muted-foreground">{t("Caricamento sicurezza...")}</div>}>
                 <SafetyList requests={requests} />
             </Suspense>
         </div>

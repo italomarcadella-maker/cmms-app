@@ -1,11 +1,14 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useFormat } from "@/lib/i18n/client";
 import { useState, useEffect, useCallback } from "react";
 import { getSOPsByAsset, updateSopDocument } from "@/lib/process-actions";
 import { FileCheck2, Edit2, Save, X } from "lucide-react";
 
 export function AssetSOPList({ assetId }: { assetId: string }) {
+    const t = useT();
+    const fmt = useFormat();
     const [sops, setSops] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingSopId, setEditingSopId] = useState<string | null>(null);
@@ -67,8 +70,8 @@ export function AssetSOPList({ assetId }: { assetId: string }) {
     if (sops.length === 0) {
         return (
             <div className="text-center py-6 text-sm text-muted-foreground italic">
-                Nessuna SOP approvata per questo asset.<br />
-                <a href="/process/sop-builder" className="text-primary hover:underline mt-2 inline-block">Scannerizza nuova ricetta</a>
+                {t("Nessuna SOP approvata per questo asset.")}<br />
+                <a href="/process/sop-builder" className="text-primary hover:underline mt-2 inline-block">{t("Scannerizza nuova ricetta")}</a>
             </div>
         );
     }
@@ -105,30 +108,30 @@ export function AssetSOPList({ assetId }: { assetId: string }) {
                             <div>
                                 {isEditing ? (
                                     <div className="flex gap-2">
-                                        <button onClick={cancelEditing} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100">
+                                        <button onClick={cancelEditing} aria-label={t("Annulla")} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100">
                                             <X className="h-4 w-4" />
                                         </button>
-                                        <button onClick={() => saveSOP(sop.id)} className="p-1.5 text-emerald-600 hover:text-emerald-700 rounded-md hover:bg-emerald-50">
+                                        <button onClick={() => saveSOP(sop.id)} aria-label={t("Salva")} className="p-1.5 text-emerald-600 hover:text-emerald-700 rounded-md hover:bg-emerald-50">
                                             <Save className="h-4 w-4" />
                                         </button>
                                     </div>
                                 ) : (
                                     <button onClick={() => startEditing(sop)} className="text-xs flex items-center gap-1 text-slate-500 hover:text-indigo-600 font-medium">
-                                        <Edit2 className="h-3.5 w-3.5" /> Modifica
+                                        <Edit2 className="h-3.5 w-3.5" /> {t("Modifica")}
                                     </button>
                                 )}
                             </div>
                         </div>
 
                         <p className="text-xs text-slate-400 mb-4 border-b pb-2">
-                            Autore: {sop.author} • Inserita il: {new Date(sop.createdAt).toLocaleDateString('it-IT')}
+                            {t("Autore: {author} • Inserita il: {date}", { author: sop.author, date: fmt.date(sop.createdAt) })}
                         </p>
 
                         <div className="space-y-2">
                             <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-500 uppercase px-2">
-                                <div className="col-span-6">Parametro</div>
-                                <div className="col-span-3 text-center">Valore</div>
-                                <div className="col-span-3 text-center">Toll.</div>
+                                <div className="col-span-6">{t("Parametro")}</div>
+                                <div className="col-span-3 text-center">{t("Valore")}</div>
+                                <div className="col-span-3 text-center">{t("Toll.")}</div>
                             </div>
 
                             {(isEditing ? editParams : parsedParams).map((param: any, idx: number) => (
@@ -172,10 +175,10 @@ export function AssetSOPList({ assetId }: { assetId: string }) {
 
                             {isEditing && (
                                 <button
-                                    onClick={() => setEditParams([...editParams, { label: "Nuovo Parametro", value: 0, unit: "unità", tolerance: 1 }])}
+                                    onClick={() => setEditParams([...editParams, { label: t("Nuovo Parametro"), value: 0, unit: t("unità"), tolerance: 1 }])}
                                     className="w-full mt-2 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-100 border-dashed"
                                 >
-                                    + Aggiungi Parametro
+                                    {t("+ Aggiungi Parametro")}
                                 </button>
                             )}
                         </div>

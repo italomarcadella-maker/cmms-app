@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5QrcodeScanner, Html5QrcodeScanType, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Camera, X } from 'lucide-react';
+import { useT } from '@/lib/i18n/client';
 
 interface QRScannerProps {
     onScanSuccess: (decodedText: string) => void;
@@ -11,6 +12,7 @@ interface QRScannerProps {
 }
 
 export function QRScanner({ onScanSuccess, onScanFailure, onClose }: QRScannerProps) {
+    const t = useT();
     const scannerRegionId = 'qr-reader';
     const [scanError, setScanError] = useState<string | null>(null);
 
@@ -61,10 +63,11 @@ export function QRScanner({ onScanSuccess, onScanFailure, onClose }: QRScannerPr
                 <div className="flex justify-between items-center p-4 border-b bg-slate-50">
                     <h3 className="text-lg font-semibold flex items-center gap-2 text-slate-800">
                         <Camera className="h-5 w-5 text-indigo-600" />
-                        Scansione QR Code
+                        {t("Scansione QR Code")}
                     </h3>
                     <button
                         onClick={onClose}
+                        aria-label={t("Chiudi")}
                         className="p-2 bg-slate-200 text-slate-600 rounded-full hover:bg-slate-300 transition-colors"
                     >
                         <X className="h-5 w-5" />
@@ -76,7 +79,7 @@ export function QRScanner({ onScanSuccess, onScanFailure, onClose }: QRScannerPr
                 </div>
 
                 <div className="p-4 bg-slate-50 border-t text-sm text-center text-slate-500">
-                    Inquadra il QR Code dell'Asset o del componente. La scansione partirà in automatico.
+                    {t("Inquadra il QR Code dell'Asset o del componente. La scansione partirà in automatico.")}
                 </div>
             </div>
         </div>

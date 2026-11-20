@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { format } from "date-fns";
+import { getT } from "@/lib/i18n/server";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { auth } from "@/auth";
@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 export const dynamic = 'force-dynamic';
 
 export default async function AuditLogsPage() {
+    const { t, format: fmt } = await getT();
     const session = await auth();
     if (session?.user?.role !== 'ADMIN') {
         redirect('/');
@@ -22,29 +23,29 @@ export default async function AuditLogsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Audit Log</h1>
-                <p className="text-muted-foreground">Registro delle attività di sistema per sicurezza e compliance.</p>
+                <h1 className="text-3xl font-bold tracking-tight">{t("Audit Log")}</h1>
+                <p className="text-muted-foreground">{t("Registro delle attività di sistema per sicurezza e compliance.")}</p>
             </div>
 
             <div className="border rounded-lg">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[180px]">Data/Ora</TableHead>
-                            <TableHead className="w-[150px]">Utente</TableHead>
-                            <TableHead className="w-[150px]">Azione</TableHead>
-                            <TableHead>Dettagli</TableHead>
-                            <TableHead className="w-[150px]">Risorsa ID</TableHead>
+                            <TableHead className="w-[180px]">{t("Data/Ora")}</TableHead>
+                            <TableHead className="w-[150px]">{t("Utente")}</TableHead>
+                            <TableHead className="w-[150px]">{t("Azione")}</TableHead>
+                            <TableHead>{t("Dettagli")}</TableHead>
+                            <TableHead className="w-[150px]">{t("Risorsa ID")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {logs.map((log) => (
                             <TableRow key={log.id}>
                                 <TableCell className="font-mono text-xs">
-                                    {format(log.timestamp, 'dd/MM/yyyy HH:mm:ss')}
+                                    {fmt.dateTime(log.timestamp, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                 </TableCell>
                                 <TableCell className="font-medium text-sm">
-                                    {log.user ? (log.user.name || log.user.email) : 'Utente eliminato'}
+                                    {log.user ? (log.user.name || log.user.email) : t("Utente eliminato")}
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant="outline">{log.action}</Badge>

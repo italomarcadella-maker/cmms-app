@@ -9,6 +9,7 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkOrders } from "@/lib/work-orders-context";
 import { useAuth } from "@/lib/auth-context";
+import { useT } from "@/lib/i18n/client";
 import { PlantSwitcher } from "./plant-switcher";
 import { NAV_GROUPS, canSee, isItemActive, type NavItem } from "./nav-config";
 
@@ -55,6 +56,7 @@ interface SidebarProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
+    const t = useT();
     const { user, isLoading } = useAuth();
     const { workOrders } = useWorkOrders();
     const pathname = usePathname();
@@ -73,7 +75,7 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
 
     if (isLoading) {
         return (
-            <aside className={shell} aria-label="Navigazione principale">
+            <aside className={shell} aria-label={t("Navigazione principale")}>
                 <div className="h-14 border-b border-sidebar-border" />
                 <div className="space-y-2 p-4">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -90,7 +92,7 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
     })).filter((g) => g.items.length > 0);
 
     return (
-        <aside className={shell} aria-label="Navigazione principale">
+        <aside className={shell} aria-label={t("Navigazione principale")}>
             {/* Brand */}
             <div className={cn("flex h-14 shrink-0 items-center gap-3 border-b border-sidebar-border", collapsed ? "justify-center px-2" : "px-5")}>
                 <Image src="/brand/FITT-logo-bianco.svg" alt="FITT" width={46} height={28} unoptimized priority />
@@ -113,7 +115,7 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                             index > 0 && <div className="mx-2 mb-2 border-t border-sidebar-border" />
                         ) : (
                             <h3 className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
-                                {group.title}
+                                {t(group.title)}
                             </h3>
                         )}
                         {items.map((item) => (
@@ -135,15 +137,15 @@ export function Sidebar({ className, onNavigate, mobile }: SidebarProps) {
                     <button
                         type="button"
                         onClick={toggleCollapsed}
-                        aria-label={collapsed ? "Espandi il menu" : "Comprimi il menu"}
-                        title={collapsed ? "Espandi il menu" : "Comprimi il menu"}
+                        aria-label={collapsed ? t("Espandi il menu") : t("Comprimi il menu")}
+                        title={collapsed ? t("Espandi il menu") : t("Comprimi il menu")}
                         className={cn(
                             "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
                             collapsed && "justify-center px-0"
                         )}
                     >
                         {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-                        {!collapsed && <span>Comprimi menu</span>}
+                        {!collapsed && <span>{t("Comprimi menu")}</span>}
                     </button>
                 </div>
             )}
@@ -164,14 +166,16 @@ function SidebarItem({
     onClick?: () => void;
     badge?: number;
 }) {
+    const t = useT();
     const Icon = item.icon;
+    const label = t(item.label);
     const href = item.query ? `${item.href}?${item.query.key}=${item.query.value}` : item.href;
 
     return (
         <Link
             href={href}
             onClick={onClick}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? label : undefined}
             aria-current={active ? "page" : undefined}
             className={cn(
                 "group relative flex items-center gap-3 rounded-md py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
@@ -183,10 +187,10 @@ function SidebarItem({
         >
             {active && <span aria-hidden className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-sidebar-primary" />}
             <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-sidebar-primary" : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground")} />
-            {collapsed ? <span className="sr-only">{item.label}</span> : <span className="flex-1 truncate">{item.label}</span>}
+            {collapsed ? <span className="sr-only">{label}</span> : <span className="flex-1 truncate">{label}</span>}
             {badge !== undefined &&
                 (collapsed ? (
-                    <span aria-label={`${badge} da approvare`} className="absolute right-3 top-1.5 h-2 w-2 rounded-full bg-critical" />
+                    <span aria-label={t("{badge} da approvare", { badge })} className="absolute right-3 top-1.5 h-2 w-2 rounded-full bg-critical" />
                 ) : (
                     <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-critical px-1.5 text-[11px] font-semibold text-critical-foreground">
                         {badge}

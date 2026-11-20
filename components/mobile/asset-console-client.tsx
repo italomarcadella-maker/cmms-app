@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { 
     Play, 
     Pause, 
@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { updateAssetStatus, createQuickWorkOrder } from "@/lib/process-actions";
+import { useFormat, useT } from "@/lib/i18n/client";
 
 interface ActiveWO {
     id: string;
@@ -46,6 +47,8 @@ interface ConsoleClientProps {
 
 export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientProps) {
     const router = useRouter();
+    const t = useT();
+    const fmt = useFormat();
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
     const [isSubmittingWO, setIsSubmittingWO] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
@@ -85,10 +88,10 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
 
         if (res.success) {
             playSuccessSound();
-            toast.success(`Stato asset aggiornato a ${newStatus === "OPERATIONAL" ? "OPERATIVO" : newStatus === "MAINTENANCE" ? "MANUTENZIONE" : "OFFLINE"}`);
+            toast.success(t("Stato asset aggiornato a {status}", { status: newStatus === "OPERATIONAL" ? t("OPERATIVO") : newStatus === "MAINTENANCE" ? t("MANUTENZIONE") : t("OFFLINE") }));
             router.refresh();
         } else {
-            toast.error(res.message || "Errore aggiornamento stato");
+            toast.error(res.message || t("Errore aggiornamento stato"));
         }
     };
 
@@ -96,7 +99,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
     const handleReportSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!woTitle.trim()) {
-            toast.error("Inserisci un titolo per la segnalazione");
+            toast.error(t("Inserisci un titolo per la segnalazione"));
             return;
         }
 
@@ -112,22 +115,22 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
 
         if (res.success) {
             playSuccessSound();
-            toast.success("Ticket di emergenza inviato con successo!");
+            toast.success(t("Ticket di emergenza inviato con successo!"));
             setShowReportModal(false);
             setWoTitle("");
             setWoDesc("");
             router.refresh();
         } else {
-            toast.error(res.message || "Errore creazione segnalazione");
+            toast.error(res.message || t("Errore creazione segnalazione"));
         }
     };
 
     const statusObj = 
         asset.status === "OPERATIONAL"
-            ? { label: "OPERATIVO", color: "emerald", gradient: "from-emerald-500 to-teal-600", text: "text-emerald-500", border: "border-emerald-500/20", icon: CheckCircle2 }
+            ? { label: t("OPERATIVO"), color: "emerald", gradient: "from-emerald-500 to-teal-600", text: "text-emerald-500", border: "border-emerald-500/20", icon: CheckCircle2 }
             : asset.status === "MAINTENANCE"
-            ? { label: "IN MANUTENZIONE", color: "blue", gradient: "from-blue-500 to-indigo-600", text: "text-blue-500", border: "border-blue-500/20", icon: Wrench }
-            : { label: "FERMO IMPIANTO", color: "red", gradient: "from-red-600 to-rose-700", text: "text-red-500", border: "border-red-500/20", icon: ShieldAlert };
+            ? { label: t("IN MANUTENZIONE"), color: "blue", gradient: "from-blue-500 to-indigo-600", text: "text-blue-500", border: "border-blue-500/20", icon: Wrench }
+            : { label: t("FERMO IMPIANTO"), color: "red", gradient: "from-red-600 to-rose-700", text: "text-red-500", border: "border-red-500/20", icon: ShieldAlert };
 
     const StatusIcon = statusObj.icon;
 
@@ -140,7 +143,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                     className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border px-3 py-1.5 rounded-full hover:bg-zinc-100 transition-colors"
                 >
                     <ArrowLeft className="h-3.5 w-3.5" />
-                    <span>Torna a Scanner</span>
+                    <span>{t("Torna a Scanner")}</span>
                 </Link>
             </div>
 
@@ -156,7 +159,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                 <div className="relative flex justify-between items-start">
                     <div>
                         <span className="text-[10px] uppercase font-bold tracking-[0.2em] opacity-80 font-mono">
-                            Console Tecnica Mobile
+                            {t("Console Tecnica Mobile")}
                         </span>
                         <h1 className="text-2xl font-black tracking-tight mt-1">{asset.name}</h1>
                         <p className="text-xs opacity-90 font-mono mt-1">SN: {asset.serialNumber}</p>
@@ -169,11 +172,11 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
 
                 <div className="relative mt-6 pt-4 border-t border-white/20 flex items-center justify-between">
                     <div>
-                        <p className="text-[10px] uppercase font-bold tracking-wider opacity-85">Stato Corrente</p>
+                        <p className="text-[10px] uppercase font-bold tracking-wider opacity-85">{t("Stato Corrente")}</p>
                         <p className="text-lg font-black tracking-wide mt-0.5">{statusObj.label}</p>
                     </div>
                     <div className="bg-black/25 px-3 py-1 rounded-full text-center border border-white/10">
-                        <span className="text-[10px] uppercase font-bold tracking-wider block opacity-75">Health Score</span>
+                        <span className="text-[10px] uppercase font-bold tracking-wider block opacity-75">{t("Health Score")}</span>
                         <span className="text-sm font-extrabold">{asset.healthScore}%</span>
                     </div>
                 </div>
@@ -182,7 +185,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
             {/* Zero-Friction Big Status Selector Grid */}
             <div>
                 <h3 className="text-xs uppercase font-extrabold tracking-wider text-zinc-400 dark:text-zinc-500 mb-3 px-1">
-                    Cambio Stato Rapido (Zero Friction)
+                    {t("Cambio Stato Rapido (Zero Friction)")}
                 </h3>
                 <div className="grid grid-cols-3 gap-3">
                     {/* Operativo */}
@@ -201,7 +204,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                         ) : (
                             <Play className={cn("h-6 w-6 mb-1.5", asset.status === "OPERATIONAL" ? "text-emerald-500" : "text-zinc-400")} />
                         )}
-                        <span className="text-xs">Operativo</span>
+                        <span className="text-xs">{t("Operativo")}</span>
                     </button>
 
                     {/* Manutenzione */}
@@ -220,7 +223,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                         ) : (
                             <Wrench className={cn("h-6 w-6 mb-1.5", asset.status === "MAINTENANCE" ? "text-blue-500" : "text-zinc-400")} />
                         )}
-                        <span className="text-xs">Manutenzione</span>
+                        <span className="text-xs">{t("Manutenzione")}</span>
                     </button>
 
                     {/* Fermo Impianto */}
@@ -239,7 +242,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                         ) : (
                             <Pause className={cn("h-6 w-6 mb-1.5", asset.status === "OFFLINE" ? "text-red-500 animate-pulse" : "text-zinc-400")} />
                         )}
-                        <span className="text-xs">Fermo Impianto</span>
+                        <span className="text-xs">{t("Fermo Impianto")}</span>
                     </button>
                 </div>
             </div>
@@ -247,7 +250,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
             {/* Active Work Orders on Asset */}
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 p-5 rounded-3xl shadow-sm">
                 <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-3 flex items-center justify-between">
-                    <span>Ordini Attivi sull'Impianto</span>
+                    <span>{t("Ordini Attivi sull'Impianto")}</span>
                     <span className="text-xs bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full font-mono text-zinc-500 dark:text-zinc-400 font-bold">
                         {activeWorkOrders.length}
                     </span>
@@ -255,7 +258,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
 
                 {activeWorkOrders.length === 0 ? (
                     <div className="text-center py-6 text-zinc-400 text-xs border border-dashed rounded-2xl">
-                        Nessun ordine aperto per questo macchinario.
+                        {t("Nessun ordine aperto per questo macchinario.")}
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -278,7 +281,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                                             {wo.priority}
                                         </span>
                                         <span className="text-[10px] text-zinc-400 font-mono">
-                                            {new Date(wo.createdAt).toLocaleDateString('it-IT')}
+                                            {fmt.date(wo.createdAt)}
                                         </span>
                                     </div>
                                     <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-200 line-clamp-1">
@@ -286,7 +289,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                                     </h4>
                                     <div className="flex items-center gap-1 text-[9px] text-zinc-500 mt-1 font-semibold uppercase tracking-wider">
                                         <Activity className="h-3 w-3 text-violet-500" />
-                                        <span>Stato: {wo.status}</span>
+                                        <span>{t("Stato: {status}", { status: wo.status })}</span>
                                     </div>
                                 </Link>
                             );
@@ -302,7 +305,7 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                     className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-extrabold py-3.5 px-6 rounded-2xl shadow-xl shadow-red-500/20 active:scale-98 transition-all duration-300"
                 >
                     <Plus className="h-5 w-5" />
-                    <span>Segnala Guasto Rapido (1-Click)</span>
+                    <span>{t("Segnala Guasto Rapido (1-Click)")}</span>
                 </button>
             </div>
 
@@ -314,15 +317,15 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                             <div>
                                 <h3 className="text-lg font-black text-zinc-900 dark:text-zinc-50 flex items-center gap-1.5">
                                     <Cpu className="h-5 w-5 text-red-500" />
-                                    Nuova Segnalazione
+                                    {t("Nuova Segnalazione")}
                                 </h3>
-                                <p className="text-xs text-zinc-500">Asset: <strong>{asset.name}</strong></p>
+                                <p className="text-xs text-zinc-500">{t("Asset:")} <strong>{asset.name}</strong></p>
                             </div>
                             <button
                                 onClick={() => setShowReportModal(false)}
                                 className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 text-sm font-semibold p-2"
                             >
-                                Annulla
+                                {t("Annulla")}
                             </button>
                         </div>
 
@@ -330,11 +333,11 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                             {/* Title */}
                             <div>
                                 <label className="block text-[11px] uppercase font-bold tracking-wider text-zinc-500 mb-1">
-                                    Titolo Breve Guasto
+                                    {t("Titolo Breve Guasto")}
                                 </label>
                                 <input
                                     type="text"
-                                    placeholder="Es. Sostituzione cuscinetto rumoroso"
+                                    placeholder={t("Es. Sostituzione cuscinetto rumoroso")}
                                     value={woTitle}
                                     onChange={(e) => setWoTitle(e.target.value)}
                                     required
@@ -345,13 +348,13 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                             {/* Priority Selection */}
                             <div>
                                 <label className="block text-[11px] uppercase font-bold tracking-wider text-zinc-500 mb-1">
-                                    Gravità / Priorità
+                                    {t("Gravità / Priorità")}
                                 </label>
                                 <div className="grid grid-cols-3 gap-2">
                                     {[
-                                        { val: "STOPPED", label: "Fermo Linea", class: "border-red-500 text-red-600 bg-red-500/5" },
-                                        { val: "MALFUNCTIONING", label: "Rallentamento", class: "border-amber-500 text-amber-600 bg-amber-500/5" },
-                                        { val: "LOW", label: "Minore", class: "border-zinc-400 text-zinc-600 bg-zinc-400/5" }
+                                        { val: "STOPPED", label: t("Fermo Linea"), class: "border-red-500 text-red-600 bg-red-500/5" },
+                                        { val: "MALFUNCTIONING", label: t("Rallentamento"), class: "border-amber-500 text-amber-600 bg-amber-500/5" },
+                                        { val: "LOW", label: t("Minore"), class: "border-zinc-400 text-zinc-600 bg-zinc-400/5" }
                                     ].map((p) => (
                                         <button
                                             key={p.val}
@@ -373,31 +376,31 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                             {/* Category Selection */}
                             <div>
                                 <label className="block text-[11px] uppercase font-bold tracking-wider text-zinc-500 mb-1">
-                                    Ambito Intervento
+                                    {t("Ambito Intervento")}
                                 </label>
                                 <select
                                     value={woCategory}
                                     onChange={(e) => setWoCategory(e.target.value as any)}
                                     className="w-full p-3 text-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                                 >
-                                    <option value="MECHANICAL">⚙️ Meccanica</option>
-                                    <option value="ELECTRICAL">⚡ Elettrica</option>
-                                    <option value="HYDRAULIC">💧 Idraulica</option>
-                                    <option value="PNEUMATIC">💨 Pneumatica</option>
-                                    <option value="SOFTWARE">💻 Automazione / PLC</option>
-                                    <option value="SAFETY">🛡️ Sicurezza</option>
-                                    <option value="OTHER">📦 Altro</option>
+                                    <option value="MECHANICAL">⚙️ {t("Meccanica")}</option>
+                                    <option value="ELECTRICAL">⚡ {t("Elettrica")}</option>
+                                    <option value="HYDRAULIC">💧 {t("Idraulica")}</option>
+                                    <option value="PNEUMATIC">💨 {t("Pneumatica")}</option>
+                                    <option value="SOFTWARE">💻 {t("Automazione / PLC")}</option>
+                                    <option value="SAFETY">🛡️ {t("Sicurezza")}</option>
+                                    <option value="OTHER">📦 {t("Altro")}</option>
                                 </select>
                             </div>
 
                             {/* Description */}
                             <div>
                                 <label className="block text-[11px] uppercase font-bold tracking-wider text-zinc-500 mb-1">
-                                    Dettaglio Note (Opzionale)
+                                    {t("Dettaglio Note (Opzionale)")}
                                 </label>
                                 <textarea
                                     rows={3}
-                                    placeholder="Fornisci ulteriori informazioni sul blocco..."
+                                    placeholder={t("Fornisci ulteriori informazioni sul blocco...")}
                                     value={woDesc}
                                     onChange={(e) => setWoDesc(e.target.value)}
                                     className="w-full p-3 text-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
@@ -413,12 +416,12 @@ export function AssetConsoleClient({ asset, activeWorkOrders }: ConsoleClientPro
                                 {isSubmittingWO ? (
                                     <>
                                         <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                                        <span>Invio in corso...</span>
+                                        <span>{t("Invio in corso...")}</span>
                                     </>
                                 ) : (
                                     <>
                                         <AlertTriangle className="h-4.5 w-4.5" />
-                                        <span>Invia Segnalazione a Sistema</span>
+                                        <span>{t("Invia Segnalazione a Sistema")}</span>
                                     </>
                                 )}
                             </button>

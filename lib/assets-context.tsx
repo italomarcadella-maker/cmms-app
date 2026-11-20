@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext } from "react";
 import { Asset } from "@/lib/types";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import useSWR from "swr";
 
 interface AssetsContextType {

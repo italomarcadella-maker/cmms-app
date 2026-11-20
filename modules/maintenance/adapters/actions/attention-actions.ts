@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth-guard';
 import { getContractorsOverview } from './contractor-actions';
 import { getWeekPlan } from './dashboard-widgets-actions';
+import { getRegulatoryDeadlines } from './regulatory-actions';
 import { getMaintainerIdentity } from '@/lib/maintainer-scope';
 import { maintainerWorkOrderWhere, withMaintainerFilter } from '../../domain/maintainer-visibility';
 
@@ -90,10 +91,24 @@ export async function getAttentionItems(limit = 6): Promise<AttentionItem[]> {
     }
     // Copertura: macchine senza alcun piano e guasti chiusi senza analisi. Sono compiti di chi coordina, non del manutentore.
     if (!who) {
-        const [noPlan, noAnalysis] = await Promise.all([
+        const [noPlan, noAnalysis, regulatory] = await Promise.all([
             prisma.asset.count({ where: { NOT: { id: { startsWith: 'SYS-' } }, type: { in: ['MACHINE', 'FACILITY'] }, status: { in: ['OPERATIONAL', 'MAINTENANCE', 'OFFLINE'] }, schedules: { none: {} } } }),
             prisma.workOrder.count({ where: { type: 'FAULT', status: { in: ['CLOSED', 'COMPLETED'] }, ewo: { is: null } } }),
+            getRegulatoryDeadlines().catch(() => null),
         ]);
+        // Verifiche di legge (scadenziario normativo): critiche se scadute, altrimenti attenzione
+        if (regulatory?.success) {
+            const { overdue, expiring } = regulatory.totals;
+            if (overdue + expiring > 0) {
+                items.push({
+                    id: 'regulatory',
+                    severity: overdue > 0 ? 'critical' : 'warning',
+                    title: `${plural(overdue + expiring, 'verifica di legge scaduta o in scadenza', 'verifiche di legge scadute o in scadenza')}`,
+                    detail: `${overdue} ${overdue === 1 ? 'scaduta' : 'scadute'}, ${expiring} in scadenza entro 30 giorni`,
+                    href: '/maintenance/regulatory',
+                });
+            }
+        }
         if (noPlan > 0) {
             items.push({ id: 'no-plan', severity: 'info', title: `${plural(noPlan, 'macchina senza piano di manutenzione', 'macchine senza piano di manutenzione')}`, detail: 'Crea un piano dalla scheda dell\'asset', href: '/assets' });
         }

@@ -1,15 +1,20 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { LineSuggestions } from "@/components/planning/line-suggestions";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata = { title: "Linee senza calendario di produzione" };
+export async function generateMetadata() {
+    const { t } = await getT();
+    return { title: t("Linee senza calendario di produzione") };
+}
 
-export default function LineSuggestionsPage() {
+export default async function LineSuggestionsPage() {
+    const { t } = await getT();
     return (
         <div className="mx-auto max-w-6xl">
             <PageHeader
-                title="Linee senza calendario di produzione"
-                description="Senza un calendario di produzione la linea non ha vincoli: ecco cosa si può fare ora."
-                breadcrumb={[{ label: "Planning e calendario", href: "/planning/calendar" }, { label: "Suggerimenti per linea" }]}
+                title={t("Linee senza calendario di produzione")}
+                description={t("Senza un calendario di produzione la linea non ha vincoli: ecco cosa si può fare ora.")}
+                breadcrumb={[{ label: t("Planning e calendario"), href: "/planning/calendar" }, { label: t("Suggerimenti per linea") }]}
             />
             <LineSuggestions />
         </div>

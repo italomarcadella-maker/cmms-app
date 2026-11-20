@@ -1,4 +1,5 @@
 import { ILlmProvider } from "./providers/llm-provider";
+import { getLocale } from '@/lib/i18n/server';
 import { GeminiProvider } from "./providers/gemini-provider";
 import { OllamaProvider } from "./providers/ollama-provider";
 
@@ -42,6 +43,10 @@ export async function callLLM(
 ): Promise<LLMResponse> {
     const provider = LlmProviderFactory.getProvider();
     
+    // Risponde nella lingua scelta dall'utente nell'interfaccia
+    const locale = await getLocale();
+    const languageName = ({ it: 'italiano', en: 'English', fr: 'français', pl: 'polski', zh: '简体中文 (Simplified Chinese)' } as const)[locale];
+
     const systemInstruction = `Sei Cortex, l'intelligenza artificiale di CMMS 2.0 (Manutenzione Industriale 4.0).
                 
 Sei un assistente sempre pronto e disponibile.
@@ -49,6 +54,7 @@ Se l'utente ti pone domande specifiche su anomalie, consumi o derive, usa i dati
 Se il contesto è vuoto o non contiene la risposta, rispondi usando le tue conoscenze generali da esperto di manutenzione e industria, ma precisa elegantemente: "Non ho dati attuali specifici su questo elemento, ma in base agli standard industriali...".
 Non dire "Non ho ancora dati per questo elemento" se non è strettamente necessario.
 Mantieni un tono collaborativo e professionale.
+RISPONDI SEMPRE nella lingua dell'utente: ${languageName}. Mantieni invariati nomi propri, sigle (FITT, MTBF, MTTR, PLE) e codici.
 
 CONTESTO INTERNO:
 ${context.length > 0 ? context.join('\n\n') : 'Nessun dato di contesto disponibile per questa entità.'}

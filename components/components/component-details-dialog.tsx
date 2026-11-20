@@ -1,12 +1,15 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useFormat } from "@/lib/i18n/client";
 import { useState } from "react";
 import { useComponents, ComponentItem, ComponentLifecycle } from "@/lib/components-context";
 import { X, Save, Calendar, FileText, Activity, AlertTriangle, Trash2, Upload, File } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ComponentDetailsDialog({ component, children }: { component: ComponentItem, children: React.ReactNode }) {
+    const t = useT();
+    const fmt = useFormat();
     const { updateComponent } = useComponents();
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'INFO' | 'LIFECYCLE' | 'HISTORY'>('INFO');
@@ -70,11 +73,11 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                             <div>
                                 <h3 className="font-semibold text-lg flex items-center gap-2">
                                     {component.code}
-                                    {isScrapped && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded border border-red-200">ROTTAMATA</span>}
+                                    {isScrapped && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded border border-red-200">{t("ROTTAMATA")}</span>}
                                 </h3>
                                 <p className="text-sm text-muted-foreground">{component.model} • {component.manufacturer}</p>
                             </div>
-                            <button onClick={() => setOpen(false)} className="p-1 hover:bg-muted rounded text-muted-foreground">
+                            <button onClick={() => setOpen(false)} aria-label={t("Chiudi")} className="p-1 hover:bg-muted rounded text-muted-foreground">
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
@@ -85,19 +88,19 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                 onClick={() => setActiveTab('INFO')}
                                 className={cn("px-4 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === 'INFO' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
                             >
-                                Dati Generali
+                                {t("Dati Generali")}
                             </button>
                             <button
                                 onClick={() => setActiveTab('LIFECYCLE')}
                                 className={cn("px-4 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === 'LIFECYCLE' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
                             >
-                                Ciclo di Vita
+                                {t("Ciclo di Vita")}
                             </button>
                             <button
                                 onClick={() => setActiveTab('HISTORY')}
                                 className={cn("px-4 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === 'HISTORY' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}
                             >
-                                Cronologia Misure
+                                {t("Cronologia Misure")}
                             </button>
                         </div>
 
@@ -107,25 +110,25 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-muted-foreground">Disegno di Riferimento</label>
+                                            <label className="text-sm font-medium text-muted-foreground">{t("Disegno di Riferimento")}</label>
                                             <div className="relative">
                                                 <FileText className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                                 <input
                                                     className="w-full pl-9 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
-                                                    placeholder="Codice Disegno..."
+                                                    placeholder={t("Codice Disegno...")}
                                                     value={referenceDrawing}
                                                     onChange={(e) => setReferenceDrawing(e.target.value)}
                                                 />
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-muted-foreground">Costruttore</label>
+                                            <label className="text-sm font-medium text-muted-foreground">{t("Costruttore")}</label>
                                             <div className="px-3 py-2 text-sm border rounded-md bg-muted/50">
                                                 {component.manufacturer}
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-muted-foreground">Diametro Nominale (mm)</label>
+                                            <label className="text-sm font-medium text-muted-foreground">{t("Diametro Nominale (mm)")}</label>
                                             <div className="relative">
                                                 <Activity className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                                 <input
@@ -138,24 +141,25 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-muted-foreground">Data Acquisto</label>
+                                            <label className="text-sm font-medium text-muted-foreground">{t("Data Acquisto")}</label>
                                             <div className="px-3 py-2 text-sm border rounded-md bg-muted/50">
                                                 {component.purchaseDate}
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-muted-foreground">Disegno PDF</label>
+                                            <label className="text-sm font-medium text-muted-foreground">{t("Disegno PDF")}</label>
                                             <div className="flex items-center gap-2">
                                                 {drawingUrl ? (
                                                     <div className="flex-1 flex items-center justify-between p-2 border rounded-md bg-green-50 border-green-200">
                                                         <div className="flex items-center gap-2 text-green-700 overflow-hidden">
                                                             <File className="h-4 w-4 shrink-0" />
                                                             <a href={drawingUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline truncate max-w-[150px]">
-                                                                Apri Disegno
+                                                                {t("Apri Disegno")}
                                                             </a>
                                                         </div>
                                                         <button
                                                             onClick={() => setDrawingUrl("")}
+                                                            aria-label={t("Rimuovi il disegno")}
                                                             className="p-1 hover:bg-green-100 rounded text-green-700"
                                                         >
                                                             <X className="h-3 w-3" />
@@ -166,7 +170,7 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                                         <label className={cn("flex items-center justify-center w-full p-2 border-2 border-dashed rounded-md cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors group", isUploading && "opacity-50 pointer-events-none")}>
                                                             <div className="flex items-center gap-2 text-muted-foreground group-hover:text-primary">
                                                                 <Upload className="h-4 w-4" />
-                                                                <span className="text-xs font-medium">{isUploading ? "Caricamento..." : "Carica PDF"}</span>
+                                                                <span className="text-xs font-medium">{isUploading ? t("Caricamento...") : t("Carica PDF")}</span>
                                                             </div>
                                                             <input
                                                                 type="file"
@@ -193,11 +197,11 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                             />
                                             <label htmlFor="scrapped" className="text-sm font-medium text-red-600 flex items-center gap-2 cursor-pointer select-none">
                                                 <Trash2 className="h-4 w-4" />
-                                                Segna come ROTTAMATA
+                                                {t("Segna come ROTTAMATA")}
                                             </label>
                                         </div>
                                         <p className="text-xs text-muted-foreground mt-1 ml-6">
-                                            Il componente verrà contrassegnato come non più utilizzabile.
+                                            {t("Il componente verrà contrassegnato come non più utilizzabile.")}
                                         </p>
                                     </div>
                                 </div>
@@ -206,18 +210,18 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                             {activeTab === 'LIFECYCLE' && (
                                 <div className="space-y-6">
                                     <p className="text-sm text-muted-foreground mb-4">
-                                        Registra le date degli interventi di manutenzione straordinaria.
+                                        {t("Registra le date degli interventi di manutenzione straordinaria.")}
                                     </p>
 
                                     <div className="grid grid-cols-2 gap-8">
                                         {/* Nitriding Column */}
                                         <div className="space-y-4">
                                             <h4 className="font-semibold text-sm flex items-center gap-2 text-amber-600">
-                                                <Activity className="h-4 w-4" /> Nitrurazioni
+                                                <Activity className="h-4 w-4" /> {t("Nitrurazioni")}
                                             </h4>
 
                                             <div className="space-y-2">
-                                                <label className="text-xs font-medium">1° Nitrurazione</label>
+                                                <label className="text-xs font-medium">{t("1° Nitrurazione")}</label>
                                                 <input
                                                     type="date"
                                                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -226,7 +230,7 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-xs font-medium">2° Nitrurazione</label>
+                                                <label className="text-xs font-medium">{t("2° Nitrurazione")}</label>
                                                 <input
                                                     type="date"
                                                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -235,7 +239,7 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-xs font-medium">3° Nitrurazione</label>
+                                                <label className="text-xs font-medium">{t("3° Nitrurazione")}</label>
                                                 <input
                                                     type="date"
                                                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -248,11 +252,11 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                         {/* Regeneration Column */}
                                         <div className="space-y-4">
                                             <h4 className="font-semibold text-sm flex items-center gap-2 text-blue-600">
-                                                <Activity className="h-4 w-4" /> Rigenerazioni
+                                                <Activity className="h-4 w-4" /> {t("Rigenerazioni")}
                                             </h4>
 
                                             <div className="space-y-2">
-                                                <label className="text-xs font-medium">1° Rigenerazione</label>
+                                                <label className="text-xs font-medium">{t("1° Rigenerazione")}</label>
                                                 <input
                                                     type="date"
                                                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -261,7 +265,7 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-xs font-medium">2° Rigenerazione</label>
+                                                <label className="text-xs font-medium">{t("2° Rigenerazione")}</label>
                                                 <input
                                                     type="date"
                                                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -270,7 +274,7 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-xs font-medium">3° Rigenerazione</label>
+                                                <label className="text-xs font-medium">{t("3° Rigenerazione")}</label>
                                                 <input
                                                     type="date"
                                                     className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -288,22 +292,22 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-muted text-muted-foreground font-medium">
                                             <tr>
-                                                <th className="px-3 py-2">Data</th>
-                                                <th className="px-3 py-2">Valore</th>
-                                                <th className="px-3 py-2">Operatore</th>
+                                                <th className="px-3 py-2">{t("Data")}</th>
+                                                <th className="px-3 py-2">{t("Valore")}</th>
+                                                <th className="px-3 py-2">{t("Operatore")}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y">
                                             {component.measurements.length === 0 ? (
                                                 <tr>
                                                     <td colSpan={3} className="px-3 py-4 text-center text-muted-foreground italic">
-                                                        Nessuna misurazione registrata.
+                                                        {t("Nessuna misurazione registrata.")}
                                                     </td>
                                                 </tr>
                                             ) : (
                                                 [...component.measurements].reverse().map((m, i) => (
                                                     <tr key={i}>
-                                                        <td className="px-3 py-2">{m.date}</td>
+                                                        <td className="px-3 py-2">{fmt.date(m.date)}</td>
                                                         <td className="px-3 py-2 font-mono">{m.value1}</td>
                                                         <td className="px-3 py-2 text-muted-foreground">{m.operator}</td>
                                                     </tr>
@@ -321,14 +325,14 @@ export function ComponentDetailsDialog({ component, children }: { component: Com
                                 onClick={() => setOpen(false)}
                                 className="px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                             >
-                                Chiudi
+                                {t("Chiudi")}
                             </button>
                             {(activeTab === 'INFO' || activeTab === 'LIFECYCLE') && (
                                 <button
                                     onClick={handleSave}
                                     className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90"
                                 >
-                                    <Save className="h-4 w-4" /> Salva Modifiche
+                                    <Save className="h-4 w-4" /> {t("Salva Modifiche")}
                                 </button>
                             )}
                         </div>

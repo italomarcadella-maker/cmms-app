@@ -1,6 +1,7 @@
 "use client";
 
 import { escapeHtml } from '@/lib/html';
+import { useT } from "@/lib/i18n/client";
 import {
     Dialog,
     DialogContent,
@@ -23,6 +24,7 @@ interface QRCodeDialogProps {
 }
 
 export function QRCodeDialog({ part }: QRCodeDialogProps) {
+    const t = useT();
     const qrValue = JSON.stringify({
         id: part.id,
         type: "part",
@@ -71,16 +73,16 @@ export function QRCodeDialog({ part }: QRCodeDialogProps) {
             <DialogTrigger asChild>
                 <button
                     className="text-primary hover:bg-primary/10 transition-colors p-2 rounded-md"
-                    title="Genera QR Code"
+                    title={t("Genera QR Code")}
                 >
                     <QrCode className="h-4 w-4" />
                 </button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>QR Code: {part.name}</DialogTitle>
+                    <DialogTitle>{t("QR Code: {name}", { name: part.name })}</DialogTitle>
                     <DialogDescription>
-                        Scansiona questo codice per identificare rapidamente l'articolo.
+                        {t("Scansiona questo codice per identificare rapidamente l'articolo.")}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col items-center justify-center p-6 space-y-4" id="qr-to-print">
@@ -99,11 +101,11 @@ export function QRCodeDialog({ part }: QRCodeDialogProps) {
                 </div>
                 <div className="flex justify-end sm:justify-between items-center">
                     <span className="text-xs text-muted-foreground hidden sm:block">
-                        Etichetta pronta per la stampa
+                        {t("Etichetta pronta per la stampa")}
                     </span>
                     <Button onClick={handlePrint} variant="outline" className="gap-2">
                         <Printer className="h-4 w-4" />
-                        Stampa Etichetta
+                        {t("Stampa Etichetta")}
                     </Button>
                 </div>
             </DialogContent>

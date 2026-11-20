@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { updatePlant } from "@/lib/actions";
+import { useT } from "@/lib/i18n/client";
 
 export interface PlantRecord {
     id: string;
@@ -40,10 +41,11 @@ const fromField = (v: string): number | null => {
 };
 
 function MoneyField({ id, label, value, set, hint }: { id: string; label: string; value: string; set: (v: string) => void; hint: string }) {
+    const t = useT();
     return (
         <div className="grid gap-1.5">
             <Label htmlFor={id}>{label}</Label>
-            <Input id={id} inputMode="decimal" value={value} onChange={(e) => set(e.target.value)} placeholder="valore globale" />
+            <Input id={id} inputMode="decimal" value={value} onChange={(e) => set(e.target.value)} placeholder={t("valore globale")} />
             <p className="text-xs text-muted-foreground">{hint}</p>
         </div>
     );
@@ -51,6 +53,7 @@ function MoneyField({ id, label, value, set, hint }: { id: string; label: string
 
 /** Impostazioni proprie del plant: i campi vuoti usano il valore globale delle Impostazioni. */
 export function PlantEditDialog({ plant, canEditRegistry, onSaved }: Props) {
+    const t = useT();
     const [open, setOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const [name, setName] = useState(plant.name);
@@ -79,53 +82,53 @@ export function PlantEditDialog({ plant, canEditRegistry, onSaved }: Props) {
             toast.success("Stabilimento aggiornato");
             setOpen(false);
             onSaved();
-        } else toast.error(res.message ?? "Errore");
+        } else toast.error(res.message ?? t("Errore"));
     };
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm"><Settings2 className="h-4 w-4" /> Impostazioni</Button>
+                <Button variant="outline" size="sm"><Settings2 className="h-4 w-4" /> {t("Impostazioni")}</Button>
             </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px]">
                 <DialogHeader>
                     <DialogTitle>{plant.name}</DialogTitle>
                     <DialogDescription>
-                        Tariffe e costi di questo stabilimento. Un campo lasciato vuoto usa il valore globale delle Impostazioni.
+                        {t("Tariffe e costi di questo stabilimento. Un campo lasciato vuoto usa il valore globale delle Impostazioni.")}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={submit} className="grid gap-4">
                     {canEditRegistry && (
                         <div className="grid gap-3 rounded-md border p-3">
                             <div className="grid gap-1.5">
-                                <Label htmlFor="pname">Nome</Label>
+                                <Label htmlFor="pname">{t("Nome")}</Label>
                                 <Input id="pname" value={name} onChange={(e) => setName(e.target.value)} required />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="grid gap-1.5">
-                                    <Label htmlFor="ploc">Ubicazione</Label>
+                                    <Label htmlFor="ploc">{t("Ubicazione")}</Label>
                                     <Input id="ploc" value={location} onChange={(e) => setLocation(e.target.value)} />
                                 </div>
                                 <div className="grid gap-1.5">
-                                    <Label htmlFor="pcountry">Paese</Label>
+                                    <Label htmlFor="pcountry">{t("Paese")}</Label>
                                     <Input id="pcountry" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="IT" />
                                 </div>
                             </div>
                             <div className="grid gap-1.5">
-                                <Label htmlFor="ptz">Fuso orario</Label>
+                                <Label htmlFor="ptz">{t("Fuso orario")}</Label>
                                 <Input id="ptz" value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="Europe/Rome" />
                             </div>
                         </div>
                     )}
                     <div className="grid grid-cols-2 gap-3">
-                        <MoneyField id="el" label="Energia (€/kWh)" value={electricity} set={setElectricity} hint="Costo dell'energia elettrica" />
-                        <MoneyField id="wa" label="Acqua (€/m³)" value={water} set={setWater} hint="Costo dell'acqua" />
-                        <MoneyField id="co2" label="Fattore CO2 (kg/kWh)" value={co2} set={setCo2} hint="Emissioni della rete locale" />
-                        <MoneyField id="dt" label="Costo fermo (€/min)" value={downtime} set={setDowntime} hint="Per stimare il costo dei fermi" />
-                        <MoneyField id="lab" label="Costo orario manodopera (€/h)" value={labor} set={setLabor} hint="Se il tecnico non ha una tariffa" />
+                        <MoneyField id="el" label={t("Energia (€/kWh)")} value={electricity} set={setElectricity} hint={t("Costo dell'energia elettrica")} />
+                        <MoneyField id="wa" label={t("Acqua (€/m³)")} value={water} set={setWater} hint={t("Costo dell'acqua")} />
+                        <MoneyField id="co2" label={t("Fattore CO2 (kg/kWh)")} value={co2} set={setCo2} hint={t("Emissioni della rete locale")} />
+                        <MoneyField id="dt" label={t("Costo fermo (€/min)")} value={downtime} set={setDowntime} hint={t("Per stimare il costo dei fermi")} />
+                        <MoneyField id="lab" label={t("Costo orario manodopera (€/h)")} value={labor} set={setLabor} hint={t("Se il tecnico non ha una tariffa")} />
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={busy}>{busy ? "Salvataggio..." : "Salva"}</Button>
+                        <Button type="submit" disabled={busy}>{busy ? t("Salvataggio...") : t("Salva")}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

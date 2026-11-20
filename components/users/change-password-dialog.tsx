@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Key, Loader2, Lock } from 'lucide-react';
 import { updateUserPassword } from '@/lib/actions';
+import { useT } from '@/lib/i18n/client';
 
 interface ChangePasswordDialogProps {
     userId: string;
@@ -21,6 +22,9 @@ interface ChangePasswordDialogProps {
 }
 
 export function ChangePasswordDialog({ userId, userName }: ChangePasswordDialogProps) {
+    const t = useT();
+    // Il nome resta in grassetto: si traduce la frase con un segnaposto e si inserisce il nome nel punto giusto
+    const [descBefore, descAfter] = t("Imposta una nuova password per l'utente {name}.", { name: "\u0000" }).split("\u0000");
     const [open, setOpen] = useState(false);
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -34,7 +38,7 @@ export function ChangePasswordDialog({ userId, userName }: ChangePasswordDialogP
         setSuccess('');
 
         if (password.length < 3) {
-            setError('La password deve essere di almeno 3 caratteri.');
+            setError(t("La password deve essere di almeno 3 caratteri."));
             setLoading(false);
             return;
         }
@@ -42,14 +46,14 @@ export function ChangePasswordDialog({ userId, userName }: ChangePasswordDialogP
         try {
             const result = await updateUserPassword(userId, password);
             if (result.success) {
-                setSuccess('Password aggiornata con successo!');
+                setSuccess(t("Password aggiornata con successo!"));
                 setPassword('');
                 setTimeout(() => setOpen(false), 2000);
             } else {
-                setError(result.message || 'Errore sconosciuto.');
+                setError(result.message ? t(result.message) : t("Errore sconosciuto."));
             }
         } catch (err) {
-            setError('Si è verificato un errore.');
+            setError(t("Si è verificato un errore."));
         } finally {
             setLoading(false);
         }
@@ -67,20 +71,20 @@ export function ChangePasswordDialog({ userId, userName }: ChangePasswordDialogP
             <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
                     <Lock className="h-4 w-4" />
-                    Cambia Password
+                    {t("Cambia Password")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Cambia Password</DialogTitle>
+                    <DialogTitle>{t("Cambia Password")}</DialogTitle>
                     <DialogDescription>
-                        Imposta una nuova password per l'utente <strong>{userName}</strong>.
+                        {descBefore}<strong>{userName}</strong>{descAfter}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">
                         <label htmlFor="new-password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                            Nuova Password
+                            {t("Nuova Password")}
                         </label>
                         <div className="relative">
                             <Input
@@ -88,14 +92,14 @@ export function ChangePasswordDialog({ userId, userName }: ChangePasswordDialogP
                                 type="text"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Inserisci nuova password"
+                                placeholder={t("Inserisci nuova password")}
                                 className="pl-10"
                                 required
                             />
                             <Key className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            La password sarà visibile mentre digiti per conferma.
+                            {t("La password sarà visibile mentre digiti per conferma.")}
                         </p>
                     </div>
 
@@ -114,7 +118,7 @@ export function ChangePasswordDialog({ userId, userName }: ChangePasswordDialogP
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Salva Password
+                            {t("Salva Password")}
                         </Button>
                     </DialogFooter>
                 </form>

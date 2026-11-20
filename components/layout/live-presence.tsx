@@ -4,7 +4,12 @@ import React, { useState } from "react";
 import { User, Clock, ShieldAlert, Sparkles, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import useSWR from "swr";
+import { useT } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 import { getLivePresenceData } from "@/lib/process-actions";
+
+// Etichette di stato prodotte dall'azione del server (process-actions): elencate qui perche' vengano raccolte
+const STATUS_LABELS = [tk("Disponibile"), tk("In Attività"), tk("Emergenza EWO")];
 
 type OperatorStatus = "ONLINE" | "EXECUTING_TASK" | "WORKING_EWO";
 
@@ -22,6 +27,7 @@ interface Operator {
 }
 
 export function LivePresence() {
+    const t = useT();
     const [hoveredOp, setHoveredOp] = useState<string | null>(null);
     const { data: operators = [] } = useSWR("live-presence-operators", () => getLivePresenceData(), {
         fallbackData: [],
@@ -39,7 +45,7 @@ export function LivePresence() {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
                 </span>
                 <span className="text-[10px] uppercase tracking-wider font-extrabold text-violet-600 dark:text-violet-400">
-                    Live Shopfloor
+                    {t("Live Shopfloor")}
                 </span>
             </div>
 
@@ -116,7 +122,7 @@ export function LivePresence() {
                                                 op.status === "WORKING_EWO" && "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-500/30 animate-pulse"
                                             )}
                                         >
-                                            {op.statusLabel}
+                                            {t(STATUS_LABELS.find((l) => l === op.statusLabel) ?? op.statusLabel)}
                                         </span>
                                     </div>
 
@@ -131,7 +137,7 @@ export function LivePresence() {
                                                 <Activity className="h-3.5 w-3.5 text-emerald-500" />
                                             )}
                                             <span className="font-semibold text-[11px] uppercase tracking-wide">
-                                                {op.status === "WORKING_EWO" ? "Intervento Critico" : "Attività Corrente"}
+                                                {op.status === "WORKING_EWO" ? t("Intervento Critico") : t("Attività Corrente")}
                                             </span>
                                         </div>
                                         <p className="text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-900/60 p-2 rounded-lg border border-zinc-100 dark:border-zinc-800/40 font-mono text-[11px] leading-relaxed">
@@ -142,7 +148,7 @@ export function LivePresence() {
                                     {/* Location Info */}
                                     <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-zinc-500 dark:text-zinc-400">
                                         <Sparkles className="h-3 w-3 text-violet-500" />
-                                        <span>Posizione: <strong>{op.location}</strong></span>
+                                        <span>{t("Posizione:")} <strong>{op.location}</strong></span>
                                     </div>
                                 </div>
                             )}

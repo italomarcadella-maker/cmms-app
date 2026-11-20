@@ -15,8 +15,12 @@ import { CreateScheduleDialog } from "@/components/maintenance/create-schedule-d
 import { Button } from "@/components/ui/button";
 import { BackToDashboardButton } from "@/components/ui/back-button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useT, useFormat } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 
 export default function PMSchedulePage() {
+    const t = useT();
+    const fmt = useFormat();
     const { schedules, generateDueWorkOrders, deleteSchedule } = usePM(); // pm-context might need refresh logic eventually
     const { workOrders } = useWorkOrders();
     const { assets } = useAssets();
@@ -36,14 +40,14 @@ export default function PMSchedulePage() {
     };
 
     const getStatusColor = (dueDate: string, isWO: boolean = false) => {
-        if (!dueDate) return { bg: "bg-gray-100", text: "text-gray-700", label: "No Date" };
+        if (!dueDate) return { bg: "bg-gray-100", text: "text-gray-700", label: tk("Nessuna data") };
         const days = differenceInDays(new Date(dueDate), new Date());
 
-        if (days < 0) return { bg: "bg-red-100", text: "text-red-700", label: "Scaduto" };
-        if (days <= 2) return { bg: "bg-amber-100", text: "text-amber-700", label: "Urgente" };
+        if (days < 0) return { bg: "bg-red-100", text: "text-red-700", label: tk("Scaduto") };
+        if (days <= 2) return { bg: "bg-amber-100", text: "text-amber-700", label: tk("Urgente") };
 
-        if (isWO) return { bg: "bg-blue-100", text: "text-blue-700", label: "Attivo" };
-        return { bg: "bg-emerald-100", text: "text-emerald-700", label: "Pianificato" };
+        if (isWO) return { bg: "bg-blue-100", text: "text-blue-700", label: tk("Attivo") };
+        return { bg: "bg-emerald-100", text: "text-emerald-700", label: tk("Pianificato") };
     };
 
     // Unified List Type
@@ -95,9 +99,9 @@ export default function PMSchedulePage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                        Calendario Attività
+                        {t("Calendario Attività")}
                     </h1>
-                    <p className="text-muted-foreground mt-1">Vista unificata: Schedulazioni Preventive e Ordini di Lavoro Attivi.</p>
+                    <p className="text-muted-foreground mt-1">{t("Vista unificata: Schedulazioni Preventive e Ordini di Lavoro Attivi.")}</p>
                 </div>
                 <div className="flex gap-2">
                     {/* Keep generate button for manual triggering */}
@@ -106,7 +110,7 @@ export default function PMSchedulePage() {
                         variant="secondary" // User said they are different. Let's keep one secondary one primary but ensure same component structure.
                         className="gap-2"
                     >
-                        <RefreshCw className="h-4 w-4" /> Check Scadenze
+                        <RefreshCw className="h-4 w-4" /> {t("Check Scadenze")}
                     </Button>
                     {isAdmin && <CreateScheduleDialog />}
                 </div>
@@ -115,7 +119,7 @@ export default function PMSchedulePage() {
             {generatedCount !== null && (
                 <div className="bg-emerald-50 text-emerald-600 px-4 py-3 rounded-lg flex items-center gap-2 animate-in slide-in-from-top-2 border border-emerald-100">
                     <CheckCircle2 className="h-5 w-5" />
-                    <span className="font-medium">Generati con successo {generatedCount} nuovi ordini di lavoro.</span>
+                    <span className="font-medium">{generatedCount === 1 ? t("Generato con successo 1 nuovo ordine di lavoro.") : t("Generati con successo {count} nuovi ordini di lavoro.", { count: generatedCount })}</span>
                 </div>
             )}
 
@@ -132,7 +136,7 @@ export default function PMSchedulePage() {
                         >
                             {/* Type Badge */}
                             <div className={`absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${item.type === 'WO' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                {item.type === 'WO' ? 'ORDINE ATTIVO' : (item.frequency || 'PREVENTIVA')}
+                                {item.type === 'WO' ? t("ORDINE ATTIVO") : item.frequency === 'METER' ? t("A CONSUMO") : (item.frequency || t("PREVENTIVA"))}
                             </div>
 
                             <div className="flex justify-between items-start mb-4 pr-16"> {/* pr-16 for badge space */}
@@ -153,17 +157,17 @@ export default function PMSchedulePage() {
 
                             <div className="space-y-2 pt-4 border-t text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Stato:</span>
+                                    <span className="text-muted-foreground">{t("Stato:")}</span>
                                     <span className={`px-2 py-0.5 rounded text-xs font-semibold ${statusInfo.bg} ${statusInfo.text}`}>
-                                        {statusInfo.label}
+                                        {t(statusInfo.label)}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-muted-foreground flex items-center gap-1">
-                                        <Calendar className="h-3 w-3" /> Data Target:
+                                        <Calendar className="h-3 w-3" /> {t("Data Target:")}
                                     </span>
                                     <span className={`font-mono font-medium ${statusInfo.text}`}>
-                                        {new Date(item.date).toLocaleDateString('it-IT')}
+                                        {fmt.date(item.date)}
                                     </span>
                                 </div>
 
@@ -173,13 +177,13 @@ export default function PMSchedulePage() {
                                         <button
                                             onClick={async (e) => {
                                                 e.stopPropagation();
-                                                if (await confirm({ title: "Eliminare questa schedulazione?", confirmLabel: "Elimina", variant: "destructive" })) {
+                                                if (await confirm({ title: t("Eliminare questa schedulazione?"), confirmLabel: t("Elimina"), variant: "destructive" })) {
                                                     deleteSchedule(item.id);
                                                 }
                                             }}
                                             className="text-muted-foreground hover:text-red-600 transition-colors p-1 flex items-center gap-1 text-xs"
                                         >
-                                            <Trash2 className="h-3 w-3" /> Elimina
+                                            <Trash2 className="h-3 w-3" /> {t("Elimina")}
                                         </button>
                                     </div>
                                 )}
@@ -190,19 +194,19 @@ export default function PMSchedulePage() {
                                             <button
                                                 onClick={async (e) => {
                                                     e.stopPropagation();
-                                                    if (await confirm({ title: "Eliminare questo ordine di lavoro?", confirmLabel: "Elimina", variant: "destructive" })) {
+                                                    if (await confirm({ title: t("Eliminare questo ordine di lavoro?"), confirmLabel: t("Elimina"), variant: "destructive" })) {
                                                         const { deleteWorkOrder } = await import('@/lib/actions');
                                                         await deleteWorkOrder(item.id);
                                                     }
                                                 }}
                                                 className="text-muted-foreground hover:text-red-600 transition-colors p-1 flex items-center gap-1 text-xs"
-                                                title="Elimina Ordine"
+                                                title={t("Elimina Ordine")}
                                             >
-                                                <Trash2 className="h-3 w-3" /> Elimina
+                                                <Trash2 className="h-3 w-3" /> {t("Elimina")}
                                             </button>
                                         )}
                                         <div className="text-blue-600 text-xs font-medium group-hover:underline flex items-center ml-auto">
-                                            Vedi Dettagli →
+                                            {t("Vedi Dettagli")} →
                                         </div>
                                     </div>
                                 )}
@@ -215,7 +219,7 @@ export default function PMSchedulePage() {
 
                     <div className="col-span-full py-12 text-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
                         <Calendar className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                        <p>Nessuna schedulazione definita.</p>
+                        <p>{t("Nessuna schedulazione definita.")}</p>
                         {isAdmin && <div className="mt-4"><CreateScheduleDialog /></div>}
                     </div>
                 )}

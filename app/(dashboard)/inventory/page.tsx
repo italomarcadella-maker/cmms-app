@@ -1,6 +1,7 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useInventory } from "@/lib/inventory-context";
@@ -11,10 +12,11 @@ import { QRCodeDialog } from "@/components/inventory/qr-code-dialog";
 import Link from "next/link";
 import { PlantBadge } from "@/components/ui/plant-badge";
 import { usePrompt } from "@/components/ui/prompt-dialog";
-import { ArrowRightLeft, Layers } from "lucide-react";
+import { ArrowRightLeft, ClipboardList, History, Layers } from "lucide-react";
 
 
 export default function InventoryPage() {
+    const t = useT();
     const { parts, addPart, adjustQuantity, removePart } = useInventory();
     const [isAdding, setIsAdding] = useState(false);
     const { ask, dialog } = usePrompt();
@@ -67,9 +69,9 @@ export default function InventoryPage() {
                     </div>
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                            Magazzino Ricambi
+                            {t("Magazzino Ricambi")}
                         </h1>
-                        <p className="text-muted-foreground text-sm">Monitora scorte e posizioni dei materiali.</p>
+                        <p className="text-muted-foreground text-sm">{t("Monitora scorte e posizioni dei materiali.")}</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -78,28 +80,42 @@ export default function InventoryPage() {
                         className="inline-flex items-center gap-2 rounded-md border bg-background px-4 py-2 text-sm font-medium hover:bg-muted shadow-sm transition-all"
                     >
                         <ArrowRightLeft className="h-4 w-4" />
-                        Disponibilità tra plant
+                        {t("Disponibilità tra plant")}
+                    </Link>
+                    <Link
+                        href="/inventory/movements"
+                        className="inline-flex items-center gap-2 rounded-md border bg-background px-4 py-2 text-sm font-medium hover:bg-muted shadow-sm transition-all"
+                    >
+                        <History className="h-4 w-4" />
+                        {t("Storico movimenti")}
+                    </Link>
+                    <Link
+                        href="/inventory/counts"
+                        className="inline-flex items-center gap-2 rounded-md border bg-background px-4 py-2 text-sm font-medium hover:bg-muted shadow-sm transition-all"
+                    >
+                        <ClipboardList className="h-4 w-4" />
+                        {t("Inventari")}
                     </Link>
                     <Link
                         href="/inventory/catalog"
                         className="inline-flex items-center gap-2 rounded-md border bg-background px-4 py-2 text-sm font-medium hover:bg-muted shadow-sm transition-all"
                     >
                         <Layers className="h-4 w-4" />
-                        Catalogo
+                        {t("Catalogo")}
                     </Link>
                     <Link
                         href="/inventory/purchase-requests"
                         className="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/90 shadow-sm transition-all"
                     >
                         <AlertTriangle className="h-4 w-4" />
-                        Bozze d'Acquisto
+                        {t("Bozze d'Acquisto")}
                     </Link>
                     <button
                         onClick={() => setIsAdding(!isAdding)}
                         className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all hover:scale-105"
                     >
                         <Plus className={`h-4 w-4 transition-transform ${isAdding ? "rotate-45" : ""}`} />
-                        {isAdding ? "Annulla" : "Aggiungi Ricambio"}
+                        {isAdding ? t("Annulla") : t("Aggiungi Ricambio")}
                     </button>
                 </div>
             </div>
@@ -112,9 +128,9 @@ export default function InventoryPage() {
                         aria-pressed={lowOnly}
                         className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${lowOnly ? "border-destructive bg-destructive/10 text-destructive" : "text-muted-foreground hover:bg-muted"}`}
                     >
-                        Sotto scorta minima ({lowCount})
+                        {t("Sotto scorta minima ({count})", { count: lowCount })}
                     </button>
-                    {lowOnly && <button type="button" onClick={() => window.print()} className="text-xs text-primary hover:underline">Stampa l&apos;elenco</button>}
+                    {lowOnly && <button type="button" onClick={() => window.print()} className="text-xs text-primary hover:underline">{t("Stampa l'elenco")}</button>}
                 </div>
             )}
 
@@ -123,7 +139,7 @@ export default function InventoryPage() {
                 <div className="relative">
                     <input
                         type="text"
-                        placeholder="Cerca ricambi per nome, categoria o magazzino..."
+                        placeholder={t("Cerca ricambi per nome, categoria o magazzino...")}
                         className="pl-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-shadow"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -147,47 +163,47 @@ export default function InventoryPage() {
                 <div className="rounded-xl border bg-card p-6 shadow-sm animate-in fade-in slide-in-from-top-4">
                     <div className="flex justify-between items-center mb-4 border-b pb-2">
                         <h3 className="font-semibold text-lg flex items-center gap-2">
-                            <Box className="h-4 w-4 text-primary" /> Nuovo Ricambio
+                            <Box className="h-4 w-4 text-primary" /> {t("Nuovo Ricambio")}
                         </h3>
                     </div>
 
                     <form onSubmit={handleAdd} className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                         <div className="lg:col-span-2 space-y-2">
-                            <label className="text-sm font-medium">Nome Articolo</label>
+                            <label className="text-sm font-medium">{t("Nome Articolo")}</label>
                             <input required className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
-                                value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Cuscinetto SKF 6204" />
+                                value={newName} onChange={e => setNewName(e.target.value)} placeholder={t("e.g. Cuscinetto SKF 6204")} />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Categoria</label>
+                            <label className="text-sm font-medium">{t("Categoria")}</label>
                             <select className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"
                                 value={newCategory} onChange={e => setNewCategory(e.target.value)}>
-                                <option value="Consumables">Consumabili</option>
-                                <option value="Spares">Ricambi Critici</option>
-                                <option value="Tools">Utensili</option>
+                                <option value="Consumables">{t("Consumabili")}</option>
+                                <option value="Spares">{t("Ricambi Critici")}</option>
+                                <option value="Tools">{t("Utensili")}</option>
                             </select>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Magazzino</label>
+                            <label className="text-sm font-medium">{t("Magazzino")}</label>
                             <select className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"
                                 value={newWarehouse} onChange={e => setNewWarehouse(e.target.value)}>
-                                <option value="Magazzino motori">Magazzino motori</option>
-                                <option value="Magazzino Elettrico">Magazzino Elettrico</option>
-                                <option value="Magazzino meccanico">Magazzino meccanico</option>
-                                <option value="Deposito magazzino dischi">Deposito magazzino dischi</option>
+                                <option value="Magazzino motori">{t("Magazzino motori")}</option>
+                                <option value="Magazzino Elettrico">{t("Magazzino Elettrico")}</option>
+                                <option value="Magazzino meccanico">{t("Magazzino meccanico")}</option>
+                                <option value="Deposito magazzino dischi">{t("Deposito magazzino dischi")}</option>
                             </select>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Ubicazione</label>
+                            <label className="text-sm font-medium">{t("Ubicazione")}</label>
                             <input required className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                                value={newLocation} onChange={e => setNewLocation(e.target.value)} placeholder="e.g. Scaffale A" />
+                                value={newLocation} onChange={e => setNewLocation(e.target.value)} placeholder={t("e.g. Scaffale A")} />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Quantità Iniziale</label>
+                            <label className="text-sm font-medium">{t("Quantità Iniziale")}</label>
                             <input type="number" min="0" required className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"
                                 value={newQty} onChange={e => setNewQty(Number(e.target.value))} />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Min. Scorta</label>
+                            <label className="text-sm font-medium">{t("Min. Scorta")}</label>
                             <input type="number" min="0" required className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"
                                 value={newMinQty} onChange={e => setNewMinQty(Number(e.target.value))} />
                         </div>
@@ -197,10 +213,10 @@ export default function InventoryPage() {
                                 onClick={() => setIsAdding(false)}
                                 className="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
                             >
-                                Annulla
+                                {t("Annulla")}
                             </button>
                             <button type="submit" className="bg-primary text-primary-foreground px-6 py-2 rounded-md text-sm font-medium shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
-                                Salva Articolo
+                                {t("Salva Articolo")}
                             </button>
                         </div>
                     </form>
@@ -212,19 +228,19 @@ export default function InventoryPage() {
                     <table className="w-full text-sm">
                         <thead className="bg-muted/40 font-medium">
                             <tr>
-                                <th className="px-4 py-3 text-left">Articolo</th>
-                                <th className="px-4 py-3 text-left">Categoria</th>
-                                <th className="px-4 py-3 text-left">Magazzino</th>
-                                <th className="px-4 py-3 text-left">Ubicazione</th>
-                                <th className="px-4 py-3 text-center">Disponibilità</th>
-                                <th className="px-4 py-3 text-right">Azioni</th>
+                                <th className="px-4 py-3 text-left">{t("Articolo")}</th>
+                                <th className="px-4 py-3 text-left">{t("Categoria")}</th>
+                                <th className="px-4 py-3 text-left">{t("Magazzino")}</th>
+                                <th className="px-4 py-3 text-left">{t("Ubicazione")}</th>
+                                <th className="px-4 py-3 text-center">{t("Disponibilità")}</th>
+                                <th className="px-4 py-3 text-right">{t("Azioni")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y text-left">
                             {filteredParts.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="p-8 text-center text-muted-foreground italic">
-                                        Nessun articolo trovato.
+                                        {t("Nessun articolo trovato.")}
                                     </td>
                                 </tr>
                             ) : (
@@ -236,9 +252,9 @@ export default function InventoryPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
-                                                {part.category === 'Consumables' ? 'Consumabili' :
-                                                    part.category === 'Spares' ? 'Ricambi Critici' :
-                                                        part.category === 'Tools' ? 'Utensili' : part.category}
+                                                {part.category === 'Consumables' ? t('Consumabili') :
+                                                    part.category === 'Spares' ? t('Ricambi Critici') :
+                                                        part.category === 'Tools' ? t('Utensili') : part.category}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-sm text-muted-foreground">{part.warehouse}</td>
@@ -249,7 +265,7 @@ export default function InventoryPage() {
                                             </span>
                                             {part.quantity <= part.minQuantity && (
                                                 <div className="flex items-center justify-center gap-1 text-xs text-destructive mt-1 font-medium animate-pulse">
-                                                    <AlertTriangle className="h-3 w-3" /> Scorta Bassa
+                                                    <AlertTriangle className="h-3 w-3" /> {t("Scorta Bassa")}
                                                 </div>
                                             )}
                                             {part.quantity <= part.minQuantity && (
@@ -257,7 +273,7 @@ export default function InventoryPage() {
                                                     type="button"
                                                     className="mt-1 block w-full text-xs font-medium text-primary hover:underline"
                                                     onClick={async () => {
-                                                        const raw = await ask({ title: "Richiesta d'acquisto", description: `${part.name} · giacenza ${part.quantity}, minimo ${part.minQuantity}`, label: "Quanti pezzi servono?", inputType: "number", required: true, confirmLabel: "Invia richiesta" });
+                                                        const raw = await ask({ title: t("Richiesta d'acquisto"), description: t("{name} · giacenza {qty}, minimo {min}", { name: part.name, qty: part.quantity, min: part.minQuantity }), label: t("Quanti pezzi servono?"), inputType: "number", required: true, confirmLabel: t("Invia richiesta") });
                                                         if (raw === null) return;
                                                         const qty = Number(raw.replace(",", "."));
                                                         if (!Number.isInteger(qty) || qty <= 0) { toast.warning("Inserisci un numero intero maggiore di zero."); return; }
@@ -265,19 +281,25 @@ export default function InventoryPage() {
                                                         if (res.success) toast.success(res.message); else toast.error(res.message);
                                                     }}
                                                 >
-                                                    Richiedi
+                                                    {t("Richiedi")}
                                                 </button>
                                             )}
                                             {part.quantity <= part.minQuantity && (
                                                 <Link href={`/inventory/availability?search=${encodeURIComponent(part.name)}`} className="mt-1 block text-xs font-medium text-primary hover:underline">
-                                                    Cerca in altri plant
+                                                    {t("Cerca in altri plant")}
                                                 </Link>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right">
+                                            <Link
+                                                href={`/inventory/movements?partId=${encodeURIComponent(part.id)}`}
+                                                className="mr-1 inline-block p-2 text-xs font-medium text-primary hover:underline"
+                                            >
+                                                {t("Storico")}
+                                            </Link>
                                             <button
                                                 onClick={async () => {
-                                                    const qtyToAdd = await ask({ title: "Carico manuale", description: part.name, label: "Quanti pezzi vuoi caricare?", inputType: "number", defaultValue: "1", required: true, confirmLabel: "Carica" });
+                                                    const qtyToAdd = await ask({ title: t("Carico manuale"), description: part.name, label: t("Quanti pezzi vuoi caricare?"), inputType: "number", defaultValue: "1", required: true, confirmLabel: t("Carica") });
                                                     if (qtyToAdd !== null) {
                                                         const qty = Number(qtyToAdd.replace(",", "."));
                                                         if (!Number.isInteger(qty) || qty <= 0) { toast.warning("Inserisci un numero intero maggiore di zero."); return; }
@@ -285,7 +307,7 @@ export default function InventoryPage() {
                                                     }
                                                 }}
                                                 className="text-emerald-600 hover:bg-emerald-50 transition-colors p-2 rounded-md mr-1"
-                                                title="Carico Manuale"
+                                                title={t("Carico Manuale")}
                                             >
                                                 <div className="relative">
                                                     <Box className="h-4 w-4" />
@@ -294,7 +316,7 @@ export default function InventoryPage() {
                                             </button>
                                             <button
                                                 onClick={async () => {
-                                                    const qtyToRem = await ask({ title: "Scarico manuale", description: part.name, label: "Quanti pezzi vuoi scaricare?", inputType: "number", defaultValue: "1", required: true, confirmLabel: "Scarica" });
+                                                    const qtyToRem = await ask({ title: t("Scarico manuale"), description: part.name, label: t("Quanti pezzi vuoi scaricare?"), inputType: "number", defaultValue: "1", required: true, confirmLabel: t("Scarica") });
                                                     if (qtyToRem !== null) {
                                                         const qty = Number(qtyToRem.replace(",", "."));
                                                         if (!Number.isInteger(qty) || qty <= 0) { toast.warning("Inserisci un numero intero maggiore di zero."); return; }
@@ -306,7 +328,7 @@ export default function InventoryPage() {
                                                     }
                                                 }}
                                                 className="text-amber-600 hover:bg-amber-50 transition-colors p-2 rounded-md mr-1"
-                                                title="Scarico Manuale"
+                                                title={t("Scarico Manuale")}
                                             >
                                                 <div className="relative">
                                                     <Box className="h-4 w-4" />
@@ -319,7 +341,7 @@ export default function InventoryPage() {
                                             <button
                                                 onClick={() => removePart(part.id)}
                                                 className="text-muted-foreground hover:text-white hover:bg-destructive transition-colors p-2 rounded-md"
-                                                title="Rimuovi"
+                                                title={t("Rimuovi")}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>

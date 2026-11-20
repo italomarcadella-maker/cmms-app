@@ -6,6 +6,7 @@ import { requireRole } from '@/lib/auth-guard';
 import { crossPlant, getPlantScope, resolveWritePlantId, runUnscoped, PlantScopeError } from '@/lib/plant-scope';
 import { usersToNotify } from '@/lib/plant-users';
 import { rankMatches } from '../../domain/catalog-matching';
+import { applyStockChange, currentStockActor, recordStockMovement } from '@/lib/stock-ledger';
 
 /**
  * Disponibilita' dei ricambi tra stabilimenti e trasferimenti.
@@ -230,6 +231,7 @@ export async function decidePartTransfer(id: string, approve: boolean, decisionN
         }
         if (req.status !== 'REQUESTED') return { success: false, message: 'La richiesta e\' gia\' stata gestita.' };
 
+        const actor = await currentStockActor();
         await prisma.$transaction(async tx => {
             // Si "prenota" prima la richiesta: due approvazioni contemporanee non scalano due volte la giacenza
             const claimed = await tx.partTransferRequest.updateMany({
@@ -243,11 +245,16 @@ export async function decidePartTransfer(id: string, approve: boolean, decisionN
             });
             if (claimed.count !== 1) throw new Error('La richiesta e\' gia\' stata gestita.');
             if (approve) {
-                const res = await tx.sparePart.updateMany({
-                    where: { id: req.fromPartId, quantity: { gte: req.quantity } },
-                    data: { quantity: { decrement: req.quantity }, lastUpdated: new Date() },
+                // Scarico e movimento nella stessa transazione: la giacenza non scende sotto zero e lo storico non puo' mancare
+                await applyStockChange(tx, {
+                    partId: req.fromPartId,
+                    delta: -req.quantity,
+                    type: 'TRANSFER_OUT',
+                    reference: `PT:${id}`,
+                    note: 'Ceduto a un altro stabilimento (trasferimento approvato)',
+                    actor,
+                    insufficientMessage: 'Giacenza insufficiente per cedere i pezzi richiesti.',
                 });
-                if (res.count !== 1) throw new Error('Giacenza insufficiente per cedere i pezzi richiesti.');
             }
         });
 
@@ -290,6 +297,7 @@ export async function receivePartTransfer(id: string) {
             select: { category: true, description: true, vendor: true, unitCost: true },
         }), { transferId: id });
 
+        const receiver = await currentStockActor();
         await prisma.$transaction(async tx => {
             // La riga si porta a RECEIVED per prima e solo una conferma puo' riuscire: una seconda non accredita di nuovo
             const claimed = await tx.partTransferRequest.updateMany({ where: { id, status: 'APPROVED' }, data: { status: 'RECEIVED', receivedAt: new Date() } });
@@ -298,9 +306,16 @@ export async function receivePartTransfer(id: string) {
                 ? await tx.sparePart.findFirst({ where: { plantId: req.toPlantId, catalogId: req.catalogId } })
                 : null;
             if (existing) {
-                await tx.sparePart.update({ where: { id: existing.id }, data: { quantity: { increment: req.quantity }, lastUpdated: new Date() } });
+                await applyStockChange(tx, {
+                    partId: existing.id,
+                    delta: req.quantity,
+                    type: 'TRANSFER_IN',
+                    reference: `PT:${id}`,
+                    note: 'Ricevuto da un altro stabilimento (trasferimento)',
+                    actor: receiver,
+                });
             } else {
-                await tx.sparePart.create({
+                const created = await tx.sparePart.create({
                     data: {
                         name: req.partName,
                         category: source?.category ?? null,
@@ -312,6 +327,15 @@ export async function receivePartTransfer(id: string) {
                         plantId: req.toPlantId,
                         catalogId: req.catalogId,
                     },
+                });
+                // Articolo nuovo nello stabilimento: la giacenza nasce da questo trasferimento
+                await recordStockMovement(tx, {
+                    partId: created.id,
+                    type: 'TRANSFER_IN',
+                    delta: req.quantity,
+                    reference: `PT:${id}`,
+                    note: 'Ricevuto da un altro stabilimento (articolo nuovo nel magazzino)',
+                    actor: receiver,
                 });
             }
         });

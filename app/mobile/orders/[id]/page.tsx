@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { MobileOrderView } from "@/components/mobile/order-view";
+import { getT } from "@/lib/i18n/server";
 import { loadMobileOrder } from "@/lib/mobile-data";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +20,12 @@ export default async function MobileOrderPage({ params }: PageProps) {
     const { id } = await params;
     const order = await loadMobileOrder(decodeURIComponent(id));
     if (!order) notFound();
+    const { t } = await getT();
 
     return (
         <div className="space-y-4">
             <Link href="/mobile" className="inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4" aria-hidden /> Le attività
+                <ArrowLeft className="h-4 w-4" aria-hidden /> {t("Le attività")}
             </Link>
             <MobileOrderView order={order} />
         </div>

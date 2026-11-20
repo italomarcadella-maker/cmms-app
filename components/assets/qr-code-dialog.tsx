@@ -1,6 +1,7 @@
 "use client";
 
 import { useAssets } from "@/lib/assets-context";
+import { useT } from "@/lib/i18n/client";
 import { Printer, X } from "lucide-react";
 import Image from "next/image"; // Not using next/image for external mainly to avoid config issues, standard img is fine for print
 import { useRef } from "react";
@@ -12,6 +13,7 @@ interface QRCodeDialogProps {
 }
 
 export function QRCodeDialog({ isOpen, onClose, asset }: QRCodeDialogProps) {
+    const t = useT();
     if (!isOpen || !asset) return null;
 
     // Use a public API for QR Code generation (simple, no backend lib needed)
@@ -36,8 +38,8 @@ export function QRCodeDialog({ isOpen, onClose, asset }: QRCodeDialogProps) {
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden print-area">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b no-print">
-                    <h3 className="font-semibold text-lg">QR Code Asset</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full transition-colors">
+                    <h3 className="font-semibold text-lg">{t("QR Code Asset")}</h3>
+                    <button onClick={onClose} aria-label={t("Chiudi")} className="p-1 hover:bg-slate-100 rounded-full transition-colors">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
@@ -47,7 +49,7 @@ export function QRCodeDialog({ isOpen, onClose, asset }: QRCodeDialogProps) {
                     <div className="border-4 border-black p-4 rounded-xl bg-white">
                         <img
                             src={qrUrl}
-                            alt={`QR Code for ${asset.name}`}
+                            alt={t("QR Code per {name}", { name: asset.name })}
                             className="w-48 h-48 object-contain"
                         />
                     </div>
@@ -55,11 +57,11 @@ export function QRCodeDialog({ isOpen, onClose, asset }: QRCodeDialogProps) {
                     <div>
                         <h2 className="text-2xl font-bold uppercase tracking-wider text-black">{asset.name}</h2>
                         <p className="text-sm font-mono text-slate-500 mt-1">{asset.id}</p>
-                        <p className="font-medium text-slate-700 mt-2">{asset.location || 'Unknown Location'}</p>
+                        <p className="font-medium text-slate-700 mt-2">{asset.location || t("Ubicazione sconosciuta")}</p>
                     </div>
 
                     <div className="bg-slate-50 p-3 rounded-lg text-xs text-slate-500 w-full no-print">
-                        <p>Scansiona per accedere allo storico manutenzioni o aprire un nuovo ticket.</p>
+                        <p>{t("Scansiona per accedere allo storico manutenzioni o aprire un nuovo ticket.")}</p>
                     </div>
                 </div>
 
@@ -69,13 +71,13 @@ export function QRCodeDialog({ isOpen, onClose, asset }: QRCodeDialogProps) {
                         onClick={onClose}
                         className="px-4 py-2 text-sm font-medium hover:underline"
                     >
-                        Chiudi
+                        {t("Chiudi")}
                     </button>
                     <button
                         onClick={handlePrint}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg font-bold shadow-sm hover:bg-blue-700 transition-all"
                     >
-                        <Printer className="h-4 w-4" /> Stampa Etichetta
+                        <Printer className="h-4 w-4" /> {t("Stampa Etichetta")}
                     </button>
                 </div>
             </div>

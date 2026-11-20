@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireLogin } from '@/lib/auth-guard';
 import { getEffectiveSettings } from '@/lib/actions';
 import { getMaintainerIdentity, scopeWorkOrderWhere } from '@/lib/maintainer-scope';
+import { loadMeterReadings, usageStatusOf } from '@/lib/meter-usage';
 import {
     CLOSED_STATUSES,
     FALLBACK_LABOR_RATE,
@@ -39,6 +40,24 @@ export interface AssetPlanInfo {
     /** Ordini nati da questo piano (quelli visibili all'utente). */
     generatedCount: number;
     lastOrder: { id: string; createdAt: string; status: string } | null;
+    /** TIME = a scadenza di tempo, METER = a consumo di un contatore. */
+    triggerType: string;
+    isRegulatory: boolean;
+    legalReference: string | null;
+    authority: string | null;
+    /** Solo per i piani a consumo: contatore e avanzamento. Mai valori inventati: i campi senza dati sono null. */
+    meter: {
+        name: string;
+        unit: string;
+        interval: number | null;
+        currentValue: number | null;
+        lastReadingDate: string | null;
+        consumed: number | null;
+        usedPct: number | null;
+        remaining: number | null;
+        overdue: boolean;
+        estimatedDueDate: string | null;
+    } | null;
 }
 
 export interface AssetReliability {
@@ -110,7 +129,12 @@ export async function getAssetReliability(assetId: string): Promise<AssetReliabi
             }),
             prisma.preventiveSchedule.findMany({
                 where: { assetId },
-                select: { id: true, taskTitle: true, frequency: true, frequencyDays: true, lastRunDate: true, nextDueDate: true },
+                select: {
+                    id: true, taskTitle: true, frequency: true, frequencyDays: true, lastRunDate: true, nextDueDate: true,
+                    triggerType: true, meterId: true, meterInterval: true, lastMeterValue: true,
+                    isRegulatory: true, legalReference: true, authority: true,
+                    meter: { select: { name: true, unit: true } },
+                },
                 orderBy: { nextDueDate: 'asc' },
             }),
         ]);
@@ -153,8 +177,14 @@ export async function getAssetReliability(assetId: string): Promise<AssetReliabi
             else bySchedule.set(wo.originScheduleId, { count: 1, last: { id: wo.id, createdAt: wo.createdAt.toISOString(), status: String(wo.status) } });
         }
 
+        // Piani a consumo: letture dei loro contatori
+        const meterIds = schedules.filter(s => s.triggerType === 'METER' && s.meterId).map(s => s.meterId as string);
+        const meterReadings = meterIds.length ? await loadMeterReadings(meterIds) : new Map();
+
         const plans: AssetPlanInfo[] = schedules.map(s => {
             const g = bySchedule.get(s.id);
+            const isMeter = s.triggerType === 'METER';
+            const usage = isMeter ? usageStatusOf(s, meterReadings) : null;
             return {
                 id: s.id,
                 taskTitle: s.taskTitle,
@@ -162,10 +192,29 @@ export async function getAssetReliability(assetId: string): Promise<AssetReliabi
                 frequencyDays: s.frequencyDays,
                 lastRunDate: s.lastRunDate ? s.lastRunDate.toISOString() : null,
                 nextDueDate: s.nextDueDate.toISOString(),
-                status: planStatus(s.nextDueDate, now),
-                daysOverdue: planDaysOverdue(s.nextDueDate, now),
+                // A consumo la scadenza di calendario e' solo una stima: lo stato viene dal consumo del contatore
+                status: usage ? (usage.overdue ? 'OVERDUE' : 'ON_TIME') : planStatus(s.nextDueDate, now),
+                daysOverdue: usage ? 0 : planDaysOverdue(s.nextDueDate, now),
                 generatedCount: g?.count ?? 0,
                 lastOrder: g?.last ?? null,
+                triggerType: s.triggerType,
+                isRegulatory: s.isRegulatory,
+                legalReference: s.legalReference,
+                authority: s.authority,
+                meter: usage
+                    ? {
+                        name: s.meter?.name ?? 'Contatore eliminato',
+                        unit: s.meter?.unit ?? '',
+                        interval: usage.interval,
+                        currentValue: usage.currentValue,
+                        lastReadingDate: usage.lastReadingDate,
+                        consumed: usage.consumed,
+                        usedPct: usage.usedPct,
+                        remaining: usage.remaining,
+                        overdue: usage.overdue,
+                        estimatedDueDate: usage.estimatedDueDate ? usage.estimatedDueDate.toISOString() : null,
+                    }
+                    : null,
             };
         });
 

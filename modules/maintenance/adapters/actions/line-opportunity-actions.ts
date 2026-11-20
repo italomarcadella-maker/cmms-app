@@ -73,7 +73,8 @@ export async function getLineOpportunities(options?: { horizonDays?: 7 | 14 | 30
         const [configuredLines, assetRows] = await Promise.all([
             prisma.productionLine.findMany({ select: { plantId: true, line: true } }),
             prisma.asset.findMany({
-                where: { line: { not: null }, NOT: { id: { startsWith: 'SYS-' } }, status: { notIn: ['DECOMMISSIONED', 'STORAGE'] } },
+                // Gli impianti (aria compressa, cabine, caldaie: asset di tipo FACILITY) non sono linee di produzione: restano fuori dai suggerimenti
+                where: { line: { not: null }, type: { not: 'FACILITY' }, NOT: { id: { startsWith: 'SYS-' } }, status: { notIn: ['DECOMMISSIONED', 'STORAGE'] } },
                 select: { id: true, name: true, line: true, plantId: true, status: true },
             }),
         ]);

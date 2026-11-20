@@ -4,14 +4,17 @@ import { useEffect, useState, use } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ShieldCheck, AlertTriangle, Activity, Wrench, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useT, useFormat } from "@/lib/i18n/client";
 
 export default function DailyMeetingPrintReport({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
+    const t = useT();
+    const fmt = useFormat();
     const [dateString, setDateString] = useState("");
 
     useEffect(() => {
-        setTimeout(() => setDateString(new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })), 0);
-    }, []);
+        setTimeout(() => setDateString(fmt.date(new Date(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })), 0);
+    }, [fmt]);
 
     const handlePrint = () => {
         window.print();
@@ -22,20 +25,20 @@ export default function DailyMeetingPrintReport({ params }: { params: Promise<{ 
             {/* Action Bar (hidden in print) */}
             <div className="flex justify-end mb-8 print:hidden">
                 <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
-                    <Printer className="mr-2 h-4 w-4" /> Stampa / Esporta in PDF
+                    <Printer className="mr-2 h-4 w-4" /> {t("Stampa / Esporta in PDF")}
                 </Button>
             </div>
 
             {/* Header */}
             <div className="border-b-2 border-black pb-6 mb-8 flex justify-between items-end">
                 <div>
-                    <h1 className="text-4xl font-black uppercase tracking-tighter">Verbale Daily Meeting</h1>
-                    <h2 className="text-xl font-medium text-gray-600 mt-1">Reparto: Retinato (Demo)</h2>
-                    <p className="text-sm mt-3 text-gray-500">Documento ID: {id}</p>
+                    <h1 className="text-4xl font-black uppercase tracking-tighter">{t("Verbale Daily Meeting")}</h1>
+                    <h2 className="text-xl font-medium text-gray-600 mt-1">{t("Reparto: Retinato (Demo)")}</h2>
+                    <p className="text-sm mt-3 text-gray-500">{t("Documento ID: {id}", { id })}</p>
                 </div>
                 <div className="text-right">
                     <p className="font-bold text-lg">{dateString}</p>
-                    <p className="text-sm text-gray-500">Supervisore Corrente</p>
+                    <p className="text-sm text-gray-500">{t("Supervisore Corrente")}</p>
                 </div>
             </div>
 
@@ -46,12 +49,12 @@ export default function DailyMeetingPrintReport({ params }: { params: Promise<{ 
                 <section className="border border-gray-200 rounded-xl overflow-hidden print:border-black">
                     <div className="bg-gray-100 p-3 border-b border-gray-200 flex items-center print:bg-white print:border-black">
                         <ShieldCheck className="h-5 w-5 mr-2 stroke-2" />
-                        <h3 className="font-bold text-lg uppercase tracking-wide">1. Salute, Sicurezza e Ambiente</h3>
+                        <h3 className="font-bold text-lg uppercase tracking-wide">{t("1. Salute, Sicurezza e Ambiente")}</h3>
                     </div>
                     <div className="p-4">
                         <p className="italic text-gray-700">"Nessun incidente segnalato. Tutto regolare."</p>
                         <div className="mt-4 pt-4 border-t border-dashed">
-                            <p className="text-sm font-semibold">Action Items & EWO:</p>
+                            <p className="text-sm font-semibold">{t("Action Items & EWO:")}</p>
                             <ul className="list-disc pl-5 mt-2 text-sm">
                                 <li>Controllare l'estintore n°12 (Assegnato: Manutenzione)</li>
                             </ul>
@@ -63,21 +66,21 @@ export default function DailyMeetingPrintReport({ params }: { params: Promise<{ 
                 <section className="border border-gray-200 rounded-xl overflow-hidden print:border-black">
                     <div className="bg-gray-100 p-3 border-b border-gray-200 flex items-center print:bg-white print:border-black">
                         <AlertTriangle className="h-5 w-5 mr-2 stroke-2" />
-                        <h3 className="font-bold text-lg uppercase tracking-wide">2. Qualità e Non Conformità</h3>
+                        <h3 className="font-bold text-lg uppercase tracking-wide">{t("2. Qualità e Non Conformità")}</h3>
                     </div>
                     <div className="p-4 flex gap-8">
                         <div className="w-1/3 space-y-3">
                             <div>
-                                <p className="text-xs text-gray-500 uppercase">Scarti Totali</p>
+                                <p className="text-xs text-gray-500 uppercase">{t("Scarti Totali")}</p>
                                 <p className="text-xl font-black">120 kg</p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500 uppercase">Non Conformità (NC) Aperte</p>
+                                <p className="text-xs text-gray-500 uppercase">{t("Non Conformità (NC) Aperte")}</p>
                                 <p className="text-xl font-black">2</p>
                             </div>
                         </div>
                         <div className="w-2/3 border-l pl-8">
-                            <p className="text-sm font-bold mb-2">Note della discussione:</p>
+                            <p className="text-sm font-bold mb-2">{t("Note della discussione:")}</p>
                             <p className="text-sm italic text-gray-700">Discussione sulle tolleranze del lotto 482B. La deriva termica potrebbe aver causato le variazioni di spessore.</p>
                         </div>
                     </div>
@@ -87,12 +90,12 @@ export default function DailyMeetingPrintReport({ params }: { params: Promise<{ 
                 <section className="border border-gray-200 rounded-xl overflow-hidden print:border-black">
                     <div className="bg-gray-100 p-3 border-b border-gray-200 flex items-center print:bg-white print:border-black">
                         <Activity className="h-5 w-5 mr-2 stroke-2" />
-                        <h3 className="font-bold text-lg uppercase tracking-wide">3. Avanzamento Produzione</h3>
+                        <h3 className="font-bold text-lg uppercase tracking-wide">{t("3. Avanzamento Produzione")}</h3>
                     </div>
                     <div className="p-4 flex gap-8">
                         <div className="w-1/3 space-y-3">
                             <div>
-                                <p className="text-xs text-gray-500 uppercase">OEE Globale Linea</p>
+                                <p className="text-xs text-gray-500 uppercase">{t("OEE Globale Linea")}</p>
                                 <p className="text-3xl text-indigo-600 font-black print:text-black">88%</p>
                             </div>
                         </div>
@@ -106,7 +109,7 @@ export default function DailyMeetingPrintReport({ params }: { params: Promise<{ 
                 <section className="border border-gray-200 rounded-xl overflow-hidden print:border-black">
                     <div className="bg-gray-100 p-3 border-b border-gray-200 flex items-center print:bg-white print:border-black">
                         <Wrench className="h-5 w-5 mr-2 stroke-2" />
-                        <h3 className="font-bold text-lg uppercase tracking-wide">4. Interventi di Manutenzione Richiesti</h3>
+                        <h3 className="font-bold text-lg uppercase tracking-wide">{t("4. Interventi di Manutenzione Richiesti")}</h3>
                     </div>
                     <div className="p-4">
                         <ul className="space-y-3">
@@ -133,11 +136,11 @@ export default function DailyMeetingPrintReport({ params }: { params: Promise<{ 
             <div className="mt-24 pt-8 border-t-2 border-dashed flex justify-between px-12 print:block">
                 <div className="text-center print:float-left">
                     <div className="w-48 border-b border-black mb-2" />
-                    <p className="text-sm">Firma del Conduttore</p>
+                    <p className="text-sm">{t("Firma del Conduttore")}</p>
                 </div>
                 <div className="text-center print:float-right">
                     <div className="w-48 border-b border-black mb-2" />
-                    <p className="text-sm">Visto Reparto Manutenzione</p>
+                    <p className="text-sm">{t("Visto Reparto Manutenzione")}</p>
                 </div>
             </div>
 

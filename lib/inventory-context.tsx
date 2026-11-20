@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { SparePart } from "@/lib/types";
-import { toast } from "sonner"; // Added for alerts
+import { toast } from "@/lib/i18n/toast"; // Added for alerts
 
 interface InventoryContextType {
     parts: SparePart[];

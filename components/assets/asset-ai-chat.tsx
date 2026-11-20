@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User, X, MessageSquare, Loader2, Mic, MicOff, Wrench, Package, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { chatWithAsset } from "@/lib/ai-service";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useLocaleInfo } from "@/lib/i18n/client";
 import { useRouter } from "next/navigation";
 
 interface ChatAction {
@@ -19,9 +20,11 @@ interface AssetAIChatProps {
 }
 
 export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
+    const t = useT();
+    const { intl } = useLocaleInfo();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string, actions?: ChatAction[] }[]>([
-        { role: 'assistant', content: `Ciao! Sono l'esperto di **${assetName}**. Come posso aiutarti?` }
+        { role: 'assistant', content: t("Ciao! Sono l'esperto di **{name}**. Come posso aiutarti?", { name: assetName }) }
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -52,7 +55,7 @@ export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
             const response = await chatWithAsset(assetId, textToSend, messages);
             setMessages(prev => [...prev, { role: 'assistant', content: response.content, actions: response.actions as ChatAction[] }]);
         } catch (error) {
-            setMessages(prev => [...prev, { role: 'assistant', content: "Mi dispiace, ho avuto un problema di connessione." }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: t("Mi dispiace, ho avuto un problema di connessione.") }]);
         } finally {
             setLoading(false);
         }
@@ -87,7 +90,7 @@ export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
-        recognition.lang = 'it-IT';
+        recognition.lang = intl;
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
@@ -119,12 +122,13 @@ export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
             {/* Toggle Button (Fixed Bottom Right) */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
+                aria-label={isOpen ? t("Chiudi la chat") : t("Apri la chat")}
                 className={cn(
                     "fixed bottom-6 right-6 z-40 p-4 rounded-full shadow-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 font-bold",
                     isOpen ? "bg-red-500 text-white" : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
                 )}
             >
-                {isOpen ? <X className="h-6 w-6" /> : <><Bot className="h-6 w-6" /> Chat AI</>}
+                {isOpen ? <X className="h-6 w-6" /> : <><Bot className="h-6 w-6" /> {t("Chat AI")}</>}
             </button>
 
             {/* Chat Window */}
@@ -137,9 +141,9 @@ export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
                             <Bot className="h-6 w-6 text-indigo-600" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-sm">Cortex Assistente</h3>
+                            <h3 className="font-bold text-sm">{t("Cortex Assistente")}</h3>
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> Connesso a {assetName}
+                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> {t("Connesso a {name}", { name: assetName })}
                             </p>
                         </div>
                     </div>
@@ -189,7 +193,7 @@ export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
                                     <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
                                 </div>
                                 <div className="bg-white border p-3 rounded-2xl rounded-bl-none text-sm text-muted-foreground italic">
-                                    Sto analizzando...
+                                    {t("Sto analizzando...")}
                                 </div>
                             </div>
                         )}
@@ -207,13 +211,13 @@ export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
                                     }
                                     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
                                     const recognition = new SpeechRecognition();
-                                    recognition.lang = 'it-IT';
+                                    recognition.lang = intl;
                                     recognition.onstart = () => setIsListening(true);
                                     recognition.onend = () => setIsListening(false);
                                     recognition.onresult = (event: any) => {
-                                        const t = event.results[0][0].transcript;
-                                        setInput(t);
-                                        handleSend(undefined, t);
+                                        const spoken = event.results[0][0].transcript;
+                                        setInput(spoken);
+                                        handleSend(undefined, spoken);
                                     };
                                     recognition.start();
                                 }}
@@ -221,7 +225,8 @@ export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
                                     "p-2 rounded-full transition-all",
                                     isListening ? "bg-red-500 text-white animate-pulse" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                                 )}
-                                title="Parla"
+                                title={t("Parla")}
+aria-label={t("Parla")}
                             >
                                 {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                             </button>
@@ -230,11 +235,12 @@ export function AssetAIChat({ assetId, assetName }: AssetAIChatProps) {
                                 autoFocus
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
-                                placeholder="Chiedi qualcosa..."
+                                placeholder={t("Chiedi qualcosa...")}
                                 className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 border-transparent border focus:border-blue-500 transition-all"
                             />
                             <button
                                 type="submit"
+                                aria-label={t("Invia")}
                                 disabled={!input.trim() || loading}
                                 className="p-2 bg-blue-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
                             >

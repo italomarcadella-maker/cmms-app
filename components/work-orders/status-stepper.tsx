@@ -2,19 +2,22 @@
 
 import { Check, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
 
 interface StatusStepperProps {
     status: string;
 }
 
 const STEPS = [
-    { id: 'OPEN', label: 'Aperto' },
-    { id: 'IN_PROGRESS', label: 'In Corso' },
-    { id: 'COMPLETED', label: 'Completato' },
-    { id: 'CLOSED', label: 'Chiuso' }
+    { id: 'OPEN', label: tk("Aperto") },
+    { id: 'IN_PROGRESS', label: tk("In Corso") },
+    { id: 'COMPLETED', label: tk("Completato") },
+    { id: 'CLOSED', label: tk("Chiuso") }
 ];
 
 export function StatusStepper({ status }: StatusStepperProps) {
+    const t = useT();
     // Map status to step index
     let currentStepIndex = 0;
     if (status === 'IN_PROGRESS') currentStepIndex = 1;
@@ -55,7 +58,7 @@ export function StatusStepper({ status }: StatusStepperProps) {
                                 "mt-2 text-xs font-medium transition-colors",
                                 isCompleted ? "text-foreground" : "text-muted-foreground"
                             )}>
-                                {step.label}
+                                {t(step.label)}
                             </span>
                         </div>
                     );

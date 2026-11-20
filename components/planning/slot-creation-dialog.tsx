@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createProductionSlot } from "@/lib/actions";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
 import { Loader2 } from "lucide-react";
 
 interface SlotCreationDialogProps {
@@ -18,6 +19,7 @@ interface SlotCreationDialogProps {
 }
 
 export function SlotCreationDialog({ line, date, onClose, onSuccess }: SlotCreationDialogProps) {
+    const t = useT();
     const [loading, setLoading] = useState(false);
     const [type, setType] = useState("PRODUCTION");
 
@@ -48,7 +50,7 @@ export function SlotCreationDialog({ line, date, onClose, onSuccess }: SlotCreat
             onSuccess();
             onClose();
         } else {
-            toast.error(result.message || "Errore");
+            toast.error(result.message || t("Errore"));
         }
         setLoading(false);
     }
@@ -57,31 +59,31 @@ export function SlotCreationDialog({ line, date, onClose, onSuccess }: SlotCreat
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Nuovo Slot - {line}</DialogTitle>
+                    <DialogTitle>{t("Nuovo Slot - {line}", { line })}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                        <Label>Tipo Attività</Label>
+                        <Label>{t("Tipo Attività")}</Label>
                         <Select value={type} onValueChange={setType}>
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="PRODUCTION">Produzione (Rosso)</SelectItem>
-                                <SelectItem value="MAINTENANCE_WINDOW">Finestra Manutenzione (Verde)</SelectItem>
-                                <SelectItem value="IDLE">Fermo / Inattivo (Grigio)</SelectItem>
+                                <SelectItem value="PRODUCTION">{t("Produzione (Rosso)")}</SelectItem>
+                                <SelectItem value="MAINTENANCE_WINDOW">{t("Finestra Manutenzione (Verde)")}</SelectItem>
+                                <SelectItem value="IDLE">{t("Fermo / Inattivo (Grigio)")}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Note</Label>
-                        <Input name="notes" placeholder="Dettagli..." />
+                        <Label>{t("Note")}</Label>
+                        <Input name="notes" placeholder={t("Dettagli...")} />
                     </div>
                     <DialogFooter>
-                        <Button type="button" variant="ghost" onClick={onClose}>Annulla</Button>
+                        <Button type="button" variant="ghost" onClick={onClose}>{t("Annulla")}</Button>
                         <Button type="submit" disabled={loading}>
                             {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                            Crea
+                            {t("Crea")}
                         </Button>
                     </DialogFooter>
                 </form>

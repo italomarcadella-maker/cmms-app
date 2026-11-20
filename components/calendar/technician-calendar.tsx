@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getDay } from "date-fns";
-import { it } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, User as UserIcon, Calendar as CalendarIcon, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTechnicianAvailability, setTechnicianStatus, getAllTechnicians } from "@/lib/availability-actions";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { tk } from "@/lib/i18n/translate";
+import { useT, useDateFnsLocale } from "@/lib/i18n/client";
 
 // Mock types for now until Prisma is generated and types are inferred
 type Technician = {
@@ -28,17 +29,19 @@ type Availability = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string, color: string, short: string }> = {
-    AVAILABLE: { label: "Presente (Giornaliero)", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200", short: "G" },
-    SHIFT_MORNING: { label: "Turno Mattina (06-14)", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 ring-1 ring-emerald-500/50", short: "M" },
-    SHIFT_AFTERNOON: { label: "Turno Pomeriggio (14-22)", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 ring-1 ring-emerald-500/50", short: "P" },
-    SHIFT_NIGHT: { label: "Turno Notte (22-06)", color: "bg-indigo-500/10 text-indigo-600 border-indigo-200", short: "N" },
-    VACATION: { label: "Ferie", color: "bg-blue-500/10 text-blue-600 border-blue-200", short: "F" },
-    SICK: { label: "Malattia", color: "bg-red-500/10 text-red-600 border-red-200", short: "M" },
-    TRAINING: { label: "Formazione", color: "bg-purple-500/10 text-purple-600 border-purple-200", short: "C" },
-    PERMIT: { label: "Permesso", color: "bg-amber-500/10 text-amber-600 border-amber-200", short: "H" },
+    AVAILABLE: { label: tk("Presente (Giornaliero)"), color: "bg-emerald-500/10 text-emerald-600 border-emerald-200", short: "G" },
+    SHIFT_MORNING: { label: tk("Turno Mattina (06-14)"), color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 ring-1 ring-emerald-500/50", short: "M" },
+    SHIFT_AFTERNOON: { label: tk("Turno Pomeriggio (14-22)"), color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 ring-1 ring-emerald-500/50", short: "P" },
+    SHIFT_NIGHT: { label: tk("Turno Notte (22-06)"), color: "bg-indigo-500/10 text-indigo-600 border-indigo-200", short: "N" },
+    VACATION: { label: tk("Ferie"), color: "bg-blue-500/10 text-blue-600 border-blue-200", short: "F" },
+    SICK: { label: tk("Malattia"), color: "bg-red-500/10 text-red-600 border-red-200", short: "M" },
+    TRAINING: { label: tk("Formazione"), color: "bg-purple-500/10 text-purple-600 border-purple-200", short: "C" },
+    PERMIT: { label: tk("Permesso"), color: "bg-amber-500/10 text-amber-600 border-amber-200", short: "H" },
 };
 
 export function TechnicianCalendar() {
+    const t = useT();
+    const dfLocale = useDateFnsLocale();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [technicians, setTechnicians] = useState<Technician[]>([]);
     // Map stores { status, shift } object now
@@ -71,7 +74,7 @@ export function TechnicianCalendar() {
 
         } catch (error) {
             console.error("Failed to load calendar data", error);
-            toast.error("Errore caricamento dati calendario");
+            toast.error(t("Errore caricamento dati calendario"));
         } finally {
             setLoading(false);
         }
@@ -116,24 +119,25 @@ export function TechnicianCalendar() {
             let labelKey = newStatus;
             if (newStatus === 'AVAILABLE' && newShift) labelKey = `SHIFT_${newShift}`;
 
-            toast.success(`Stato aggiornato: ${STATUS_CONFIG[labelKey]?.label || labelKey}`);
+            toast.success(t("Stato aggiornato: {label}", { label: STATUS_CONFIG[labelKey] ? t(STATUS_CONFIG[labelKey].label) : labelKey }));
         } catch (error) {
             console.error("Failed to update status", error);
-            const errorMessage = error instanceof Error ? error.message : "Errore sconosciuto";
-            toast.error(`Errore salvataggio: ${errorMessage}`);
+            const errorMessage = error instanceof Error ? error.message : t("Errore sconosciuto");
+            toast.error(t("Errore salvataggio: {message}", { message: errorMessage }));
             loadData(); // Revert
         }
     }
 
     const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
     const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
+    const monthTitle = format(currentDate, "MMMM yyyy", { locale: dfLocale });
 
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
                     <CalendarIcon className="h-6 w-6 text-primary" />
-                    {format(currentDate, "MMMM yyyy", { locale: it }).charAt(0).toUpperCase() + format(currentDate, "MMMM yyyy", { locale: it }).slice(1)}
+                    {monthTitle.charAt(0).toUpperCase() + monthTitle.slice(1)}
                 </h2>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" onClick={prevMonth}>
@@ -149,13 +153,13 @@ export function TechnicianCalendar() {
                 <table className="w-full border-collapse text-sm">
                     <thead>
                         <tr>
-                            <th className="p-4 text-left font-medium text-muted-foreground w-[200px] border-b sticky left-0 bg-card z-10">Tecnico</th>
+                            <th className="p-4 text-left font-medium text-muted-foreground w-[200px] border-b sticky left-0 bg-card z-10">{t("Tecnico")}</th>
                             {daysInMonth.map(day => (
                                 <th key={day.toISOString()} className={cn(
                                     "p-2 text-center border-b min-w-[40px]",
                                     (getDay(day) === 0 || getDay(day) === 6) && "bg-muted/30"
                                 )}>
-                                    <div className="text-xs text-muted-foreground">{format(day, "EEE", { locale: it })}</div>
+                                    <div className="text-xs text-muted-foreground">{format(day, "EEE", { locale: dfLocale })}</div>
                                     <div className={cn("font-bold", isToday(day) && "text-primary")}>{format(day, "d")}</div>
                                 </th>
                             ))}
@@ -165,7 +169,7 @@ export function TechnicianCalendar() {
                         {technicians.length === 0 ? (
                             <tr>
                                 <td colSpan={daysInMonth.length + 1} className="p-12 text-center text-muted-foreground">
-                                    Nessun tecnico trovato nel sistema.
+                                    {t("Nessun tecnico trovato nel sistema.")}
                                 </td>
                             </tr>
                         ) : (
@@ -222,7 +226,7 @@ export function TechnicianCalendar() {
                                                             </div>
                                                         </TooltipTrigger>
                                                         <TooltipContent className="z-50">
-                                                            <p className="font-semibold">{config.label}</p>
+                                                            <p className="font-semibold">{t(config.label)}</p>
                                                         </TooltipContent>
                                                     </Tooltip>
                                                 ) : (
@@ -239,12 +243,12 @@ export function TechnicianCalendar() {
             </div>
 
             <div className="flex flex-wrap gap-4 p-4 border rounded-lg bg-card text-xs text-muted-foreground">
-                <div className="font-semibold mr-2 w-full sm:w-auto">Legenda:</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500/20"></div> Presente (Giornaliero)</div>
+                <div className="font-semibold mr-2 w-full sm:w-auto">{t("Legenda:")}</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500/20"></div> {t("Presente (Giornaliero)")}</div>
                 {Object.entries(STATUS_CONFIG).filter(([k]) => k !== 'AVAILABLE').map(([key, conf]) => (
                     <div key={key} className="flex items-center gap-2">
                         <div className={cn("w-5 h-5 rounded-full flex items-center justify-center border text-[10px]", conf.color)}>{conf.short}</div>
-                        {conf.label.split('(')[0].trim()}
+                        {t(conf.label).split(/[(（]/)[0].trim()}
                     </div>
                 ))}
             </div>

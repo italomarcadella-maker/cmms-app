@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { tk } from "@/lib/i18n/translate";
+import { useT, useFormat } from "@/lib/i18n/client";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +18,12 @@ import {
     recordSafetyEvent, deleteSafetyEvent, type SafetyCounter, type SafetyEventType,
 } from "@/modules/maintenance/adapters/actions/safety-actions";
 
-const TYPE_LABEL: Record<SafetyEventType, string> = { INJURY: "Infortunio", NEAR_MISS: "Quasi incidente", HAZARD: "Situazione pericolosa" };
+const TYPE_LABEL: Record<SafetyEventType, string> = { INJURY: tk("Infortunio"), NEAR_MISS: tk("Quasi incidente"), HAZARD: tk("Situazione pericolosa") };
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
 /** Registro degli eventi di sicurezza: aggiunta e storico recente. Niente nomi ne' dati sanitari delle persone. */
 export function RecordSafetyEventDialog({ data }: { data: SafetyCounter }) {
+    const t = useT();
     const router = useRouter();
     const { plants, activePlant } = usePlant();
     const [open, setOpen] = useState(false);
@@ -28,13 +31,13 @@ export function RecordSafetyEventDialog({ data }: { data: SafetyCounter }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5" /> Registra evento</Button>
+                <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5" /> {t("Registra evento")}</Button>
             </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[480px]">
                 <DialogHeader>
-                    <DialogTitle>Eventi di sicurezza</DialogTitle>
+                    <DialogTitle>{t("Eventi di sicurezza")}</DialogTitle>
                     <DialogDescription>
-                        Il contatore conta i giorni dall&apos;ultimo infortunio. Non inserire nomi o informazioni sanitarie delle persone coinvolte.
+                        {t("Il contatore conta i giorni dall'ultimo infortunio. Non inserire nomi o informazioni sanitarie delle persone coinvolte.")}
                     </DialogDescription>
                 </DialogHeader>
                 {open && (
@@ -56,6 +59,8 @@ function EventForm({ data, plants, defaultPlantId, onSaved }: {
     defaultPlantId?: string;
     onSaved: () => void;
 }) {
+    const t = useT();
+    const fmt = useFormat();
     const [type, setType] = useState<SafetyEventType>("INJURY");
     const [date, setDate] = useState(todayKey());
     const [note, setNote] = useState("");
@@ -80,50 +85,50 @@ function EventForm({ data, plants, defaultPlantId, onSaved }: {
             <form onSubmit={submit} className="grid gap-3">
                 <div className="grid grid-cols-2 gap-3">
                     <div className="grid gap-1.5">
-                        <Label>Tipo</Label>
+                        <Label>{t("Tipo")}</Label>
                         <Select value={type} onValueChange={(v) => setType(v as SafetyEventType)}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                                {(Object.keys(TYPE_LABEL) as SafetyEventType[]).map(t => <SelectItem key={t} value={t}>{TYPE_LABEL[t]}</SelectItem>)}
+                                {(Object.keys(TYPE_LABEL) as SafetyEventType[]).map(k => <SelectItem key={k} value={k}>{t(TYPE_LABEL[k])}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="grid gap-1.5">
-                        <Label htmlFor="ev-date">Data</Label>
+                        <Label htmlFor="ev-date">{t("Data")}</Label>
                         <Input id="ev-date" type="date" value={date} max={todayKey()} onChange={(e) => setDate(e.target.value)} required />
                     </div>
                 </div>
                 {plants.length > 1 && (
                     <div className="grid gap-1.5">
-                        <Label>Stabilimento</Label>
+                        <Label>{t("Stabilimento")}</Label>
                         <Select value={plantId} onValueChange={setPlantId}>
-                            <SelectTrigger><SelectValue placeholder="Scegli lo stabilimento" /></SelectTrigger>
+                            <SelectTrigger><SelectValue placeholder={t("Scegli lo stabilimento")} /></SelectTrigger>
                             <SelectContent>{plants.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                 )}
                 <div className="grid gap-1.5">
-                    <Label htmlFor="ev-note">Nota (facoltativa)</Label>
-                    <Textarea id="ev-note" rows={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Es. taglio lieve durante la sostituzione di una guarnizione" />
+                    <Label htmlFor="ev-note">{t("Nota (facoltativa)")}</Label>
+                    <Textarea id="ev-note" rows={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("Es. taglio lieve durante la sostituzione di una guarnizione")} />
                 </div>
-                <Button type="submit" disabled={busy}>{busy ? "Salvataggio..." : "Registra"}</Button>
+                <Button type="submit" disabled={busy}>{busy ? t("Salvataggio...") : t("Registra")}</Button>
             </form>
 
             {data.recent.length > 0 && (
                 <div className="space-y-1">
-                    <p className="text-sm font-medium">Ultimi eventi</p>
+                    <p className="text-sm font-medium">{t("Ultimi eventi")}</p>
                     <ul className="divide-y rounded-md border text-sm">
                         {data.recent.map(ev => (
                             <li key={ev.id} className="flex items-start justify-between gap-2 px-3 py-2">
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <Badge variant={ev.type === "INJURY" ? "critical" : ev.type === "NEAR_MISS" ? "warning" : "neutral"}>{TYPE_LABEL[ev.type]}</Badge>
-                                        <span className="text-xs text-muted-foreground">{new Date(ev.occurredAt).toLocaleDateString("it-IT")} · {ev.plantName}</span>
+                                        <Badge variant={ev.type === "INJURY" ? "critical" : ev.type === "NEAR_MISS" ? "warning" : "neutral"}>{t(TYPE_LABEL[ev.type])}</Badge>
+                                        <span className="text-xs text-muted-foreground">{fmt.date(ev.occurredAt)} · {ev.plantName}</span>
                                     </div>
                                     {ev.description && <p className="mt-1 text-xs text-muted-foreground">{ev.description}</p>}
                                 </div>
                                 {data.canDelete && (
-                                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => remove(ev.id)} aria-label="Elimina evento">
+                                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => remove(ev.id)} aria-label={t("Elimina evento")}>
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
                                 )}

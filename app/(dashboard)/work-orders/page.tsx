@@ -14,7 +14,8 @@ import { useAuth } from "@/lib/auth-context";
 import { deleteWorkOrder } from "@/lib/actions";
 import { getCurrentTechnicianId } from "@/modules/maintenance/adapters/actions/mobile-actions";
 import { SUPERVISION, hasRole } from "@/lib/roles";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useFormat } from "@/lib/i18n/client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ type TabId = "ACTIVE" | "REQUESTS" | "HISTORY";
 const isUnassigned = (assignedTo?: string | null) => !assignedTo || assignedTo === "Unassigned";
 
 function Assignee({ assignedTo }: { assignedTo?: string | null }) {
+    const t = useT();
     const none = isUnassigned(assignedTo);
     return (
         <>
@@ -45,12 +47,14 @@ function Assignee({ assignedTo }: { assignedTo?: string | null }) {
             >
                 {none ? "?" : assignedTo!.substring(0, 2).toUpperCase()}
             </span>
-            <span className={cn("text-sm", none && "font-medium text-warning-strong")}>{none ? "Da assegnare" : assignedTo}</span>
+            <span className={cn("text-sm", none && "font-medium text-warning-strong")}>{none ? t("Da assegnare") : assignedTo}</span>
         </>
     );
 }
 
 function WorkOrdersContent() {
+    const t = useT();
+    const fmt = useFormat();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { workOrders } = useWorkOrders();
@@ -98,10 +102,10 @@ function WorkOrdersContent() {
     }, [workOrders]);
 
     const urlFilters = [
-        categoryParam && `Categoria: ${categoryParam}`,
-        locationParam && `Ubicazione: ${locationParam}`,
-        assetTypeParam && `Tipo asset: ${assetTypeParam}`,
-        hasLineParam === "true" && "Solo linee produttive",
+        categoryParam && t("Categoria: {value}", { value: categoryParam }),
+        locationParam && t("Ubicazione: {value}", { value: locationParam }),
+        assetTypeParam && t("Tipo asset: {value}", { value: assetTypeParam }),
+        hasLineParam === "true" && t("Solo linee produttive"),
     ].filter(Boolean) as string[];
 
     const filteredWOs = workOrders.filter((wo) => {
@@ -118,7 +122,7 @@ function WorkOrdersContent() {
 
         const matchesStatus = statusFilter === "ALL" || wo.status === statusFilter;
         const matchesTechnician = technicianFilter === "ALL" || wo.assignedTo === technicianFilter;
-        const matchesMine = onlyMyTasks ? (!!myTechId && (wo.assignedTechnicianId === myTechId || (wo.technicians ?? []).some((t: { id: string }) => t.id === myTechId))) : true;
+        const matchesMine = onlyMyTasks ? (!!myTechId && (wo.assignedTechnicianId === myTechId || (wo.technicians ?? []).some((tc: { id: string }) => tc.id === myTechId))) : true;
 
         if (categoryParam && wo.category !== categoryParam) return false;
         if (locationParam && wo.asset?.location && !wo.asset.location.toLowerCase().includes(locationParam.toLowerCase())) return false;
@@ -132,9 +136,9 @@ function WorkOrdersContent() {
     const handleDelete = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         const ok = await confirm({
-            title: "Eliminare questo ordine di lavoro?",
-            description: "L'azione non può essere annullata.",
-            confirmLabel: "Elimina",
+            title: t("Eliminare questo ordine di lavoro?"),
+            description: t("L'azione non può essere annullata."),
+            confirmLabel: t("Elimina"),
             variant: "destructive",
         });
         if (!ok) return;
@@ -156,11 +160,11 @@ function WorkOrdersContent() {
     const empty = (
         <EmptyState
             icon={<Search />}
-            title="Nessun ordine di lavoro trovato"
-            description="Prova a modificare i filtri oppure crea un nuovo ordine di lavoro."
+            title={t("Nessun ordine di lavoro trovato")}
+            description={t("Prova a modificare i filtri oppure crea un nuovo ordine di lavoro.")}
             action={
                 <Button size="sm" onClick={() => router.push("/work-orders/new")}>
-                    <Plus className="mr-1.5 h-4 w-4" /> Nuovo ordine
+                    <Plus className="mr-1.5 h-4 w-4" /> {t("Nuovo ordine")}
                 </Button>
             }
         />
@@ -169,12 +173,12 @@ function WorkOrdersContent() {
     return (
         <div className="space-y-4">
             <PageHeader
-                title="Ordini di lavoro"
-                description="Gestisci e monitora le richieste di manutenzione."
-                breadcrumb={[{ label: "Operativo" }, { label: "Ordini di lavoro" }]}
+                title={t("Ordini di lavoro")}
+                description={t("Gestisci e monitora le richieste di manutenzione.")}
+                breadcrumb={[{ label: t("Operativo") }, { label: t("Ordini di lavoro") }]}
                 actions={
                     <Button onClick={() => router.push("/work-orders/new")}>
-                        <Plus className="mr-1.5 h-4 w-4" /> Nuovo ordine
+                        <Plus className="mr-1.5 h-4 w-4" /> {t("Nuovo ordine")}
                     </Button>
                 }
                 className="mb-2"
@@ -182,16 +186,16 @@ function WorkOrdersContent() {
 
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)}>
                 <TabsList>
-                    <TabsTrigger value="ACTIVE">Attivi</TabsTrigger>
+                    <TabsTrigger value="ACTIVE">{t("Attivi")}</TabsTrigger>
                     <TabsTrigger value="REQUESTS" className="gap-2">
-                        Richieste
+                        {t("Richieste")}
                         {pendingCount > 0 && (
                             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-critical px-1.5 text-[11px] font-semibold text-critical-foreground">
                                 {pendingCount}
                             </span>
                         )}
                     </TabsTrigger>
-                    <TabsTrigger value="HISTORY">Storico</TabsTrigger>
+                    <TabsTrigger value="HISTORY">{t("Storico")}</TabsTrigger>
                 </TabsList>
             </Tabs>
 
@@ -201,8 +205,8 @@ function WorkOrdersContent() {
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         className="h-9 pl-9"
-                        placeholder="Cerca per titolo, asset o tecnico"
-                        aria-label="Cerca ordini di lavoro"
+                        placeholder={t("Cerca per titolo, asset o tecnico")}
+                        aria-label={t("Cerca ordini di lavoro")}
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     />
@@ -210,25 +214,25 @@ function WorkOrdersContent() {
 
                 <div className="flex flex-1 flex-wrap items-center gap-2">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="h-9 w-[150px]" aria-label="Filtra per stato">
-                            <SelectValue placeholder="Stato" />
+                        <SelectTrigger className="h-9 w-[150px]" aria-label={t("Filtra per stato")}>
+                            <SelectValue placeholder={t("Stato")} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="ALL">Tutti gli stati</SelectItem>
-                            <SelectItem value="OPEN">Aperti</SelectItem>
-                            <SelectItem value="ASSIGNED">Assegnati</SelectItem>
-                            <SelectItem value="IN_PROGRESS">In corso</SelectItem>
-                            <SelectItem value="ON_HOLD">In attesa</SelectItem>
-                            <SelectItem value="COMPLETED">Completati</SelectItem>
+                            <SelectItem value="ALL">{t("Tutti gli stati")}</SelectItem>
+                            <SelectItem value="OPEN">{t("Aperti")}</SelectItem>
+                            <SelectItem value="ASSIGNED">{t("Assegnati")}</SelectItem>
+                            <SelectItem value="IN_PROGRESS">{t("In corso")}</SelectItem>
+                            <SelectItem value="ON_HOLD">{t("In attesa")}</SelectItem>
+                            <SelectItem value="COMPLETED">{t("Completati")}</SelectItem>
                         </SelectContent>
                     </Select>
 
                     <Select value={technicianFilter} onValueChange={setTechnicianFilter}>
-                        <SelectTrigger className="h-9 w-[170px]" aria-label="Filtra per tecnico">
-                            <SelectValue placeholder="Tecnico" />
+                        <SelectTrigger className="h-9 w-[170px]" aria-label={t("Filtra per tecnico")}>
+                            <SelectValue placeholder={t("Tecnico")} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="ALL">Tutti i tecnici</SelectItem>
+                            <SelectItem value="ALL">{t("Tutti i tecnici")}</SelectItem>
                             {uniqueTechnicians.map((tech) => (
                                 <SelectItem key={tech} value={tech}>
                                     {tech}
@@ -244,31 +248,31 @@ function WorkOrdersContent() {
                         aria-pressed={onlyMyTasks}
                         onClick={() => setOnlyMyTasks(!onlyMyTasks)}
                     >
-                        Le mie attività
+                        {t("Le mie attività")}
                     </Button>
                 </div>
 
                 <SegmentedControl
-                    aria-label="Vista"
+                    aria-label={t("Vista")}
                     value={view}
                     onChange={setView}
                     options={[
-                        { value: "LIST", label: "Lista", icon: <LayoutList /> },
-                        { value: "BOARD", label: "Kanban", icon: <Kanban /> },
+                        { value: "LIST", label: t("Lista"), icon: <LayoutList /> },
+                        { value: "BOARD", label: t("Kanban"), icon: <Kanban /> },
                     ]}
                 />
             </div>
 
             {urlFilters.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Filtri attivi:</span>
+                    <span className="text-muted-foreground">{t("Filtri attivi:")}</span>
                     {urlFilters.map((f) => (
                         <Badge key={f} variant="info">
                             {f}
                         </Badge>
                     ))}
                     <Button variant="ghost" size="xs" onClick={() => router.push("/work-orders")}>
-                        <X className="mr-1 h-3.5 w-3.5" /> Rimuovi filtri
+                        <X className="mr-1 h-3.5 w-3.5" /> {t("Rimuovi filtri")}
                     </Button>
                 </div>
             )}
@@ -280,14 +284,14 @@ function WorkOrdersContent() {
                         <Table>
                             <TableHeader>
                                 <TableRow className="hover:bg-transparent">
-                                    <TableHead>Ordine</TableHead>
-                                    <TableHead>Asset</TableHead>
-                                    <TableHead>Priorità</TableHead>
-                                    <TableHead>Stato</TableHead>
-                                    <TableHead>Assegnato a</TableHead>
-                                    <TableHead>Scadenza</TableHead>
+                                    <TableHead>{t("Ordine")}</TableHead>
+                                    <TableHead>{t("Asset")}</TableHead>
+                                    <TableHead>{t("Priorità")}</TableHead>
+                                    <TableHead>{t("Stato")}</TableHead>
+                                    <TableHead>{t("Assegnato a")}</TableHead>
+                                    <TableHead>{t("Scadenza")}</TableHead>
                                     {canManage && <TableHead className="w-12 text-right">
-                                        <span className="sr-only">Azioni</span>
+                                        <span className="sr-only">{t("Azioni")}</span>
                                     </TableHead>}
                                 </TableRow>
                             </TableHeader>
@@ -303,7 +307,7 @@ function WorkOrdersContent() {
                                                 <div className="flex flex-col gap-0.5">
                                                     <div className="flex items-center gap-2">
                                                         <span className="font-medium group-hover:text-primary">{wo.title}</span>
-                                                        {wo.category === "AI_SUGGESTION" && <Badge variant="info">Suggerito dall&apos;AI</Badge>}
+                                                        {wo.category === "AI_SUGGESTION" && <Badge variant="info">{t("Suggerito dall'AI")}</Badge>}
                                                         <PlantBadge plantId={wo.plantId} />
                                                     </div>
                                                     <span className="font-mono text-xs text-muted-foreground">{wo.id.substring(0, 10)}</span>
@@ -332,13 +336,13 @@ function WorkOrdersContent() {
                                                             setAssigningWo({ id: wo.id, techId: wo.assignedTechnicianId });
                                                         }
                                                     }}
-                                                    title={canAssign ? "Clicca per assegnare" : undefined}
+                                                    title={canAssign ? t("Clicca per assegnare") : undefined}
                                                 >
                                                     <Assignee assignedTo={wo.assignedTo} />
                                                 </div>
                                             </TableCell>
                                             <TableCell className="whitespace-nowrap text-muted-foreground tabular-nums">
-                                                {wo.dueDate ? new Date(wo.dueDate).toLocaleDateString("it-IT") : "-"}
+                                                {wo.dueDate ? fmt.date(wo.dueDate) : "-"}
                                             </TableCell>
                                             {canManage && (
                                                 <TableCell className="text-right">
@@ -347,7 +351,7 @@ function WorkOrdersContent() {
                                                         size="icon"
                                                         className="h-8 w-8 text-muted-foreground opacity-0 hover:text-critical-strong focus-visible:opacity-100 group-hover:opacity-100"
                                                         onClick={(e) => handleDelete(e, wo.id)}
-                                                        aria-label={`Elimina ${wo.title}`}
+                                                        aria-label={t("Elimina {title}", { title: wo.title })}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -385,7 +389,7 @@ function WorkOrdersContent() {
                                             <Assignee assignedTo={wo.assignedTo} />
                                         </div>
                                         <span className="text-xs text-muted-foreground">
-                                            {wo.dueDate ? new Date(wo.dueDate).toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : ""}
+                                            {wo.dueDate ? fmt.date(wo.dueDate, { day: "numeric", month: "short" }) : ""}
                                         </span>
                                     </div>
                                 </div>

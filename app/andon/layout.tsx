@@ -1,8 +1,10 @@
 import Image from "next/image";
 
 import { LiveClock } from "@/components/andon/live-clock";
+import { getT } from "@/lib/i18n/server";
 
-export default function AndonLayout({ children }: { children: React.ReactNode }) {
+export default async function AndonLayout({ children }: { children: React.ReactNode }) {
+    const { t } = await getT();
     // Andon is a dark display by design (shop-floor screens, readable from a distance)
     return (
         <div className="min-h-screen bg-black text-white selection:bg-primary selection:text-white">
@@ -13,7 +15,7 @@ export default function AndonLayout({ children }: { children: React.ReactNode })
                         <Image src="/brand/FITT-logo-bianco.svg" alt="FITT" width={78} height={48} unoptimized priority />
                         <div className="border-l border-sidebar-border pl-5">
                             <h1 className="text-3xl font-bold tracking-tight">Andon</h1>
-                            <p className="text-base text-zinc-400">Stato degli impianti in tempo reale</p>
+                            <p className="text-base text-zinc-400">{t("Stato degli impianti in tempo reale")}</p>
                         </div>
                     </div>
                     <LiveClock />

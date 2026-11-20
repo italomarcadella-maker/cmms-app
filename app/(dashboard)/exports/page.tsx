@@ -1,6 +1,6 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { useWorkOrders } from "@/lib/work-orders-context";
 import { useAssets } from "@/lib/assets-context";
 import { useInventory } from "@/lib/inventory-context";
@@ -10,8 +10,10 @@ import { importAssets, importWorkOrders, getAllMeterReadings } from "@/lib/actio
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { useT } from "@/lib/i18n/client";
 
 export default function ExportsPage() {
+    const t = useT();
     const { workOrders } = useWorkOrders();
     const { assets } = useAssets();
     const { parts, addPart } = useInventory();
@@ -92,15 +94,15 @@ export default function ExportsPage() {
                     case 'wo':
                         result = await importWorkOrders(data);
                         if (result.success) {
-                            setMessage({ type: 'success', text: `Importati ${result.count} interventi.` });
-                            if (result.errors.length > 0) toast.error("Alcuni errori:\n" + result.errors.join("\n"));
+                            setMessage({ type: 'success', text: t("Importati {n} interventi.", { n: result.count }) });
+                            if (result.errors.length > 0) toast.error(t("Alcuni errori:") + "\n" + result.errors.join("\n"));
                         }
                         break;
                     case 'assets':
                         result = await importAssets(data);
                         if (result.success) {
-                            setMessage({ type: 'success', text: `Importati ${result.count} asset.` });
-                            if (result.errors.length > 0) toast.error("Alcuni errori:\n" + result.errors.join("\n"));
+                            setMessage({ type: 'success', text: t("Importati {n} asset.", { n: result.count }) });
+                            if (result.errors.length > 0) toast.error(t("Alcuni errori:") + "\n" + result.errors.join("\n"));
                         }
                         break;
                     case 'inventory':
@@ -120,7 +122,7 @@ export default function ExportsPage() {
                                 invCount++;
                             }
                         });
-                        setMessage({ type: 'success', text: `Aggiunti ${invCount} articoli al magazzino.` });
+                        setMessage({ type: 'success', text: t("Aggiunti {n} articoli al magazzino.", { n: invCount }) });
                         break;
                     case 'screws':
                         // Client-side import
@@ -143,13 +145,13 @@ export default function ExportsPage() {
                                 screwCount++;
                             }
                         });
-                        setMessage({ type: 'success', text: `Aggiunti ${screwCount} componenti al database viti.` });
+                        setMessage({ type: 'success', text: t("Aggiunti {n} componenti al database viti.", { n: screwCount }) });
                         break;
                 }
                 router.refresh();
             } catch (err) {
                 console.error(err);
-                setMessage({ type: 'error', text: "Errore durante l'importazione. Verifica il formato CSV." });
+                setMessage({ type: 'error', text: t("Errore durante l'importazione. Verifica il formato CSV.") });
             } finally {
                 setImporting(null);
                 // Reset file input
@@ -234,10 +236,10 @@ export default function ExportsPage() {
             ].join(","));
 
             downloadCSV([headers.join(","), ...rows].join("\n"), `Consumi_Energetici_${new Date().toISOString().split('T')[0]}.csv`);
-            setMessage({ type: 'success', text: "Export energia completato con successo." });
+            setMessage({ type: 'success', text: t("Export energia completato con successo.") });
         } catch (error) {
             console.error(error);
-            setMessage({ type: 'error', text: "Errore durante l'export dei consumi." });
+            setMessage({ type: 'error', text: t("Errore durante l'export dei consumi.") });
         }
     };
 
@@ -246,9 +248,9 @@ export default function ExportsPage() {
             <BackToDashboardButton />
             <div>
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                    Estrazioni & Importazioni Dati
+                    {t("Estrazioni & Importazioni Dati")}
                 </h1>
-                <p className="text-muted-foreground mt-1">Gestisci l'esportazione dei report e l'importazione massiva dei dati.</p>
+                <p className="text-muted-foreground mt-1">{t("Gestisci l'esportazione dei report e l'importazione massiva dei dati.")}</p>
             </div>
 
             {message && (
@@ -260,52 +262,52 @@ export default function ExportsPage() {
 
             <div className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                    <FileDown className="h-5 w-5 text-blue-500" /> Esportazione Dati
+                    <FileDown className="h-5 w-5 text-blue-500" /> {t("Esportazione Dati")}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <ExportCard
                         icon={<History className="h-6 w-6 text-blue-600" />}
                         color="bg-blue-100 dark:bg-blue-900/30"
-                        title="Registro Interventi"
-                        desc="Storico completo Ordini di Lavoro, costi e assegnazioni."
-                        count={`${workOrders.length} Records`}
-                        label="Esporta Interventi"
+                        title={t("Registro Interventi")}
+                        desc={t("Storico completo Ordini di Lavoro, costi e assegnazioni.")}
+                        count={t("{n} Records", { n: workOrders.length })}
+                        label={t("Esporta Interventi")}
                         onClick={exportWorkOrders}
                     />
                     <ExportCard
                         icon={<PackageCheck className="h-6 w-6 text-amber-600" />}
                         color="bg-amber-100 dark:bg-amber-900/30"
-                        title="Consumi Materiali"
-                        desc="Analisi ricambi utilizzati e costi associati."
-                        count="Report"
-                        label="Esporta Consumi"
+                        title={t("Consumi Materiali")}
+                        desc={t("Analisi ricambi utilizzati e costi associati.")}
+                        count={t("Report")}
+                        label={t("Esporta Consumi")}
                         onClick={exportMaterialUsage}
                     />
                     <ExportCard
                         icon={<AlertCircle className="h-6 w-6 text-emerald-600" />}
                         color="bg-emerald-100 dark:bg-emerald-900/30"
-                        title="Giacenze Magazzino"
-                        desc="Inventario attuale con quantità e valori."
-                        count={`${parts?.length || 0} Articoli`}
-                        label="Esporta Magazzino"
+                        title={t("Giacenze Magazzino")}
+                        desc={t("Inventario attuale con quantità e valori.")}
+                        count={t("{n} Articoli", { n: parts?.length || 0 })}
+                        label={t("Esporta Magazzino")}
                         onClick={exportInventory}
                     />
                     <ExportCard
                         icon={<FileSpreadsheet className="h-6 w-6 text-purple-600" />}
                         color="bg-purple-100 dark:bg-purple-900/30"
-                        title="Parco Asset"
-                        desc="Lista macchinari, stato e ubicazione."
-                        count={`${assets.length} Asset`}
-                        label="Esporta Asset"
+                        title={t("Parco Asset")}
+                        desc={t("Lista macchinari, stato e ubicazione.")}
+                        count={t("{n} Asset", { n: assets.length })}
+                        label={t("Esporta Asset")}
                         onClick={exportAssets}
                     />
                     <ExportCard
                         icon={<Zap className="h-6 w-6 text-yellow-600" />}
                         color="bg-yellow-100 dark:bg-yellow-900/30"
-                        title="Consumi Energetici"
-                        desc="Storico letture contatori con analisi anomalie."
-                        count="Report"
-                        label="Esporta Energia"
+                        title={t("Consumi Energetici")}
+                        desc={t("Storico letture contatori con analisi anomalie.")}
+                        count={t("Report")}
+                        label={t("Esporta Energia")}
                         onClick={exportEnergy}
                     />
                 </div>
@@ -313,33 +315,33 @@ export default function ExportsPage() {
 
             <div className="space-y-4 pt-6 border-t">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                    <Upload className="h-5 w-5 text-orange-500" /> Importazione Dati (CSV)
+                    <Upload className="h-5 w-5 text-orange-500" /> {t("Importazione Dati (CSV)")}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <ImportCard
-                        title="Importa Asset"
-                        desc="Carica nuovi macchinari o aggiorna esistenti."
+                        title={t("Importa Asset")}
+                        desc={t("Carica nuovi macchinari o aggiorna esistenti.")}
                         onTemplate={() => downloadTemplate('assets')}
                         onUpload={(e: any) => handleFileUpload(e, 'assets')}
                         loading={importing === 'assets'}
                     />
                     <ImportCard
-                        title="Importa Interventi"
-                        desc="Carica storico interventi manutentivi."
+                        title={t("Importa Interventi")}
+                        desc={t("Carica storico interventi manutentivi.")}
                         onTemplate={() => downloadTemplate('wo')}
                         onUpload={(e: any) => handleFileUpload(e, 'wo')}
                         loading={importing === 'wo'}
                     />
                     <ImportCard
-                        title="Importa Magazzino"
-                        desc="Carica articoli e giacenze iniziali."
+                        title={t("Importa Magazzino")}
+                        desc={t("Carica articoli e giacenze iniziali.")}
                         onTemplate={() => downloadTemplate('inventory')}
                         onUpload={(e: any) => handleFileUpload(e, 'inventory')}
                         loading={importing === 'inventory'}
                     />
                     <ImportCard
-                        title="Importa Viti & Cilindri"
-                        desc="Carica database componenti specifici."
+                        title={t("Importa Viti & Cilindri")}
+                        desc={t("Carica database componenti specifici.")}
                         onTemplate={() => downloadTemplate('screws')}
                         onUpload={(e: any) => handleFileUpload(e, 'screws')}
                         loading={importing === 'screws'}
@@ -371,6 +373,7 @@ function ExportCard({ icon, color, title, desc, count, label, onClick }: any) {
 }
 
 function ImportCard({ title, desc, onTemplate, onUpload, loading }: any) {
+    const t = useT();
     const inputRef = useRef<HTMLInputElement>(null);
     return (
         <div className="rounded-xl border bg-card p-6 shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-orange-400">
@@ -385,7 +388,7 @@ function ImportCard({ title, desc, onTemplate, onUpload, loading }: any) {
                     onClick={onTemplate}
                     className="flex-1 text-xs border border-dashed border-gray-300 hover:border-gray-400 text-muted-foreground hover:text-foreground py-2 rounded flex items-center justify-center gap-1"
                 >
-                    <FileSpreadsheet className="h-3 w-3" /> Scarica Template
+                    <FileSpreadsheet className="h-3 w-3" /> {t("Scarica Template")}
                 </button>
                 <div className="flex-1 relative">
                     <input
@@ -397,7 +400,7 @@ function ImportCard({ title, desc, onTemplate, onUpload, loading }: any) {
                         ref={inputRef}
                     />
                     <button className="w-full h-full bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-medium py-2 rounded flex items-center justify-center gap-1 transition-colors">
-                        <Upload className="h-3 w-3" /> {loading ? 'Caricamento...' : 'Carica CSV'}
+                        <Upload className="h-3 w-3" /> {loading ? t("Caricamento...") : t("Carica CSV")}
                     </button>
                 </div>
             </div>

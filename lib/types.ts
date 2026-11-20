@@ -24,6 +24,10 @@ export interface Asset {
         date?: string; // Added date field
     }[];
     lastMaintenance: string;
+    /** Id dello stabilimento (la colonna `plant` contiene invece il nome). */
+    plantId?: string | null;
+    /** Asset di cui questo e' parte (macchina -> gruppo -> componente); null/assente = radice. */
+    parentId?: string | null;
 }
 
 export type WorkOrderPriority = 'STOPPED' | 'MALFUNCTIONING' | 'WORKING' | 'NOT_PRODUCTION' | 'HIGH' | 'MEDIUM' | 'LOW';
@@ -109,6 +113,7 @@ export interface WorkOrderTimer {
 }
 
 import type { Role } from '@/lib/roles';
+import { tk } from '@/lib/i18n/translate';
 export type UserRole = Role;
 
 export interface User {
@@ -152,12 +157,12 @@ export interface PreventiveSchedule {
 }
 
 export const RECURRENCE_OPTIONS = [
-    { value: 'WEEKLY', label: 'Settimanale (7 gg)', days: 7 },
-    { value: 'MONTHLY', label: 'Mensile (30 gg)', days: 30 },
-    { value: 'BIMONTHLY', label: 'Bimestrale (60 gg)', days: 60 },
-    { value: 'QUARTERLY', label: 'Trimestrale (90 gg)', days: 90 },
-    { value: 'SEMIANNUAL', label: 'Semestrale (180 gg)', days: 180 },
-    { value: 'ANNUAL', label: 'Annuale (365 gg)', days: 365 },
+    { value: 'WEEKLY', label: tk('Settimanale (7 gg)'), days: 7 },
+    { value: 'MONTHLY', label: tk('Mensile (30 gg)'), days: 30 },
+    { value: 'BIMONTHLY', label: tk('Bimestrale (60 gg)'), days: 60 },
+    { value: 'QUARTERLY', label: tk('Trimestrale (90 gg)'), days: 90 },
+    { value: 'SEMIANNUAL', label: tk('Semestrale (180 gg)'), days: 180 },
+    { value: 'ANNUAL', label: tk('Annuale (365 gg)'), days: 365 },
 ];
 
 export interface SparePart {

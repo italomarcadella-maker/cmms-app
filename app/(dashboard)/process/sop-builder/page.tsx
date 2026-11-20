@@ -1,6 +1,7 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
 import React, { useState, useRef, useEffect } from "react";
 import { getAssets } from "@/lib/actions";
 import { createSopDocument } from "@/lib/process-actions";
@@ -10,6 +11,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export default function SOPBuilder() {
+    const t = useT();
     const [assets, setAssets] = useState<any[]>([]);
     const [selectedAsset, setSelectedAsset] = useState("");
 
@@ -155,13 +157,13 @@ export default function SOPBuilder() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
                 <div>
                     <Link href="/process" className="text-sm font-medium text-slate-500 hover:text-indigo-600 flex items-center gap-1 mb-2">
-                        ← Torna a Dashboard Processo
+                        {t("← Torna a Dashboard Processo")}
                     </Link>
                     <h1 className="text-3xl font-extrabold text-slate-800 flex items-center gap-3">
                         <ScanLine className="h-8 w-8 text-fuchsia-600" />
-                        AI Vision Wizard SOP
+                        {t("AI Vision Wizard SOP")}
                     </h1>
-                    <p className="text-slate-500 mt-1">Carica la foto di un pannello HMI, estrai i parametri e rileva le derive in automatico.</p>
+                    <p className="text-slate-500 mt-1">{t("Carica la foto di un pannello HMI, estrai i parametri e rileva le derive in automatico.")}</p>
                 </div>
             </div>
 
@@ -173,13 +175,13 @@ export default function SOPBuilder() {
 
                         <div className="mb-4 space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Macchinario / Asset</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1">{t("Macchinario / Asset")}</label>
                                 <select
                                     className="w-full border-slate-200 rounded-lg p-2.5 focus:border-fuchsia-500 focus:ring-fuchsia-500 bg-white"
                                     value={selectedAsset}
                                     onChange={e => setSelectedAsset(e.target.value)}
                                 >
-                                    <option value="">Seleziona l'impianto inquadrato...</option>
+                                    <option value="">{t("Seleziona l'impianto inquadrato...")}</option>
                                     {assets.map(a => (
                                         <option key={a.id} value={a.id}>{a.name} ({a.model})</option>
                                     ))}
@@ -188,22 +190,22 @@ export default function SOPBuilder() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Linea (Opzionale)</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1">{t("Linea (Opzionale)")}</label>
                                     <input
                                         type="text"
                                         value={line}
                                         onChange={e => setLine(e.target.value)}
-                                        placeholder="es. Linea A"
+                                        placeholder={t("es. Linea A")}
                                         className="w-full border-slate-200 rounded-lg p-2.5 focus:border-fuchsia-500 focus:ring-fuchsia-500"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Prodotto (Opzionale)</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1">{t("Prodotto (Opzionale)")}</label>
                                     <input
                                         type="text"
                                         value={product}
                                         onChange={e => setProduct(e.target.value)}
-                                        placeholder="es. Tubo PVC 50mm"
+                                        placeholder={t("es. Tubo PVC 50mm")}
                                         className="w-full border-slate-200 rounded-lg p-2.5 focus:border-fuchsia-500 focus:ring-fuchsia-500"
                                     />
                                 </div>
@@ -211,7 +213,7 @@ export default function SOPBuilder() {
                         </div>
 
                         <div className="mt-6">
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Immagine HMI</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">{t("Immagine HMI")}</label>
 
                             {!imagePreview ? (
                                 <div
@@ -221,8 +223,8 @@ export default function SOPBuilder() {
                                     <div className="bg-white p-4 rounded-full shadow-sm group-hover:shadow-md mb-4 transition-all">
                                         <Camera className="h-8 w-8 text-slate-400 group-hover:text-fuchsia-500 transition-colors" />
                                     </div>
-                                    <p className="font-medium text-slate-600">Scatta o trascina la foto</p>
-                                    <p className="text-xs text-slate-400 mt-1">PNG, JPG fino a 10MB</p>
+                                    <p className="font-medium text-slate-600">{t("Scatta o trascina la foto")}</p>
+                                    <p className="text-xs text-slate-400 mt-1">{t("PNG, JPG fino a 10MB")}</p>
                                     <input
                                         type="file"
                                         accept="image/*"
@@ -234,7 +236,7 @@ export default function SOPBuilder() {
                                 </div>
                             ) : (
                                 <div className="relative group rounded-2xl overflow-hidden border border-slate-200 shadow-inner bg-black">
-                                    <img src={imagePreview} alt="HMI Preview" className={cn("w-full h-auto max-h-80 object-contain transition-all duration-700", isScanning && "opacity-80 scale-105 blur-[2px]")} />
+                                    <img src={imagePreview} alt={t("Anteprima HMI")} className={cn("w-full h-auto max-h-80 object-contain transition-all duration-700", isScanning && "opacity-80 scale-105 blur-[2px]")} />
 
                                     {/* Artificial Scanner Laser Effect */}
                                     {isScanning && (
@@ -251,7 +253,7 @@ export default function SOPBuilder() {
                                             onClick={() => fileInputRef.current?.click()}
                                             className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-black/80 transition-colors"
                                         >
-                                            Cambia Foto
+                                            {t("Cambia Foto")}
                                         </button>
                                     )}
                                 </div>
@@ -270,15 +272,15 @@ export default function SOPBuilder() {
                         >
                             {isScanning ? (
                                 <>
-                                    <ScanLine className="h-5 w-5 animate-spin" /> Elaborazione AI Vision...
+                                    <ScanLine className="h-5 w-5 animate-spin" /> {t("Elaborazione AI Vision...")}
                                 </>
                             ) : scanComplete ? (
                                 <>
-                                    <ScanLine className="h-5 w-5" /> Scansiona Nuovamente
+                                    <ScanLine className="h-5 w-5" /> {t("Scansiona Nuovamente")}
                                 </>
                             ) : (
                                 <>
-                                    <Camera className="h-5 w-5" /> Analizza Pannello
+                                    <Camera className="h-5 w-5" /> {t("Analizza Pannello")}
                                 </>
                             )}
                         </button>
@@ -292,7 +294,7 @@ export default function SOPBuilder() {
                         <div className="h-full border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 bg-slate-50/50">
                             <LayoutGrid className="h-16 w-16 text-slate-200 mb-4" />
                             <p className="text-slate-400 font-medium text-center">
-                                Carica una foto e clicca su "Analizza" per estrarre la ricetta automaticamente.
+                                {t("Carica una foto e clicca su \"Analizza\" per estrarre la ricetta automaticamente.")}
                             </p>
                         </div>
                     )}
@@ -321,7 +323,7 @@ export default function SOPBuilder() {
                                 <div className="bg-orange-50 p-5 border-b border-orange-200">
                                     <h3 className="flex items-center gap-2 font-bold text-orange-900 mb-3">
                                         <AlertTriangle className="h-5 w-5 text-orange-600" />
-                                        ⚠️ Derive Rilevate rispetto alla SOP Standard
+                                        {t("⚠️ Derive Rilevate rispetto alla SOP Standard")}
                                     </h3>
                                     <div className="space-y-3">
                                         {anomalies.map((anom, idx) => (
@@ -329,11 +331,11 @@ export default function SOPBuilder() {
                                                 <p className="font-semibold text-slate-800">{anom.label}</p>
                                                 <p className="text-orange-700 mt-1">{anom.description}</p>
                                                 <div className="flex gap-4 mt-2 font-mono text-xs">
-                                                    <span className="text-emerald-600">Standard: {anom.expected}</span>
-                                                    <span className="text-red-600">Rilevato: {anom.actual}</span>
+                                                    <span className="text-emerald-600">{t("Standard: {value}", { value: anom.expected })}</span>
+                                                    <span className="text-red-600">{t("Rilevato: {value}", { value: anom.actual })}</span>
                                                 </div>
                                                 <p className="text-slate-500 mt-2 text-xs flex items-center gap-1 border-t pt-2">
-                                                    <span>💡 AI:</span> {anom.recommendation}
+                                                    <span>{t("💡 AI:")}</span> {anom.recommendation}
                                                 </p>
                                             </div>
                                         ))}
@@ -347,8 +349,8 @@ export default function SOPBuilder() {
                                         <FileCheck2 className="h-5 w-5 text-emerald-600" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-emerald-900">Nessuna Deriva Rilevata</h3>
-                                        <p className="text-sm text-emerald-700">I parametri estratti sono perfettamente in linea o è la prima SOP assoluta.</p>
+                                        <h3 className="font-bold text-emerald-900">{t("Nessuna Deriva Rilevata")}</h3>
+                                        <p className="text-sm text-emerald-700">{t("I parametri estratti sono perfettamente in linea o è la prima SOP assoluta.")}</p>
                                     </div>
                                 </div>
                             )}
@@ -360,13 +362,13 @@ export default function SOPBuilder() {
                                         value={sopTitle}
                                         onChange={e => setSopTitle(e.target.value)}
                                         className="text-xl font-bold text-slate-800 border-none outline-none focus:ring-0 p-0 bg-transparent flex-1"
-                                        placeholder="Nome SOP / Ricetta"
+                                        placeholder={t("Nome SOP / Ricetta")}
                                     />
                                     <div className="relative w-full md:w-64">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                         <input
                                             type="text"
-                                            placeholder="Cerca parametro..."
+                                            placeholder={t("Cerca parametro...")}
                                             value={searchTerm}
                                             onChange={e => setSearchTerm(e.target.value)}
                                             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-fuchsia-500 focus:ring-fuchsia-500 transition-all shadow-sm"
@@ -376,15 +378,15 @@ export default function SOPBuilder() {
 
                                 <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                                     <div className="bg-slate-50 grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 py-3 border-b border-slate-200">
-                                        <div className="col-span-6">Parametro</div>
-                                        <div className="col-span-3 text-center">Valore</div>
-                                        <div className="col-span-3 text-center">Toll. (±)</div>
+                                        <div className="col-span-6">{t("Parametro")}</div>
+                                        <div className="col-span-3 text-center">{t("Valore")}</div>
+                                        <div className="col-span-3 text-center">{t("Toll. (±)")}</div>
                                     </div>
 
                                     <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
                                         {Object.entries(groupedParameters).length === 0 ? (
                                             <div className="p-8 text-center text-slate-400 text-sm italic">
-                                                Nessun parametro trovato per "{searchTerm}"
+                                                {t("Nessun parametro trovato per \"{term}\"", { term: searchTerm })}
                                             </div>
                                         ) : (
                                             Object.entries(groupedParameters).map(([category, items]: [string, any[]]) => (
@@ -446,7 +448,7 @@ export default function SOPBuilder() {
                                     onClick={handleSaveSOP}
                                     className="w-full mt-8 bg-slate-900 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200"
                                 >
-                                    <Save className="h-5 w-5" /> Salva come Standard SOP
+                                    <Save className="h-5 w-5" /> {t("Salva come Standard SOP")}
                                 </button>
                             </div>
                         </div>

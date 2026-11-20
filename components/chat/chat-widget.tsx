@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/lib/chat-context";
 import { useAuth } from "@/lib/auth-context";
+import { useT } from "@/lib/i18n/client";
 import { MessageSquare, X, Send, User, Brain, Image as ImageIcon, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -23,6 +24,7 @@ interface Message {
 }
 
 export function ChatWidget() {
+    const t = useT();
     const { user } = useAuth();
     const { messages: contextMessages, sendMessage, unreadCount, clearUnread } = useChat();
     const [messages, setMessages] = useState<Message[]>([]);
@@ -134,9 +136,9 @@ export function ChatWidget() {
                     <div className="bg-primary p-3 flex justify-between items-center text-primary-foreground shrink-0">
                         <div className="flex items-center gap-2">
                             <MessageSquare className="h-5 w-5" />
-                            <span className="font-semibold">Team Chat</span>
+                            <span className="font-semibold">{t("Team Chat")}</span>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-primary/80 rounded transition-colors">
+                        <button onClick={() => setIsOpen(false)} aria-label={t("Chiudi")} className="p-1 hover:bg-primary/80 rounded transition-colors">
                             <X className="h-4 w-4" />
                         </button>
                     </div>
@@ -148,12 +150,12 @@ export function ChatWidget() {
                     >
                         {messages.length === 0 && (
                             <div className="text-center text-xs text-muted-foreground mt-4 p-4 space-y-3">
-                                <p>Benvenuto nella chat del team!</p>
+                                <p>{t("Benvenuto nella chat del team!")}</p>
                                 <p className="text-indigo-600 font-medium bg-indigo-50 p-2 rounded-lg inline-block border border-indigo-100">
-                                    ✨ Tip: Scrivi <strong>@ai</strong> per chiedere aiuto o carica una foto.
+                                    ✨ {t("Tip: Scrivi @ai per chiedere aiuto o carica una foto.")}
                                 </p>
                                 <div className="flex flex-wrap gap-2 justify-center mt-2">
-                                    {["@ai Cosa fare oggi?", "@ai Stato interventi", "@ai Crea ticket"].map(action => (
+                                    {[t("@ai Cosa fare oggi?"), t("@ai Stato interventi"), t("@ai Crea ticket")].map(action => (
                                         <button
                                             key={action}
                                             onClick={() => setInputValue(action)}
@@ -196,7 +198,7 @@ export function ChatWidget() {
                                     )}>
                                         {msg.imageUrl && (
                                             <div className="mb-2 relative w-full h-32 rounded-md overflow-hidden border border-border bg-black/5">
-                                                <img src={msg.imageUrl} alt="Uploaded" className="object-cover w-full h-full hover:scale-105 transition-transform cursor-pointer" />
+                                                <img src={msg.imageUrl} alt={t("Immagine caricata")} className="object-cover w-full h-full hover:scale-105 transition-transform cursor-pointer" />
                                             </div>
                                         )}
                                         {msg.content}
@@ -205,7 +207,7 @@ export function ChatWidget() {
                                                 <details className="group">
                                                     <summary className="text-[10px] text-indigo-500 font-medium cursor-pointer flex items-center gap-1 hover:text-indigo-700 transition-colors select-none">
                                                         <Brain className="h-3 w-3" />
-                                                        Processo di pensiero ({msg.thoughtProcess.length} step)
+                                                        {t("Processo di pensiero ({count} step)", { count: msg.thoughtProcess.length })}
                                                     </summary>
                                                     <div className="mt-1 pl-2 border-l-2 border-indigo-200 space-y-1">
                                                         {msg.thoughtProcess.map((thought, idx) => (
@@ -228,7 +230,7 @@ export function ChatWidget() {
                                     <span className="animate-bounce delay-100">●</span>
                                     <span className="animate-bounce delay-200">●</span>
                                 </div>
-                                Cortex sta pensando...
+                                {t("Cortex sta pensando...")}
                             </div>
                         )}
                     </div>
@@ -237,7 +239,7 @@ export function ChatWidget() {
                     {selectedImage && (
                         <div className="px-3 pt-2 flex items-center gap-2 bg-muted/20 border-t border-dashed border-muted">
                             <div className="relative w-12 h-12 rounded-md overflow-hidden border border-indigo-200 group mt-1 mb-1">
-                                <img src={selectedImage} alt="Preview" className="object-cover w-full h-full" />
+                                <img src={selectedImage} alt={t("Anteprima")} className="object-cover w-full h-full" />
                                 <button
                                     type="button"
                                     onClick={() => setSelectedImage(null)}
@@ -246,7 +248,7 @@ export function ChatWidget() {
                                     <Trash2 className="h-3 w-3 text-white" />
                                 </button>
                             </div>
-                            <span className="text-[10px] text-muted-foreground italic">Immagine allegata</span>
+                            <span className="text-[10px] text-muted-foreground italic">{t("Immagine allegata")}</span>
                         </div>
                     )}
 
@@ -263,14 +265,14 @@ export function ChatWidget() {
                             type="button"
                             className={cn("p-2 text-muted-foreground hover:text-indigo-600 transition-colors rounded-md hover:bg-indigo-50", selectedImage && "text-indigo-600 bg-indigo-50")}
                             onClick={() => fileInputRef.current?.click()}
-                            title="Carica immagine"
+                            title={t("Carica immagine")}
                         >
                             <ImageIcon className="h-5 w-5" />
                         </button>
                         <input
                             autoFocus
                             className="flex-1 bg-muted/50 border-0 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none min-w-0"
-                            placeholder="Scrivi messaggio..."
+                            placeholder={t("Scrivi messaggio...")}
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                         />

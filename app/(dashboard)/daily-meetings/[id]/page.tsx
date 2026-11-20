@@ -10,13 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/text-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShieldCheck, AlertTriangle, Activity, Wrench, ChevronLeft, ChevronRight, Save, Play, Printer } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { AssetTree } from "@/components/assets/asset-tree";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { getAssets } from "@/lib/actions";
+import { useT, useFormat } from "@/lib/i18n/client";
 
 export default function DailyMeetingWizard({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
+    const t = useT();
+    const fmt = useFormat();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("SAFETY");
     const [saving, setSaving] = useState(false);
@@ -88,11 +91,11 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
             if (res.ok) {
                 const newItem = await res.json();
                 setActionItems(prev => [newItem, ...prev]);
-                toast.success(`Task ${category} generato inviato alla Manutenzione!`);
+                toast.success(t("Task {category} generato inviato alla Manutenzione!", { category }));
                 setIsAssetPickerOpen(false);
             }
         } catch (e) {
-            toast.error("Errore generazione Task");
+            toast.error(t("Errore generazione Task"));
         }
     }
 
@@ -100,11 +103,11 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
         setSaving(true);
         // Simulate save
         await new Promise(r => setTimeout(r, 1000));
-        toast.success("Meeting salvato con successo.");
+        toast.success(t("Meeting salvato con successo."));
         router.push("/daily-meetings");
     };
 
-    if (!meeting) return <div>Caricamento...</div>;
+    if (!meeting) return <div>{t("Caricamento...")}</div>;
 
     return (
         <div className="flex flex-col lg:flex-row gap-6">
@@ -116,43 +119,43 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Daily Meeting - {meeting.department}</h1>
-                        <p className="text-muted-foreground text-sm">Sessione in bozza - Compila le sezioni.</p>
+                        <h1 className="text-2xl font-bold tracking-tight">{t("Daily Meeting - {department}", { department: meeting.department })}</h1>
+                        <p className="text-muted-foreground text-sm">{t("Sessione in bozza - Compila le sezioni.")}</p>
                     </div>
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-4 h-12">
-                        <TabsTrigger value="SAFETY" className="gap-2"><ShieldCheck className="h-4 w-4" /> Sicurezza</TabsTrigger>
-                        <TabsTrigger value="QUALITY" className="gap-2"><AlertTriangle className="h-4 w-4" /> Qualità</TabsTrigger>
-                        <TabsTrigger value="PRODUCTION" className="gap-2"><Activity className="h-4 w-4" /> Produzione</TabsTrigger>
-                        <TabsTrigger value="MAINTENANCE" className="gap-2"><Wrench className="h-4 w-4" /> Manutenzione</TabsTrigger>
+                        <TabsTrigger value="SAFETY" className="gap-2"><ShieldCheck className="h-4 w-4" /> {t("Sicurezza")}</TabsTrigger>
+                        <TabsTrigger value="QUALITY" className="gap-2"><AlertTriangle className="h-4 w-4" /> {t("Qualità")}</TabsTrigger>
+                        <TabsTrigger value="PRODUCTION" className="gap-2"><Activity className="h-4 w-4" /> {t("Produzione")}</TabsTrigger>
+                        <TabsTrigger value="MAINTENANCE" className="gap-2"><Wrench className="h-4 w-4" /> {t("Manutenzione")}</TabsTrigger>
                     </TabsList>
 
                     {/* SAFETY TAB */}
                     <TabsContent value="SAFETY" className="mt-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Salute, Sicurezza e Ambiente (HSE)</CardTitle>
-                                <CardDescription>Eventi mancati, infortuni, o problemi di sicurezza (DPI).</CardDescription>
+                                <CardTitle>{t("Salute, Sicurezza e Ambiente (HSE)")}</CardTitle>
+                                <CardDescription>{t("Eventi mancati, infortuni, o problemi di sicurezza (DPI).")}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <Textarea
                                     rows={5}
-                                    placeholder="Annota eventi relativi alla sicurezza..."
+                                    placeholder={t("Annota eventi relativi alla sicurezza...")}
                                     value={safetyNotes}
                                     onChange={(e) => setSafetyNotes(e.target.value)}
                                 />
                                 <div className="bg-muted p-4 rounded-lg flex items-center justify-between">
-                                    <span className="text-sm">È richiesto un intervento urgente di Manutenzione per ripristinare la Sicurezza?</span>
+                                    <span className="text-sm">{t("È richiesto un intervento urgente di Manutenzione per ripristinare la Sicurezza?")}</span>
                                     <Button variant="destructive" size="sm" onClick={() => openAssetPicker("SAFETY", safetyNotes)}>
-                                        Genera Ticket Emergenza (EWO)
+                                        {t("Genera Ticket Emergenza (EWO)")}
                                     </Button>
                                 </div>
                             </CardContent>
                             <CardFooter className="flex justify-between">
-                                <Button variant="ghost" disabled>Indietro</Button>
-                                <Button onClick={() => setActiveTab("QUALITY")}>Avanti <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                                <Button variant="ghost" disabled>{t("Indietro")}</Button>
+                                <Button onClick={() => setActiveTab("QUALITY")}>{t("Avanti")} <ChevronRight className="ml-2 h-4 w-4" /></Button>
                             </CardFooter>
                         </Card>
                     </TabsContent>
@@ -161,30 +164,30 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                     <TabsContent value="QUALITY" className="mt-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Qualità e Non Conformità</CardTitle>
-                                <CardDescription>Rese, reclami, scarti o blocchi del magazzino.</CardDescription>
+                                <CardTitle>{t("Qualità e Non Conformità")}</CardTitle>
+                                <CardDescription>{t("Rese, reclami, scarti o blocchi del magazzino.")}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium">Scarti Totali (kg)</label>
-                                        <Input type="number" placeholder="Es. 120" />
+                                        <label className="text-sm font-medium">{t("Scarti Totali (kg)")}</label>
+                                        <Input type="number" placeholder={t("Es. 120")} />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium">Non Conformità Aperte</label>
-                                        <Input type="number" placeholder="Es. 2" />
+                                        <label className="text-sm font-medium">{t("Non Conformità Aperte")}</label>
+                                        <Input type="number" placeholder={t("Es. 2")} />
                                     </div>
                                 </div>
                                 <Textarea
                                     rows={4}
-                                    placeholder="Dettagli di qualità discussi oggi..."
+                                    placeholder={t("Dettagli di qualità discussi oggi...")}
                                     value={qualityNotes}
                                     onChange={(e) => setQualityNotes(e.target.value)}
                                 />
                             </CardContent>
                             <CardFooter className="flex justify-between">
-                                <Button variant="outline" onClick={() => setActiveTab("SAFETY")}>Indietro</Button>
-                                <Button onClick={() => setActiveTab("PRODUCTION")}>Avanti <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                                <Button variant="outline" onClick={() => setActiveTab("SAFETY")}>{t("Indietro")}</Button>
+                                <Button onClick={() => setActiveTab("PRODUCTION")}>{t("Avanti")} <ChevronRight className="ml-2 h-4 w-4" /></Button>
                             </CardFooter>
                         </Card>
                     </TabsContent>
@@ -193,8 +196,8 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                     <TabsContent value="PRODUCTION" className="mt-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Avanzamento Produzione</CardTitle>
-                                <CardDescription>KPI OEE, fermi linea, andamenti.</CardDescription>
+                                <CardTitle>{t("Avanzamento Produzione")}</CardTitle>
+                                <CardDescription>{t("KPI OEE, fermi linea, andamenti.")}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex gap-4">
@@ -207,7 +210,7 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                                                     onChange={(e) => setOee(Number(e.target.value))}
                                                     className="text-3xl font-bold text-indigo-700 bg-transparent border-none text-center focus:ring-0 w-20"
                                                 />
-                                                <div className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">OEE Stimato (%)</div>
+                                                <div className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">{t("OEE Stimato (%)")}</div>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -220,21 +223,21 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                                                     onChange={(e) => setEfficiency(Number(e.target.value))}
                                                     className="text-3xl font-bold text-emerald-700 bg-transparent border-none text-center focus:ring-0 w-20"
                                                 />
-                                                <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Efficienza Target (%)</div>
+                                                <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">{t("Efficienza Target (%)")}</div>
                                             </div>
                                         </CardContent>
                                     </Card>
                                 </div>
                                 <Textarea
                                     rows={4}
-                                    placeholder="Problemi sui materiali, cambi formato lenti, ecc..."
+                                    placeholder={t("Problemi sui materiali, cambi formato lenti, ecc...")}
                                     value={productionNotes}
                                     onChange={(e) => setProductionNotes(e.target.value)}
                                 />
                             </CardContent>
                             <CardFooter className="flex justify-between">
-                                <Button variant="outline" onClick={() => setActiveTab("QUALITY")}>Indietro</Button>
-                                <Button onClick={() => setActiveTab("MAINTENANCE")}>Avanti <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                                <Button variant="outline" onClick={() => setActiveTab("QUALITY")}>{t("Indietro")}</Button>
+                                <Button onClick={() => setActiveTab("MAINTENANCE")}>{t("Avanti")} <ChevronRight className="ml-2 h-4 w-4" /></Button>
                             </CardFooter>
                         </Card>
                     </TabsContent>
@@ -243,31 +246,31 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                     <TabsContent value="MAINTENANCE" className="mt-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Integrazione Manutenzione</CardTitle>
-                                <CardDescription>Problemi tecnici sollevati oggi che richiedono interventi.</CardDescription>
+                                <CardTitle>{t("Integrazione Manutenzione")}</CardTitle>
+                                <CardDescription>{t("Problemi tecnici sollevati oggi che richiedono interventi.")}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <Textarea
                                     rows={4}
-                                    placeholder="Descrivi richieste e collaudi (es. sensore guasto sulla formatrice)..."
+                                    placeholder={t("Descrivi richieste e collaudi (es. sensore guasto sulla formatrice)...")}
                                     value={maintenanceNotes}
                                     onChange={(e) => setMaintenanceNotes(e.target.value)}
                                 />
                                 <div className="bg-muted p-4 rounded-lg flex items-center justify-between">
-                                    <span className="text-sm">Assegna un Task preventivo o curativo per quanto descritto sopra.</span>
+                                    <span className="text-sm">{t("Assegna un Task preventivo o curativo per quanto descritto sopra.")}</span>
                                     <Button variant="secondary" size="sm" onClick={() => openAssetPicker("MECHANICAL", maintenanceNotes)}>
-                                        <Wrench className="mr-2 h-4 w-4" /> Genera Ordine (WO)
+                                        <Wrench className="mr-2 h-4 w-4" /> {t("Genera Ordine (WO)")}
                                     </Button>
                                 </div>
                             </CardContent>
                             <CardFooter className="flex justify-between">
-                                <Button variant="outline" onClick={() => setActiveTab("PRODUCTION")}>Indietro</Button>
+                                <Button variant="outline" onClick={() => setActiveTab("PRODUCTION")}>{t("Indietro")}</Button>
                                 <div className="flex gap-2">
                                     <Button variant="outline" onClick={() => window.open(`/daily-meetings/${id}/report`, "_blank")}>
-                                        <Printer className="mr-2 h-4 w-4" /> Genera PDF
+                                        <Printer className="mr-2 h-4 w-4" /> {t("Genera PDF")}
                                     </Button>
                                     <Button onClick={handleComplete} disabled={saving} className="bg-green-600 hover:bg-green-700">
-                                        {saving ? "Salvataggio..." : <><Save className="mr-2 h-4 w-4" /> Chiudi ed Archivia</>}
+                                        {saving ? t("Salvataggio...") : <><Save className="mr-2 h-4 w-4" /> {t("Chiudi ed Archivia")}</>}
                                     </Button>
                                 </div>
                             </CardFooter>
@@ -282,14 +285,14 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                 <Card className="border-indigo-100 shadow-sm overflow-hidden">
                     <CardHeader className="bg-indigo-50/50 py-3">
                         <CardTitle className="text-sm font-bold flex items-center gap-2 text-indigo-900">
-                            <Activity className="h-4 w-4" /> Follow-up Attività
+                            <Activity className="h-4 w-4" /> {t("Follow-up Attività")}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
                             {actionItems.length === 0 ? (
                                 <div className="p-6 text-center text-xs text-slate-400 italic">
-                                    Nessun task generato in questa sessione.
+                                    {t("Nessun task generato in questa sessione.")}
                                 </div>
                             ) : (
                                 actionItems.map((item: any) => (
@@ -299,12 +302,12 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                                                 ${item.status === 'OPEN' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-emerald-100 text-emerald-700 border-emerald-200'}`}>
                                                 {item.status}
                                             </span>
-                                            <span className="text-[10px] text-slate-400">{new Date(item.createdAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span className="text-[10px] text-slate-400">{fmt.time(item.createdAt, { hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
                                         <p className="text-xs font-medium text-slate-700 line-clamp-2">{item.description}</p>
                                         {item.linkedWorkOrderId && (
                                             <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-indigo-600">
-                                                <Wrench className="h-3 w-3" /> Collegato WO
+                                                <Wrench className="h-3 w-3" /> {t("Collegato WO")}
                                             </div>
                                         )}
                                     </div>
@@ -319,9 +322,9 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
             <Dialog open={isAssetPickerOpen} onOpenChange={setIsAssetPickerOpen}>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                     <DialogHeader>
-                        <DialogTitle>Seleziona l'Asset per la richiesta</DialogTitle>
+                        <DialogTitle>{t("Seleziona l'Asset per la richiesta")}</DialogTitle>
                         <DialogDescription>
-                            Sfoglia l'albero degli asset per indicare con precisione dove intervenire.
+                            {t("Sfoglia l'albero degli asset per indicare con precisione dove intervenire.")}
                         </DialogDescription>
                     </DialogHeader>
                     
@@ -339,7 +342,7 @@ export default function DailyMeetingWizard({ params }: { params: Promise<{ id: s
                     
                     <DialogFooter className="bg-slate-50 p-4 -mx-6 -mb-6">
                         <Button variant="outline" onClick={() => handleCreateTask(pendingCategory, pendingDescription)}>
-                            Salta e usa Asset Generico
+                            {t("Salta e usa Asset Generico")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

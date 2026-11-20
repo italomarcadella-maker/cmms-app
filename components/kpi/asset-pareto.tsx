@@ -20,6 +20,10 @@ import { getAssetPareto, type AssetParetoResponse } from "@/modules/maintenance/
 import type { ParetoMetric, ParetoMonths, ParetoRow } from "@/modules/maintenance/domain/pareto";
 import { PARETO_THRESHOLD } from "@/modules/maintenance/domain/pareto";
 import { categoryColor, chartColors } from "@/lib/chart-colors";
+import { tk } from "@/lib/i18n/translate";
+import { useT, useFormat } from "@/lib/i18n/client";
+import type { TFunction } from "@/lib/i18n/client";
+import type { Formatter } from "@/lib/i18n/format";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -31,43 +35,56 @@ const OTHERS_KEY = "__others__";
 const FAINT = 0.35;
 
 const CATEGORY_LABELS: Record<string, string> = {
-    MECHANICAL: "Meccanica",
-    ELECTRICAL: "Elettrica",
-    HYDRAULIC: "Idraulica",
-    PNEUMATIC: "Pneumatica",
-    SOFTWARE: "Software",
-    CIVIL: "Opere civili",
-    PLANT: "Impianti",
-    SAFETY: "Sicurezza",
-    IMPROVEMENT: "Miglioramento",
-    AI_SUGGESTION: "Suggerimento IA",
-    OTHER: "Altro",
+    MECHANICAL: tk("Meccanica"),
+    ELECTRICAL: tk("Elettrica"),
+    HYDRAULIC: tk("Idraulica"),
+    PNEUMATIC: tk("Pneumatica"),
+    SOFTWARE: tk("Software"),
+    CIVIL: tk("Opere civili"),
+    PLANT: tk("Impianti"),
+    SAFETY: tk("Sicurezza"),
+    IMPROVEMENT: tk("Miglioramento"),
+    AI_SUGGESTION: tk("Suggerimento IA"),
+    OTHER: tk("Altro"),
 };
 
 const METRIC_OPTIONS: { value: ParetoMetric; label: string }[] = [
-    { value: "EVENTS", label: "Interventi (pesati)" },
-    { value: "HOURS", label: "Ore di lavoro" },
-    { value: "COST", label: "Costo" },
+    { value: "EVENTS", label: tk("Interventi (pesati)") },
+    { value: "HOURS", label: tk("Ore di lavoro") },
+    { value: "COST", label: tk("Costo") },
 ];
 
 const MONTH_OPTIONS: { value: `${ParetoMonths}`; label: string }[] = [
-    { value: "3", label: "3 mesi" },
-    { value: "6", label: "6 mesi" },
-    { value: "12", label: "12 mesi" },
+    { value: "3", label: tk("3 mesi") },
+    { value: "6", label: tk("6 mesi") },
+    { value: "12", label: tk("12 mesi") },
 ];
 
-const nf = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 });
-const pctFmt = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const eur = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
-const eur0 = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-const dateFmt = new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" });
+/** Formati numerici del Pareto nella lingua dell'utente. */
+function paretoFormats(fmt: Formatter) {
+    return {
+        nf: (v: number) => fmt.number(v, { maximumFractionDigits: 2 }),
+        pct: (v: number) => fmt.number(v, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+        eur: (v: number) => fmt.currency(v),
+        eur0: (v: number) => fmt.currency(v, "EUR", { maximumFractionDigits: 0 }),
+        date: (v: Date | string) => fmt.date(v, { day: "2-digit", month: "2-digit", year: "numeric" }),
+    };
+}
 
 const rowKey = (r: ParetoRow) => r.assetId ?? OTHERS_KEY;
 
-function formatValue(metric: ParetoMetric, v: number): string {
-    if (metric === "HOURS") return `${nf.format(v)} h`;
-    if (metric === "COST") return eur.format(v);
-    return `${nf.format(v)} punti`;
+function formatValue(metric: ParetoMetric, v: number, fmt: Formatter, t: TFunction): string {
+    const f = paretoFormats(fmt);
+    if (metric === "HOURS") return `${f.nf(v)} h`;
+    if (metric === "COST") return f.eur(v);
+    return t("{n} punti", { n: f.nf(v) });
+}
+
+/** "3 guasti (di cui 1 a macchina ferma), 2 richieste" */
+function eventsSummary(r: { faults: number; stoppedFaults: number; requests: number }, t: TFunction): string {
+    const faults = t("{n} guasti", { n: r.faults });
+    const stopped = r.stoppedFaults > 0 ? ` ${t("(di cui {n} a macchina ferma)", { n: r.stoppedFaults })}` : "";
+    return `${faults}${stopped}, ${t("{n} richieste", { n: r.requests })}`;
 }
 
 const truncate = (s: string, n = 16) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
@@ -83,6 +100,10 @@ interface ChartDatum {
 }
 
 function ParetoTooltip({ active, payload, metric }: { active?: boolean; payload?: { payload?: ChartDatum }[]; metric: ParetoMetric }) {
+    const t = useT();
+    const fmt = useFormat();
+    const f = paretoFormats(fmt);
+    const metricLabel = METRIC_OPTIONS.find((m) => m.value === metric)?.label;
     const d = active ? payload?.[0]?.payload : undefined;
     if (!d) return null;
     const r = d.row;
@@ -94,25 +115,30 @@ function ParetoTooltip({ active, payload, metric }: { active?: boolean; payload?
             )}
             <div className="mt-2 space-y-0.5">
                 <p>
-                    <span className="text-muted-foreground">{METRIC_OPTIONS.find((m) => m.value === metric)?.label}: </span>
-                    <span className="font-medium">{formatValue(metric, r.value)}</span> ({pctFmt.format(r.sharePct)}% del totale)
+                    <span className="text-muted-foreground">{metricLabel ? t(metricLabel) : ""}: </span>
+                    <span className="font-medium">{formatValue(metric, r.value, fmt, t)}</span> {t("({pct}% del totale)", { pct: f.pct(r.sharePct) })}
                 </p>
                 {metric === "EVENTS" && (
                     <p className="text-muted-foreground">
-                        {r.faults} guasti{r.stoppedFaults > 0 ? ` (di cui ${r.stoppedFaults} a macchina ferma)` : ""}, {r.requests} richieste
+                        {eventsSummary(r, t)}
                     </p>
                 )}
                 <p>
-                    <span className="text-muted-foreground">Cumulata: </span>
-                    <span className="font-medium">{pctFmt.format(r.cumulativePct)}%</span>
+                    <span className="text-muted-foreground">{t("Cumulata:")} </span>
+                    <span className="font-medium">{f.pct(r.cumulativePct)}%</span>
                 </p>
-                {r.vital && <p className="font-medium" style={{ color: chartColors.critical }}>Tra le poche vitali</p>}
+                {r.vital && <p className="font-medium" style={{ color: chartColors.critical }}>{t("Tra le poche vitali")}</p>}
             </div>
         </div>
     );
 }
 
 export function AssetPareto() {
+    const t = useT();
+    const fmt = useFormat();
+    const f = paretoFormats(fmt);
+    const metricOptions = METRIC_OPTIONS.map((o) => ({ ...o, label: t(o.label) }));
+    const monthOptions = MONTH_OPTIONS.map((o) => ({ ...o, label: t(o.label) }));
     const [metric, setMetric] = useState<ParetoMetric>("EVENTS");
     const [months, setMonths] = useState<ParetoMonths>(12);
     const [department, setDepartment] = useState<string>(ALL);
@@ -166,55 +192,59 @@ export function AssetPareto() {
 
     const selected = rows.find((r) => rowKey(r) === selectedKey) ?? rows[0] ?? null;
     const selectedDatumKey = selected ? rowKey(selected) : null;
+    const metricLabel = metricOptions.find((m) => m.value === metric)?.label ?? "";
 
     // Non e' una sezione per i manutentori: nessun riquadro, nessun messaggio
     if (data?.unauthorized) return null;
 
     const weights = data?.weights;
+    const range = data ? { from: f.date(new Date(data.from)), to: f.date(new Date(data.to)) } : { from: "", to: "" };
     const description = metric === "EVENTS" && weights
-        ? `Guasti e richieste dal ${data ? dateFmt.format(new Date(data.from)) : ""} al ${data ? dateFmt.format(new Date(data.to)) : ""}. Punti: guasto ${nf.format(weights.faultWeight)}, guasto a macchina ferma ${nf.format(weights.stoppedFaultWeight)}, richiesta ${nf.format(weights.requestWeight)}.`
+        ? t("Guasti e richieste dal {from} al {to}. Punti: guasto {fault}, guasto a macchina ferma {stopped}, richiesta {request}.", { ...range, fault: f.nf(weights.faultWeight), stopped: f.nf(weights.stoppedFaultWeight), request: f.nf(weights.requestWeight) })
         : data
-            ? `Guasti e richieste dal ${dateFmt.format(new Date(data.from))} al ${dateFmt.format(new Date(data.to))}. ${metric === "HOURS" ? "Ore di lavoro registrate sugli ordini." : "Ricambi e manodopera degli ordini."}`
-            : "Le macchine che concentrano la maggior parte dei problemi.";
+            ? (metric === "HOURS"
+                ? t("Guasti e richieste dal {from} al {to}. Ore di lavoro registrate sugli ordini.", range)
+                : t("Guasti e richieste dal {from} al {to}. Ricambi e manodopera degli ordini.", range))
+            : t("Le macchine che concentrano la maggior parte dei problemi.");
 
     const chartLabel = result && rows.length > 0
-        ? `Grafico di Pareto delle macchine per ${METRIC_OPTIONS.find((m) => m.value === metric)?.label.toLowerCase()}. ${result.vitalCount} macchine su ${result.machines} raggiungono l'${PARETO_THRESHOLD}% del totale. I valori sono nella tabella sottostante.`
-        : "Grafico di Pareto";
+        ? t("Grafico di Pareto delle macchine per {metric}. {vital} macchine su {total} raggiungono l'{threshold}% del totale. I valori sono nella tabella sottostante.", { metric: metricLabel.toLowerCase(), vital: result.vitalCount, total: result.machines, threshold: PARETO_THRESHOLD })
+        : t("Grafico di Pareto");
 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Macchine più problematiche (Pareto)</CardTitle>
+                <CardTitle>{t("Macchine più problematiche (Pareto)")}</CardTitle>
                 <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
                 <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
                     <SegmentedControl
-                        aria-label="Metrica"
-                        options={METRIC_OPTIONS}
+                        aria-label={t("Metrica")}
+                        options={metricOptions}
                         value={metric}
                         onChange={(v) => { setMetric(v); setSelectedKey(null); }}
                     />
                     <SegmentedControl
-                        aria-label="Periodo"
-                        options={MONTH_OPTIONS}
+                        aria-label={t("Periodo")}
+                        options={monthOptions}
                         value={`${months}` as `${ParetoMonths}`}
                         onChange={(v) => { setMonths(Number(v) as ParetoMonths); setSelectedKey(null); }}
                     />
                     <div className="w-44">
                         <Select value={department} onValueChange={(v) => { setDepartment(v); setSelectedKey(null); }}>
-                            <SelectTrigger aria-label="Reparto"><SelectValue placeholder="Reparto" /></SelectTrigger>
+                            <SelectTrigger aria-label={t("Reparto")}><SelectValue placeholder={t("Reparto")} /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={ALL}>Tutti i reparti</SelectItem>
+                                <SelectItem value={ALL}>{t("Tutti i reparti")}</SelectItem>
                                 {filterLists.departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="w-44">
                         <Select value={line} onValueChange={(v) => { setLine(v); setSelectedKey(null); }}>
-                            <SelectTrigger aria-label="Linea"><SelectValue placeholder="Linea" /></SelectTrigger>
+                            <SelectTrigger aria-label={t("Linea")}><SelectValue placeholder={t("Linea")} /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={ALL}>Tutte le linee</SelectItem>
+                                <SelectItem value={ALL}>{t("Tutte le linee")}</SelectItem>
                                 {filterLists.lines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                             </SelectContent>
                         </Select>
@@ -222,27 +252,29 @@ export function AssetPareto() {
                 </div>
 
                 {loading && !data ? (
-                    <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">Caricamento dati...</div>
+                    <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">{t("Caricamento dati...")}</div>
                 ) : !data || !data.success ? (
-                    <EmptyState icon={<BarChart3 />} title="Pareto non disponibile" description={data?.message ?? "Impossibile caricare i dati."} />
+                    <EmptyState icon={<BarChart3 />} title={t("Pareto non disponibile")} description={data?.message ? t(data.message) : t("Impossibile caricare i dati.")} />
                 ) : !result || result.insufficient ? (
                     <EmptyState
                         icon={<BarChart3 />}
-                        title="Dati insufficienti per un Pareto significativo"
-                        description={`Servono almeno 3 interventi o richieste nel periodo scelto: ne risultano ${result?.totalEvents ?? 0}. Prova ad ampliare il periodo o a togliere i filtri.`}
+                        title={t("Dati insufficienti per un Pareto significativo")}
+                        description={t("Servono almeno 3 interventi o richieste nel periodo scelto: ne risultano {n}. Prova ad ampliare il periodo o a togliere i filtri.", { n: result?.totalEvents ?? 0 })}
                     />
                 ) : rows.length === 0 ? (
                     <EmptyState
                         icon={<BarChart3 />}
-                        title="Nessun valore registrato per questa metrica"
-                        description={`Nel periodo ci sono ${result.totalEvents} eventi, ma nessuno con ${metric === "HOURS" ? "ore di lavoro" : "costi"} registrati.`}
+                        title={t("Nessun valore registrato per questa metrica")}
+                        description={metric === "HOURS"
+                            ? t("Nel periodo ci sono {n} eventi, ma nessuno con ore di lavoro registrate.", { n: result.totalEvents })
+                            : t("Nel periodo ci sono {n} eventi, ma nessuno con costi registrati.", { n: result.totalEvents })}
                     />
                 ) : (
                     <div className={loading ? "space-y-5 opacity-60 transition-opacity" : "space-y-5 transition-opacity"} aria-busy={loading}>
                         <p className="text-sm text-muted-foreground">
-                            {result.vitalCount === 1 ? "1 macchina" : `${result.vitalCount} macchine`} su {result.machines} (
-                            {pctFmt.format(result.vitalSharePct)}% del totale) {result.vitalCount === 1 ? "è la" : "sono le"} &ldquo;poche vitali&rdquo;:
-                            quelle che servono per arrivare all&apos;{PARETO_THRESHOLD}% del totale.
+                            {result.vitalCount === 1
+                                ? t("1 macchina su {total} ({pct}% del totale) è la “poche vitali”: quelle che servono per arrivare all'{threshold}% del totale.", { total: result.machines, pct: f.pct(result.vitalSharePct), threshold: PARETO_THRESHOLD })
+                                : t("{n} macchine su {total} ({pct}% del totale) sono le “poche vitali”: quelle che servono per arrivare all'{threshold}% del totale.", { n: result.vitalCount, total: result.machines, pct: f.pct(result.vitalSharePct), threshold: PARETO_THRESHOLD })}
                         </p>
 
                         <div className="h-[400px] w-full" role="img" aria-label={chartLabel}>
@@ -266,7 +298,7 @@ export function AssetPareto() {
                                         fontSize={12}
                                         tickLine={false}
                                         axisLine={false}
-                                        tickFormatter={(v: number) => (metric === "COST" ? eur0.format(v) : nf.format(v))}
+                                        tickFormatter={(v: number) => (metric === "COST" ? f.eur0(v) : f.nf(v))}
                                         width={metric === "COST" ? 70 : 45}
                                     />
                                     <YAxis
@@ -291,13 +323,13 @@ export function AssetPareto() {
                                     />
                                     {metric === "EVENTS" ? (
                                         <>
-                                            <Bar yAxisId="left" dataKey="faultValue" stackId="v" name="Guasti" maxBarSize={44} cursor="pointer"
+                                            <Bar yAxisId="left" dataKey="faultValue" stackId="v" name={t("Guasti")} maxBarSize={44} cursor="pointer"
                                                 onClick={(_d, i) => setSelectedKey(chartData[i]?.key ?? null)}>
                                                 {chartData.map((d) => (
                                                     <Cell key={d.key} fill={chartColors.critical} fillOpacity={d.row.vital ? 1 : FAINT} />
                                                 ))}
                                             </Bar>
-                                            <Bar yAxisId="left" dataKey="requestValue" stackId="v" name="Richieste" maxBarSize={44} cursor="pointer"
+                                            <Bar yAxisId="left" dataKey="requestValue" stackId="v" name={t("Richieste")} maxBarSize={44} cursor="pointer"
                                                 radius={[4, 4, 0, 0]} onClick={(_d, i) => setSelectedKey(chartData[i]?.key ?? null)}>
                                                 {chartData.map((d) => (
                                                     <Cell key={d.key} fill={chartColors.primary} fillOpacity={d.row.vital ? 1 : FAINT} />
@@ -305,7 +337,7 @@ export function AssetPareto() {
                                             </Bar>
                                         </>
                                     ) : (
-                                        <Bar yAxisId="left" dataKey="value" name={metric === "HOURS" ? "Ore di lavoro" : "Costo"} maxBarSize={44} cursor="pointer"
+                                        <Bar yAxisId="left" dataKey="value" name={metric === "HOURS" ? t("Ore di lavoro") : t("Costo")} maxBarSize={44} cursor="pointer"
                                             radius={[4, 4, 0, 0]} onClick={(_d, i) => setSelectedKey(chartData[i]?.key ?? null)}>
                                             {chartData.map((d) => (
                                                 <Cell key={d.key} fill={chartColors.primary} fillOpacity={d.row.vital ? 1 : FAINT} />
@@ -316,7 +348,7 @@ export function AssetPareto() {
                                         yAxisId="right"
                                         type="monotone"
                                         dataKey="cumulative"
-                                        name="Cumulata"
+                                        name={t("Cumulata")}
                                         stroke={chartColors.warning}
                                         strokeWidth={2}
                                         dot={{ r: 3, fill: chartColors.warning }}
@@ -326,21 +358,21 @@ export function AssetPareto() {
                             </ResponsiveContainer>
                         </div>
 
-                        <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground" aria-label="Legenda">
+                        <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground" aria-label={t("Legenda")}>
                             {metric === "EVENTS" ? (
                                 <>
-                                    <LegendDot color={chartColors.critical} label="Guasti" />
-                                    <LegendDot color={chartColors.primary} label="Richieste" />
+                                    <LegendDot color={chartColors.critical} label={t("Guasti")} />
+                                    <LegendDot color={chartColors.primary} label={t("Richieste")} />
                                 </>
                             ) : (
-                                <LegendDot color={chartColors.primary} label={metric === "HOURS" ? "Ore di lavoro" : "Costo"} />
+                                <LegendDot color={chartColors.primary} label={metric === "HOURS" ? t("Ore di lavoro") : t("Costo")} />
                             )}
                             <li className="flex items-center gap-1.5">
                                 <span className="inline-block h-0.5 w-4" style={{ backgroundColor: chartColors.warning }} aria-hidden />
-                                Percentuale cumulata (asse destro)
+                                {t("Percentuale cumulata (asse destro)")}
                             </li>
-                            <li>Colore pieno: poche vitali. Colore chiaro: le altre macchine.</li>
-                            <li>Clicca su una barra per vedere le categorie.</li>
+                            <li>{t("Colore pieno: poche vitali. Colore chiaro: le altre macchine.")}</li>
+                            <li>{t("Clicca su una barra per vedere le categorie.")}</li>
                         </ul>
 
                         {selected && (
@@ -349,24 +381,24 @@ export function AssetPareto() {
                                     <div>
                                         <p className="text-sm font-semibold">{selected.name}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            {selected.faults} guasti{selected.stoppedFaults > 0 ? ` (di cui ${selected.stoppedFaults} a macchina ferma)` : ""}, {selected.requests} richieste
-                                            {selected.hours > 0 ? ` · ${nf.format(selected.hours)} h di lavoro` : ""}
-                                            {selected.cost > 0 ? ` · ${eur.format(selected.cost)}` : ""}
+                                            {eventsSummary(selected, t)}
+                                            {selected.hours > 0 ? ` · ${t("{n} h di lavoro", { n: f.nf(selected.hours) })}` : ""}
+                                            {selected.cost > 0 ? ` · ${f.eur(selected.cost)}` : ""}
                                         </p>
                                     </div>
                                     {selected.assetId && (
                                         <Link href={`/assets/${selected.assetId}`} className="text-sm font-medium text-primary hover:underline">
-                                            Apri la scheda asset
+                                            {t("Apri la scheda asset")}
                                         </Link>
                                     )}
                                 </div>
-                                <p className="mt-3 text-xs font-medium text-muted-foreground">Eventi per categoria</p>
+                                <p className="mt-3 text-xs font-medium text-muted-foreground">{t("Eventi per categoria")}</p>
                                 <ul className="mt-2 space-y-1.5">
                                     {selected.categories.map((c) => {
                                         const max = selected.categories[0]?.count || 1;
                                         return (
                                             <li key={c.category} className="grid grid-cols-[7.5rem_1fr_2rem] items-center gap-3 text-sm">
-                                                <span className="truncate">{CATEGORY_LABELS[c.category] ?? c.category}</span>
+                                                <span className="truncate">{CATEGORY_LABELS[c.category] ? t(CATEGORY_LABELS[c.category]) : c.category}</span>
                                                 <span className="h-3 rounded-sm bg-muted" aria-hidden>
                                                     <span className="block h-3 rounded-sm" style={{ width: `${(c.count / max) * 100}%`, backgroundColor: categoryColor(c.category) }} />
                                                 </span>
@@ -380,17 +412,17 @@ export function AssetPareto() {
 
                         <Table>
                             <caption className="mb-2 text-left text-xs text-muted-foreground">
-                                Dati del grafico: {METRIC_OPTIONS.find((m) => m.value === metric)?.label.toLowerCase()}, dalla più alla meno problematica.
+                                {t("Dati del grafico: {metric}, dalla più alla meno problematica.", { metric: metricLabel.toLowerCase() })}
                             </caption>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-10">#</TableHead>
-                                    <TableHead>Macchina</TableHead>
-                                    <TableHead className="hidden sm:table-cell">Reparto / linea</TableHead>
-                                    <TableHead className="text-right">{METRIC_OPTIONS.find((m) => m.value === metric)?.label}</TableHead>
-                                    <TableHead className="text-right">% cumulata</TableHead>
-                                    <TableHead>Poche vitali</TableHead>
-                                    <TableHead className="text-right">Categorie</TableHead>
+                                    <TableHead>{t("Macchina")}</TableHead>
+                                    <TableHead className="hidden sm:table-cell">{t("Reparto / linea")}</TableHead>
+                                    <TableHead className="text-right">{metricLabel}</TableHead>
+                                    <TableHead className="text-right">{t("% cumulata")}</TableHead>
+                                    <TableHead>{t("Poche vitali")}</TableHead>
+                                    <TableHead className="text-right">{t("Categorie")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -407,18 +439,18 @@ export function AssetPareto() {
                                             <TableCell className="hidden text-muted-foreground sm:table-cell">
                                                 {[r.department, r.line].filter(Boolean).join(" · ") || "—"}
                                             </TableCell>
-                                            <TableCell className="text-right tabular-nums">{formatValue(metric, r.value)}</TableCell>
-                                            <TableCell className="text-right tabular-nums">{pctFmt.format(r.cumulativePct)}%</TableCell>
-                                            <TableCell>{r.vital ? "Sì" : "No"}</TableCell>
+                                            <TableCell className="text-right tabular-nums">{formatValue(metric, r.value, fmt, t)}</TableCell>
+                                            <TableCell className="text-right tabular-nums">{f.pct(r.cumulativePct)}%</TableCell>
+                                            <TableCell>{r.vital ? t("Sì") : t("No")}</TableCell>
                                             <TableCell className="text-right">
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedKey(key)}
                                                     aria-pressed={key === selectedDatumKey}
-                                                    aria-label={`Mostra le categorie di ${r.name}`}
+                                                    aria-label={t("Mostra le categorie di {name}", { name: r.name })}
                                                     className="rounded text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                                 >
-                                                    Dettaglio
+                                                    {t("Dettaglio")}
                                                 </button>
                                             </TableCell>
                                         </TableRow>

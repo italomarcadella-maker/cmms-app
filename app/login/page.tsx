@@ -1,15 +1,19 @@
 import Image from 'next/image';
 import { BarChart3, ClipboardList, ScanLine } from 'lucide-react';
 
+import { getT } from '@/lib/i18n/server';
+import { tk } from '@/lib/i18n/translate';
+import { LanguageSelect } from '@/components/i18n/language-switcher';
 import LoginForm from './login-form';
 
 const highlights = [
-    { icon: ClipboardList, text: 'Ordini di lavoro e manutenzione preventiva' },
-    { icon: ScanLine, text: 'Asset, ricambi e scansione dei QR code' },
-    { icon: BarChart3, text: 'KPI di fermo macchina e costi' },
+    { icon: ClipboardList, text: tk('Ordini di lavoro e manutenzione preventiva') },
+    { icon: ScanLine, text: tk('Asset, ricambi e scansione dei QR code') },
+    { icon: BarChart3, text: tk('KPI di fermo macchina e costi') },
 ];
 
-export default function LoginPage() {
+export default async function LoginPage() {
+    const { t } = await getT();
     return (
         <main className="grid min-h-screen bg-canvas lg:grid-cols-[1.05fr_1fr]">
             {/* Brand panel (desktop) */}
@@ -20,9 +24,9 @@ export default function LoginPage() {
 
                 <div className="max-w-md space-y-8">
                     <h2 className="font-display text-5xl leading-[1.05] text-white">
-                        Manutenzione
+                        {t('Manutenzione')}
                         <br />
-                        sotto controllo.
+                        {t('sotto controllo.')}
                     </h2>
                     <ul className="space-y-4">
                         {highlights.map(({ icon: Icon, text }) => (
@@ -30,7 +34,7 @@ export default function LoginPage() {
                                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-accent text-sidebar-primary">
                                     <Icon className="h-[18px] w-[18px]" />
                                 </span>
-                                {text}
+                                {t(text)}
                             </li>
                         ))}
                     </ul>
@@ -47,11 +51,15 @@ export default function LoginPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Accedi</h1>
-                        <p className="text-sm text-muted-foreground">Usa le credenziali del tuo account aziendale.</p>
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t('Accedi')}</h1>
+                        <p className="text-sm text-muted-foreground">{t('Usa le credenziali del tuo account aziendale.')}</p>
                     </div>
 
                     <LoginForm />
+
+                    <div className="flex justify-end">
+                        <LanguageSelect />
+                    </div>
                 </div>
             </section>
         </main>

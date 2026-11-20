@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useAssets } from "@/lib/assets-context";
+import { useT } from "@/lib/i18n/client";
 import { Upload, FileText, Check, AlertCircle, X } from "lucide-react";
 
 export function ImportAssetsDialog() {
+    const t = useT();
     const { addAsset } = useAssets();
     const [isOpen, setIsOpen] = useState(false);
     const [csvContent, setCsvContent] = useState("");
@@ -41,12 +43,12 @@ export function ImportAssetsDialog() {
             }).filter(Boolean);
 
             if (parsed.length === 0) {
-                setError("Nessun dato valido trovato. Usa il formato: Nome, Modello, Seriale, Costruttore, Ubicazione");
+                setError(t("Nessun dato valido trovato. Usa il formato: Nome, Modello, Seriale, Costruttore, Ubicazione"));
             } else {
                 setPreview(parsed);
             }
         } catch (e) {
-            setError("Errore durante il parsing del testo.");
+            setError(t("Errore durante il parsing del testo."));
         }
     };
 
@@ -65,7 +67,7 @@ export function ImportAssetsDialog() {
                 onClick={() => setIsOpen(true)}
                 className="flex items-center gap-2 bg-secondary text-secondary-foreground px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-secondary/80 transition-all hover:-translate-y-0.5 border"
             >
-                <Upload className="h-4 w-4" /> Importa Excel
+                <Upload className="h-4 w-4" /> {t("Importa Excel")}
             </button>
         );
     }
@@ -75,9 +77,9 @@ export function ImportAssetsDialog() {
             <div className="w-full max-w-2xl bg-card rounded-xl shadow-xl border animate-in zoom-in-95 flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between p-4 border-b shrink-0">
                     <h3 className="font-semibold text-lg flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" /> Importazione Massiva Asset
+                        <FileText className="h-5 w-5 text-primary" /> {t("Importazione Massiva Asset")}
                     </h3>
-                    <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-muted rounded text-muted-foreground">
+                    <button onClick={() => setIsOpen(false)} aria-label={t("Chiudi")} className="p-1 hover:bg-muted rounded text-muted-foreground">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
@@ -86,16 +88,16 @@ export function ImportAssetsDialog() {
                     <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-sm text-blue-800 flex gap-2">
                         <div className="shrink-0"><AlertCircle className="h-4 w-4" /></div>
                         <div>
-                            <p className="font-medium">Formato supportato (CSV):</p>
-                            <p className="font-mono text-xs mt-1">Nome, Modello, Seriale, Costruttore, Ubicazione</p>
-                            <p className="mt-1 opacity-80">Copia e incolla le righe dal tuo file Excel qui sotto.</p>
+                            <p className="font-medium">{t("Formato supportato (CSV):")}</p>
+                            <p className="font-mono text-xs mt-1">{t("Nome, Modello, Seriale, Costruttore, Ubicazione")}</p>
+                            <p className="mt-1 opacity-80">{t("Copia e incolla le righe dal tuo file Excel qui sotto.")}</p>
                         </div>
                     </div>
 
                     <div className="space-y-2">
                         <textarea
                             className="w-full h-32 rounded-md border bg-background p-3 text-sm font-mono focus:ring-2 focus:ring-primary outline-none resize-none"
-                            placeholder={"Estrusore A, EXT-2000, SN-9988, Bausano, Linea 1\nMulino, GR-500, SN-1122, Tria, Reparto Macinazione"}
+                            placeholder={t("Estrusore A, EXT-2000, SN-9988, Bausano, Linea 1\nMulino, GR-500, SN-1122, Tria, Reparto Macinazione")}
                             value={csvContent}
                             onChange={(e) => setCsvContent(e.target.value)}
                         />
@@ -103,7 +105,7 @@ export function ImportAssetsDialog() {
                             onClick={handleParse}
                             className="text-sm text-primary hover:underline font-medium"
                         >
-                            Anteprima Dati
+                            {t("Anteprima Dati")}
                         </button>
                     </div>
 
@@ -118,9 +120,9 @@ export function ImportAssetsDialog() {
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-muted text-muted-foreground text-xs uppercase">
                                     <tr>
-                                        <th className="px-3 py-2">Nome</th>
-                                        <th className="px-3 py-2">Modello</th>
-                                        <th className="px-3 py-2">Costruttore</th>
+                                        <th className="px-3 py-2">{t("Nome")}</th>
+                                        <th className="px-3 py-2">{t("Modello")}</th>
+                                        <th className="px-3 py-2">{t("Costruttore")}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
@@ -142,14 +144,14 @@ export function ImportAssetsDialog() {
                         onClick={() => setIsOpen(false)}
                         className="px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                     >
-                        Annulla
+                        {t("Annulla")}
                     </button>
                     <button
                         onClick={handleImport}
                         disabled={preview.length === 0}
                         className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Check className="h-4 w-4" /> Importa {preview.length} Asset
+                        <Check className="h-4 w-4" /> {t("Importa {count} Asset", { count: preview.length })}
                     </button>
                 </div>
             </div>

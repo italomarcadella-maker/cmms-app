@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { getAssetMaintenanceEvents, rescheduleWorkOrder, assignWorkOrder, getPlannerUnassignedItems, createWorkOrderFromSchedule } from "@/lib/actions";
 import { getTechnicianAvailability, getAllTechnicians } from "@/lib/availability-actions";
 import { addDays, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
-import { it } from "date-fns/locale";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Wrench, AlertTriangle, CheckCircle2, Clock, Sparkles, Settings, Users, LayoutGrid, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useDateFnsLocale } from "@/lib/i18n/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { SlotCreationDialog } from "@/components/planning/slot-creation-dialog";
@@ -46,6 +46,8 @@ function DraggableEvent({ event, getStatusColor }: { event: any, getStatusColor:
 
 // --- Draggable Sidebar Item (Technician View) ---
 function DraggableSidebarItem({ item, getStatusColor }: { item: any, getStatusColor: any }) {
+    const t = useT();
+    const dfLocale = useDateFnsLocale();
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `sidebar-${item.id}`,
         data: { item, type: 'SIDEBAR_ITEM' }
@@ -67,12 +69,12 @@ function DraggableSidebarItem({ item, getStatusColor }: { item: any, getStatusCo
         >
             {isPM && <div className="absolute top-0 right-0 p-1 bg-blue-600 text-white rounded-bl-lg"><Clock className="h-3 w-3" /></div>}
             <div className="flex justify-between items-start pr-4">
-                <span className="font-bold text-xs">{isPM ? 'PIANIFICATO' : `#${item.id.slice(-4)}`}</span>
+                <span className="font-bold text-xs">{isPM ? t("Pianificato").toUpperCase() : `#${item.id.slice(-4)}`}</span>
                 <span className="text-[10px] uppercase font-bold opacity-70">{item.priority}</span>
             </div>
             <div className="font-medium text-xs truncate" title={item.assetName}>{item.assetName}</div>
             <div className="text-[10px] text-muted-foreground truncate">{item.title}</div>
-            {isPM && item.dueDate && <div className="text-[10px] font-mono text-blue-600 mt-1">Scad: {format(new Date(item.dueDate), 'd MMM')}</div>}
+            {isPM && item.dueDate && <div className="text-[10px] font-mono text-blue-600 mt-1">{t("Scad: {date}", { date: format(new Date(item.dueDate), 'd MMM', { locale: dfLocale }) })}</div>}
         </div>
     );
 }
@@ -141,6 +143,8 @@ function DroppableTechnicianSlot({ day, technician, children, availability }: { 
 
 
 export default function AssetCalendarPage() {
+    const t = useT();
+    const dfLocale = useDateFnsLocale();
     const [events, setEvents] = useState<any[]>([]); // These are WOs with dates
     const [currentDate, setCurrentDate] = useState(new Date());
     const [loading, setLoading] = useState(true);
@@ -222,7 +226,7 @@ export default function AssetCalendarPage() {
                 toast.error(result.message);
                 setEvents(originalEvents);
             } else {
-                toast.success(`Intervento spostato al ${format(targetDate, 'd MMM', { locale: it })}`);
+                toast.success(t("Intervento spostato al {date}", { date: format(targetDate, 'd MMM', { locale: dfLocale }) }));
             }
         }
 
@@ -240,10 +244,10 @@ export default function AssetCalendarPage() {
             // Determine if WO or PM
             if (itemData.type === 'PM') {
                 // It's a Schedule -> Create WO
-                toast.info("Generazione ordine in corso...");
+                toast.info(t("Generazione ordine in corso..."));
                 const result = await createWorkOrderFromSchedule(itemId, targetDate, techId);
                 if (result.success) {
-                    toast.success("Ordine generato e assegnato");
+                    toast.success(t("Ordine generato e assegnato"));
                     refreshData(); // Full refresh needed to get new WO ID and sync status
                 } else {
                     toast.error(result.message);
@@ -264,7 +268,7 @@ export default function AssetCalendarPage() {
 
                 const result = await assignWorkOrder(itemId, techId, targetDate);
                 if (result.success) {
-                    toast.success("Assegnazione completata");
+                    toast.success(t("Assegnazione completata"));
                     // refreshData(); // Not strictly needed if standard WO, but good for sync
                 } else {
                     toast.error(result.message);
@@ -295,8 +299,8 @@ export default function AssetCalendarPage() {
             <div className="space-y-6 p-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Planning Manutenzione</h1>
-                        <p className="text-muted-foreground hidden sm:block">Gestione visuale delle risorse e degli interventi.</p>
+                        <h1 className="text-3xl font-bold tracking-tight">{t("Planning Manutenzione")}</h1>
+                        <p className="text-muted-foreground hidden sm:block">{t("Gestione visuale delle risorse e degli interventi.")}</p>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -309,42 +313,42 @@ export default function AssetCalendarPage() {
                                     refreshData();
                                     return data.message;
                                 }, {
-                                    loading: 'Auto-pianificazione intelligente in corso...',
+                                    loading: t("Auto-pianificazione intelligente in corso..."),
                                     success: (msg) => msg,
-                                    error: 'Errore durante l\'auto-pianificazione'
+                                    error: t("Errore durante l'auto-pianificazione")
                                 });
                             }}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md text-xs font-bold flex items-center gap-2 shadow-sm transition-colors"
                         >
                             <Sparkles className="h-4 w-4" />
-                            <span className="hidden sm:inline">Auto-Pianifica (AI)</span>
+                            <span className="hidden sm:inline">{t("Auto-Pianifica (AI)")}</span>
                         </button>
 
                         <button
                             onClick={async () => {
                                 toast.promise(async () => {
                                     const res = await fetch('/api/scheduler/run');
-                                    const data = await res.json().catch(() => ({ success: false, error: 'Risposta non valida' }));
-                                    if (!res.ok || !data.success) throw new Error(data.error || data.message || 'Errore esecuzione scheduler');
+                                    const data = await res.json().catch(() => ({ success: false, error: t("Risposta non valida") }));
+                                    if (!res.ok || !data.success) throw new Error(data.error || data.message || t("Errore esecuzione scheduler"));
                                     refreshData();
-                                    return data.count > 0 ? `Generati ${data.count} ordini preventivi` : 'Nessun piano in scadenza: niente da generare';
+                                    return data.count > 0 ? t("Generati {n} ordini preventivi", { n: data.count }) : t("Nessun piano in scadenza: niente da generare");
                                 }, {
-                                    loading: 'Esecuzione scheduler...',
+                                    loading: t("Esecuzione scheduler..."),
                                     success: (msg) => msg,
-                                    error: (e) => (e instanceof Error && e.message ? e.message : 'Errore esecuzione scheduler')
+                                    error: (e) => (e instanceof Error && e.message ? e.message : t("Errore esecuzione scheduler"))
                                 });
                             }}
                             className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md text-xs font-bold flex items-center gap-2 shadow-sm transition-colors"
                         >
                             <Sparkles className="h-4 w-4" />
-                            <span className="hidden sm:inline">Esegui Scheduler</span>
+                            <span className="hidden sm:inline">{t("Esegui Scheduler")}</span>
                         </button>
 
                         <div className="flex items-center gap-2 bg-card border p-1 rounded-lg shadow-sm">
                             <button onClick={() => setCurrentDate(addDays(currentDate, -7))} className="p-2 hover:bg-muted rounded-md"><ChevronLeft className="h-4 w-4" /></button>
                             <div className="px-4 font-medium min-w-[150px] text-center flex items-center justify-center gap-2">
                                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                                {format(currentDate, "MMMM yyyy", { locale: it })}
+                                {format(currentDate, "MMMM yyyy", { locale: dfLocale })}
                             </div>
                             <button onClick={() => setCurrentDate(addDays(currentDate, 7))} className="p-2 hover:bg-muted rounded-md"><ChevronRight className="h-4 w-4" /></button>
                         </div>
@@ -354,19 +358,19 @@ export default function AssetCalendarPage() {
                 <div className="flex justify-between items-center bg-muted/20 p-2 rounded-lg mb-4">
                     <div className="flex items-center gap-2 w-full max-w-md">
                         <MultiSelect
-                            label="Filtra Linee"
+                            label={t("Filtra Linee")}
                             options={lines.map(l => ({ id: l.line, label: l.line }))}
                             value={selectedLines}
                             onChange={setSelectedLines}
-                            placeholder="Seleziona linee..."
+                            placeholder={t("Seleziona linee...")}
                         />
                     </div>
                 </div>
 
                 <Tabs defaultValue="technicians" className="w-full">
                     <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
-                        <TabsTrigger value="assets" className="gap-2"><LayoutGrid className="w-4 h-4" /> Vista Asset</TabsTrigger>
-                        <TabsTrigger value="technicians" className="gap-2"><Users className="w-4 h-4" /> Vista Tecnici</TabsTrigger>
+                        <TabsTrigger value="assets" className="gap-2"><LayoutGrid className="w-4 h-4" /> {t("Vista Asset")}</TabsTrigger>
+                        <TabsTrigger value="technicians" className="gap-2"><Users className="w-4 h-4" /> {t("Vista Tecnici")}</TabsTrigger>
                     </TabsList>
 
                     {/* --- VISTA ASSET --- */}
@@ -374,12 +378,12 @@ export default function AssetCalendarPage() {
                         <div className="border rounded-xl bg-card shadow-sm overflow-hidden select-none">
                             {/* Header Giorni */}
                             <div className="grid grid-cols-8 divide-x border-b bg-muted/40">
-                                <div className="p-4 font-semibold text-sm text-muted-foreground flex items-center justify-center">ASSET</div>
+                                <div className="p-4 font-semibold text-sm text-muted-foreground flex items-center justify-center">{t("Asset").toUpperCase()}</div>
                                 {days.map((day, i) => (
                                     <div key={i} className={cn("p-4 text-center text-sm", isSameDay(day, new Date()) && "bg-blue-50/50")}>
-                                        <div className="font-semibold capitalize">{format(day, "EEE", { locale: it })}</div>
+                                        <div className="font-semibold capitalize">{format(day, "EEE", { locale: dfLocale })}</div>
                                         <div className={cn("text-xs mt-1", isSameDay(day, new Date()) ? "text-blue-600 font-bold" : "text-muted-foreground")}>
-                                            {format(day, "d MMM", { locale: it })}
+                                            {format(day, "d MMM", { locale: dfLocale })}
                                         </div>
                                     </div>
                                 ))}
@@ -387,7 +391,7 @@ export default function AssetCalendarPage() {
 
                             {/* Body Timeline */}
                             <div className="divide-y max-h-[600px] overflow-y-auto">
-                                {loading ? <div className="p-8 text-center text-muted-foreground">Caricamento...</div> : (
+                                {loading ? <div className="p-8 text-center text-muted-foreground">{t("Caricamento...")}</div> : (
                                     (() => {
                                         const eventLines = Array.from(new Set(events.map(e => e.line).filter(Boolean)));
                                         const settingLines = lines.map(l => l.line);
@@ -445,12 +449,12 @@ export default function AssetCalendarPage() {
                             {/* Unassigned Sidebar */}
                             <div className="w-64 flex-shrink-0 flex flex-col border rounded-xl bg-card shadow-sm overflow-hidden">
                                 <div className="p-3 border-b bg-muted/40 font-semibold text-sm flex items-center gap-2">
-                                    <FileText className="h-4 w-4" /> Da Assegnare
+                                    <FileText className="h-4 w-4" /> {t("Da Assegnare")}
                                     <span className="ml-auto bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full text-[10px]">{unassignedItems.length}</span>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50">
                                     {unassignedItems.length === 0 ? (
-                                        <div className="text-center py-8 text-xs text-muted-foreground">Nessun ordine in attesa.</div>
+                                        <div className="text-center py-8 text-xs text-muted-foreground">{t("Nessun ordine in attesa.")}</div>
                                     ) : (
                                         unassignedItems.map(item => (
                                             <DraggableSidebarItem key={item.id} item={item} getStatusColor={getStatusColor} />
@@ -463,11 +467,11 @@ export default function AssetCalendarPage() {
                             <div className="flex-1 border rounded-xl bg-card shadow-sm overflow-hidden flex flex-col">
                                 {/* Header */}
                                 <div className="grid grid-cols-8 divide-x border-b bg-muted/40 flex-shrink-0">
-                                    <div className="p-4 font-semibold text-sm text-muted-foreground flex items-center justify-center">TECNICO</div>
+                                    <div className="p-4 font-semibold text-sm text-muted-foreground flex items-center justify-center">{t("Tecnico").toUpperCase()}</div>
                                     {days.map((day, i) => (
                                         <div key={i} className={cn("p-4 text-center text-sm", isSameDay(day, new Date()) && "bg-blue-50/50")}>
-                                            <div className="font-semibold capitalize">{format(day, "EEE", { locale: it })}</div>
-                                            <div className="text-xs text-muted-foreground">{format(day, "d MMM", { locale: it })}</div>
+                                            <div className="font-semibold capitalize">{format(day, "EEE", { locale: dfLocale })}</div>
+                                            <div className="text-xs text-muted-foreground">{format(day, "d MMM", { locale: dfLocale })}</div>
                                         </div>
                                     ))}
                                 </div>

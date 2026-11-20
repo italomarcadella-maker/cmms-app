@@ -5,14 +5,16 @@ import { Building2, Check, ChevronsUpDown, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useState } from "react";
+import { useT } from "@/lib/i18n/client";
 
 export function PlantSwitcher({ isCollapsed }: { isCollapsed?: boolean }) {
+    const t = useT();
     const { plants, activePlant, selected, canSelectAll, setSelection, isLoading } = usePlant();
     const [open, setOpen] = useState(false);
 
     if (isLoading || plants.length === 0) return null;
 
-    const label = activePlant?.name ?? (selected === ALL_PLANTS ? "Tutti gli stabilimenti" : "Seleziona...");
+    const label = activePlant?.name ?? (selected === ALL_PLANTS ? t("Tutti gli stabilimenti") : t("Seleziona..."));
     const Icon = activePlant ? Building2 : Layers;
 
     const trigger = (
@@ -22,7 +24,7 @@ export function PlantSwitcher({ isCollapsed }: { isCollapsed?: boolean }) {
             </div>
             {!isCollapsed && (
                 <div className="flex flex-col items-start truncate text-left">
-                    <span className="text-[11px] uppercase tracking-wider text-sidebar-foreground/60">Stabilimento</span>
+                    <span className="text-[11px] uppercase tracking-wider text-sidebar-foreground/60">{t("Stabilimento")}</span>
                     <span className="truncate max-w-[130px]">{label}</span>
                 </div>
             )}
@@ -53,7 +55,7 @@ export function PlantSwitcher({ isCollapsed }: { isCollapsed?: boolean }) {
                     {canSelectAll && (
                         <Option active={selected === ALL_PLANTS} onClick={() => { setSelection(ALL_PLANTS); setOpen(false); }}>
                             <Layers className="w-4 h-4 mr-2 shrink-0 opacity-70" />
-                            <span className="truncate">Tutti gli stabilimenti</span>
+                            <span className="truncate">{t("Tutti gli stabilimenti")}</span>
                         </Option>
                     )}
                     {plants.map((plant) => (

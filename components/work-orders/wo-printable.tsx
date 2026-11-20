@@ -3,10 +3,12 @@
 import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
+import { useT, useFormat } from "@/lib/i18n/client";
 // Basic print implementation using window.print
 // I should use standard browser print method with CSS.
 
 export function PrintButton({ contentRef }: { contentRef: React.RefObject<HTMLDivElement | null> }) {
+    const t = useT();
     const handlePrint = () => {
         const content = contentRef.current;
         if (!content) return;
@@ -14,7 +16,7 @@ export function PrintButton({ contentRef }: { contentRef: React.RefObject<HTMLDi
         const printWindow = window.open('', '', 'height=600,width=800');
         if (!printWindow) return;
 
-        printWindow.document.write('<html><head><title>Stampa Ordine di Lavoro</title>');
+        printWindow.document.write('<html><head><title>' + t("Stampa Ordine di Lavoro") + '</title>');
         printWindow.document.write('<style>');
         printWindow.document.write(`
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -44,13 +46,15 @@ export function PrintButton({ contentRef }: { contentRef: React.RefObject<HTMLDi
 
     return (
         <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2 hidden sm:flex">
-            <Printer className="h-4 w-4" /> Stampa Report
+            <Printer className="h-4 w-4" /> {t("Stampa Report")}
         </Button>
     );
 }
 
 // Ensure the printable content is structurally sound for the CSS above
 export function PrintableWO({ wo, hidden }: { wo: any, hidden?: boolean }) {
+    const t = useT();
+    const fmt = useFormat();
     if (!wo) return null;
 
     return (
@@ -58,11 +62,11 @@ export function PrintableWO({ wo, hidden }: { wo: any, hidden?: boolean }) {
             <div className="header">
                 <div>
                     <div className="logo">CMMS Pro</div>
-                    <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>Rapporto Tecnico di Intervento</div>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>{t("Rapporto Tecnico di Intervento")}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 'bold' }}>ID: {wo.id}</div>
-                    <div>Data: {new Date().toLocaleDateString('it-IT')}</div>
+                    <div>{t("Data: {date}", { date: fmt.date(new Date()) })}</div>
                 </div>
             </div>
 
@@ -70,37 +74,37 @@ export function PrintableWO({ wo, hidden }: { wo: any, hidden?: boolean }) {
                 <h1 className="title">{wo.title}</h1>
                 <div className="meta">
                     <div>
-                        <div className="label">Asset</div>
+                        <div className="label">{t("Asset")}</div>
                         <div className="value">{wo.assetName}</div>
                     </div>
                     <div>
-                        <div className="label">Stato Attuale</div>
+                        <div className="label">{t("Stato Attuale")}</div>
                         <div className="value">{wo.status}</div>
                     </div>
                     <div>
-                        <div className="label">Priorità</div>
+                        <div className="label">{t("Priorità")}</div>
                         <div className="value">{wo.priority}</div>
                     </div>
                     <div>
-                        <div className="label">Tecnico Assegnato</div>
-                        <div className="value">{wo.assignedTo || 'N/A'}</div>
+                        <div className="label">{t("Tecnico Assegnato")}</div>
+                        <div className="value">{wo.assignedTo || t("N/A")}</div>
                     </div>
                 </div>
                 <div>
-                    <div className="label">Descrizione Problema</div>
+                    <div className="label">{t("Descrizione Problema")}</div>
                     <div className="value" style={{ lineHeight: '1.5' }}>{wo.description}</div>
                 </div>
             </div>
 
             <div className="grid">
                 <div className="section">
-                    <div className="section-title">Materiali Utilizzati</div>
+                    <div className="section-title">{t("Materiali Utilizzati")}</div>
                     <table className="table">
                         <thead>
                             <tr>
-                                <th>Ricambio</th>
-                                <th>Qtà</th>
-                                <th style={{ textAlign: 'right' }}>Costo</th>
+                                <th>{t("Ricambio")}</th>
+                                <th>{t("Qtà")}</th>
+                                <th style={{ textAlign: 'right' }}>{t("Costo")}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -108,23 +112,23 @@ export function PrintableWO({ wo, hidden }: { wo: any, hidden?: boolean }) {
                                 <tr key={i}>
                                     <td>{p.partName}</td>
                                     <td>{p.quantity}</td>
-                                    <td style={{ textAlign: 'right' }}>€{(p.unitCost * p.quantity).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ textAlign: 'right' }}>€{fmt.number(p.unitCost * p.quantity, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                             )) : (
-                                <tr><td colSpan={3} style={{ fontStyle: 'italic', color: '#999' }}>Nessun materiale consumato</td></tr>
+                                <tr><td colSpan={3} style={{ fontStyle: 'italic', color: '#999' }}>{t("Nessun materiale consumato")}</td></tr>
                             )}
                         </tbody>
                     </table>
                 </div>
 
                 <div className="section">
-                    <div className="section-title">Manodopera</div>
+                    <div className="section-title">{t("Manodopera")}</div>
                     <table className="table">
                         <thead>
                             <tr>
-                                <th>Tecnico</th>
-                                <th>Ore</th>
-                                <th style={{ textAlign: 'right' }}>Data</th>
+                                <th>{t("Tecnico")}</th>
+                                <th>{t("Ore")}</th>
+                                <th style={{ textAlign: 'right' }}>{t("Data")}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -132,10 +136,10 @@ export function PrintableWO({ wo, hidden }: { wo: any, hidden?: boolean }) {
                                 <tr key={i}>
                                     <td>{l.technicianName}</td>
                                     <td>{l.hours}h</td>
-                                    <td style={{ textAlign: 'right' }}>{new Date(l.date).toLocaleDateString('it-IT')}</td>
+                                    <td style={{ textAlign: 'right' }}>{fmt.date(l.date)}</td>
                                 </tr>
                             )) : (
-                                <tr><td colSpan={3} style={{ fontStyle: 'italic', color: '#999' }}>Nessuna attività registrata</td></tr>
+                                <tr><td colSpan={3} style={{ fontStyle: 'italic', color: '#999' }}>{t("Nessuna attività registrata")}</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -143,7 +147,7 @@ export function PrintableWO({ wo, hidden }: { wo: any, hidden?: boolean }) {
             </div>
 
             <div className="section">
-                <div className="section-title">Checklist Controlli</div>
+                <div className="section-title">{t("Checklist Controlli")}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     {wo.checklist?.map((item: any, i: number) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -164,11 +168,11 @@ export function PrintableWO({ wo, hidden }: { wo: any, hidden?: boolean }) {
 
             <div className="footer">
                 <div>
-                    <div className="label">Firma Tecnico</div>
+                    <div className="label">{t("Firma Tecnico")}</div>
                     <div className="signature-box"></div>
                 </div>
                 <div>
-                    <div className="label">Firma Supervisore</div>
+                    <div className="label">{t("Firma Supervisore")}</div>
                     <div className="signature-box"></div>
                 </div>
             </div>

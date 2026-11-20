@@ -1,6 +1,6 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import React, { createContext, useContext, useMemo } from "react";
 import { WorkOrder } from "@/lib/types";
 import { updateWorkOrderStatus as updateStatusAction } from "@/lib/actions";

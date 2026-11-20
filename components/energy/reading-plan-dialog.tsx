@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
 import { CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,19 +27,20 @@ const todayKey = () => new Date().toISOString().slice(0, 10);
 
 /** Pianifica la lettura di un contatore: ogni quanto, da quando e chi la esegue. La lettura compare nel calendario. */
 export function ReadingPlanDialog({ meterId, meterName, plan, assignees, onSaved }: Props) {
+    const t = useT();
     const [open, setOpen] = useState(false);
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button size="sm" variant="outline" className="mt-3 w-full">
                     <CalendarClock className="h-3.5 w-3.5" />
-                    {plan?.frequencyDays ? "Modifica la pianificazione" : "Pianifica la lettura"}
+                    {plan?.frequencyDays ? t("Modifica la pianificazione") : t("Pianifica la lettura")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[440px]">
                 <DialogHeader>
-                    <DialogTitle>Lettura pianificata</DialogTitle>
-                    <DialogDescription>{meterName}: la lettura compare nel calendario della dashboard, dove si inserisce il valore.</DialogDescription>
+                    <DialogTitle>{t("Lettura pianificata")}</DialogTitle>
+                    <DialogDescription>{t("{name}: la lettura compare nel calendario della dashboard, dove si inserisce il valore.", { name: meterName })}</DialogDescription>
                 </DialogHeader>
                 {open && (
                     <PlanForm
@@ -54,6 +56,7 @@ export function ReadingPlanDialog({ meterId, meterName, plan, assignees, onSaved
 }
 
 function PlanForm({ meterId, plan, assignees, onDone }: { meterId: string; plan: ReadingPlan | undefined; assignees: PlanAssignee[]; onDone: () => void }) {
+    const t = useT();
     const [frequency, setFrequency] = useState(String(plan?.frequencyDays ?? 7));
     const [firstDue, setFirstDue] = useState(plan?.nextDue ? plan.nextDue.slice(0, 10) : todayKey());
     const [assignee, setAssignee] = useState(plan?.assigneeId ?? NONE);
@@ -77,34 +80,34 @@ function PlanForm({ meterId, plan, assignees, onDone }: { meterId: string; plan:
     return (
         <form onSubmit={save} className="grid gap-4">
             <div className="grid gap-1.5">
-                <Label>Frequenza</Label>
+                <Label>{t("Frequenza")}</Label>
                 <Select value={frequency} onValueChange={setFrequency}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        {FREQUENCY_OPTIONS.map(f => <SelectItem key={f.days} value={String(f.days)}>{f.label}</SelectItem>)}
-                        {!FREQUENCY_OPTIONS.some(f => String(f.days) === frequency) && <SelectItem value={frequency}>{frequencyLabel(Number(frequency))}</SelectItem>}
+                        {FREQUENCY_OPTIONS.map(f => <SelectItem key={f.days} value={String(f.days)}>{t(f.label)}</SelectItem>)}
+                        {!FREQUENCY_OPTIONS.some(f => String(f.days) === frequency) && <SelectItem value={frequency}>{t(frequencyLabel(Number(frequency)))}</SelectItem>}
                     </SelectContent>
                 </Select>
             </div>
             <div className="grid gap-1.5">
-                <Label htmlFor="rp-first">Prossima lettura</Label>
+                <Label htmlFor="rp-first">{t("Prossima lettura")}</Label>
                 <Input id="rp-first" type="date" value={firstDue} onChange={(e) => setFirstDue(e.target.value)} required />
             </div>
             <div className="grid gap-1.5">
-                <Label>Chi la esegue</Label>
+                <Label>{t("Chi la esegue")}</Label>
                 <Select value={assignee} onValueChange={setAssignee}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={NONE}>Da assegnare dal calendario</SelectItem>
+                        <SelectItem value={NONE}>{t("Da assegnare dal calendario")}</SelectItem>
                         {assignees.map(a => <SelectItem key={a.userId} value={a.userId}>{a.name}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
             <DialogFooter className="gap-2 sm:justify-between">
                 {plan?.frequencyDays ? (
-                    <Button type="button" variant="ghost" disabled={busy} onClick={remove}>Togli la pianificazione</Button>
+                    <Button type="button" variant="ghost" disabled={busy} onClick={remove}>{t("Togli la pianificazione")}</Button>
                 ) : <span />}
-                <Button type="submit" disabled={busy}>{busy ? "Salvataggio..." : "Salva"}</Button>
+                <Button type="submit" disabled={busy}>{busy ? t("Salvataggio...") : t("Salva")}</Button>
             </DialogFooter>
         </form>
     );

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Plus, Trash2, X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { usePlant } from "@/lib/plant-context";
+import { useT } from "@/lib/i18n/client";
 import { MAX_DESCRIPTION, MAX_ITEMS, MAX_QUANTITY } from "@/modules/inventory/domain/material-request";
 import {
     createMaterialRequest, searchWarehouseParts,
@@ -66,11 +67,12 @@ function Field({ id, label, children, hint }: { id?: string; label: string; chil
 }
 
 export function NewMaterialRequestDialog({ trigger, onSaved }: { trigger: ReactNode; onSaved: () => void }) {
+    const t = useT();
     return (
         <FormDialog
             trigger={trigger}
-            title="Nuova richiesta di materiale"
-            description="Chiedi alla manutenzione il materiale di cui hai bisogno. Se l'articolo è nel magazzino manutenzione vedi subito quanti pezzi ci sono."
+            title={t("Nuova richiesta di materiale")}
+            description={t("Chiedi alla manutenzione il materiale di cui hai bisogno. Se l'articolo è nel magazzino manutenzione vedi subito quanti pezzi ci sono.")}
         >
             {(close) => <NewMaterialRequestForm onDone={() => { close(); onSaved(); }} />}
         </FormDialog>
@@ -79,6 +81,7 @@ export function NewMaterialRequestDialog({ trigger, onSaved }: { trigger: ReactN
 
 /** Modulo della richiesta di materiale: nella finestra della pagina Richieste di materiale e dentro "Nuova richiesta". */
 export function NewMaterialRequestForm({ onDone }: { onDone: () => void }) {
+    const t = useT();
     const { plants, activePlant } = usePlant();
     const [plantId, setPlantId] = useState(activePlant?.id ?? plants[0]?.id ?? "");
     const [department, setDepartment] = useState("");
@@ -98,11 +101,11 @@ export function NewMaterialRequestForm({ onDone }: { onDone: () => void }) {
             quantity: Number(r.quantity.replace(",", ".")),
         }));
         if (items.some(i => !Number.isInteger(i.quantity) || i.quantity < 1 || i.quantity > MAX_QUANTITY)) {
-            toast.error(`Le quantità devono essere numeri interi da 1 a ${MAX_QUANTITY}.`);
+            toast.error(t("Le quantità devono essere numeri interi da 1 a {max}.", { max: MAX_QUANTITY }));
             return;
         }
         if (items.some(i => !i.partId && !i.description)) {
-            toast.error("Ogni riga deve avere un materiale: cercalo nel magazzino o scrivilo a mano.");
+            toast.error(t("Ogni riga deve avere un materiale: cercalo nel magazzino o scrivilo a mano."));
             return;
         }
         setBusy(true);
@@ -120,21 +123,21 @@ export function NewMaterialRequestForm({ onDone }: { onDone: () => void }) {
     return (
         <form onSubmit={submit} className="grid gap-4">
             {plants.length > 1 && (
-                <Field label="Stabilimento">
+                <Field label={t("Stabilimento")}>
                     <Select value={plantId} onValueChange={setPlantId}>
-                        <SelectTrigger><SelectValue placeholder="Scegli lo stabilimento" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder={t("Scegli lo stabilimento")} /></SelectTrigger>
                         <SelectContent>{plants.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                     </Select>
                 </Field>
             )}
 
-            <div className="grid gap-3 sm:grid-cols-2">
-                <Field id="mr-dept" label="Reparto"><Input id="mr-dept" value={department} maxLength={80} onChange={(e) => setDepartment(e.target.value)} placeholder="Es. Estrusione" /></Field>
-                <Field id="mr-needed" label="Entro quando serve" hint="Facoltativo"><Input id="mr-needed" type="date" min={todayKey()} value={neededBy} onChange={(e) => setNeededBy(e.target.value)} /></Field>
+            <div className="grid items-end gap-3 sm:grid-cols-2">
+                <Field id="mr-dept" label={t("Reparto")}><Input id="mr-dept" className="h-10 w-full" value={department} maxLength={80} onChange={(e) => setDepartment(e.target.value)} placeholder={t("Es. Estrusione")} /></Field>
+                <Field id="mr-needed" label={t("Entro quando serve (facoltativo)")}><Input id="mr-needed" className="h-10 w-full" type="date" min={todayKey()} value={neededBy} onChange={(e) => setNeededBy(e.target.value)} /></Field>
             </div>
 
             <div className="grid gap-2">
-                <Label>Materiale richiesto</Label>
+                <Label>{t("Materiale richiesto")}</Label>
                 {rows.map((row, idx) => (
                     <ItemRow
                         key={row.key}
@@ -148,16 +151,16 @@ export function NewMaterialRequestForm({ onDone }: { onDone: () => void }) {
                 ))}
                 <div>
                     <Button type="button" variant="outline" size="sm" disabled={rows.length >= MAX_ITEMS} onClick={() => setRows(rs => [...rs, newRow()])}>
-                        <Plus className="h-4 w-4" /> Aggiungi riga
+                        <Plus className="h-4 w-4" /> {t("Aggiungi riga")}
                     </Button>
                 </div>
             </div>
 
-            <Field id="mr-note" label="Nota" hint="Per cosa serve, dove consegnarlo, riferimenti utili.">
+            <Field id="mr-note" label={t("Nota")} hint={t("Per cosa serve, dove consegnarlo, riferimenti utili.")}>
                 <Textarea id="mr-note" rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
             </Field>
 
-            <DialogFooter><Button type="submit" disabled={busy}>{busy ? "Invio..." : "Invia richiesta"}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" disabled={busy}>{busy ? t("Invio...") : t("Invia richiesta")}</Button></DialogFooter>
         </form>
     );
 }
@@ -170,6 +173,7 @@ function ItemRow({ row, index, plantId, canRemove, onChange, onRemove }: {
     onChange: (patch: Partial<Row>) => void;
     onRemove: () => void;
 }) {
+    const t = useT();
     const [result, setResult] = useState<{ q: string; plantId: string; list: WarehousePartHit[] } | null>(null);
     const searching = !row.partId && row.text.trim().length >= 2;
 
@@ -196,23 +200,30 @@ function ItemRow({ row, index, plantId, canRemove, onChange, onRemove }: {
                     <div className="flex min-h-10 items-center justify-between gap-2 rounded-md border border-input bg-secondary px-3 text-sm">
                         <span className="min-w-0 break-words">
                             <span className="font-medium">{row.text}</span>
-                            <span className="text-muted-foreground"> · disponibili {row.available ?? 0}</span>
+                            <span className="text-muted-foreground"> · {t("disponibili {n}", { n: row.available ?? 0 })}</span>
                         </span>
-                        <button type="button" aria-label="Cambia materiale" className="shrink-0 text-muted-foreground hover:text-foreground" onClick={() => onChange({ partId: null, available: null })}>
+                        <button type="button" aria-label={t("Cambia materiale")} className="shrink-0 text-muted-foreground hover:text-foreground" onClick={() => onChange({ partId: null, available: null })}>
                             <X className="h-4 w-4" />
                         </button>
                     </div>
                 ) : (
                     <Input
-                        aria-label={`Materiale, riga ${index + 1}`}
+                        aria-label={t("Materiale, riga {n}", { n: index + 1 })}
                         value={row.text}
                         maxLength={MAX_DESCRIPTION}
-                        placeholder="Cerca nel magazzino o scrivi cosa serve"
+                        placeholder={t("Scrivi il materiale: se è a magazzino te lo suggerisco")}
                         onChange={(e) => onChange({ text: e.target.value })}
+                        onKeyDown={(e) => {
+                            // Invio accetta il suggerimento migliore (senza inviare la richiesta)
+                            if (e.key === "Enter" && searching && hits && hits.length > 0) {
+                                e.preventDefault();
+                                onChange({ partId: hits[0].id, available: hits[0].available, text: hits[0].name });
+                            }
+                        }}
                     />
                 )}
                 <Input
-                    aria-label={`Quantità, riga ${index + 1}`}
+                    aria-label={t("Quantità, riga {n}", { n: index + 1 })}
                     type="number"
                     inputMode="numeric"
                     min={1}
@@ -221,13 +232,14 @@ function ItemRow({ row, index, plantId, canRemove, onChange, onRemove }: {
                     value={row.quantity}
                     onChange={(e) => onChange({ quantity: e.target.value })}
                 />
-                <Button type="button" variant="ghost" size="icon" aria-label="Rimuovi riga" disabled={!canRemove} onClick={onRemove}>
+                <Button type="button" variant="ghost" size="icon" aria-label={t("Rimuovi riga")} disabled={!canRemove} onClick={onRemove}>
                     <Trash2 className="h-4 w-4" />
                 </Button>
             </div>
 
             {searching && hits && hits.length > 0 && (
-                <ul className="max-h-44 overflow-y-auto rounded-md border border-border text-sm">
+                <ul className="max-h-44 overflow-y-auto rounded-md border border-border text-sm" aria-label={t("Materiali suggeriti dal magazzino")}>
+                    <li className="border-b bg-muted/40 px-3 py-1 text-xs text-muted-foreground">{t("Dal magazzino manutenzione: scegli l'articolo per agganciare la riga (Invio sceglie il primo)")}</li>
                     {hits.map(h => (
                         <li key={h.id}>
                             <button
@@ -235,9 +247,13 @@ function ItemRow({ row, index, plantId, canRemove, onChange, onRemove }: {
                                 className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-accent"
                                 onClick={() => { onChange({ partId: h.id, available: h.available, text: h.name }); }}
                             >
-                                <span className="min-w-0 break-words">{h.name}{h.location ? <span className="text-xs text-muted-foreground"> · {h.location}</span> : null}</span>
+                                <span className="min-w-0 break-words">
+                                    {h.name}
+                                    {h.location ? <span className="text-xs text-muted-foreground"> · {h.location}</span> : null}
+                                    {h.strong ? <span className="ml-2 rounded-full bg-success-soft px-1.5 py-0.5 text-[11px] font-medium text-success-strong">{t("Consigliato")}</span> : null}
+                                </span>
                                 <span className={h.available > 0 ? "shrink-0 text-xs tabular-nums text-muted-foreground" : "shrink-0 text-xs font-medium text-critical-strong"}>
-                                    {h.available > 0 ? `disponibili ${h.available}` : "esaurito"}
+                                    {h.available > 0 ? t("disponibili {n}", { n: h.available }) : t("esaurito")}
                                 </span>
                             </button>
                         </li>
@@ -245,9 +261,9 @@ function ItemRow({ row, index, plantId, canRemove, onChange, onRemove }: {
                 </ul>
             )}
             {searching && hits && hits.length === 0 && (
-                <p className="text-xs text-muted-foreground">Nessun articolo uguale in magazzino: la riga resta come descrizione libera.</p>
+                <p className="text-xs text-muted-foreground">{t("Nessun articolo simile in magazzino: la riga resta come descrizione libera e la manutenzione la valuterà.")}</p>
             )}
-            {short && <p className="text-xs text-warning-strong">Ne chiedi più di quelli disponibili ({row.available}): la manutenzione dovrà ordinarne altri.</p>}
+            {short && <p className="text-xs text-warning-strong">{t("Ne chiedi più di quelli disponibili ({available}): la manutenzione dovrà ordinarne altri.", { available: row.available ?? 0 })}</p>}
         </div>
     );
 }

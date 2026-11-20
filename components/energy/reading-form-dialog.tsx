@@ -1,6 +1,7 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT } from "@/lib/i18n/client";
 import { useState } from "react";
 import { Plus, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { addMeterReading } from "@/lib/actions";
@@ -12,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 export function ReadingFormDialog({ meters }: { meters: any[] }) {
+    const t = useT();
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
@@ -47,7 +49,7 @@ export function ReadingFormDialog({ meters }: { meters: any[] }) {
             }
         } catch (error) {
             console.error(error);
-            toast.error("Errore durante il salvataggio.");
+            toast.error(t("Errore durante il salvataggio."));
             setResult(null);
         } finally {
             setLoading(false);
@@ -58,12 +60,12 @@ export function ReadingFormDialog({ meters }: { meters: any[] }) {
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline" disabled={meters.length === 0} className="gap-2">
-                    <Plus className="h-4 w-4" /> Nuova Lettura
+                    <Plus className="h-4 w-4" /> {t("Nuova Lettura")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Inserisci Lettura</DialogTitle>
+                    <DialogTitle>{t("Inserisci Lettura")}</DialogTitle>
                 </DialogHeader>
 
                 {result?.isAnomaly ? (
@@ -72,7 +74,7 @@ export function ReadingFormDialog({ meters }: { meters: any[] }) {
                             <div className="flex items-start gap-3">
                                 <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                                 <div>
-                                    <h3 className="font-semibold text-sm">Anomalia Rilevata dall'IA</h3>
+                                    <h3 className="font-semibold text-sm">{t("Anomalia Rilevata dall'IA")}</h3>
                                     <p className="text-sm mt-1 opacity-90">{result.aiAnalysis}</p>
                                 </div>
                             </div>
@@ -84,21 +86,21 @@ export function ReadingFormDialog({ meters }: { meters: any[] }) {
                                 onClick={() => { setIsOpen(false); setResult(null); setValue(""); }}
                                 className="bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-200"
                             >
-                                Ho capito, chiudi
+                                {t("Ho capito, chiudi")}
                             </Button>
                         </div>
                     </div>
                 ) : result?.success ? (
                     <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 flex items-center gap-2 animate-in fade-in">
-                        <CheckCircle2 className="h-5 w-5" /> Lettura registrata correttamente!
+                        <CheckCircle2 className="h-5 w-5" /> {t("Lettura registrata correttamente!")}
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4 mt-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Contatore</label>
+                            <label className="text-sm font-medium">{t("Contatore")}</label>
                             <Select value={meterId} onValueChange={setMeterId}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Seleziona contatore" />
+                                    <SelectValue placeholder={t("Seleziona contatore")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {meters.map(m => (
@@ -112,7 +114,7 @@ export function ReadingFormDialog({ meters }: { meters: any[] }) {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Data Lettura</label>
+                                <label className="text-sm font-medium">{t("Data Lettura")}</label>
                                 <Input
                                     type="date"
                                     value={date}
@@ -121,7 +123,7 @@ export function ReadingFormDialog({ meters }: { meters: any[] }) {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Valore</label>
+                                <label className="text-sm font-medium">{t("Valore")}</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -139,13 +141,13 @@ export function ReadingFormDialog({ meters }: { meters: any[] }) {
                                 variant="outline"
                                 onClick={() => setIsOpen(false)}
                             >
-                                Annulla
+                                {t("Annulla")}
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={loading}
                             >
-                                {loading ? "Salvataggio..." : "Salva Lettura"}
+                                {loading ? t("Salvataggio...") : t("Salva Lettura")}
                             </Button>
                         </div>
                     </form>

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AssetStatusPill, PriorityPill } from "@/components/ui/status-badge";
 import { searchCMMS } from "@/lib/process-actions";
 import { useAuth } from "@/lib/auth-context";
+import { useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS, canSee } from "@/components/layout/nav-config";
 
@@ -16,6 +17,7 @@ const EMPTY: Results = { assets: [], workOrders: [], projects: [] };
 
 /** Global search and quick navigation (Ctrl/Cmd + K). The only search dialog in the app. */
 export function CommandMenu() {
+    const t = useT();
     const { user } = useAuth();
     const router = useRouter();
     const [open, setOpen] = React.useState(false);
@@ -76,7 +78,7 @@ export function CommandMenu() {
                 className="relative flex h-9 w-full max-w-md items-center gap-2 rounded-lg border bg-muted/60 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
                 <Search className="h-4 w-4 shrink-0" />
-                <span className="flex-1 truncate text-left">Cerca asset, ordini, progetti...</span>
+                <span className="flex-1 truncate text-left">{t("Cerca asset, ordini, progetti...")}</span>
                 <kbd className="hidden h-5 select-none items-center rounded border bg-background px-1.5 font-sans text-[11px] font-medium text-muted-foreground sm:flex">
                     {isMac ? "⌘" : "Ctrl"} K
                 </kbd>
@@ -85,14 +87,14 @@ export function CommandMenu() {
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="top-[20%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-[600px]">
                     <DialogHeader className="sr-only">
-                        <DialogTitle>Cerca</DialogTitle>
+                        <DialogTitle>{t("Cerca")}</DialogTitle>
                     </DialogHeader>
 
                     <div className="flex items-center gap-3 border-b px-4 py-3">
                         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <input
                             className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                            placeholder="Cerca asset, ordini di lavoro, progetti..."
+                            placeholder={t("Cerca asset, ordini di lavoro, progetti...")}
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             autoFocus
@@ -105,12 +107,12 @@ export function CommandMenu() {
                             <>
                                 {noResults && (
                                     <p className="py-10 text-center text-sm text-muted-foreground">
-                                        Nessun risultato per &ldquo;{query}&rdquo;.
+                                        {t("Nessun risultato per “{query}”.", { query })}
                                     </p>
                                 )}
 
                                 {results.assets.length > 0 && (
-                                    <ResultGroup title="Asset">
+                                    <ResultGroup title={t("Asset")}>
                                         {results.assets.map((asset) => (
                                             <ResultRow
                                                 key={asset.id}
@@ -125,7 +127,7 @@ export function CommandMenu() {
                                 )}
 
                                 {results.workOrders.length > 0 && (
-                                    <ResultGroup title="Ordini di lavoro">
+                                    <ResultGroup title={t("Ordini di lavoro")}>
                                         {results.workOrders.map((wo) => (
                                             <ResultRow
                                                 key={wo.id}
@@ -140,13 +142,13 @@ export function CommandMenu() {
                                 )}
 
                                 {results.projects.length > 0 && (
-                                    <ResultGroup title="Progetti">
+                                    <ResultGroup title={t("Progetti")}>
                                         {results.projects.map((proj) => (
                                             <ResultRow
                                                 key={proj.id}
                                                 icon={<Sparkles className="h-4 w-4" />}
                                                 title={proj.title}
-                                                subtitle={`${proj.status} · ${proj.progress}% completato`}
+                                                subtitle={t("{status} · {progress}% completato", { status: proj.status, progress: proj.progress })}
                                                 onSelect={() => go(`/process/projects/${proj.id}`)}
                                             />
                                         ))}
@@ -155,7 +157,7 @@ export function CommandMenu() {
                             </>
                         ) : (
                             <>
-                                <ResultGroup title="Vai a">
+                                <ResultGroup title={t("Vai a")}>
                                     <div className="grid grid-cols-2 gap-1">
                                         {shortcuts.map((item) => (
                                             <button
@@ -165,16 +167,16 @@ export function CommandMenu() {
                                                 className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
                                             >
                                                 <item.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                <span className="truncate">{item.label}</span>
+                                                <span className="truncate">{t(item.label)}</span>
                                             </button>
                                         ))}
                                     </div>
                                 </ResultGroup>
 
-                                <ResultGroup title="Azioni rapide">
+                                <ResultGroup title={t("Azioni rapide")}>
                                     <ResultRow
                                         icon={<Hammer className="h-4 w-4" />}
-                                        title="Nuovo ordine di lavoro"
+                                        title={t("Nuovo ordine di lavoro")}
                                         onSelect={() => go("/work-orders/new")}
                                     />
                                 </ResultGroup>
@@ -184,7 +186,7 @@ export function CommandMenu() {
 
                     <div className="flex items-center justify-end gap-2 border-t bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
                         <kbd className="rounded border bg-background px-1.5 font-sans text-[11px] font-medium">Esc</kbd>
-                        <span>per chiudere</span>
+                        <span>{t("per chiudere")}</span>
                     </div>
                 </DialogContent>
             </Dialog>

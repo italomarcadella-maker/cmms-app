@@ -4,6 +4,7 @@ import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, RefreshCw, Search, CheckCircle2, ScanLine, AlertTriangle } from "lucide-react";
 import { QRScanner } from "@/components/ui/qr-scanner";
+import { useT } from "@/lib/i18n/client";
 
 interface AssetProp {
     id: string;
@@ -16,6 +17,7 @@ interface AssetProp {
 
 export function ScannerClient({ assets }: { assets: AssetProp[] }) {
     const router = useRouter();
+    const t = useT();
     const [searchQuery, setSearchQuery] = useState("");
     const [cameraOpen, setCameraOpen] = useState(false);
     const [isDecodingFile, setIsDecodingFile] = useState(false);
@@ -104,6 +106,9 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
         }
     };
 
+    // Il codice sta dentro la frase: si traduce la frase intera con un segnaposto e lo si sostituisce con il codice
+    const [unrecognizedBefore, unrecognizedAfter] = t("Codice {code} non corrisponde a nessun asset registrato.", { code: "{code}" }).split("{code}");
+
     const triggerFileInput = () => fileInputRef.current?.click();
 
     return (
@@ -117,13 +122,13 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
                         <CheckCircle2 className="h-16 w-16 text-emerald-400" />
                         <span className="absolute inset-0 rounded-full border-2 border-emerald-400 animate-ping opacity-30" />
                     </div>
-                    <h3 className="text-xl font-bold tracking-tight mb-1">Asset Rilevato!</h3>
+                    <h3 className="text-xl font-bold tracking-tight mb-1">{t("Asset Rilevato!")}</h3>
                     <p className="text-sm text-zinc-400 font-mono mb-4">
                         ID: {matchedAssetId?.toUpperCase().substring(0, 16)}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-emerald-400 animate-pulse font-semibold">
                         <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                        <span>Caricamento console tecnica...</span>
+                        <span>{t("Caricamento console tecnica...")}</span>
                     </div>
                 </div>
             )}
@@ -161,7 +166,7 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
                     {isDecodingFile ? (
                         <div className="flex flex-col items-center gap-3 px-6 text-center animate-pulse">
                             <RefreshCw className="h-10 w-10 text-emerald-400 animate-spin" />
-                            <p className="text-xs font-mono text-zinc-300">Decodifica immagine in corso...</p>
+                            <p className="text-xs font-mono text-zinc-300">{t("Decodifica immagine in corso...")}</p>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center gap-2 select-none pointer-events-none text-zinc-500">
@@ -169,7 +174,7 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
                                 <Camera className="h-10 w-10 text-zinc-400" />
                             </div>
                             <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mt-2">
-                                Pronto per Scansione
+                                {t("Pronto per Scansione")}
                             </p>
                         </div>
                     )}
@@ -191,7 +196,7 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
                         className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-zinc-950 font-bold py-3.5 px-6 rounded-2xl transition-all duration-300 shadow-[0_4px_20px_rgba(16,185,129,0.35)] active:scale-98 disabled:opacity-50"
                     >
                         <ScanLine className="h-5 w-5" />
-                        <span>Scansiona con Fotocamera</span>
+                        <span>{t("Scansiona con Fotocamera")}</span>
                     </button>
 
                     <button
@@ -200,7 +205,7 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
                         className="w-full flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-100 font-semibold py-3 px-6 rounded-2xl transition-all duration-300 active:scale-98 disabled:opacity-50"
                     >
                         <Camera className="h-4.5 w-4.5 text-zinc-400" />
-                        <span>Carica Foto Etichetta</span>
+                        <span>{t("Carica Foto Etichetta")}</span>
                     </button>
                 </div>
 
@@ -209,8 +214,8 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
                         <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
                         <div className="text-xs text-amber-200">
                             {unrecognizedCode
-                                ? <>Codice <span className="font-mono">{unrecognizedCode}</span> non corrisponde a nessun asset registrato.</>
-                                : "Nessun QR/barcode leggibile in questa immagine."} Prova la ricerca manuale qui sotto.
+                                ? <>{unrecognizedBefore}<span className="font-mono">{unrecognizedCode}</span>{unrecognizedAfter}</>
+                                : t("Nessun QR/barcode leggibile in questa immagine.")} {t("Prova la ricerca manuale qui sotto.")}
                         </div>
                     </div>
                 )}
@@ -220,10 +225,10 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h3 className="font-bold text-zinc-900 dark:text-zinc-50">
-                            Ricerca Manuale
+                            {t("Ricerca Manuale")}
                         </h3>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                            Il codice non si legge bene? Cerca l'impianto direttamente nell'elenco.
+                            {t("Il codice non si legge bene? Cerca l'impianto direttamente nell'elenco.")}
                         </p>
                     </div>
                 </div>
@@ -232,7 +237,7 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                     <input
                         type="text"
-                        placeholder="Cerca per nome, modello o location..."
+                        placeholder={t("Cerca per nome, modello o location...")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 dark:text-zinc-100"
@@ -242,7 +247,7 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
                 <div className="max-h-[220px] overflow-y-auto space-y-2 pr-1">
                     {filteredAssets.length === 0 ? (
                         <div className="text-center py-6 text-zinc-400 text-xs">
-                            Nessun asset corrispondente trovato.
+                            {t("Nessun asset corrispondente trovato.")}
                         </div>
                     ) : (
                         filteredAssets.map((asset) => (
@@ -256,13 +261,13 @@ export function ScannerClient({ assets }: { assets: AssetProp[] }) {
                                         {asset.name}
                                     </h4>
                                     <div className="flex gap-2 text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 font-mono">
-                                        <span>Modello: {asset.model}</span>
+                                        <span>{t("Modello: {model}", { model: asset.model })}</span>
                                         <span>•</span>
-                                        <span>Location: {asset.location}</span>
+                                        <span>{t("Location: {location}", { location: asset.location })}</span>
                                     </div>
                                 </div>
                                 <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 group-hover:bg-violet-500 group-hover:text-white px-2 py-0.5 rounded-full font-bold transition-all uppercase">
-                                    Apri
+                                    {t("Apri")}
                                 </span>
                             </button>
                         ))

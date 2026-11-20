@@ -2,7 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useFormat } from "@/lib/i18n/client";
 import { ArrowRightLeft, Loader2, PackageSearch, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePrompt } from "@/components/ui/prompt-dialog";
+import { tk } from "@/lib/i18n/translate";
 import {
     searchPartAvailability, requestPartTransfer, listPartTransfers, decidePartTransfer,
     receivePartTransfer, cancelPartTransfer,
@@ -26,11 +28,11 @@ import {
 } from "@/modules/inventory/adapters/actions/availability-actions";
 
 const STATUS: Record<string, { label: string; variant: "info" | "success" | "critical" | "neutral" | "warning" }> = {
-    REQUESTED: { label: "In attesa di approvazione", variant: "warning" },
-    APPROVED: { label: "Approvato, in arrivo", variant: "info" },
-    RECEIVED: { label: "Ricevuto", variant: "success" },
-    REJECTED: { label: "Rifiutato", variant: "critical" },
-    CANCELED: { label: "Annullato", variant: "neutral" },
+    REQUESTED: { label: tk("In attesa di approvazione"), variant: "warning" },
+    APPROVED: { label: tk("Approvato, in arrivo"), variant: "info" },
+    RECEIVED: { label: tk("Ricevuto"), variant: "success" },
+    REJECTED: { label: tk("Rifiutato"), variant: "critical" },
+    CANCELED: { label: tk("Annullato"), variant: "neutral" },
 };
 
 export default function AvailabilityPage() {
@@ -42,6 +44,7 @@ export default function AvailabilityPage() {
 }
 
 function AvailabilityContent() {
+    const t = useT();
     const params = useSearchParams();
     const [tab, setTab] = useState(params.get("tab") === "transfers" ? "transfers" : "search");
     const [query, setQuery] = useState(params.get("search") ?? "");
@@ -59,9 +62,9 @@ function AvailabilityContent() {
         const res = await searchPartAvailability(q);
         setLoading(false);
         setSearched(true);
-        if (!res.success) toast.error(res.message ?? "Ricerca non riuscita");
+        if (!res.success) toast.error(res.message ?? t("Ricerca non riuscita"));
         setGroups(res.groups);
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         let alive = true;
@@ -79,17 +82,17 @@ function AvailabilityContent() {
     return (
         <div className="mx-auto max-w-6xl">
             <PageHeader
-                title="Disponibilità tra stabilimenti"
-                description="Cerca un ricambio per descrizione: vedi dove è disponibile negli altri stabilimenti e richiedi un trasferimento prima di acquistarlo."
+                title={t("Disponibilità tra stabilimenti")}
+                description={t("Cerca un ricambio per descrizione: vedi dove è disponibile negli altri stabilimenti e richiedi un trasferimento prima di acquistarlo.")}
             />
 
             <Tabs value={tab} onValueChange={setTab}>
                 <TabsList>
-                    <TabsTrigger value="search">Cerca ricambio</TabsTrigger>
+                    <TabsTrigger value="search">{t("Cerca ricambio")}</TabsTrigger>
                     <TabsTrigger value="transfers">
-                        Trasferimenti
-                        {transfers.some(t => t.canDecide || t.canReceive) && (
-                            <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-critical" aria-label="Azioni in sospeso" />
+                        {t("Trasferimenti")}
+                        {transfers.some(tr => tr.canDecide || tr.canReceive) && (
+                            <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-critical" aria-label={t("Azioni in sospeso")} />
                         )}
                     </TabsTrigger>
                 </TabsList>
@@ -100,13 +103,13 @@ function AvailabilityContent() {
                             <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                                 className="pl-9"
-                                placeholder="Es. cuscinetto 6206, valvola a sfera 1/2..."
+                                placeholder={t("Es. cuscinetto 6206, valvola a sfera 1/2...")}
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                             />
                         </div>
                         <Button type="submit" disabled={loading || query.trim().length < 2}>
-                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cerca"}
+                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Cerca")}
                         </Button>
                     </form>
 
@@ -114,8 +117,8 @@ function AvailabilityContent() {
                         <Card>
                             <EmptyState
                                 icon={<PackageSearch />}
-                                title="Nessun ricambio corrispondente"
-                                description="Prova con meno parole o con il codice del costruttore. Il confronto avviene sulla descrizione."
+                                title={t("Nessun ricambio corrispondente")}
+                                description={t("Prova con meno parole o con il codice del costruttore. Il confronto avviene sulla descrizione.")}
                             />
                         </Card>
                     )}
@@ -127,23 +130,23 @@ function AvailabilityContent() {
                                     <div>
                                         <p className="font-medium">{group.catalogName}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            Corrispondenza {Math.round(group.score * 100)}%
+                                            {t("Corrispondenza {pct}%", { pct: Math.round(group.score * 100) })}
                                         </p>
                                     </div>
                                     {group.totalElsewhere > 0 ? (
-                                        <Badge variant="success">{group.totalElsewhere} pz cedibili da altri stabilimenti</Badge>
+                                        <Badge variant="success">{t("{n} pz cedibili da altri stabilimenti", { n: group.totalElsewhere })}</Badge>
                                     ) : (
-                                        <Badge variant="neutral">Nessuna disponibilità negli altri stabilimenti</Badge>
+                                        <Badge variant="neutral">{t("Nessuna disponibilità negli altri stabilimenti")}</Badge>
                                     )}
                                 </div>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Stabilimento</TableHead>
-                                            <TableHead>Descrizione a magazzino</TableHead>
-                                            <TableHead className="text-right">Giacenza</TableHead>
-                                            <TableHead className="text-right">Cedibili</TableHead>
-                                            <TableHead>Ubicazione</TableHead>
+                                            <TableHead>{t("Stabilimento")}</TableHead>
+                                            <TableHead>{t("Descrizione a magazzino")}</TableHead>
+                                            <TableHead className="text-right">{t("Giacenza")}</TableHead>
+                                            <TableHead className="text-right">{t("Cedibili")}</TableHead>
+                                            <TableHead>{t("Ubicazione")}</TableHead>
                                             <TableHead className="w-[1%]" />
                                         </TableRow>
                                     </TableHeader>
@@ -153,7 +156,7 @@ function AvailabilityContent() {
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
                                                         <PlantBadge force name={s.plantName} />
-                                                        {s.isOwn && <span className="text-xs text-muted-foreground">il tuo</span>}
+                                                        {s.isOwn && <span className="text-xs text-muted-foreground">{t("il tuo")}</span>}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-sm">{s.name}</TableCell>
@@ -165,7 +168,7 @@ function AvailabilityContent() {
                                                 <TableCell>
                                                     {!s.isOwn && s.surplus > 0 && (
                                                         <Button size="sm" variant="outline" onClick={() => setRequest(s)}>
-                                                            <ArrowRightLeft className="h-3.5 w-3.5" /> Richiedi
+                                                            <ArrowRightLeft className="h-3.5 w-3.5" /> {t("Richiedi")}
                                                         </Button>
                                                     )}
                                                 </TableCell>
@@ -198,6 +201,7 @@ function AvailabilityContent() {
 }
 
 function RequestForm({ stock, onClose, onDone }: { stock: StockRow; onClose: () => void; onDone: () => void }) {
+    const t = useT();
     const [quantity, setQuantity] = useState("1");
     const [note, setNote] = useState("");
     const [busy, setBusy] = useState(false);
@@ -212,30 +216,32 @@ function RequestForm({ stock, onClose, onDone }: { stock: StockRow; onClose: () 
     return (
         <DialogContent className="sm:max-w-[440px]">
             <DialogHeader>
-                <DialogTitle>Richiedi trasferimento</DialogTitle>
-                <DialogDescription>La richiesta va al responsabile di <strong>{stock.plantName}</strong>, che decide se cedere il ricambio.</DialogDescription>
+                <DialogTitle>{t("Richiedi trasferimento")}</DialogTitle>
+                <DialogDescription>{t("La richiesta va al responsabile di {plant}, che decide se cedere il ricambio.", { plant: stock.plantName })}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-2">
                 <p className="text-sm font-medium">{stock.name}</p>
                 <div className="grid gap-2">
-                    <Label htmlFor="qty">Quantità (max {stock.quantity})</Label>
+                    <Label htmlFor="qty">{t("Quantità (max {max})", { max: stock.quantity })}</Label>
                     <Input id="qty" type="number" min={1} max={stock.quantity} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-                    <p className="text-xs text-muted-foreground">Cedibili senza scendere sotto la scorta minima: {stock.surplus}.</p>
+                    <p className="text-xs text-muted-foreground">{t("Cedibili senza scendere sotto la scorta minima: {n}.", { n: stock.surplus })}</p>
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="note">Nota (facoltativa)</Label>
-                    <Textarea id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Es. fermo macchina in corso, serve entro domani" />
+                    <Label htmlFor="note">{t("Nota (facoltativa)")}</Label>
+                    <Textarea id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("Es. fermo macchina in corso, serve entro domani")} />
                 </div>
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={onClose}>Annulla</Button>
-                <Button onClick={submit} disabled={busy}>{busy ? "Invio..." : "Invia richiesta"}</Button>
+                <Button variant="outline" onClick={onClose}>{t("Annulla")}</Button>
+                <Button onClick={submit} disabled={busy}>{busy ? t("Invio...") : t("Invia richiesta")}</Button>
             </DialogFooter>
         </DialogContent>
     );
 }
 
 function TransfersTable({ rows, onChanged }: { rows: TransferRow[]; onChanged: () => void }) {
+    const t = useT();
+    const fmt = useFormat();
     const [busyId, setBusyId] = useState<string | null>(null);
     const { ask, dialog } = usePrompt();
 
@@ -250,7 +256,7 @@ function TransfersTable({ rows, onChanged }: { rows: TransferRow[]; onChanged: (
     if (rows.length === 0) {
         return (
             <Card>
-                <EmptyState icon={<ArrowRightLeft />} title="Nessun trasferimento" description="Le richieste di ricambi tra stabilimenti compariranno qui." />
+                <EmptyState icon={<ArrowRightLeft />} title={t("Nessun trasferimento")} description={t("Le richieste di ricambi tra stabilimenti compariranno qui.")} />
             </Card>
         );
     }
@@ -261,13 +267,13 @@ function TransfersTable({ rows, onChanged }: { rows: TransferRow[]; onChanged: (
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Ricambio</TableHead>
-                            <TableHead className="text-right">Pz</TableHead>
-                            <TableHead>Da</TableHead>
-                            <TableHead>A</TableHead>
-                            <TableHead>Stato</TableHead>
-                            <TableHead>Data</TableHead>
-                            <TableHead className="text-right">Azioni</TableHead>
+                            <TableHead>{t("Ricambio")}</TableHead>
+                            <TableHead className="text-right">{t("Pz")}</TableHead>
+                            <TableHead>{t("Da")}</TableHead>
+                            <TableHead>{t("A")}</TableHead>
+                            <TableHead>{t("Stato")}</TableHead>
+                            <TableHead>{t("Data")}</TableHead>
+                            <TableHead className="text-right">{t("Azioni")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -278,31 +284,31 @@ function TransfersTable({ rows, onChanged }: { rows: TransferRow[]; onChanged: (
                                     <TableCell>
                                         <p className="text-sm font-medium">{r.partName}</p>
                                         {r.note && <p className="text-xs text-muted-foreground">{r.note}</p>}
-                                        {r.decisionNote && <p className="text-xs text-muted-foreground">Risposta: {r.decisionNote}</p>}
+                                        {r.decisionNote && <p className="text-xs text-muted-foreground">{t("Risposta: {note}", { note: r.decisionNote })}</p>}
                                     </TableCell>
                                     <TableCell className="text-right tabular-nums">{r.quantity}</TableCell>
                                     <TableCell><PlantBadge force name={r.fromPlantName} /></TableCell>
                                     <TableCell><PlantBadge force name={r.toPlantName} /></TableCell>
-                                    <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString("it-IT")}</TableCell>
+                                    <TableCell><Badge variant={st.variant}>{t(st.label)}</Badge></TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{fmt.date(r.createdAt)}</TableCell>
                                     <TableCell>
                                         <div className="flex justify-end gap-2">
                                             {r.canDecide && (
                                                 <>
-                                                    <Button size="sm" disabled={busyId === r.id} onClick={() => act(r.id, () => decidePartTransfer(r.id, true))}>Approva</Button>
+                                                    <Button size="sm" disabled={busyId === r.id} onClick={() => act(r.id, () => decidePartTransfer(r.id, true))}>{t("Approva")}</Button>
                                                     <Button size="sm" variant="outline" disabled={busyId === r.id} onClick={async () => {
-                                                        const answer = await ask({ title: "Rifiutare la richiesta?", label: "Motivo del rifiuto (facoltativo)", confirmLabel: "Rifiuta", variant: "destructive" });
+                                                        const answer = await ask({ title: t("Rifiutare la richiesta?"), label: t("Motivo del rifiuto (facoltativo)"), confirmLabel: t("Rifiuta"), variant: "destructive" });
                                                         if (answer === null) return;
                                                         const reason = answer;
                                                         act(r.id, () => decidePartTransfer(r.id, false, reason));
-                                                    }}>Rifiuta</Button>
+                                                    }}>{t("Rifiuta")}</Button>
                                                 </>
                                             )}
                                             {r.canReceive && (
-                                                <Button size="sm" disabled={busyId === r.id} onClick={() => act(r.id, () => receivePartTransfer(r.id))}>Conferma ricezione</Button>
+                                                <Button size="sm" disabled={busyId === r.id} onClick={() => act(r.id, () => receivePartTransfer(r.id))}>{t("Conferma ricezione")}</Button>
                                             )}
                                             {r.canCancel && (
-                                                <Button size="sm" variant="ghost" disabled={busyId === r.id} onClick={() => act(r.id, () => cancelPartTransfer(r.id))}>Annulla</Button>
+                                                <Button size="sm" variant="ghost" disabled={busyId === r.id} onClick={() => act(r.id, () => cancelPartTransfer(r.id))}>{t("Annulla")}</Button>
                                             )}
                                         </div>
                                     </TableCell>

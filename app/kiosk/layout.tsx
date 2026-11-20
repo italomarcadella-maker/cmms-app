@@ -1,6 +1,10 @@
 import Image from "next/image";
 
-export default function KioskLayout({ children }: { children: React.ReactNode }) {
+import { LanguageSelect } from "@/components/i18n/language-switcher";
+import { getT } from "@/lib/i18n/server";
+
+export default async function KioskLayout({ children }: { children: React.ReactNode }) {
+    const { t } = await getT();
     return (
         <div className="flex min-h-screen flex-col bg-canvas">
             <header className="bg-sidebar text-sidebar-accent-foreground shadow-md">
@@ -10,7 +14,10 @@ export default function KioskLayout({ children }: { children: React.ReactNode })
                         <Image src="/brand/FITT-logo-bianco.svg" alt="FITT" width={52} height={32} unoptimized priority />
                         <h1 className="border-l border-sidebar-border pl-4 text-lg font-semibold">CMMS Kiosk</h1>
                     </div>
-                    <div className="text-sm text-sidebar-foreground/70">Terminale di reparto</div>
+                    <div className="flex items-center gap-4">
+                        <LanguageSelect />
+                        <div className="text-sm text-sidebar-foreground/70">{t("Terminale di reparto")}</div>
+                    </div>
                 </div>
             </header>
             <main className="flex-1 p-4 md:p-8">{children}</main>

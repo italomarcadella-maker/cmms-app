@@ -2,6 +2,7 @@ import { IPurchaseRequestRepository, PurchaseRequestListItem } from '../../domai
 import { PurchaseRequest } from '../../domain/entities/purchase-request';
 import { PurchaseRequestMapper } from './purchase-request-mapper';
 import { prisma } from '@/lib/prisma';
+import { applyStockChange } from '@/lib/stock-ledger';
 
 export class PrismaPurchaseRequestRepository implements IPurchaseRequestRepository {
     async findById(id: string): Promise<PurchaseRequest | null> {
@@ -53,9 +54,13 @@ export class PrismaPurchaseRequestRepository implements IPurchaseRequestReposito
                     data: { status: 'RECEIVED', receivedAt: new Date() },
                 });
                 if (claimed.count !== 1) throw new Error('ALREADY_RECEIVED');
-                await tx.sparePart.updateMany({
-                    where: { id: request.partId },
-                    data: { quantity: { increment: request.quantity }, lastUpdated: new Date() },
+                // Carico e movimento di magazzino nella stessa transazione: se uno dei due fallisce, la richiesta torna com'era
+                await applyStockChange(tx, {
+                    partId: request.partId,
+                    delta: request.quantity,
+                    type: 'RECEIPT',
+                    reference: `PR:${id}`,
+                    note: 'Ricevimento merce di una richiesta d\'acquisto',
                 });
             });
             return 'RECEIVED';

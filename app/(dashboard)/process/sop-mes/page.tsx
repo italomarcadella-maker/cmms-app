@@ -1,14 +1,16 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import React, { useState, useEffect } from "react";
 import { Plus, Save, Activity, Camera, Layers, Settings2, Trash2 } from "lucide-react";
 import { getRecipes, createRecipe, saveRecipeData, addQualityReading } from "@/lib/actions/sop-actions";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { format } from "date-fns";
+import { useT, useFormat } from "@/lib/i18n/client";
 import { usePrompt } from "@/components/ui/prompt-dialog";
 
 export default function SopMesDashboard() {
+  const t = useT();
+  const fmt = useFormat();
   const { ask, dialog } = usePrompt();
   const [activeTab, setActiveTab] = useState<'recipe'|'quality'>('recipe');
   const [recipes, setRecipes] = useState<any[]>([]);
@@ -53,7 +55,7 @@ export default function SopMesDashboard() {
   }, [loadData]);
 
   const handleNewRecipe = async () => {
-    const name = await ask({ title: "Nuova SOP", label: "Nome della nuova SOP / Ricetta Master", required: true, confirmLabel: "Crea" });
+    const name = await ask({ title: t("Nuova SOP"), label: t("Nome della nuova SOP / Ricetta Master"), required: true, confirmLabel: t("Crea") });
     if (name) {
       const newRecipe = await createRecipe(name);
       await loadData();
@@ -103,8 +105,8 @@ export default function SopMesDashboard() {
       {/* SIDEBAR LIBRERIA SOP */}
       <div className="w-64 bg-white border-r flex flex-col">
         <div className="p-4 border-b bg-slate-900 text-white">
-          <h2 className="font-bold text-lg flex items-center gap-2"><Layers className="h-5 w-5 text-indigo-400"/> Libreria SOP</h2>
-          <p className="text-xs text-slate-400">Piano di Controllo 4.0</p>
+          <h2 className="font-bold text-lg flex items-center gap-2"><Layers className="h-5 w-5 text-indigo-400"/> {t("Libreria SOP")}</h2>
+          <p className="text-xs text-slate-400">{t("Piano di Controllo 4.0")}</p>
         </div>
         
         <div className="p-2 space-y-1 overflow-y-auto flex-1">
@@ -115,17 +117,17 @@ export default function SopMesDashboard() {
               className={`p-3 rounded-xl cursor-pointer transition-all border ${currentRecipe?.id === r.id ? 'bg-indigo-50 border-indigo-200 text-indigo-800 shadow-sm' : 'border-transparent hover:bg-slate-100'}`}
             >
               <p className="font-semibold text-sm truncate">{r.name}</p>
-              <p className="text-[10px] text-slate-400">{r.updatedAt ? format(new Date(r.updatedAt), 'dd/MM/yyyy') : ''}</p>
+              <p className="text-[10px] text-slate-400">{r.updatedAt ? fmt.date(r.updatedAt) : ''}</p>
             </div>
           ))}
         </div>
         
         <div className="p-4 border-t bg-slate-50 gap-2 flex flex-col">
           <button onClick={handleNewRecipe} className="flex items-center justify-center gap-2 w-full bg-white border border-slate-300 text-slate-700 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm">
-            <Plus className="h-4 w-4" /> Nuova SOP
+            <Plus className="h-4 w-4" /> {t("Nuova SOP")}
           </button>
           <button onClick={handleSaveRecipe} disabled={!currentRecipe} className="flex items-center justify-center gap-2 w-full bg-indigo-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50">
-            <Save className="h-4 w-4" /> Salva Corrente
+            <Save className="h-4 w-4" /> {t("Salva Corrente")}
           </button>
         </div>
       </div>
@@ -139,13 +141,13 @@ export default function SopMesDashboard() {
             onClick={() => setActiveTab('recipe')}
             className={`px-6 py-4 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'recipe' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           >
-            <Settings2 className="h-4 w-4" /> Configuratore Macchine
+            <Settings2 className="h-4 w-4" /> {t("Configuratore Macchine")}
           </button>
           <button 
             onClick={() => setActiveTab('quality')}
             className={`px-6 py-4 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'quality' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
           >
-            <Activity className="h-4 w-4" /> Qualità Live & AI
+            <Activity className="h-4 w-4" /> {t("Qualità Live & AI")}
           </button>
         </div>
 
@@ -155,9 +157,9 @@ export default function SopMesDashboard() {
             {currentRecipe ? (
               <>
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-2xl font-extrabold text-slate-800">SOP: {currentRecipe.name}</h3>
+                  <h3 className="text-2xl font-extrabold text-slate-800">{t("SOP: {name}", { name: currentRecipe.name })}</h3>
                   <button onClick={addMachine} className="flex items-center gap-2 bg-indigo-100 text-indigo-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-indigo-200 transition-colors">
-                    <Plus className="h-4 w-4" /> Aggiungi Macchina
+                    <Plus className="h-4 w-4" /> {t("Aggiungi Macchina")}
                   </button>
                 </div>
 
@@ -167,32 +169,32 @@ export default function SopMesDashboard() {
                       <div className="flex justify-between mb-4 border-b pb-4">
                         <input 
                           type="text" 
-                          placeholder="Nome Macchina (es. Estrusore 1)" 
+                          placeholder={t("Nome Macchina (es. Estrusore 1)")} 
                           className="text-xl font-bold bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-indigo-900 placeholder:text-slate-300 w-full"
                           value={m.title}
                           onChange={(e) => updateMachine(mIdx, 'title', e.target.value)}
                         />
                         <button onClick={() => addParam(mIdx)} className="text-sm font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-1">
-                          <Plus className="h-3 w-3" /> Param
+                          <Plus className="h-3 w-3" /> {t("Param")}
                         </button>
                       </div>
 
                       {/* Fake Photo Placeholder */}
                       <div className="h-24 bg-slate-100 rounded-xl mb-6 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 font-medium cursor-pointer hover:bg-slate-200 transition-colors">
-                        <Camera className="h-5 w-5 mr-2" /> {m.image ? "Cambia Foto HMI" : "Carica Foto HMI"}
+                        <Camera className="h-5 w-5 mr-2" /> {m.image ? t("Cambia Foto HMI") : t("Carica Foto HMI")}
                       </div>
 
                       {/* Params */}
                       <div className="space-y-2">
                         <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-400 uppercase px-2">
-                          <div className="col-span-5">Variabile</div>
-                          <div className="col-span-2">U.M.</div>
-                          <div className="col-span-2">Set</div>
-                          <div className="col-span-3">Tolleranza</div>
+                          <div className="col-span-5">{t("Variabile")}</div>
+                          <div className="col-span-2">{t("U.M.")}</div>
+                          <div className="col-span-2">{t("Set")}</div>
+                          <div className="col-span-3">{t("Tolleranza")}</div>
                         </div>
                         {m.params.map((p: any, pIdx: number) => (
                           <div key={pIdx} className="grid grid-cols-12 gap-2 bg-slate-50 p-2 rounded-lg items-center">
-                            <input className="col-span-5 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm font-semibold" placeholder="es. Velocità" value={p.name || ''} onChange={e => updateParam(mIdx, pIdx, 'name', e.target.value)} />
+                            <input className="col-span-5 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm font-semibold" placeholder={t("es. Velocità")} value={p.name || ''} onChange={e => updateParam(mIdx, pIdx, 'name', e.target.value)} />
                             <input className="col-span-2 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm" placeholder="rpm" value={p.unit || ''} onChange={e => updateParam(mIdx, pIdx, 'unit', e.target.value)} />
                             <input className="col-span-2 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm font-mono text-indigo-700 font-bold" type="number" placeholder="0" value={p.set || ''} onChange={e => updateParam(mIdx, pIdx, 'set', e.target.value)} />
                             <input className="col-span-3 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm font-mono text-slate-600" placeholder="±1" type="number" value={p.toll || ''} onChange={e => updateParam(mIdx, pIdx, 'toll', e.target.value)} />
@@ -206,7 +208,7 @@ export default function SopMesDashboard() {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-400">
                 <Layers className="h-16 w-16 mb-4 opacity-20" />
-                <p className="text-lg font-medium">Seleziona o crea una SOP dalla libreria per iniziare.</p>
+                <p className="text-lg font-medium">{t("Seleziona o crea una SOP dalla libreria per iniziare.")}</p>
               </div>
             )}
           </div>
@@ -216,22 +218,22 @@ export default function SopMesDashboard() {
         {activeTab === 'quality' && (
           <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 flex flex-col gap-6">
             <div className="bg-white p-6 rounded-2xl border shadow-sm">
-              <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2"><Activity className="h-5 w-5 text-emerald-500" /> Inserimento Controllo Qualità</h3>
-              <p className="text-sm text-slate-500 mb-4">I dati inseriti verranno inviati al Global AI Engine per la ricerca di derive di processo incrociate.</p>
+              <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2"><Activity className="h-5 w-5 text-emerald-500" /> {t("Inserimento Controllo Qualità")}</h3>
+              <p className="text-sm text-slate-500 mb-4">{t("I dati inseriti verranno inviati al Global AI Engine per la ricerca di derive di processo incrociate.")}</p>
               
               <div className="flex gap-4 items-end">
                 <div className="flex-1">
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Valore Misurato (mm)</label>
-                  <input type="number" step="0.1" value={qualityValue} onChange={e => setQualityValue(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-lg" placeholder="es. 50.2" />
+                  <label className="block text-xs font-bold text-slate-500 mb-1">{t("Valore Misurato (mm)")}</label>
+                  <input type="number" step="0.1" value={qualityValue} onChange={e => setQualityValue(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-lg" placeholder={t("es. 50.2")} />
                 </div>
                 <button onClick={handleAddQualityReading} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors whitespace-nowrap shadow-sm">
-                  Salva & Analizza
+                  {t("Salva & Analizza")}
                 </button>
               </div>
             </div>
 
             <div className="bg-white p-6 rounded-2xl border shadow-sm flex-1 flex flex-col">
-               <h3 className="text-lg font-bold text-slate-800 mb-4">Trend Qualità: {currentRecipe?.name || "Nessuna ricetta"}</h3>
+               <h3 className="text-lg font-bold text-slate-800 mb-4">{t("Trend Qualità: {name}", { name: currentRecipe?.name || t("Nessuna ricetta") })}</h3>
                <div className="flex-1 min-h-[300px]">
                   {currentRecipe?.readings && currentRecipe.readings.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
@@ -245,7 +247,7 @@ export default function SopMesDashboard() {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-full flex items-center justify-center text-sm text-slate-400 italic">
-                      Nessuna lettura di qualità registrata per questa ricetta.
+                      {t("Nessuna lettura di qualità registrata per questa ricetta.")}
                     </div>
                   )}
                </div>

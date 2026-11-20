@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { useComponents, ComponentItem, ComponentType, UsageType, WarehouseType, ComponentStatus } from "@/lib/components-context";
 import { X, Save, Pencil } from "lucide-react";
+import { useT } from "@/lib/i18n/client";
 
 export function EditComponentDialog({ component, children }: { component: ComponentItem, children: React.ReactNode }) {
+    const t = useT();
     const { updateComponent } = useComponents();
     const [open, setOpen] = useState(false);
 
@@ -59,8 +61,8 @@ export function EditComponentDialog({ component, children }: { component: Compon
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in" onClick={(e) => e.stopPropagation()}>
                     <div className="w-full max-w-lg bg-card rounded-xl shadow-xl border animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-4 border-b">
-                            <h3 className="font-semibold text-lg">Modifica Componente</h3>
-                            <button onClick={() => setOpen(false)} className="p-1 hover:bg-muted rounded text-muted-foreground">
+                            <h3 className="font-semibold text-lg">{t("Modifica Componente")}</h3>
+                            <button onClick={() => setOpen(false)} aria-label={t("Chiudi")} className="p-1 hover:bg-muted rounded text-muted-foreground">
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
@@ -68,7 +70,7 @@ export function EditComponentDialog({ component, children }: { component: Compon
                         <form onSubmit={handleSubmit} className="p-4 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Codice Identificativo</label>
+                                    <label className="text-sm font-medium">{t("Codice Identificativo")}</label>
                                     <input
                                         required
                                         className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
@@ -77,7 +79,7 @@ export function EditComponentDialog({ component, children }: { component: Compon
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Costruttore</label>
+                                    <label className="text-sm font-medium">{t("Costruttore")}</label>
                                     <input
                                         required
                                         className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
@@ -88,7 +90,7 @@ export function EditComponentDialog({ component, children }: { component: Compon
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Modello / Descrizione</label>
+                                <label className="text-sm font-medium">{t("Modello / Descrizione")}</label>
                                 <input
                                     required
                                     className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
@@ -99,46 +101,46 @@ export function EditComponentDialog({ component, children }: { component: Compon
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Tipo</label>
+                                    <label className="text-sm font-medium">{t("Tipo")}</label>
                                     <select
                                         className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
                                         value={type}
                                         onChange={(e) => setType(e.target.value as ComponentType)}
                                     >
-                                        <option value="SCREW">VITE</option>
-                                        <option value="BARREL">CILINDRO</option>
+                                        <option value="SCREW">{t("VITE")}</option>
+                                        <option value="BARREL">{t("CILINDRO")}</option>
                                     </select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Magazzino</label>
+                                    <label className="text-sm font-medium">{t("Magazzino")}</label>
                                     <select
                                         className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
                                         value={warehouse}
                                         onChange={(e) => setWarehouse(e.target.value as WarehouseType)}
                                     >
-                                        <option value="RETINATO">Retinato</option>
-                                        <option value="MAGLIATO">Magliato</option>
+                                        <option value="RETINATO">{t("Retinato")}</option>
+                                        <option value="MAGLIATO">{t("Magliato")}</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Utilizzo</label>
+                                    <label className="text-sm font-medium">{t("Utilizzo")}</label>
                                     <select
                                         className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
                                         value={usageType}
                                         onChange={(e) => setUsageType(e.target.value as UsageType)}
                                     >
-                                        <option value="SOTTOSTRATO">Sottostrato</option>
-                                        <option value="COPERTURA">Copertura</option>
-                                        <option value="JOLLY">Jolly</option>
+                                        <option value="SOTTOSTRATO">{t("Sottostrato")}</option>
+                                        <option value="COPERTURA">{t("Copertura")}</option>
+                                        <option value="JOLLY">{t("Jolly")}</option>
                                     </select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Posizione</label>
+                                    <label className="text-sm font-medium">{t("Posizione")}</label>
                                     <input
                                         required
                                         className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
@@ -149,18 +151,18 @@ export function EditComponentDialog({ component, children }: { component: Compon
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Stato</label>
+                                <label className="text-sm font-medium">{t("Stato")}</label>
                                 <select
                                     className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
                                     value={status}
                                     onChange={(e) => setStatus(e.target.value as ComponentStatus)}
                                 >
-                                    <option value="OPTIMAL">Ottimale</option>
-                                    <option value="WARNING">Attenzione</option>
-                                    <option value="NEEDS_NITRIDING">Da Nitrurare</option>
-                                    <option value="NEEDS_REGENERATION">Da Rigenerare</option>
-                                    <option value="TO_ORDER">Da Ordinare</option>
-                                    <option value="CRITICAL">Critico / Rottamare</option>
+                                    <option value="OPTIMAL">{t("Ottimale")}</option>
+                                    <option value="WARNING">{t("Attenzione")}</option>
+                                    <option value="NEEDS_NITRIDING">{t("Da Nitrurare")}</option>
+                                    <option value="NEEDS_REGENERATION">{t("Da Rigenerare")}</option>
+                                    <option value="TO_ORDER">{t("Da Ordinare")}</option>
+                                    <option value="CRITICAL">{t("Critico / Rottamare")}</option>
                                 </select>
                             </div>
 
@@ -170,13 +172,13 @@ export function EditComponentDialog({ component, children }: { component: Compon
                                     onClick={() => setOpen(false)}
                                     className="px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                                 >
-                                    Annulla
+                                    {t("Annulla")}
                                 </button>
                                 <button
                                     type="submit"
                                     className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90"
                                 >
-                                    <Save className="h-4 w-4" /> Salva Modifiche
+                                    <Save className="h-4 w-4" /> {t("Salva Modifiche")}
                                 </button>
                             </div>
                         </form>

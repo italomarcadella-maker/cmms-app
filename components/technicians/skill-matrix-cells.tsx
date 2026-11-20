@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
+import { useT, useFormat } from "@/lib/i18n/client";
 import { AlertTriangle, Check, Clock, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,17 +30,28 @@ export function dayToIso(key: string): string | null {
     return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0).toISOString();
 }
 
+/** Data in italiano: serve all'export CSV, che resta invariato in tutte le lingue. */
 export const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("it-IT");
 
-/** Testo breve e stato di un'abilitazione presente nella cella. */
-export function qualificationCellInfo(expiresAt: string | null, now: Date): { state: QualificationState; label: string; detail: string | null } {
+type Translate = (key: string, params?: Record<string, string | number>) => string;
+
+/**
+ * Testo breve e stato di un'abilitazione presente nella cella.
+ * Senza `tr` e `dateText` i testi escono in italiano (basta per leggere lo stato, come nell'export CSV).
+ */
+export function qualificationCellInfo(
+    expiresAt: string | null,
+    now: Date,
+    tr: Translate = (key, params) => key.replace(/\{(\w+)\}/g, (m, k: string) => (params && k in params ? String(params[k]) : m)),
+    dateText: (iso: string) => string = fmtDate,
+): { state: QualificationState; label: string; detail: string | null } {
     const date = expiresAt ? new Date(expiresAt) : null;
     const state = qualificationState(date, now);
     switch (state) {
-        case "EXPIRED": return { state, label: "Scaduta", detail: `il ${fmtDate(expiresAt!)}` };
-        case "EXPIRING": return { state, label: `Scade il ${fmtDate(expiresAt!)}`, detail: null };
-        case "VALID": return { state, label: "Valida", detail: `fino al ${fmtDate(expiresAt!)}` };
-        default: return { state, label: "Valida", detail: "senza scadenza" };
+        case "EXPIRED": return { state, label: tr("Scaduta"), detail: tr("il {date}", { date: dateText(expiresAt!) }) };
+        case "EXPIRING": return { state, label: tr("Scade il {date}", { date: dateText(expiresAt!) }), detail: null };
+        case "VALID": return { state, label: tr("Valida"), detail: tr("fino al {date}", { date: dateText(expiresAt!) }) };
+        default: return { state, label: tr("Valida"), detail: tr("senza scadenza") };
     }
 }
 
@@ -65,15 +77,17 @@ export function QualificationCell({ technician, type, expiresAt, present, canEdi
     now: Date;
     onSaved: (enabled: boolean, expiresAt: string | null) => void;
 }) {
+    const t = useT();
+    const f = useFormat();
     const [open, setOpen] = useState(false);
     const [enabled, setEnabled] = useState(present);
     const [date, setDate] = useState(dayKey(expiresAt));
     const [busy, setBusy] = useState(false);
 
-    const info = present ? qualificationCellInfo(expiresAt, now) : null;
+    const info = present ? qualificationCellInfo(expiresAt, now, t, (iso) => f.date(iso)) : null;
     const Icon = info?.state === "EXPIRED" ? AlertTriangle : info?.state === "EXPIRING" ? Clock : Check;
-    const text = info ? `${info.label}${info.detail ? ` ${info.detail}` : ""}` : "non abilitato";
-    const ariaLabel = `${technician.name}, ${type.name}: ${text}`;
+    const text = info ? `${info.label}${info.detail ? ` ${info.detail}` : ""}` : t("non abilitato");
+    const ariaLabel = t("{technician}, {type}: {text}", { technician: technician.name, type: type.name, text });
 
     const content = info ? (
         <>
@@ -112,16 +126,16 @@ export function QualificationCell({ technician, type, expiresAt, present, canEdi
                     <p className="text-xs text-muted-foreground">{technician.name}</p>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                    <Label htmlFor={`qc-on-${technician.id}-${type.id}`}>Abilitato</Label>
+                    <Label htmlFor={`qc-on-${technician.id}-${type.id}`}>{t("Abilitato")}</Label>
                     <Switch id={`qc-on-${technician.id}-${type.id}`} checked={enabled} onCheckedChange={setEnabled} />
                 </div>
                 {enabled && (
                     <div className="grid gap-1.5">
-                        <Label htmlFor={`qc-date-${technician.id}-${type.id}`} className="text-xs">Scadenza (facoltativa)</Label>
+                        <Label htmlFor={`qc-date-${technician.id}-${type.id}`} className="text-xs">{t("Scadenza (facoltativa)")}</Label>
                         <Input id={`qc-date-${technician.id}-${type.id}`} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                     </div>
                 )}
-                <Button type="button" size="sm" className="w-full" onClick={save} disabled={busy}>{busy ? "Salvataggio..." : "Salva"}</Button>
+                <Button type="button" size="sm" className="w-full" onClick={save} disabled={busy}>{busy ? t("Salvataggio...") : t("Salva")}</Button>
             </PopoverContent>
         </Popover>
     );
@@ -145,10 +159,15 @@ export function SkillCell({ technician, skill, level, canEdit, onSaved }: {
     canEdit: boolean;
     onSaved: (level: SkillLevel) => void;
 }) {
+    const t = useT();
     const [open, setOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const current = (SKILL_LEVELS.includes(level as SkillLevel) ? level : 0) as SkillLevel;
-    const ariaLabel = `${technician.name}, ${skill.name}: ${current === 0 ? "nessuna competenza" : `livello ${current}, ${skillLevelLabel(current)}`}`;
+    const ariaLabel = t("{technician}, {skill}: {text}", {
+        technician: technician.name,
+        skill: skill.name,
+        text: current === 0 ? t("nessuna competenza") : t("livello {level}, {label}", { level: current, label: t(skillLevelLabel(current)) }),
+    });
 
     const content = current === 0 ? (
         <span aria-hidden>-</span>
@@ -182,7 +201,7 @@ export function SkillCell({ technician, skill, level, canEdit, onSaved }: {
                     <p className="text-sm font-semibold">{skill.name}</p>
                     <p className="text-xs text-muted-foreground">{technician.name}</p>
                 </div>
-                <div className="grid gap-1" role="group" aria-label="Livello di competenza">
+                <div className="grid gap-1" role="group" aria-label={t("Livello di competenza")}>
                     {SKILL_LEVELS.map(l => (
                         <button
                             key={l}
@@ -196,7 +215,7 @@ export function SkillCell({ technician, skill, level, canEdit, onSaved }: {
                             )}
                         >
                             <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold", LEVEL_TONE[l], l === 0 && "border")}>{l === 0 ? "-" : l}</span>
-                            <span className="flex-1">{skillLevelLabel(l)}</span>
+                            <span className="flex-1">{t(skillLevelLabel(l))}</span>
                             {l === current && <Check className="h-4 w-4" aria-hidden />}
                         </button>
                     ))}

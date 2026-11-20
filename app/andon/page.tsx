@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/lib/i18n/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, AlertTriangle, XCircle, Timer } from "lucide-react";
@@ -26,6 +27,7 @@ async function getAndonStatus() {
 
 export default async function AndonPage() {
     const assets = await getAndonStatus();
+    const { t, format: fmt } = await getT();
 
     // Group assets by status for quick summary
     const stoppedAssets = assets.filter(a => a.status === 'OFFLINE' || a.workOrders.some(wo => wo.priority === 'STOPPED'));
@@ -39,7 +41,7 @@ export default async function AndonPage() {
                 <CardHeader className="bg-green-900/20 pb-4 border-b border-green-900/30">
                     <CardTitle className="text-green-400 text-5xl font-black flex items-center gap-4">
                         <CheckCircle2 className="h-12 w-12" />
-                        OPERATIVI
+                        {t("OPERATIVI")}
                         <span className="ml-auto text-6xl">{okAssets.length}</span>
                     </CardTitle>
                 </CardHeader>
@@ -60,7 +62,7 @@ export default async function AndonPage() {
                 <CardHeader className="bg-yellow-900/20 pb-4 border-b border-yellow-900/30">
                     <CardTitle className="text-yellow-500 text-5xl font-black flex items-center gap-4">
                         <Timer className="h-12 w-12" />
-                        IN CODA
+                        {t("IN CODA")}
                         <span className="ml-auto text-6xl">{warningAssets.length}</span>
                     </CardTitle>
                 </CardHeader>
@@ -69,7 +71,7 @@ export default async function AndonPage() {
                         <div key={asset.id} className="p-4 rounded bg-yellow-950/30 border border-yellow-900/30 flex justify-between items-center">
                             <div>
                                 <div className="text-2xl font-bold text-yellow-100">{asset.name}</div>
-                                <div className="text-yellow-500">{asset.workOrders.length} ticket aperti</div>
+                                <div className="text-yellow-500">{asset.workOrders.length === 1 ? t("1 ticket aperto") : t("{count} ticket aperti", { count: asset.workOrders.length })}</div>
                             </div>
                             <Badge variant="outline" className="border-yellow-500 text-yellow-500 text-lg px-3 py-1">
                                 {asset.workOrders[0].type}
@@ -84,27 +86,27 @@ export default async function AndonPage() {
                 <CardHeader className="bg-red-900/20 pb-4 border-b border-red-900/30">
                     <CardTitle className="text-red-500 text-5xl font-black flex items-center gap-4">
                         <AlertTriangle className="h-12 w-12" />
-                        FERMI
+                        {t("FERMI")}
                         <span className="ml-auto text-6xl">{stoppedAssets.length}</span>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 p-6 overflow-y-auto space-y-4">
                     {stoppedAssets.length === 0 && (
                         <div className="h-full flex items-center justify-center text-zinc-700 text-2xl font-medium">
-                            NESSUN FERMO RILEVATO
+                            {t("NESSUN FERMO RILEVATO")}
                         </div>
                     )}
                     {stoppedAssets.map(asset => (
                         <div key={asset.id} className="p-6 rounded bg-red-950/50 border border-red-600 flex flex-col gap-2 shadow-[0_0_15px_rgba(220,38,38,0.3)]">
                             <div className="flex justify-between items-start">
                                 <div className="text-3xl font-black text-white">{asset.name}</div>
-                                <Badge className="bg-red-600 text-white hover:bg-red-700 text-xl px-4 py-1">FERMO</Badge>
+                                <Badge className="bg-red-600 text-white hover:bg-red-700 text-xl px-4 py-1">{t("FERMO")}</Badge>
                             </div>
                             <div className="text-red-200 text-xl truncate">
-                                {asset.workOrders.find(w => w.priority === 'STOPPED')?.title || "Manutenzione Urgente"}
+                                {asset.workOrders.find(w => w.priority === 'STOPPED')?.title || t("Manutenzione Urgente")}
                             </div>
                             <div className="mt-2 text-right text-red-400 font-mono">
-                                Da: {asset.workOrders[0]?.createdAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                                {t("Da: {time}", { time: fmt.time(asset.workOrders[0]?.createdAt) })}
                             </div>
                         </div>
                     ))}

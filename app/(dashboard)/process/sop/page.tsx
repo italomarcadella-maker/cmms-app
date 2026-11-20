@@ -5,9 +5,11 @@ import { getSopDocuments } from "@/lib/process-actions";
 import { FileCheck2, Filter, Search, Factory, ScanLine, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { it } from "date-fns/locale";
+import { useT, useDateFnsLocale } from "@/lib/i18n/client";
 
 export default function SOPArchivePage() {
+    const t = useT();
+    const dfLocale = useDateFnsLocale();
     const [sops, setSops] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -51,31 +53,31 @@ export default function SOPArchivePage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
                 <div>
                     <Link href="/process" className="text-sm font-medium text-slate-500 hover:text-indigo-600 flex items-center gap-1 mb-2 group">
-                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Torna a Dashboard Processo
+                        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> {t("Torna a Dashboard Processo")}
                     </Link>
                     <h1 className="text-3xl font-extrabold text-slate-800 flex items-center gap-3">
                         <FileCheck2 className="h-8 w-8 text-indigo-600" />
-                        Archivio SOP & Ricette
+                        {t("Archivio SOP & Ricette")}
                     </h1>
-                    <p className="text-slate-500 mt-1">Consulta e filtra i parametri standard di processo per Linea, Prodotto o Macchinario.</p>
+                    <p className="text-slate-500 mt-1">{t("Consulta e filtra i parametri standard di processo per Linea, Prodotto o Macchinario.")}</p>
                 </div>
                 <Link
                     href="/process/sop-builder"
                     className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
                 >
-                    <ScanLine className="h-4 w-4" /> Nuova SOP
+                    <ScanLine className="h-4 w-4" /> {t("Nuova SOP")}
                 </Link>
             </div>
 
             {/* Filters */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-end">
                 <div className="flex-1 w-full">
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Cerca</label>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t("Cerca")}</label>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Cerca per nome o asset..."
+                            placeholder={t("Cerca per nome o asset...")}
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
@@ -84,7 +86,7 @@ export default function SOPArchivePage() {
                 </div>
 
                 <div className="w-full md:w-64">
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Linea</label>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t("Linea")}</label>
                     <div className="relative">
                         <Factory className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <select
@@ -92,7 +94,7 @@ export default function SOPArchivePage() {
                             onChange={e => setSelectedLine(e.target.value)}
                             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none appearance-none"
                         >
-                            <option value="ALL">Tutte le Linee</option>
+                            <option value="ALL">{t("Tutte le Linee")}</option>
                             {uniqueLines.map(line => (
                                 <option key={line} value={line}>{line}</option>
                             ))}
@@ -101,7 +103,7 @@ export default function SOPArchivePage() {
                 </div>
 
                 <div className="w-full md:w-64">
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Prodotto</label>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t("Prodotto")}</label>
                     <div className="relative">
                         <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <select
@@ -109,7 +111,7 @@ export default function SOPArchivePage() {
                             onChange={e => setSelectedProduct(e.target.value)}
                             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none appearance-none"
                         >
-                            <option value="ALL">Tutti i Prodotti</option>
+                            <option value="ALL">{t("Tutti i Prodotti")}</option>
                             {uniqueProducts.map(prod => (
                                 <option key={prod} value={prod}>{prod}</option>
                             ))}
@@ -132,8 +134,8 @@ export default function SOPArchivePage() {
             ) : filteredSops.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-2xl border border-dashed text-slate-500">
                     <FileCheck2 className="h-12 w-12 mx-auto text-slate-300 mb-3" />
-                    <p className="font-medium text-lg text-slate-600">Nessuna SOP trovata</p>
-                    <p className="text-sm">Prova a modificare i filtri di ricerca.</p>
+                    <p className="font-medium text-lg text-slate-600">{t("Nessuna SOP trovata")}</p>
+                    <p className="text-sm">{t("Prova a modificare i filtri di ricerca.")}</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -154,12 +156,12 @@ export default function SOPArchivePage() {
                                         <div className="flex flex-wrap gap-2">
                                             {sop.line && (
                                                 <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider rounded-md border border-indigo-100">
-                                                    Linea: {sop.line}
+                                                    {t("Linea: {line}", { line: sop.line })}
                                                 </span>
                                             )}
                                             {sop.product && (
                                                 <span className="px-2.5 py-1 bg-fuchsia-50 text-fuchsia-700 text-xs font-bold uppercase tracking-wider rounded-md border border-fuchsia-100">
-                                                    Prod: {sop.product}
+                                                    {t("Prod: {product}", { product: sop.product })}
                                                 </span>
                                             )}
                                         </div>
@@ -169,15 +171,15 @@ export default function SOPArchivePage() {
                                         {sop.title}
                                     </h3>
                                     <p className="text-sm text-slate-500 mt-2 font-medium">
-                                        Asset: {sop.asset?.name || "Modello Sconosciuto"}
+                                        {t("Asset: {name}", { name: sop.asset?.name || t("Modello Sconosciuto") })}
                                     </p>
                                 </div>
                                 <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                                     <span className="flex items-center gap-1">
-                                        <FileCheck2 className="h-4 w-4" /> {paramsCount} Parametri
+                                        <FileCheck2 className="h-4 w-4" /> {t("{n} Parametri", { n: paramsCount })}
                                     </span>
                                     <span>
-                                        {format(new Date(sop.createdAt), "d MMM yyyy", { locale: it })}
+                                        {format(new Date(sop.createdAt), "d MMM yyyy", { locale: dfLocale })}
                                     </span>
                                 </div>
                             </Link>

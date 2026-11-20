@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { KeyRound, LogOut, Settings } from "lucide-react";
+import { Check, KeyRound, LogOut, Settings } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
+import { useT } from "@/lib/i18n/client";
+import { tk } from "@/lib/i18n/translate";
+import { useLanguageChange } from "@/components/i18n/language-switcher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -15,11 +18,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ROLE_LABELS: Record<string, string> = {
-    ADMIN: "Amministratore",
-    SUPERVISOR: "Supervisore",
-    MAINTAINER: "Manutentore",
-    PROCESS_ENGINEER: "Ingegnere di processo",
-    USER: "Utente",
+    ADMIN: tk("Amministratore"),
+    SUPERVISOR: tk("Supervisore"),
+    MAINTAINER: tk("Manutentore"),
+    PROCESS_ENGINEER: tk("Ingegnere di processo"),
+    USER: tk("Utente"),
 };
 
 function initials(name?: string | null, email?: string | null) {
@@ -29,16 +32,18 @@ function initials(name?: string | null, email?: string | null) {
 }
 
 export function UserMenu() {
+    const t = useT();
     const { user, logout } = useAuth();
-    const name = user?.name || "Utente";
-    const role = user?.role ? ROLE_LABELS[user.role] ?? user.role : "";
+    const { locale, change, pending, options } = useLanguageChange();
+    const name = user?.name || t("Utente");
+    const role = user?.role ? t(ROLE_LABELS[user.role] ?? user.role) : "";
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <button
                     type="button"
-                    aria-label="Menu utente"
+                    aria-label={t("Menu utente")}
                     className="flex items-center gap-2 rounded-lg p-1 pr-2 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                     <Avatar className="h-8 w-8">
@@ -59,18 +64,26 @@ export function UserMenu() {
                 {user?.role === "ADMIN" && (
                     <DropdownMenuItem asChild>
                         <Link href="/settings">
-                            <Settings /> Impostazioni
+                            <Settings /> {t("Impostazioni")}
                         </Link>
                     </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
                     <Link href="/change-password">
-                        <KeyRound /> Cambia password
+                        <KeyRound /> {t("Cambia password")}
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuLabel>{t("Lingua")}</DropdownMenuLabel>
+                {options.map((o) => (
+                    <DropdownMenuItem key={o.value} disabled={pending} onSelect={() => change(o.value)}>
+                        <span className="flex-1">{o.label}</span>
+                        {o.value === locale && <Check aria-label={t("Lingua attiva")} />}
+                    </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem destructive onSelect={() => logout()}>
-                    <LogOut /> Esci
+                    <LogOut /> {t("Esci")}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { Factory, Loader2, MapPin, Plus, Trash2 } from "lucide-react";
 import { getPlants, addPlant, deletePlant } from "@/lib/actions";
 import { useAuth } from "@/lib/auth-context";
+import { useT } from "@/lib/i18n/client";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { PlantEditDialog, type PlantRecord } from "@/components/plants/plant-edit-dialog";
 
 export default function PlantsPage() {
+    const t = useT();
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
     const { confirm, dialog } = useConfirm();
@@ -50,9 +52,9 @@ export default function PlantsPage() {
 
     const handleDelete = async (plant: PlantRecord) => {
         const ok = await confirm({
-            title: `Eliminare ${plant.name}?`,
-            description: "L'operazione è possibile solo se allo stabilimento non sono collegati asset, ordini o ricambi.",
-            confirmLabel: "Elimina",
+            title: t("Eliminare {name}?", { name: plant.name }),
+            description: t("L'operazione è possibile solo se allo stabilimento non sono collegati asset, ordini o ricambi."),
+            confirmLabel: t("Elimina"),
             variant: "destructive",
         });
         if (!ok) return;
@@ -63,32 +65,32 @@ export default function PlantsPage() {
     return (
         <div className="mx-auto max-w-5xl">
             <PageHeader
-                title="Stabilimenti"
+                title={t("Stabilimenti")}
                 description={isAdmin
-                    ? "I siti produttivi del gruppo. Ogni stabilimento ha i propri dati, le proprie tariffe e i propri responsabili."
-                    : "I tuoi stabilimenti: puoi aggiornare tariffe e costi usati nei calcoli di KPI, energia e fermi."}
+                    ? t("I siti produttivi del gruppo. Ogni stabilimento ha i propri dati, le proprie tariffe e i propri responsabili.")
+                    : t("I tuoi stabilimenti: puoi aggiornare tariffe e costi usati nei calcoli di KPI, energia e fermi.")}
             />
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 {isAdmin && (
                     <Card className="md:col-span-1">
                         <CardHeader>
-                            <CardTitle className="text-base">Nuovo stabilimento</CardTitle>
-                            <CardDescription>Aggiungi un sito. Poi assegnagli gli utenti dalla pagina Utenti.</CardDescription>
+                            <CardTitle className="text-base">{t("Nuovo stabilimento")}</CardTitle>
+                            <CardDescription>{t("Aggiungi un sito. Poi assegnagli gli utenti dalla pagina Utenti.")}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handleAdd} className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium" htmlFor="newName">Nome</label>
-                                    <Input id="newName" placeholder="es. SND" value={newName} onChange={e => setNewName(e.target.value)} required />
+                                    <label className="text-sm font-medium" htmlFor="newName">{t("Nome")}</label>
+                                    <Input id="newName" placeholder={t("es. SND")} value={newName} onChange={e => setNewName(e.target.value)} required />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium" htmlFor="newLoc">Ubicazione</label>
-                                    <Input id="newLoc" placeholder="es. Sandrigo (VI)" value={newLocation} onChange={e => setNewLocation(e.target.value)} />
+                                    <label className="text-sm font-medium" htmlFor="newLoc">{t("Ubicazione")}</label>
+                                    <Input id="newLoc" placeholder={t("es. Sandrigo (VI)")} value={newLocation} onChange={e => setNewLocation(e.target.value)} />
                                 </div>
                                 <Button type="submit" className="w-full" disabled={adding}>
                                     {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                                    Aggiungi
+                                    {t("Aggiungi")}
                                 </Button>
                             </form>
                         </CardContent>
@@ -99,7 +101,7 @@ export default function PlantsPage() {
                     {loading ? (
                         <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                     ) : plants.length === 0 ? (
-                        <Card><EmptyState icon={<Factory />} title="Nessuno stabilimento" description="Aggiungi il primo stabilimento per iniziare." /></Card>
+                        <Card><EmptyState icon={<Factory />} title={t("Nessuno stabilimento")} description={t("Aggiungi il primo stabilimento per iniziare.")} /></Card>
                     ) : (
                         plants.map(p => (
                             <Card key={p.id}>
@@ -109,14 +111,14 @@ export default function PlantsPage() {
                                         <div>
                                             <h3 className="font-semibold">{p.name}</h3>
                                             <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                <MapPin className="h-3 w-3" />{p.location || "Nessuna ubicazione"} · {p.timezone}
+                                                <MapPin className="h-3 w-3" />{p.location || t("Nessuna ubicazione")} · {p.timezone}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <PlantEditDialog plant={p} canEditRegistry={isAdmin} onSaved={load} />
                                         {isAdmin && (
-                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-critical" onClick={() => handleDelete(p)} aria-label={`Elimina ${p.name}`}>
+                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-critical" onClick={() => handleDelete(p)} aria-label={t("Elimina {name}", { name: p.name })}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         )}

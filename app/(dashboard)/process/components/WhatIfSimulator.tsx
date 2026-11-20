@@ -2,17 +2,19 @@
 
 import React, { useState } from "react";
 import { C, calcP } from "@/lib/fpes-utils";
+import { useT } from "@/lib/i18n/client";
 
 export default function WhatIfSimulator({ project, upd }: { project: any; upd: (patch: any) => void; }) {
+  const t = useT();
   const [scenarios, setScenarios] = useState<any[]>([
-    { id: "base", name: "Scenario Base", data: JSON.parse(JSON.stringify(project)) }
+    { id: "base", name: t("Scenario Base"), data: JSON.parse(JSON.stringify(project)) }
   ]);
   const [activeScen, setActiveScen] = useState("base");
 
   const addScenario = () => {
     const newScen = {
       id: "scen_" + Date.now(),
-      name: "Scenario " + (scenarios.length + 1),
+      name: t("Scenario {n}", { n: scenarios.length + 1 }),
       data: JSON.parse(JSON.stringify(scenarios[0].data))
     };
     setScenarios([...scenarios, newScen]);
@@ -26,10 +28,10 @@ export default function WhatIfSimulator({ project, upd }: { project: any; upd: (
     <div className="w-full">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-          WHAT-IF SIMULATOR
+          {t("WHAT-IF SIMULATOR")}
         </h2>
         <button onClick={addScenario} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-sm hover:bg-blue-700">
-          + Nuovo Scenario
+          {t("+ Nuovo Scenario")}
         </button>
       </div>
 
@@ -50,27 +52,27 @@ export default function WhatIfSimulator({ project, upd }: { project: any; upd: (
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Efficienza Linea</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("Efficienza Linea")}</p>
             <p className="text-2xl font-bold text-blue-600">{cr.lineEff}%</p>
           </div>
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Takt Time</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("Takt Time")}</p>
             <p className="text-2xl font-bold text-emerald-600">{cr.takt}s</p>
           </div>
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Valore Aggiunto</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("Valore Aggiunto")}</p>
             <p className="text-2xl font-bold text-amber-600">{cr.vaAvg}%</p>
           </div>
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bottleneck</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t("Bottleneck")}</p>
             <p className="text-2xl font-bold text-red-600">{cr.bot ? cr.bot.cicloS + 's' : '—'}</p>
           </div>
         </div>
 
         <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
           <div className="text-4xl mb-4">🔬</div>
-          <p className="font-semibold text-slate-600">Simulatore in fase di sviluppo.</p>
-          <p className="text-xs mt-2">Le prossime versioni permetteranno di modificare parametri in tempo reale (cicli, layout, operatori) e confrontare l'impatto sul Lean Score e sull'Efficienza in questa vista parallela.</p>
+          <p className="font-semibold text-slate-600">{t("Simulatore in fase di sviluppo.")}</p>
+          <p className="text-xs mt-2">{t("Le prossime versioni permetteranno di modificare parametri in tempo reale (cicli, layout, operatori) e confrontare l'impatto sul Lean Score e sull'Efficienza in questa vista parallela.")}</p>
         </div>
       </div>
     </div>

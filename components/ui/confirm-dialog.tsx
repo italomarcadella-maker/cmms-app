@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
+import { useT } from "@/lib/i18n/client"
 import {
     Dialog,
     DialogContent,
@@ -30,6 +31,7 @@ export interface ConfirmOptions {
  *   return <>{...}{dialog}</>
  */
 export function useConfirm() {
+    const t = useT()
     const [options, setOptions] = React.useState<ConfirmOptions | null>(null)
     const resolver = React.useRef<((value: boolean) => void) | null>(null)
 
@@ -55,13 +57,13 @@ export function useConfirm() {
                 </DialogHeader>
                 <DialogFooter className="gap-2 sm:gap-0">
                     <Button variant="outline" onClick={() => settle(false)}>
-                        {options?.cancelLabel ?? "Annulla"}
+                        {options?.cancelLabel ?? t("Annulla")}
                     </Button>
                     <Button
                         variant={options?.variant === "destructive" ? "destructive" : "default"}
                         onClick={() => settle(true)}
                     >
-                        {options?.confirmLabel ?? "Conferma"}
+                        {options?.confirmLabel ?? t("Conferma")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

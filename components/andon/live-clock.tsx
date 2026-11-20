@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-/** Real clock for the shop-floor display (updates every second, Italian format). */
+import { useFormat } from "@/lib/i18n/client";
+
+/** Real clock for the shop-floor display (updates every second, in the user's language). */
 export function LiveClock() {
+    const fmt = useFormat();
     const [now, setNow] = useState<Date | null>(null);
 
     useEffect(() => {
@@ -19,10 +22,10 @@ export function LiveClock() {
     return (
         <div className="text-right">
             <div className="font-mono text-4xl font-bold tabular-nums" suppressHydrationWarning>
-                {now ? now.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--:--:--"}
+                {now ? fmt.time(now, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--:--:--"}
             </div>
             <div className="text-sm text-zinc-400" suppressHydrationWarning>
-                {now ? now.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }) : ""}
+                {now ? fmt.date(now, { weekday: "long", day: "numeric", month: "long" }) : ""}
             </div>
         </div>
     );

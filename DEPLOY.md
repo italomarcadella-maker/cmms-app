@@ -80,8 +80,33 @@ Questa applicazione è pronta per essere pubblicata su Vercel. Segui questi pass
 | `GEMINI_API_KEY` | per l'IA | Con `AI_PROVIDER=gemini` |
 | `ALLOW_DB_RESET` | mai in produzione | Abilita "Cancella tutti i dati" nelle impostazioni (solo ambienti di prova) |
 | `ALLOW_DEV_SEED` | mai in produzione | Consente i seed di sviluppo |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | per le notifiche push | Vedi la sezione "Notifiche push"; senza, le push restano spente |
 
 Non salvare mai password o chiavi nel repository. Il file `.env` non deve essere tracciato da git.
+
+## Notifiche push
+
+Le notifiche dell'app (nuova assegnazione di un ordine, richieste di materiale, permessi di lavoro, ecc.) possono arrivare anche sul telefono bloccato (Web Push). Finché le chiavi non sono impostate il codice non fa nulla e l'app mostra "Notifiche sul telefono non ancora attivate dall'amministratore": non serve altro.
+
+1.  **Genera le chiavi VAPID** dal tuo computer (una sola volta):
+    ```bash
+    npx web-push generate-vapid-keys
+    ```
+    Il comando stampa una chiave pubblica e una privata.
+2.  **Imposta su Vercel** (Settings > Environment Variables, ambiente Production) le tre variabili:
+    *   `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: la chiave pubblica.
+    *   `VAPID_PRIVATE_KEY`: la chiave privata.
+    *   `VAPID_SUBJECT`: un contatto dell'amministratore, nella forma `mailto:indirizzo@dominio.it` oppure un indirizzo `https://...`.
+3.  **Rilascia di nuovo l'app** (Redeploy): la chiave pubblica viene incorporata nell'app al momento della build, quindi senza un nuovo rilascio i telefoni non la vedono.
+4.  Ogni utente attiva le notifiche dal proprio dispositivo: dalla campanella (versione completa) oppure dall'invito in alto nella vista mobile ("Attiva le notifiche sul telefono"). Il browser chiede il permesso.
+
+Note:
+
+*   **La chiave privata non va mai messa nel repository** (né in `.env` tracciato, né in chat o documenti): solo nelle variabili d'ambiente di Vercel. Se la chiave privata viene diffusa, generane una nuova coppia e sostituisci le tre variabili: tutti gli utenti dovranno riattivare le notifiche, perché le sottoscrizioni sono legate alla chiave.
+*   **iPhone**: le notifiche funzionano solo con l'app installata sulla schermata Home (Safari > Condividi > "Aggiungi alla schermata Home") e con iOS 16.4 o successivo. Da una scheda normale di Safari non sono disponibili.
+*   Nella notifica viaggiano solo titolo, testo e indirizzo da aprire. Le sottoscrizioni scadute o revocate (risposta 404/410 del servizio del browser) vengono cancellate in automatico.
+*   Sono ammessi solo i servizi di notifica dei browser noti (Chrome/Edge/Samsung, Firefox, Safari): l'elenco è in `modules/shared/domain/push-payload.ts` (`PUSH_SERVICE_DOMAINS`).
+*   Il file `public/sw.js` e il file `public/worker-*.js` sono generati da `next-pwa` a ogni build (il worker delle notifiche si trova in `worker/index.js`).
 
 ## Backup e modifiche allo schema
 

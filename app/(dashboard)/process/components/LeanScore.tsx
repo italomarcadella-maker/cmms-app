@@ -2,12 +2,14 @@
 
 import React from "react";
 import { C, sCol, LAYOUTS, dlJSON, today } from "@/lib/fpes-utils";
+import { useT } from "@/lib/i18n/client";
 
 export default function LeanScore({ project, upd, cr }: { project: any; upd: (patch: any) => void; cr: any }) {
+  const t = useT();
   const p = project;
   const { leanScore: sc, twPct, ergoScore, bufScore, spazScore, lineEff, vaAvg, takt, bot } = cr;
   const col = sCol(sc);
-  const lbl = sc >= 85 ? "ECCELLENTE" : sc >= 70 ? "BUONO" : sc >= 50 ? "ACCETTABILE" : "DA MIGLIORARE";
+  const lbl = sc >= 85 ? t("ECCELLENTE") : sc >= 70 ? t("BUONO") : sc >= 50 ? t("ACCETTABILE") : t("DA MIGLIORARE");
   const storico = p.storico || [];
   const s2r = (d: number) => d * Math.PI / 180;
   const r = 80, gcx = 100, gcy = 100;
@@ -20,26 +22,26 @@ export default function LeanScore({ project, upd, cr }: { project: any; upd: (pa
   const nX = (gcx + 60 * Math.cos(nA)).toFixed(1), nY = (gcy + 60 * Math.sin(nA)).toFixed(1);
   const dims = [
     { l: "TIMWOODS", s: twPct, w: 35, c: C.orange, i: "🗑" },
-    { l: "Ergonomia", s: ergoScore, w: 30, c: C.blue, i: "⚖️" },
-    { l: "Buffer", s: bufScore, w: 20, c: C.green, i: "📦" },
-    { l: "Spazio", s: spazScore, w: 15, c: C.purple, i: "📐" }
+    { l: t("Ergonomia"), s: ergoScore, w: 30, c: C.blue, i: "⚖️" },
+    { l: t("Buffer"), s: bufScore, w: 20, c: C.green, i: "📦" },
+    { l: t("Spazio"), s: spazScore, w: 15, c: C.purple, i: "📐" }
   ];
   const rows = [
-    ["Progetto", p.nome],
-    ["Layout", LAYOUTS[p.layout as keyof typeof LAYOUTS] ? LAYOUTS[p.layout as keyof typeof LAYOUTS].label : p.layout],
-    ["Post. attive", String(cr.n)],
+    [t("Progetto"), p.nome],
+    [t("Layout"), LAYOUTS[p.layout as keyof typeof LAYOUTS] ? t(LAYOUTS[p.layout as keyof typeof LAYOUTS].label) : p.layout],
+    [t("Post. attive"), String(cr.n)],
     ["Takt", takt + "s"],
     ["Bottleneck", bot ? bot.nome + " (" + bot.cicloS + "s)" : "—"],
-    ["Efficienza", lineEff + "%"],
+    [t("Efficienza"), lineEff + "%"],
     ["% VA", vaAvg + "%"],
     ["TIMWOODS", twPct + "%"],
-    ["Ergonomia", ergoScore + "%"],
-    ["Lean Score", sc + "/100 — " + lbl]
+    [t("Ergonomia"), ergoScore + "%"],
+    [t("Lean Score"), sc + "/100 — " + lbl]
   ];
 
   return (
     <div className="w-full space-y-4">
-      <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 mb-4">LEAN SCORE & REPORT</h2>
+      <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 mb-4">{t("LEAN SCORE & REPORT")}</h2>
       <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col items-center">
           <svg width={200} height={130} viewBox="0 0 200 130">
@@ -72,7 +74,7 @@ export default function LeanScore({ project, upd, cr }: { project: any; upd: (pa
       
       {storico.length > 1 && (
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">TREND LEAN SCORE</h3>
+          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">{t("TREND LEAN SCORE")}</h3>
           <div className="flex gap-2 items-end h-20">
             {storico.slice(-12).map((s: any, i: number) => {
               const h = Math.round((s.leanScore / 100) * 70);
@@ -88,7 +90,7 @@ export default function LeanScore({ project, upd, cr }: { project: any; upd: (pa
       )}
 
       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">REPORT RIEPILOGATIVO</h3>
+        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">{t("REPORT RIEPILOGATIVO")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {rows.map((row, i) => (
             <div key={i} className="flex gap-2 py-1.5 border-b border-slate-100">
@@ -103,7 +105,7 @@ export default function LeanScore({ project, upd, cr }: { project: any; upd: (pa
           <button onClick={() => {
             const s = { data: today(), leanScore: sc, lineEff };
             upd({ storico: [...storico, s] });
-          }} className="px-3 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">📸 Snapshot</button>
+          }} className="px-3 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">{t("📸 Snapshot")}</button>
         </div>
       </div>
     </div>

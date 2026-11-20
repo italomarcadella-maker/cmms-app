@@ -9,17 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RECURRENCE_OPTIONS, MaintenanceActivity, Asset } from "@/lib/types";
 import { Calendar as CalendarIcon, CheckSquare, ArrowRight, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
-import { it } from "date-fns/locale";
+import { useT, useDateFnsLocale } from "@/lib/i18n/client";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/lib/i18n/toast";
 import { createPreventiveSchedule, getAssets, getActivities } from "@/lib/actions";
 import { usePM } from "@/lib/pm-context";
 import { AssetSelector } from "@/components/assets/asset-selector";
 import { Search } from "lucide-react";
 
 export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?: () => void }) {
+    const t = useT();
+    const dfLocale = useDateFnsLocale();
     const { refreshSchedules } = usePM();
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState(1);
@@ -116,23 +118,23 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
             <DialogTrigger asChild>
                 <Button className="gap-2">
                     <CalendarIcon className="h-4 w-4" />
-                    Nuovo Piano
+                    {t("Nuovo Piano")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Nuovo Piano di Manutenzione (Step {step}/3)</DialogTitle>
+                    <DialogTitle>{t("Nuovo Piano di Manutenzione (Step {step}/3)", { step })}</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
                     {step === 1 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
                             <div className="space-y-2">
-                                <Label>Titolo Piano</Label>
-                                <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Es. Controllo Mensile Pressa" />
+                                <Label>{t("Titolo Piano")}</Label>
+                                <Input value={title} onChange={e => setTitle(e.target.value)} placeholder={t("Es. Controllo Mensile Pressa")} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Asset</Label>
+                                <Label>{t("Asset")}</Label>
                                 <Dialog open={assetDialogOpen} onOpenChange={setAssetDialogOpen}>
                                     <DialogTrigger asChild>
                                         <Button
@@ -147,14 +149,14 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                                             ) : (
                                                 <>
                                                     <Search className="mr-2 h-4 w-4" />
-                                                    Sfoglia e seleziona macchinario...
+                                                    {t("Sfoglia e seleziona macchinario...")}
                                                 </>
                                             )}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col bg-background/95 backdrop-blur-xl">
                                         <DialogHeader>
-                                            <DialogTitle>Seleziona Macchinario</DialogTitle>
+                                            <DialogTitle>{t("Seleziona Macchinario")}</DialogTitle>
                                         </DialogHeader>
                                         <div className="flex-1 overflow-y-auto pr-2">
                                             <AssetSelector
@@ -169,8 +171,8 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                                 </Dialog>
                             </div>
                             <div className="space-y-2">
-                                <Label>Descrizione</Label>
-                                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Note aggiuntive..." />
+                                <Label>{t("Descrizione")}</Label>
+                                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder={t("Note aggiuntive...")} />
                             </div>
                         </div>
                     )}
@@ -178,7 +180,7 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                     {step === 2 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
                             <div className="space-y-2">
-                                <Label>Frequenza Ripetizione</Label>
+                                <Label>{t("Frequenza Ripetizione")}</Label>
                                 <Select value={frequency} onValueChange={handleFrequencyChange}>
                                     <SelectTrigger>
                                         <SelectValue />
@@ -186,7 +188,7 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                                     <SelectContent className="bg-white">
                                         {RECURRENCE_OPTIONS.map(opt => (
                                             <SelectItem key={opt.value} value={opt.value}>
-                                                {opt.label}
+                                                {t(opt.label)}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -194,7 +196,7 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Data Prima Esecuzione</Label>
+                                <Label>{t("Data Prima Esecuzione")}</Label>
                                 <div className="block">
                                     <Popover>
                                         <PopoverTrigger asChild>
@@ -206,7 +208,7 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                                                 )}
                                             >
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {firstDate ? format(firstDate, "PPP", { locale: it }) : <span>Seleziona data</span>}
+                                                {firstDate ? format(firstDate, "PPP", { locale: dfLocale }) : <span>{t("Seleziona data")}</span>}
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0 bg-white" align="start">
@@ -220,7 +222,7 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                                     </Popover>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Le esecuzioni successive verranno calcolate automaticamente in base alla frequenza scelta.
+                                    {t("Le esecuzioni successive verranno calcolate automaticamente in base alla frequenza scelta.")}
                                 </p>
                             </div>
                         </div>
@@ -228,10 +230,10 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
 
                     {step === 3 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-                            <Label>Checklist Attività</Label>
+                            <Label>{t("Checklist Attività")}</Label>
                             <div className="border rounded-lg p-2 max-h-[300px] overflow-y-auto space-y-2">
                                 {activities.length === 0 ? (
-                                    <p className="text-muted-foreground text-sm text-center py-4">Nessuna attività definita nelle impostazioni.</p>
+                                    <p className="text-muted-foreground text-sm text-center py-4">{t("Nessuna attività definita nelle impostazioni.")}</p>
                                 ) : (
                                     activities.map(act => (
                                         <div
@@ -259,7 +261,7 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                                 )}
                             </div>
                             <p className="text-xs text-muted-foreground text-right">
-                                {selectedActivities.length} attività selezionate
+                                {t("{n} attività selezionate", { n: selectedActivities.length })}
                             </p>
                         </div>
                     )}
@@ -268,7 +270,7 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
                 <DialogFooter className="flex justify-between sm:justify-between w-full">
                     {step > 1 ? (
                         <Button variant="outline" onClick={() => setStep(s => s - 1)}>
-                            <ArrowLeft className="h-4 w-4 mr-2" /> Indietro
+                            <ArrowLeft className="h-4 w-4 mr-2" /> {t("Indietro")}
                         </Button>
                     ) : (
                         <div />
@@ -276,11 +278,11 @@ export function CreateScheduleDialog({ onScheduleCreated }: { onScheduleCreated?
 
                     {step < 3 ? (
                         <Button onClick={() => setStep(s => s + 1)}>
-                            Avanti <ArrowRight className="h-4 w-4 ml-2" />
+                            {t("Avanti")} <ArrowRight className="h-4 w-4 ml-2" />
                         </Button>
                     ) : (
                         <Button onClick={handleSubmit}>
-                            Crea Piano
+                            {t("Crea Piano")}
                         </Button>
                     )}
                 </DialogFooter>

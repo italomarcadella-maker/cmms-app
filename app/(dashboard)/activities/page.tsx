@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useReference } from "@/lib/reference-context";
 import { Plus, Trash2, ListChecks } from "lucide-react";
 import { BackToDashboardButton } from "@/components/ui/back-button";
+import { useT } from "@/lib/i18n/client";
 
 export default function ActivitiesPage() {
+    const t = useT();
     const { activities, addActivity, removeActivity } = useReference();
     const [newActivity, setNewActivity] = useState("");
     const [category, setCategory] = useState("General");
@@ -23,9 +25,9 @@ export default function ActivitiesPage() {
             <BackToDashboardButton />
             <div>
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                    Attività di Manutenzione
+                    {t("Attività di Manutenzione")}
                 </h1>
-                <p className="text-muted-foreground mt-1">Gestisci le attività standard per le checklist degli ordini di lavoro.</p>
+                <p className="text-muted-foreground mt-1">{t("Gestisci le attività standard per le checklist degli ordini di lavoro.")}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -33,40 +35,40 @@ export default function ActivitiesPage() {
                 <div className="md:col-span-1">
                     <div className="rounded-xl border bg-card p-6 shadow-sm">
                         <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <Plus className="h-4 w-4 text-primary" /> Nuova Attività
+                            <Plus className="h-4 w-4 text-primary" /> {t("Nuova Attività")}
                         </h3>
                         <form onSubmit={handleAdd} className="space-y-4">
                             <div className="space-y-2">
-                                <label htmlFor="name" className="text-sm font-medium">Descrizione Attività</label>
+                                <label htmlFor="name" className="text-sm font-medium">{t("Descrizione Attività")}</label>
                                 <input
                                     id="name"
                                     required
-                                    placeholder="es. Controllo livello olio"
+                                    placeholder={t("es. Controllo livello olio")}
                                     className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
                                     value={newActivity}
                                     onChange={(e) => setNewActivity(e.target.value)}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="category" className="text-sm font-medium">Categoria</label>
+                                <label htmlFor="category" className="text-sm font-medium">{t("Categoria")}</label>
                                 <select
                                     id="category"
                                     className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
                                     value={category}
                                     onChange={(e) => setCategory(e.target.value)}
                                 >
-                                    <option value="General">Generale</option>
-                                    <option value="Mechanical">Meccanica</option>
-                                    <option value="Electrical">Elettrica</option>
-                                    <option value="Inspection">Ispezione</option>
-                                    <option value="Cleaning">Pulizia</option>
+                                    <option value="General">{t("Generale")}</option>
+                                    <option value="Mechanical">{t("Meccanica")}</option>
+                                    <option value="Electrical">{t("Elettrica")}</option>
+                                    <option value="Inspection">{t("Ispezione")}</option>
+                                    <option value="Cleaning">{t("Pulizia")}</option>
                                 </select>
                             </div>
                             <button
                                 type="submit"
                                 className="w-full bg-primary text-primary-foreground h-10 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
                             >
-                                Aggiungi Attività
+                                {t("Aggiungi Attività")}
                             </button>
                         </form>
                     </div>
@@ -77,13 +79,13 @@ export default function ActivitiesPage() {
                     <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
                         <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
                             <h3 className="font-semibold flex items-center gap-2">
-                                <ListChecks className="h-4 w-4 text-muted-foreground" /> Elenco Attività ({activities.length})
+                                <ListChecks className="h-4 w-4 text-muted-foreground" /> {t("Elenco Attività ({n})", { n: activities.length })}
                             </h3>
                         </div>
                         <div className="divide-y max-h-[600px] overflow-y-auto">
                             {activities.length === 0 ? (
                                 <div className="p-8 text-center text-muted-foreground italic">
-                                    Nessuna attività definita.
+                                    {t("Nessuna attività definita.")}
                                 </div>
                             ) : (
                                 activities.map((activity) => (
@@ -95,7 +97,7 @@ export default function ActivitiesPage() {
                                         <button
                                             onClick={() => removeActivity(activity.id)}
                                             className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
-                                            title="Rimuovi attività"
+                                            title={t("Rimuovi attività")}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </button>
